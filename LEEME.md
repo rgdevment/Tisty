@@ -155,9 +155,10 @@ parte.
   tu agente un índice y una sección a la vez.
 - **Memoria que dura más que la sesión** — tu agente parte de lo que cambió, de
   la tarea en la que estaba y de lo que anotó ayer, no de un chat en blanco.
-- **Nada se cierra sin ti** — tu agente dice cuándo una tarea o un paso está
-  listo, y espera en *Por confirmar* hasta que tú la terminas o la devuelves. No
-  puede cerrar ni borrar una tarea, ni borrar un documento o una idea.
+- **Nada se cierra sin ti** — tu agente dice cuándo una tarea está lista, y
+  espera en *Por confirmar* hasta que tú la terminas o la devuelves; un paso que
+  da por listo espera en la página de su tarea hasta que lo marcas. No puede
+  cerrar ni borrar una tarea, ni borrar un documento o una idea.
 - **Hecho para agentes tanto como para personas** — un índice cuesta unos
   cientos de tokens, una lectura trae una sección, y retomar trae solo lo que
   cambió: una fracción de lo que cuesta releer tus archivos Markdown.
@@ -239,7 +240,8 @@ junto a tus listas.
   quién lo enlaza.
 - **Un mapa de lejos, el detalle de cerca** — los documentos como cuadrados, las
   tareas como círculos del color de su lista, las etiquetas y los archivos; las
-  carpetas y las listas dan el color y tiñen su zona. Lo que alguien escribió —
+  carpetas y las listas dan el color y, con **Girar** apagado, tiñen su zona. Lo
+  que alguien escribió —
   una cita, una mención, una parte — es lo que más acerca y más se ve. De cerca,
   cada título, cada tipo de línea y cada nodo dibujado como su propio ícono. Una
   leyenda plegada dice qué significa cada forma, cada color y cada línea.
@@ -567,7 +569,8 @@ junta en Tisty como documentos, con sus skills y su memoria.
   aquí**, y un cambio hecho por fuera de Tisty nunca se pisa: lo traes o te
   quedas con el de Tisty.
 - **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
-  secreto nunca entran, y no se lee nada hasta que haces clic en la carpeta.
+  secreto nunca entran, y Agentes no lee nada hasta que haces clic en la
+  carpeta.
 
 </details>
 
@@ -1559,10 +1562,22 @@ Lo que escribe va firmado con su nombre, y lee primero la ficha de un documento
 y después solo la parte que necesita. Por ejemplo, retoma *Migrar pagos a v2*:
 pregunta qué cambió, abre esa tarea y lee lo que anotó ayer.
 
+Dos ayudas opcionales lo vuelven costumbre, cada una con su propio sí en
+Configuración › Agentes, y al conectar ahí un agente Tisty te ofrece una vez las
+que ese agente admite. Sus **hooks**, en Claude Code, Cursor, Gemini CLI y
+GitHub Copilot, le traen al agente sus tareas abiertas al empezar una sesión, y
+le devuelven el turno una vez cuando editó archivos sin escribir nada aquí. Sus
+**skills propias**, `tisty`, `consolidate` y `writing-for-the-next-agent`, le
+enseñan qué significa «Retoma donde quedamos», «Ordena mi Tisty» o «Deja esta
+página clara para el próximo agente», dicho con tus palabras. Y cuando dice que
+un paso tuyo está hecho, la lista lo cuenta aparte, `1/3 ◆1`, hasta que tomes
+su palabra.
+
 - [Agentes y MCP](https://www.tisty.app/es/ayuda/agentes-y-mcp/): la
   puerta, la firma y cada agente que Tisty conoce
 - [Qué puede hacer un agente](https://www.tisty.app/es/ayuda/que-puede-hacer-un-agente/)
 - [Cómo trabaja un agente](https://www.tisty.app/es/ayuda/como-trabaja-un-agente/)
+- [Hooks y skills](https://www.tisty.app/es/ayuda/hooks-y-skills/)
 - [Herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/)
 
 <details>
@@ -1587,7 +1602,8 @@ $ <tu-agente> mcp add tisty -- <ruta-de-tisty> mcp
 ```
 
 Donde `<tu-agente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
-de comandos: solo abre la puerta del agente. Habla
+de comandos: solo abre la puerta del agente, con `tisty mcp`, y responde a los
+hooks de Tisty, con `tisty hook`. La puerta habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin cuenta, sin
 token, nada por la red. **Tú manejas la puerta.** Viene abierta sola hasta que
 elijas —en una instalación nueva, y al actualizar si nunca la cerraste—, así que

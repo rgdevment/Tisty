@@ -30,6 +30,7 @@ Esta es la ayuda de Tisty: cómo se usa cada cosa, con ejemplos, trabajes con un
 - **Conectarlo:** [[Agentes y MCP|Agentes-y-MCP]].
 - **Saber qué puede hacer y qué nunca hace:** [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 - **Ver cómo trabaja en una sesión real:** [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
+- **Que retome solo y deje el trabajo listo para el próximo:** [[Hooks y skills|Hooks-y-skills]].
 - **Tener las reglas de todos tus agentes en un solo lugar:** [[Agentes|Carpeta-AGENTS]].
 - **Volver a lo que decía un documento antes de un cambio:** [Versiones anteriores](Documentos#versiones-anteriores).
 
@@ -62,6 +63,7 @@ Esta es la ayuda de Tisty: cómo se usa cada cosa, con ejemplos, trabajes con un
 Tisty no es IA ni la lleva dentro. Eso no va a cambiar. Pero habla [MCP](https://modelcontextprotocol.io), así que el agente que ya usas (GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP) guarda aquí su memoria: anota tareas con pasos y bitácora, escribe documentos y retoma donde quedó, en este equipo, sin cuenta y sin pasar nada por la red.
 
 - [[Agentes y MCP|Agentes-y-MCP]]: cómo conectar uno, dejarlo entrar, un día con tu agente y lo que cuesta.
+- [[Hooks y skills|Hooks-y-skills]]: los hooks que le avisan a Tisty al empezar y al terminar cada turno, y las tres skills de Tisty que le enseñan a tu agente a retomar, ordenar y dejar el trabajo listo para el próximo.
 - [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]]: los límites, su palabra sobre tus tareas y **Por confirmar**.
 - [[Herramientas MCP|Herramientas-MCP]]: cada herramienta que ofrece el servidor.
 - [[Agentes: las reglas, skills y memoria de tus agentes|Carpeta-AGENTS]]: una carpeta para los archivos que leen Claude Code, Codex, Copilot, Gemini y Cursor. Traer los copia para leerlos y ordenarlos; Sincronizar hace que Tisty los escriba, con respaldos.

@@ -24,6 +24,7 @@ The card reads the task every time it is drawn, so it never goes stale:
 | If the task… | The card shows |
 | :-- | :-- |
 | is open | its title, its list and its dates («Car · today · due Wed, 25 Nov 18:30»), the circle to mark it and «2 of 5 steps» |
+| has a step an agent says it did | counts it apart, until you [take its word](MCP-Permissions#its-word-on-your-own-tasks): «1 of 3 steps · 1 to confirm» |
 | has parts | how many are closed: «1 of 3 parts» |
 | was completed | «Done» and «closed on March 14, 2026» |
 | was dropped with **Not doing it** | «Not doing» |
@@ -39,7 +40,7 @@ The card reads the task every time it is drawn, so it never goes stale:
 ## Creating a task without leaving the document
 
 1. In the document, where the task goes, type `/` and pick **A new task**. It comes first in the menu, so `/task` and `Enter` open it.
-2. The quick capture's own field opens in that place. Write the task the way you would say it: `Get a quote for the gate on Monday #building !plan @Home`. The marks are painted as you type, and `/` inside the field offers what it offers in the quick capture: a date, a list, a priority.
+2. The quick capture's own field opens in that place. Write the task the way you would say it: `Get a quote for the gate on Monday #building !schedule @Home`. The marks are painted as you type, and `/` inside the field offers what it offers in the quick capture: a date, a list, a priority.
 3. `Enter` creates the task, with its date, its list, its tags and its priority, and leaves its card in that place of the document.
 
 ![The «A new task» field open in the building's November minutes: «Call the administrator tomorrow 10am #condominium !», with the tag and the date already painted below](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/en-new-task.png)
@@ -68,7 +69,7 @@ It is not offered on a part's page (a part has no parts) nor on a routine's. How
 It is Tuesday and you are writing the minutes of the building meeting, with Jaime and Yisset.
 
 1. In the **Parking gate** section you write what was said. The «we need to…» comes: `/task` and `Enter`.
-2. You write `Get a quote for the gate on Monday #building !plan` and `Enter`. The card stays in the minutes; the task shows in **Upcoming** for Monday.
+2. You write `Get a quote for the gate on Monday #building !schedule` and `Enter`. The card stays in the minutes; the task shows in **Upcoming** for Monday.
 3. Further down, in **Gardens**, you cite last year's task: `/`, **A task**, `pruning`, and pick «Hire the tree pruning», archived. Its card says «closed on September 12, 2026».
 4. On Monday you open the task from **Today**. Beside its page, **Born in** names the minutes and the **Parking gate** section. One click and you are reading what was said.
 5. As you get the three quotes, you tick the steps from the card in the minutes, without opening the task, and the minutes show «3 of 3 steps».

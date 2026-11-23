@@ -1,6 +1,6 @@
 # Terms of use
 
-**Last updated:** November 3, 2026
+**Last updated:** November 23, 2026
 
 ## The short version
 

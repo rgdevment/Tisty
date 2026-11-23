@@ -65,7 +65,7 @@ Prueba con:
 
 ## Captura rápida desde cualquier parte
 
-Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para la [Ideas](Documentos#ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en **Configuración › Tareas y avisos**.
+Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para una tarea. `Enter` la guarda, `Esc` la cierra y sigues con lo tuyo. `Tab` la cambia a **Idea**, para [Ideas](Documentos#ideas), o a **Diario**, que escribe en hoy en el [Diario](Documentos#diario). Si ese atajo ya lo usa otro programa, Tisty toma otro y te dice cuál en **Configuración › Tareas y avisos**.
 
 ## Las vistas
 
@@ -151,7 +151,7 @@ Lo que escribas en **Esta vez** es de la vuelta que corre. Al completarla se gua
 
 Sin un repaso cada tanto, lo capturado se acumula sin decidir. **Revisión semanal**, en la fila de vistas de la barra lateral, junta en una página lo que conviene mirar una vez por semana, en tres paradas. Cada parada se marca ✓ cuando ya no espera nada:
 
-1. **Por decidir**: las tareas sin lista, con **Abrir** para darles lista o fecha, **Completar** y **No la haré**. Y si quedan ideas, **Abrir Ideas**, que es donde se ordenan.
+1. **Por decidir**: las tareas sin lista, con **Abrir** para darles lista o fecha, **Completar** y **No lo haré**. Y si quedan ideas, **Abrir Ideas**, que es donde se ordenan.
 2. **Marcados como pasados**: los documentos que un agente marcó, con su motivo. **Archivar**, **Borrarlo** o **Quitar la marca**.
 3. **Hace tiempo que no abres**: los mismos de la Biblioteca, sin abrir en este equipo ni escribir en 60 días, para **Abrir** o **Archivar**.
 
@@ -175,7 +175,7 @@ Las tareas que un agente da por hechas esperan en **Por confirmar**: mira [[Qué
 La misma tarea que guarda tu trabajo es la memoria del agente de IA que conectas por [[MCP|Agentes-y-MCP]].
 
 - **Lo que anota es suyo para mantenerlo al día.** Describe la tarea, planifica los pasos, marca cada uno al terminarlo, anota en la bitácora lo que aprende y reparte un trabajo grande en partes.
-- **Lo que la cierra sigue siendo tuyo.** En una tarea que escribiste tú, el agente trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo.
+- **Lo que la cierra sigue siendo tuyo.** En una tarea que escribiste tú, el agente trabaja como en un documento (la descripción, la página, los pasos abiertos, el título y la lista), pero un paso que da por listo espera a que lo marques, el día sigue siendo tuyo y cerrar siempre es tuyo. Mientras espera, la fila lo cuenta aparte: **1/3 ◆1**, con «1 por confirmar» al dejar el puntero encima, y lo mismo **Lo que lleva**, en la página completa.
 - **La página le dice cuándo parar.** *Para estar lista* dice cuándo termina la tarea, y los pasos sin marcar dicen qué falta, así la próxima sesión empieza ahí.
 - **La bitácora evita que se repita.** Lo que se probó y se descartó queda con fecha, y la próxima sesión, u otro agente, lo lee antes de volver a intentarlo.
 - **Un ticket, una tarea.** Anotada con su origen (un ticket, un hilo), el mismo trabajo nunca se anota dos veces.

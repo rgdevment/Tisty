@@ -39,6 +39,6 @@ Tisty hace su propio PDF y te lo muestra antes de exportarlo:
 - Sus propios márgenes.
 - Sus imágenes van dentro; cualquier otro adjunto queda nombrado donde está.
 - Si quieres, **quién lo escribió y cuándo**: un PDF sale de Tisty para siempre, así que lo que va dentro lo decides tú.
-- La página tal como se ve en pantalla (el color del código, los avisos, los diagramas, las fórmulas y los iconos), porque el PDF es la misma página puesta en papel.
+- La página con todo lo que dibuja en pantalla (el color del código, los avisos, los diagramas, las fórmulas y los iconos), con la letra que tiene con **Hojas** encendido.
 
 Desde **Exportar**, en el panel del documento: **Vista previa del PDF** lo muestra y **Exportar a PDF…** lo guarda.

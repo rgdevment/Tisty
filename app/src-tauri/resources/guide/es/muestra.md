@@ -27,10 +27,10 @@ fuente: la guía de Tisty
 
 ### Un documento de agente
 
-`agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un asistente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Solo vale dentro de la carpeta **Agentes**, y solo se escribe mientras sincroniza; en esta hoja, como en cualquier otra, es una propiedad más y nada se escribe. Dentro de Agentes:
+`agent:` convierte la hoja en un documento de agente: Tisty escribe su cuerpo, tal cual, en el archivo que lee un agente de IA. El valor dice para quién es, qué es y dónde va: `nivel/tipo/nombre`. Solo vale dentro de la carpeta **Agentes**, y solo se escribe mientras sincroniza; en esta hoja, como en cualquier otra, es una propiedad más y nada se escribe. Dentro de Agentes:
 
 - **En la barra lateral**, el documento se llama por su primer título, o por el `name` de su skill, con un icono: un libro para una regla, una pieza para una skill y un cerebro para la memoria. Los archivos de una skill van juntos en una sola fila.
-- **Al crearlo** con **Documento nuevo** dentro de **Global** o de la carpeta de un asistente, ya empieza con su línea `agent:` puesta: tú solo escribes la regla.
+- **Al crearlo** con **Documento nuevo** dentro de **Global** o de la carpeta de un agente, ya empieza con su línea `agent:` puesta: tú solo escribes la regla.
 - **Al abrirlo**, el documento no se ve como esta hoja: se abre en su propia ficha, sin nada al lado. Arriba, las etiquetas del tipo, el nivel y el estado, como **Regla**, **Claude** y **Al día**, y el nombre en grande. Debajo, el cuadro de datos del archivo: **Lo lee**, una fila **Se escribe en** por cada archivo, con su ruta, y su **Tamaño**, **Respaldos**, **Formato** y **Sincroniza en este equipo**. Las propiedades del archivo mismo, como `name` y `description`, se ven como campos.
 - **Dentro de la misma ficha** aparecen los avisos, como un archivo **Cambiado por fuera** o un texto que espera tu aprobación, y la propuesta de un agente, con **Aprobar el cambio** y **Descartar**. Después va el texto del agente, tal cual, y al pie los botones **Editar**, **Respaldos**, **Historial**, **Copiar enlace** y **Pausar la sincronización con Claude**.
 
@@ -133,7 +133,7 @@ Un enlace solo en su párrafo se dibuja como una tarjeta; está más abajo, en *
 
 Dos corchetes dobles nombran algo sin enlazarlo: [[La cartilla de Rina]] queda como una ficha con ese nombre. Con un número, [[#2]] trae las palabras de la segunda etapa de esta hoja, que está más abajo, en **Listas**, y un clic te lleva a ella. En la página de una tarea, ese número es el de uno de sus pasos.
 
-Otro documento también se menciona dentro de una frase: aquí está [la página de Rina](tisty:page), y un clic la abre. Se escribe con `[[` y unas palabras de su título; con `#` después del título, el enlace va a una de sus secciones: `[[qué es#tareas` lleva a **Las tareas**, en [la portada de esta guía](tisty:guide). Al dejar el puntero encima se ve su vista previa, y la página enlazada lo cuenta en **Enlazado desde**. Todo lo que une estas formas está en [Brainsty](tisty:brainsty).
+Otro documento también se menciona dentro de una frase: aquí está [la página de Rina](tisty:page), y `Ctrl` (`⌘` en un Mac) + clic la abre. Se escribe con `[[` y unas palabras de su título; con `#` después del título, el enlace va a una de sus secciones: `[[qué es#tareas` lleva a **Las tareas**, en [la portada de esta guía](tisty:guide). Al dejar el puntero encima se ve su vista previa, y la página enlazada lo cuenta en **Enlazado desde**. Todo lo que une estas formas está en [Brainsty](tisty:brainsty).
 
 ### Notas al pie
 
@@ -152,9 +152,9 @@ Entre signos de dólar: Rina pesa 14 kilos, así que su dosis es $\frac{14 \time
 ### Líneas y párrafos
 
 Una línea termina donde tú la terminas.
-Esta es del mismo párrafo, una línea más abajo: `Shift` + `Enter`.
-Y esta se cortó con una barra invertida al final,\
-que corta la línea en cualquier lector de Markdown.
+Esta es del mismo párrafo, una línea más abajo.
+Y esta se cortó con `Shift` + `Enter`, que escribe una barra invertida al final,\
+y esa corta la línea en cualquier lector de Markdown.
 
 Una línea en blanco empieza otro párrafo: `Enter`.
 
@@ -836,7 +836,7 @@ Una página: **Una página nueva** o **Una página que ya existe**. Su tarjeta d
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
-Una tarea: **Una tarea**, en el menú `/`, busca entre las abiertas y las archivadas. Su tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos y si ya se cerró. Un clic la abre, su círculo la marca hecha y su contador despliega los pasos para tacharlos ahí. Esta cita una tarea que no está en tu máquina, así que muestra sus palabras y un aviso; cita una tuya para verla viva.
+Una tarea: **Una tarea**, en el menú `/`, busca entre las abiertas y las archivadas. Su tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos, cuántos esperan que confirmes si un agente dice que los hizo («1 de 3 pasos · 1 por confirmar») y si ya se cerró. Un clic la abre, su círculo la marca hecha y su contador despliega los pasos para tacharlos ahí. Esta cita una tarea que no está en tu máquina, así que muestra sus palabras y un aviso; cita una tuya para verla viva.
 
 ![Llevar a Rina al veterinario](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 

@@ -39,7 +39,7 @@ Una sección es lo que hay bajo un título del documento. Para llegar justo ahí
 2. Tisty te muestra los títulos de ese documento. Sigue escribiendo para acotar: `[[Veterinaria#hor`.
 3. `Enter` deja un enlace como `[Veterinaria › Horarios](tisty:doc/…#horarios)`.
 
-Un clic en ese enlace abre el documento en esa sección. Si la sección ya no existe porque cambiaste su título o la borraste, el enlace no se rompe: abre el documento al comienzo.
+Se abre como cualquier enlace (`Ctrl` + clic, `⌘` + clic en un Mac, o un clic a secas donde solo se lee) y llega a esa sección. Si la sección ya no existe porque cambiaste su título o la borraste, el enlace no se rompe: abre el documento al comienzo.
 
 ## Ver adónde lleva, sin irte
 

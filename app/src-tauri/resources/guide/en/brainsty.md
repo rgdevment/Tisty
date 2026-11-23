@@ -26,7 +26,7 @@ What you know about a subject lives in its document, and the work you did on it,
 
 ![The cards of «Renew the car insurance» and «Change the car tyres» in the «Car» document, each with its list, Finance, and «1 of 3 steps»; the second one also with its date](card.png)
 
-The card reads the task every time it is drawn: its list, its dates, how many steps are done and, if it closed, the day. A click opens it; its circle marks it done; its count unfolds the steps to tick them right there. A closed task is read, but no longer changes from the document.
+The card reads the task every time it is drawn: its list, its dates, how many steps are done, how many wait for you to confirm when an agent says it did them («1 of 3 steps · 1 to confirm») and, if it closed, the day. A click opens it; its circle marks it done; its count unfolds the steps to tick them right there. A closed task is read, but no longer changes from the document.
 
 **Try it:** on an empty line of this sheet type `/`, pick **A task** and write a word of one of your tasks. If you have none yet, the quick capture is one `Ctrl` + `Shift` + `Space` away.
 
@@ -81,7 +81,7 @@ Folders and lists are not dots in the network: they give their things their colo
 
 **What you wrote leads.** As it settles, the network draws together what cites, mentions or is part of the same thing; a line to a file pulls half as much, and a shared tag, barely. Alike pairs move nobody. That is why tags look faint: they say what something is about, not what you wrote. If you cite the task «Rina's yearly vaccine» on Rina's sheet, the two sit together, even though the task lives in the **Home** list and the sheet in the **Pets** folder.
 
-The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag and a clip for a file. With the network turned, the zones hide and fewer titles show.
+The network changes with the distance. From afar, as it opens or with the wheel backwards, its dots make a brain seen from the side, with no titles, and each kind has the shape in the table. At middle distance the most connected nodes carry a title and, with **Turning** off, the coloured zones show. Up close every title shows, each kind of line, the tags and each picture's thumbnail, and each node becomes its icon, in its folder or list colour: a sheet for a document, a few lines of text for a page, a box for a task and a tick once it is done, a `#` for a tag and a clip for a file. With **Turning** on, as it comes, the zones stay hidden, even while the globe rests, and fewer titles show.
 
 ![«Rina's record» picked up close in Brainsty, in the content panel beside the sidebar: around it, each node drawn as its icon in its folder or list colour (a document's sheet, a task's box, a file's clip) and Rina's photo as a thumbnail; at the bottom left, the Legend open; on the right, its card: «Document · Health · 7 connections», the rows Last written, Created and Size with its words, the rina tag, Connections with 6 mentions and 1 tag, Pointing here with «Go to the vet for Rina's vaccine» and «Saturday walks», the Link with Copy link and the Open button](network-near.png)
 
@@ -96,7 +96,7 @@ The card changes with what you pick:
 | You pick | The card shows |
 | --- | --- |
 | A document or a page | **Page of**, if it is a page of a book; **Last written**, **Created**, **Size** with its words and **Language** |
-| A task | **State**, like «Under way · Due soon»; **Day**, **Deadline**, **Part of**, **Parts**, **Steps**, like «1 of 3 done», and **Source** |
+| A task | **State**, like «Under way · Due soon»; **Day**, **Deadline**, **Part of**, **Parts**, **Steps**, like «1 of 3 done», or «1 of 3 done · 1 to confirm» when an agent says it did one of yours, and **Source** |
 | A tag | what it is and how many connections it has |
 | A picture or a file | its thumbnail, or the icon of its type; **Type**, **Size** and **Modified**; **Used in**, with each document or task that uses it, a click away, and the buttons **Open** and **Show in folder** |
 

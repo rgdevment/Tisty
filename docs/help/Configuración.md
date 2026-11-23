@@ -8,7 +8,7 @@ Configuración es donde Tisty se acomoda a ti: cómo se ve, cómo te avisa, dón
 - **La paleta de comandos**: escribe «configuración» y elige **Configuración** (los atajos están en [Atajos de teclado](Atajos-de-teclado)).
 - **Desde un aviso**: el pie de la barra lateral, cuando la sincronización pide algo, te lleva a la página que lo resuelve.
 
-El engranaje y la paleta abren siempre en **Resumen**. A la izquierda tienes, en este orden, **Volver**, **Buscar un ajuste**, **Resumen** y las once páginas en cuatro grupos:
+El engranaje y la paleta abren siempre en **Resumen**. A la izquierda tienes, en este orden, **Volver**, **Buscar un ajuste**, **Resumen** y las diez páginas en cuatro grupos:
 
 | Grupo | Páginas | Qué guarda |
 |---|---|---|
@@ -103,9 +103,9 @@ Los resultados van en el orden de la columna, de **Aspecto y ventana** a **Ayuda
 |---|---|
 | respaldo | **Guardar una copia** y **Documentos de otro Tisty**, en Copias |
 | idioma | **Idioma**, en Aspecto y ventana, y **La bienvenida**, en Ayuda y acerca de |
-| cifrar | **Cifrar mis datos en la nube**, en Seguridad |
+| cifrar | **Cifrar mis datos en la nube**, en Seguridad, entre otros |
 | teclado | **Captura rápida** e **Idea rápida**, en Tareas y avisos |
-| carpeta | **Carpetas ocultas**, **Dónde se sincroniza**, **Desactivar la sincronización** y **Tu carpeta** |
+| carpeta | **Carpetas ocultas**, **Dónde se sincroniza**, **Desactivar la sincronización** y **Tu carpeta**, entre otros |
 
 Si nada coincide, dice «Nada con esas palabras. Prueba con «respaldo», «atajo» o «idioma».». Un ajuste que existe pero que hoy no se ve, como **Tus equipos** en Sincronización mientras no sincronizas, abre su página desde arriba, sin resaltar nada.
 
@@ -197,7 +197,7 @@ Más en [Adjuntos grandes](Sincronizar-y-respaldar#adjuntos-grandes) y [Privacid
 «Tisty no lleva IA dentro. La pone tu agente; Tisty es la memoria que comparten.» La página tiene cinco pestañas:
 
 - **Puerta**: **Un agente puede anotar aquí**, con **Quitarle la voz** para cerrarla (y **Dejar que un agente anote** para abrirla otra vez), **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno**.
-- **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares** y **Cómo conectar uno**, plegado, para conectarlo a mano.
+- **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares**, la fila **Skills de Tisty**, con **Ver**, y **Cómo conectar uno**, plegado, para conectarlo a mano. Bajo cada agente que los acepta, la fila **Hooks: al empezar y al terminar cada turno**, con **Agregar** o **Quitar**; y al conectar uno, una vez, un recuadro que ofrece sus hooks y las skills. Lo cuenta [Hooks y skills](Hooks-y-skills).
 - **Carpeta Agentes**: la tarjeta **Agentes**, para traer y sincronizar las reglas, skills y memoria de tus agentes. Más en [Agentes: reglas, skills y memoria](Carpeta-AGENTS).
 - **Cómo se ve su firma**: **Quién firma lo que escribe un agente**, con una **Vista previa de una fila** que cambia al momento, **Solo un rombo**, **Nombrar al agente en la lista de tareas** y **Nombrar al agente dentro de una tarea**.
 - **Qué puede y qué no**: **Lo que puede hacer** y **Lo que no podrá hacer nunca**, lado a lado.
@@ -268,7 +268,7 @@ Cuatro botones fuera de la zona preguntan igual, en su propia fila:
 - **Mover 5 a la papelera · 41 MB**, en **Almacenamiento › Adjuntos que nada usa**: **¿Mover a la papelera 5 adjuntos que nada usa?**, con «Los de este equipo quedan ahí por 30 días.» y el aviso de que los que están solo en la carpeta compartida se borran de ella y tu nube los guarda en su propia papelera. Sin casilla.
 - **Borrar para siempre**, en **Salud › Por revisar**: **¿Borrar «Recetas» para siempre?**, con «Aquí no queda copia.» para un documento suelto, o «El documento y lo que tiene se van para siempre, en todos tus equipos.» para uno que falta. Con casilla.
 
-Lo que se puede deshacer, o es un paso dentro de un agente, sigue con una pregunta simple: volver a enviar todo, cancelar un cifrado a medias, mover un solo adjunto a la papelera y borrar las copias de la nube vieja al mudarte.
+Lo que se puede deshacer, o es un paso dentro de un diálogo guiado, sigue con una pregunta simple: volver a enviar todo, cancelar un cifrado a medias, mover un solo adjunto a la papelera y borrar las copias de la nube vieja al mudarte.
 
 ![La ventana Restaurar desde un archivo, con sus tres frases, la casilla Entiendo que no se puede deshacer sin marcar y el botón Restaurar todavía en gris](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/settings/es-02-restaurar.png)
 

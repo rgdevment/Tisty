@@ -141,7 +141,7 @@ Claude's row reads **Claude · 2 rules · 1 skill**: `CLAUDE.md` and `rules/styl
 | **Rule**, **Skill**, **Agent memory** | It can come in. Memory comes unticked |
 | **already in Agents** | A document in Agents already stands for it, so it is compared instead of brought again |
 | **credentials, left out** | Its name is a credentials file's, such as `credentials.json`, `auth.json`, or a `.pem`, `.key` or `id_rsa` key. Those starting with a dot, such as `.env` or `.credentials.json`, do not even show |
-| **Tisty's own** | A file Tisty left or a temporary one, such as `tisty.json` or one ending in `.tmp` |
+| **Tisty's own** | A file Tisty left or a temporary one, such as `tisty.json` or one ending in `.tmp`, or the copy of one of [Tisty's skills](#tistys-skills-in-global) |
 | **a link, left out** | It is a symbolic link: Tisty does not follow it |
 | **too big** | Larger than 512 kB, what a document can hold |
 | **too many files** | Tisty had already seen 2,000 files in your agents' folders and stopped looking |
@@ -158,7 +158,7 @@ After bringing, a ticked file may stay out:
 
 ### If you have no agent files yet
 
-The box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». Below it, each agent it found with no files has its line, such as «Codex: no rules, skills or memory yet. It gets what you write in Global or in its folder.». **Bring** stays greyed out, since there is nothing to bring, and **Bring and sync** is still there: pressing it lets this computer sync and still creates the **Agents** folder, with **Global** and an empty subfolder for each agent it found, such as **Codex** and **Gemini**. The box says «Nothing new came in. Agents syncs on this computer now: what you write there reaches its agents.», and in the sidebar Agents is left with its coral robot. Going into it does not open the box again.
+The box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». Below it, each agent it found with no files has its line, such as «Codex: no rules, skills or memory yet. It gets what you write in Global or in its folder.». **Bring** stays greyed out, since there is nothing to bring, and **Bring and sync** is still there: pressing it lets this computer sync and still creates the **Agents** folder, with **Global** and an empty subfolder for each agent it found, such as **Codex** and **Gemini**. The box says «Nothing new came in. The Agents folder syncs on this computer now: what you write there reaches your agents.», and in the sidebar Agents is left with its coral robot. Going into it does not open the box again.
 
 From there you have two ways:
 
@@ -279,8 +279,8 @@ The subfolders are there so you find things: **what decides where a document goe
 | Where | What you see |
 | :-- | :-- |
 | **Each document's card** | Its standing, always, on the coloured label: **Changed outside**, **Changed on both sides**, **Written by an earlier Tisty** or **On hold**; the **Proposal** label, if an agent proposes a change to you; or an amber notice inside the card, when the document [comes from another computer](#on-several-computers) or its text [waits for your approval](#to-approve). The table of [each standing](#each-standing) says what to do with each one |
-| **Settings › Agents › Agents folder**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
-| **When you go into Agents** | If Agents syncs and a file exists on both sides, no longer belongs to any rule or lost Gemini's line, Tisty asks about it as soon as you go in, one at a time |
+| **Settings › Agents › Agents folder**, on the **Agents** card | The files that ask for your decision: «1 file says something different in Tisty and in the agent.», or «1 file no longer belongs to any rule or skill in Agents.», each with **Review**; and under **Sync Gemini**, if [its line](#gemini-paused) is missing |
+| **When you go into Agents** | If Agents syncs and a file exists on both sides, no longer belongs to any rule or skill or lost Gemini's line, Tisty asks about it as soon as you go in, one at a time |
 
 ![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-02-sidebar.png)
 
@@ -431,6 +431,20 @@ A Global skill is written once where several read it at a time:
 
 The `SKILL.md`'s own properties stay out of the text: its `name` is the card's name, its `description` sits under it in a quiet line, and the rest, such as `disable-model-invocation: true`, go in small rows of the facts box. The script is kept in a code block and written as is, without the block: the card's **Format** row names the script's kind, such as SH · LF, and a Markdown document says Markdown · LF.
 
+### Tisty's skills in Global
+
+Tisty brings three skills of its own, `tisty`, `consolidate` and `writing-for-the-next-agent`, that teach your agents to work with it. They are not Agents documents: they live inside the app and have their own yes, **Turn on here**, which needs no Agents folder. [[Hooks and skills|Hooks-and-Skills]] tells it whole.
+
+Here you see them as a fixed row at the end of **Agents › Global**, **Tisty's skills**, with their standing: **Off** or **On this computer**. A click opens their card, the same one as in **Settings › Agents › Connected**. What having Agents changes:
+
+- **They are not brought in.** In the first-time list, in **Bring another file** and in **Look again**, their copies in your agents' folders show as **Tisty's own**, and do not come in as documents.
+- **A skill of yours with the same name wins.** If you have your own `consolidate` in Agents, at any level, Tisty's is written to no agent, and its card says «You already have a skill named consolidate in Agents, so Tisty's is left out.».
+- **Pausing does not reach them.** Pausing Claude or stopping sync for Agents holds your documents; Tisty's skills follow their own switch.
+- **They hide, they are not deleted.** When you hover over the row, **Hide** appears and takes it out of Agents on this computer without turning them off. It has no menu and no **Delete**: **Show in Agents**, in Settings, brings it back.
+- **The two yeses stand apart.** Stopping sync for Agents does not turn the skills off, and turning them on brings nothing into Agents.
+
+**An example.** Lucas turned Tisty's skills on when he connected Claude Code, without ever opening Agents. A month later he clicks **Agents** and picks **Bring and sync**: in Claude's row, the `tisty` skill shows dimmed, as **Tisty's own**, and his own skills, like **pr**, with their box. Once done, **Agents › Global** shows **Tisty's skills · On this computer** at the end.
+
 ## Which file each agent reads
 
 `~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. Tisty only works with an agent whose folder exists on this computer.
@@ -490,7 +504,6 @@ A document in Agents does not look like one more document. It opens **for readin
 - **Edit** opens Tisty's editor on the text, heading included, with the editor's usual bar for headings and lists, and **Done** closes it again.
 - **Backups**, when the document is written to a single file and that file has any. It opens the same list as **See** in the facts box. A **Global** document, written to several files, does not have it at the foot: each file's backups open with **See**, on its row.
 - **History**: the document's earlier versions, not the file's. [[Earlier versions|Documents#earlier-versions]] tells it. The comparison with what is **Approved** reads from there: if you empty the history, or the approved version passes the limit, the card asks you to read the whole text before approving.
-- **History** opens the document's [earlier versions](Documents#earlier-versions).
 - **Copy link** copies its [link](Documents#a-documents-link).
 - **Pause sync with Claude**, when the document is written to a single file. A Global one has a button per agent: **Pause Claude**, **Pause Codex**…
 
@@ -508,7 +521,7 @@ A memory document has no **Edit**: the agent writes it, and the card says «The 
 | **Changed on both sides** | Both the file and the document changed since the last write | Choose which to keep |
 | **Written by an earlier Tisty** | An earlier version of Tisty wrote the file without noting which documents it came from, and today it does not say what they say | **See the file**, then **Overwrite with Tisty** if you keep the document |
 | **On hold** | One of the documents that make up this file [changed without your approval](#to-approve), or left Agents by an agent's hand, so the file stays as it was. The card names that document | Approve that document, or put it back and take it out yourself |
-| **Paused** | You paused sync for that agent, or Agents does not sync on this computer; then the card adds «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Agents.». For Gemini, also when the line `@tisty-rules.md` that Tisty had put in `GEMINI.md` is missing | **Resume** whenever you like, or **Sync** the folder; for Gemini, [**Put the line back**](#gemini-paused) |
+| **Paused** | You paused sync for that agent, or Agents does not sync on this computer; then the card adds «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Agents › Agents folder.». For Gemini, also when the line `@tisty-rules.md` that Tisty had put in `GEMINI.md` is missing | **Resume** whenever you like, or **Sync** the folder; for Gemini, [**Put the line back**](#gemini-paused) |
 | **Not allowed on this computer** | This computer has not let you read your agents' files yet, for example because Agents came in brought from another computer | **Sync**, in the sidebar or in Settings › Agents › Agents folder, and choose in the first-time box |
 | **Nothing to write** | The document is empty, and Tisty never empties an agent's file | Write something, or take the document out of Agents |
 | **The file is a link** | The file, or a folder on its way, is a symbolic link; writing it would replace the link | Swap the link for the real file |
@@ -571,11 +584,11 @@ The **document's** earlier versions, on the other hand, are those of any documen
 
 - **No agent file is touched.** Your agents keep reading their files just as Tisty left them, and Tisty stops writing them and asking you to decide when they change outside.
 - **No document is deleted.** They stay in Agents, and you read and edit them as always; what you change stays in Tisty.
-- **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Agents.», and its facts box, under **Syncs on this computer**, «No, Agents does not sync».
+- **Agents goes to state 2.** Its robot turns grey again and, when you open it, «Not synced with your agents · Sync» shows at the top. Each document's card says «The Agents folder does not sync with your agents. Choose Sync in the sidebar or in Settings › Agents › Agents folder.», and its facts box, under **Syncs on this computer**, «No, Agents does not sync».
 
 **Syncing again.** With Agents in state 2, any of these three does the same: the **Sync** link in the line at the top, **Sync** on its right-click, or **Sync** on its card in Settings › Agents › Agents folder. If this computer had already let you read your agents' files, for example because you chose **Bring** or **Stop syncing** right here, it syncs at once, without the first-time box. If it never did, like a [second computer](#a-second-computer-step-by-step), the first-time box opens first.
 
-When it syncs, Tisty writes what you changed in your documents in the meantime, with its backup first, except a file that changed outside, which stays marked for you to decide. What it finds different on both sides, or no longer belonging to any rule, it asks about right then.
+When it syncs, Tisty writes what you changed in your documents in the meantime, with its backup first, except a file that changed outside, which stays marked for you to decide. What it finds different on both sides, or no longer belonging to any rule or skill, it asks about right then.
 
 **The first time you sync something you had only brought**, a file still exactly as you brought it is taken as it stands: nothing is asked about it. If something joins it, such as a Global rule that goes at the top of your `CLAUDE.md`, Tisty writes it over the file, with its backup first. A file that changed since you brought it, on the other hand, is not written over: **It exists on both sides** opens and you choose.
 
@@ -609,13 +622,13 @@ Some copies the box says apart, and they never go without you seeing them:
 - **A copy a paused agent reads**: «Paused: Copilot. Its copy stays, and Tisty asks again once it syncs.». That holds for any agent that reads it, also one that only shares `~/.agents/skills` with another, and for Gemini while the line `@tisty-rules.md` is missing from its `GEMINI.md`. Tisty does not touch it. When the agent syncs again, that copy counts as a loose file: the **Agents** card in Settings says so with **Review**, and Tisty asks the usual question the next time you go into Agents.
 - **A file other rules also make up**, such as a `CLAUDE.md` with a Global rule: «Claude: other rules also make up that file, so it is written again without this, with a backup first.». That file is never taken away.
 
-When every copy is changed or paused, the box still shows, with **Only from Tisty** and **Cancel**. When nothing Tisty wrote comes loose (the document was only brought and never synced, Agents does not sync on this computer, or every file is also written by another document), the usual «Delete «voice»?» is the whole question. Deleting several documents at once asks one box for all of them, with the same list the usual question shows and every agent named together.
+When every copy is changed or paused, the box still shows, with **Only from Tisty** and **Cancel**. When nothing Tisty wrote comes loose (the document was only brought and never synced, Agents never synced on this computer, or every file is also written by another document), the usual «Delete «voice»?» is the whole question. If you stopped syncing, the box names each agent that reads a copy as paused, with **Only from Tisty** and **Cancel**. Deleting several documents at once asks one box for all of them, with the same list the usual question shows and every agent named together.
 
 If a document cannot be deleted, for example because it is locked, none of its files is touched, and Tisty says why. If a file cannot be taken away, for example because its folder is a link, the document is still deleted and Tisty names that file and the reason; it stays for the usual question.
 
 #### Files you left with your agents
 
-What you leave with **Only from Tisty** stays yours: Tisty takes it as your file. The **Agents** card in **Settings › Agents › Agents folder** lists them apart: «2 files you left with your agents when you deleted them from Agents.», with **Review**, which asks about each one with [Take the file away too?](#taking-a-rule-and-its-file-out). Tisty never asks about them by itself and never writes over them, and a folder of Agents you empty still goes. If you later write a rule or skill that lands on the same file again, Tisty asks first, as with [a change made outside](#a-change-made-outside-bring-it-in-or-overwrite), with **Keep Tisty's** (backup first) or **Keep the file**. If you bring that same file back with [Bring another file](#bring-another-file), it is Tisty's again and leaves that list. If the document you deleted was the last one in Agents, the folder goes, but this list stays in the card with **Review**, so you can still change your mind; nothing else Agents wrote is offered there. This list is this computer's only: it does not travel to your other computers.
+What you leave with **Only from Tisty** stays yours: Tisty takes it as your file. The **Agents** card in **Settings › Agents › Agents folder** lists them apart: «2 files you left with your agents when you deleted them from Agents.», with **Review**, which asks about each one with [Take the file away too?](#taking-a-rule-and-its-file-out). Tisty never asks about them by itself and never writes over them, and a folder of Agents you empty still goes. If you later write a rule or skill that lands on the same file again, Tisty asks first, as with [a change made outside](#a-change-made-outside-bring-it-in-or-overwrite), with **Keep Tisty's** (backup first), or **Keep the file** when the file comes from a single document of that agent. If you bring that same file back with [Bring another file](#bring-another-file), it is Tisty's again and leaves that list. If the document you deleted was the last one in Agents, the folder goes, but this list stays in the card with **Review**, so you can still change your mind; nothing else Agents wrote is offered there. This list is this computer's only: it does not travel to your other computers.
 
 ### Taking a rule and its file out
 
@@ -654,7 +667,7 @@ Right-click a subfolder of Agents, such as **Agents › Claude › Tests**, and 
 3. A file that a Global rule also makes up, such as `CLAUDE.md`, is not asked about: Tisty writes it again without that part, with its backup first.
 4. The folder does not come back by itself: Tisty never makes again a folder of Agents you deleted.
 
-As when you delete a rule, it does not ask about a paused agent, nor while Agents does not sync: Tisty was not writing any file then.
+As when you take a rule out, it does not ask about a paused agent, nor while Agents does not sync: Tisty was not writing any file then.
 
 **An example.** Marisol kept her testing rules in a folder of her own, **Agents › Claude › Tests**, and no longer wants them. She right-clicks **Tests** and chooses **Delete**; a second later, Tisty asks **Take the file away too?** about `~/.claude/rules/tests.md`. She chooses **Take the file away**: the backup stays on this computer, Claude stops reading those rules, and its documents stay in **Unfiled**, in case she wants them back one day.
 
@@ -802,7 +815,7 @@ An earlier version of Tisty wrote the files without noting which documents each 
 
 ## What is never read
 
-- **Your agents' settings**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json`. Tisty only looks where rules, skills and memory go, never in an agent's main folder, and inside a skill a file with one of those names does come in, because it belongs to the skill.
+- **Your agents' settings**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json`. To find them, Tisty only looks where rules, skills and memory go, never in an agent's main folder, except Claude Code's `settings.json` and `plugins/installed_plugins.json`, only to tell whether the Tisty plugin already brings its skills; and inside a skill a file with one of those names does come in, because it belongs to the skill.
 - **Credentials**, by name and without opening them: `.credentials.json`, `credentials.json`, `auth.json`, `.env` and its variants, `.netrc`, and `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa` or `id_ed25519` keys.
 - **A file that looks like it holds a secret**, such as a token or a private key, even under an innocent name. The check runs on this computer and looks for known shapes, so it may not recognise them all: keep secrets out of your agents' rules.
 - **Claude Code's conversations**: of its `projects` folder, only each project's `memory` folder is looked at.
@@ -970,7 +983,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **What if I close or uninstall Tisty?** Your agents keep reading their files as Tisty left them. Nothing depends on Tisty being open.
 
-**Does Agents touch `settings.json`, hooks or my MCP configuration?** No: Agents neither reads nor writes them. Connecting an agent is something else: there Tisty adds its MCP server and its hooks to that agent's configuration, as [[Agents and MCP|Agents-and-MCP]] tells.
+**Does Agents touch `settings.json`, hooks or my MCP configuration?** It does not write them, and reads only Claude Code's `settings.json` and `plugins/installed_plugins.json`, to tell whether the Tisty plugin already brings its skills. Connecting an agent is something else: there Tisty adds its MCP server to that agent's configuration, and its hooks if you press **Add**, as [[Agents and MCP|Agents-and-MCP]] tells.
 
 **Why does agent memory come unticked?** Because the agent writes it, it may talk about your projects, and once in Tisty it travels with your sync and your backups like any document. Bring it in only if you want to read it in Tisty.
 

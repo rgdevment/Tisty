@@ -12,7 +12,7 @@ Neither. On its own, Tisty only asks whether a newer version exists, and it send
 No. Everything Tisty brings is there from the start: tasks in natural language with their steps, linked documents, Ideas, the Diary and [[Brainsty|Brainsty-Network]]. It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Agents and MCP|Agents-and-MCP]] tells.
 
 **Where is my data kept?**
-In one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).
+Almost all of it, in one folder on your own disk. **Settings › Storage** prints the path and **Show folder** opens it. See [Installation](Installation#where-your-data-lives).
 
 **What happens to my notes if Tisty disappears?**
 They stay where they are: Markdown and plain text, readable with `cat`, searchable with `grep`, openable in any editor.
@@ -84,7 +84,7 @@ Yes: choose Tisty under **Open with**, or follow a `tisty://open?path=…` link.
 Yes: **Copy link**, under **Export** or in the document's menu, gives you a `tisty://doc/…?id=…` address. Followed, it opens the document read only in the light viewer on a computer that holds it, and your agent reads or changes that very document without searching for it. See [Documents](Documents#a-documents-link).
 
 **A document opened read-only and I did not ask for that.**
-It is archived, or a page of it (or its document) is archived. The bar at the foot says which. A document holding HTML tags is not read-only: it opens, edits and saves whole. See [The Markdown editor](Markdown-Editor#when-a-document-opens-read-only).
+You locked it, it is archived (or its folder is), or a page of it (or its document) is archived. The bar at the foot says which. A document holding HTML tags is not read-only: it opens, edits and saves whole. See [The Markdown editor](Markdown-Editor#when-a-document-opens-read-only).
 
 **Do diagrams and formulas need the internet?**
 No. Both are drawn by code inside Tisty: nothing is fetched, no font is loaded from anywhere, and they work with the network unplugged. Both stay Markdown that GitHub draws too. See [diagrams, formulas and widgets](https://markdown.tisty.app/diagrams-formulas-and-widgets) in the Tisty Markdown guide.

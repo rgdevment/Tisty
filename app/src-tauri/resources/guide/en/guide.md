@@ -86,6 +86,8 @@ From then on Tisty is its memory between sessions. Of a document it reads the ou
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before; what your agent replaced is also kept as a version in its history, which **Going back to what it said before** tells, further down.
 
+When you connect it, Tisty offers you, only once, two helps, each with its own yes: its **hooks**, which bring it the tasks it left open when it starts and remind it to write things down when a turn ends, and **Tisty's skills**, which teach it to pick up, tidy up and leave work ready for the next agent when you ask in your own words, like “Pick up where we left off”. Both are optional, and you turn them on or take them out whenever you like.
+
 How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
 
 ![Step by step with your AI agent: the page of this guide that tells it](tisty:agent)
@@ -225,7 +227,7 @@ The ideas wait there as sticky notes in colours, the newest first. Drag one onto
 
 ![The Ideas sheet with ideas of the moment as sticky notes in colours, dated and written by hand](brainstorm.png)
 
-Your AI agent can also brainstorm with you and help you sort them out: **Your AI agent**, near the end, tells you how.
+Your AI agent can also brainstorm with you and help you sort them out: [your agent's page](tisty:agent) tells you how.
 
 ---
 
@@ -268,7 +270,7 @@ To write:
 - The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves it too.
 - The **⋯** at the top of the document turns it to **Markdown**, the text with all its marks in view; so does `Ctrl`/`⌘` + `E`, and **Rich text** takes you back to the page.
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
-- Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. Either way, a click opens it.
+- Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. A click opens the card; the link, while you write, opens with `Ctrl` (`⌘` on a Mac) + click.
 - Type `[[` and a few words of a title to link another document, or one of its sections with `#`. Beside each document, **Linked from** tells you who links to it.
 
 **Export**, in the document's panel, shows you its PDF, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
@@ -291,7 +293,7 @@ A year of minutes, a book in chapters, Rina's life told year by year: that does 
 
 A page is a document like any other, with its own file, that also says which document it belongs to. There is one level and no more: a page has no pages.
 
-**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. **Try it:** this guide has one page, and it is this card. Open it with a click and see at the top which document it belongs to:
+**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. **Try it:** this guide has several pages, and this card is one of them. Open it with a click and see at the top which document it belongs to:
 
 ![Rina: this guide's example page](tisty:page)
 
@@ -464,10 +466,10 @@ There is more to say about code, and it fits on a page of its own:
 Each document keeps, on this computer, what it said before, for the day a change takes away something you still need. Say you ask your agent to tidy «Rina's walks» and it leaves out the times:
 
 1. In the panel beside the document, the **History** row has **See the history**.
-2. Its versions sit on the left, newest first, with the time, who wrote each (**you**, **an assistant** or its program's name, like **Claude Code**) and its size. Click the one from before your agent's change and read it on the right. **What changed**, above it, shows in red what your agent took out and in green what it put in; **Compare**, on another row, compares two versions with each other.
+2. Its versions sit on the left, newest first, with the time, who wrote each (**you**, **an agent** or its program's name, like **Claude Code**) and its size. Click the one from before your agent's change and read it on the right. **What changed**, above it, shows in red what your agent took out and in green what it put in; **Compare**, on another row, compares two versions with each other.
 3. **Go back to this version** brings it back. What it said is kept, and **Put back what it said before**, on the document's bar, undoes the go-back.
 
-Tisty does not keep a version at every key. What was there is kept as a version when someone writes after 30 minutes without changes, or when the one writing changes: you after an assistant, an assistant after you, or two different assistants. That way, what your agent left and what you wrote never mix in a single version.
+Tisty does not keep a version at every key. What was there is kept as a version when someone writes after 30 minutes without changes, or when the one writing changes: you after an agent, an agent after you, or two different agents. That way, what your agent left and what you wrote never mix in a single version.
 
 - **A task's page** has the same under **Versions of this page**, and the words come back without removing any step.
 - **Each page of a book and your Ideas sheet** carry a history of their own.
@@ -484,7 +486,7 @@ Every document has a link to reach it from outside: a chat, your browser, a task
 
 - Followed, it opens the document read only in a window of its own, even with Tisty closed or the document archived.
 - It still gets there after you rename it or move it to another folder: what counts is the `id` at the end.
-- Inside a task or another document, write it as a link, `[Walks](the link)`, and open it with Ctrl+click.
+- Inside a task or another document, write it as a link, `[Walks](the link)`, and open it with `Ctrl` (`⌘` on a Mac) + click.
 - Paste it to your agent and it reads or changes that very document without searching for it.
 - In [Brainsty](tisty:brainsty), the card of each document, page or task brings its **Link** with **Copy link**.
 

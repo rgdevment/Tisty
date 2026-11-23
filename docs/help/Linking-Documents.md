@@ -37,7 +37,7 @@ A section is what sits under a heading of the document. To land right there:
 2. Tisty shows that document's headings. Keep typing to narrow them: `[[Vet#ope`.
 3. `Enter` leaves a link like `[Vet › Opening hours](tisty:doc/…#opening-hours)`.
 
-A click on that link opens the document at that section. If the section is gone because you renamed or deleted its heading, the link does not break: it opens the document at the top.
+Opened like any link (`Ctrl` + click, `⌘` + click on a Mac, or a plain click where the document is only read), it goes to that section. If the section is gone because you renamed or deleted its heading, the link does not break: it opens the document at the top.
 
 ## Seeing where it goes, without leaving
 

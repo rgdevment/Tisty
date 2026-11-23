@@ -63,7 +63,7 @@ A document can be seen two ways, and both write the same file:
 - **Rich text** is the page as drawn, the one that is read, printed and shared. Almost everything is written there.
 - **Markdown** shows the text as it is kept, with every mark in view: the `**`, the `#`, the `>`, a table's rules. It is there for changes that run across blocks, for writing a diagram as text, and for changing the letters of inline code or a tag, which on the page are one whole piece the caret does not go into.
 
-The **⋯** on the ribbon at the top of the document switches between them, and so does `Ctrl`/`⌘` + `E`. On a task, **Show Markdown** in its column does the same, and **Show rich text** goes back. As you scroll down a document, the ribbon also keeps its title in sight.
+The **⋯** to the right of the title switches between them, and so does `Ctrl`/`⌘` + `E`; it scrolls away with the text. With **Sheets** on, or in an Agents document, it is in the bar at the top. On a task, **Show Markdown** in its column does the same, and **Show rich text** goes back.
 
 In the Markdown view:
 
@@ -114,7 +114,7 @@ A table wider than the page scrolls sideways, and its PDF and Word copies keep e
 
 ## What a document can hold
 
-Everything a document holds, from bold and lists to callouts, pens, icons, tables, diagrams, formulas, widgets, code and pages, is plain Markdown with a few short words of Tisty's own, so the file survives without Tisty. How each one is written, with its examples drawn, is in the [Tisty Markdown guide](https://markdown.tisty.app), which also opens inside Tisty with `F1`. You never need it to write: the `/` menu and the bar write it all for you.
+Everything a document holds, from bold and lists to callouts, pens, icons, tables, diagrams, formulas, widgets, code and pages, is plain Markdown with a few short words of Tisty's own, so the file survives without Tisty. How each one is written, with its examples drawn, is in the [Tisty Markdown guide](https://markdown.tisty.app), which is also in Tisty's help; in the Markdown view, `F1` on a mark opens its part. You never need it to write: the `/` menu and the bar write it all for you.
 
 A web link on a line of its own is drawn as a card, made from the address itself: the site's name and the words you wrote. Nothing is fetched to draw it. Press **Bring the preview** and Tisty asks that page once for its title, its description and the picture it offers, keeps the answer on this computer so it never asks again, and reads no more of the page than it needs: a page cannot decide how much of your machine it takes.
 

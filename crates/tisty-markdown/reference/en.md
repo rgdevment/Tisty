@@ -1,6 +1,6 @@
 # Tisty Markdown
 
-A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark with GitHub's additions, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts. Help with tasks, assistants through MCP and the rest of Tisty is at [www.tisty.app/docs](https://www.tisty.app/docs/).
+A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark with GitHub's additions, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts. Help with tasks, agents through MCP and the rest of Tisty is at [www.tisty.app/docs](https://www.tisty.app/docs/).
 
 Nothing on this page needs learning by heart. The `/` menu and the bar in the editor write all of it for you; this is what you find if you open the file somewhere else, or want to write it by hand.
 
@@ -55,15 +55,15 @@ source: the vet's card
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
 - `paper:` is the sheet the document is printed on: `letter`, `folio` (8.5 × 13 in) or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
 - `lang:` is the language the document is written in, as a tag like `es`, `en` or `pt-BR`. A document in several languages is one document per language, which Tisty shows as one with a switch between them: **Translate into…** writes the copy to translate with its `lang:`, and **Join with its other language…** asks for the one each document lacks, by its name. `translationKey:` is what a language carries out of Tisty to find the others when it comes back; Tisty writes it on the way out and reads it on the way in.
-- `agent:` marks an **agent document**: a rule, a skill or an AI assistant's memory. Inside the **Agents** folder, and only while it syncs, Tisty writes it to the file that assistant reads; anywhere else the line is kept but nothing is written. The value is `level/kind/name`, like `claude/rule/CLAUDE.md` or `global/skill/pdf/SKILL.md`. The level is `global` (it goes to every assistant) or one alone (`claude`, `codex`, `copilot`, `gemini`, `cursor`); the kind is `rule`, `skill` or `memory`; the name is the file's path inside the assistant's folder. Marks that keep the file byte for byte may follow: `crlf`, `as-is`, `bom` and `open-end`, as in `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. The page does not show it: the document opens on its own card, which shows the kind, where it is written, its state and its backups above the text. The body is the file as it is: code goes in a code block, and a file that brings its own properties, like a `SKILL.md`, shows them as fields.
-- Besides those, Tisty writes only `task:`, once, in a task's own document, and `agent:` when it brings in an assistant's file or makes a **New document** in **Global** or an assistant's folder. No assistant ever writes or changes an `agent:` line. A tag it adds goes in the text as `#tag`.
+- `agent:` marks an **agent document**: a rule, a skill or an AI agent's memory. Inside the **Agents** folder, and only while it syncs, Tisty writes it to the file that agent reads; anywhere else the line is kept but nothing is written. The value is `level/kind/name`, like `claude/rule/CLAUDE.md` or `global/skill/pdf/SKILL.md`. The level is `global` (it goes to every agent) or one alone (`claude`, `codex`, `copilot`, `gemini`, `cursor`); the kind is `rule`, `skill` or `memory`; the name is the file's path inside the agent's folder. Marks that keep the file byte for byte may follow: `crlf`, `as-is`, `bom` and `open-end`, as in `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. The page does not show it: the document opens on its own card, which shows the kind, where it is written, its state and its backups above the text. The body is the file as it is: code goes in a code block, and a file that brings its own properties, like a `SKILL.md`, shows them as fields.
+- Besides those, Tisty writes only `task:`, once, in a task's own document, and `agent:` when it brings in an agent's file or makes a **New document** in **Global** or an agent's folder. No agent ever writes or changes an `agent:` line. A tag it adds goes in the text as `#tag`.
 - A block past 4 KiB, with more than 32 properties or a value past 500 characters is kept as written, but nothing in it is read. Only plain properties are read: `key: value`, a list in brackets, or `- item` lines.
 
 ### A task's properties
 
 A task and a document both hold words, and they are kept for different reasons. A task has an end: it is something to be done, and once it is done it goes to the archive, where it is still found and read — what was tried, what worked, how it was solved. A document lasts: a recipe, a procedure, a reference, the notes on a client, consulted again and again and grown over years, and rarely put away. Something to do is a task; something to look up again is a document.
 
-A task's words live in a document of its own, which carries one fixed line naming the task. What changes often stays with the task itself, so ticking it off on a phone never moves the document: the date, the deadline, reminders, the list, the priority, how it repeats. When the document leaves Tisty — exported, or read by an assistant — those come out written as properties, and a document that comes in with them hands them to its task.
+A task's words live in a document of its own, which carries one fixed line naming the task. What changes often stays with the task itself, so ticking it off on a phone never moves the document: the date, the deadline, reminders, the list, the priority, how it repeats. When the document leaves Tisty — exported, or read by an agent — those come out written as properties, and a document that comes in with them hands them to its task.
 
 ```markdown
 ---
@@ -119,7 +119,7 @@ This one is a new paragraph.
 
 GitHub joins those two lines into one when it shows a file; Tisty keeps them apart. A backslash at the end of a line breaks it everywhere.
 
-Writing in a block, `Enter` leaves that blank line and starts a paragraph, and `Shift` + `Enter` writes the single break.
+Writing in a block, `Enter` leaves that blank line and starts a paragraph, and `Shift` + `Enter` breaks the line with a backslash at its end, which breaks it in any reader. In a heading, which holds no break, it starts the next line.
 
 To write a line that would otherwise start something — a heading, a list, a quote — put a backslash before it: `\#`, `\-`, `1\.`, `\>`.
 
@@ -349,11 +349,11 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 - The same thing inside a sentence is a word you can click.
 - A link can land on a heading of the other document, with its anchor after `#`, written as GitHub writes it: `[Trips › Hotels](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT#hotels)`. If that heading is gone, it opens the document at the top. Typing `[[` in a document writes these links for you.
 - On copying as standard Markdown, a link to another document stays as its words.
-- **Copy link**, in a document's panel, gives a different address, `tisty://doc/<folders>/<title>?id=<file>`, made to reach it from outside: a chat, the browser or your agent. Followed, it opens the document read only in a window of its own; written as a link in a document, `[Walks](tisty://doc/personal/rinas-walks?id=k7tq2mzw-0012)`, it opens with `Ctrl` + click, and a bare one stays text. Only the `id` counts, so it keeps working after a rename or a move. See [A document's link](https://www.tisty.app/docs/documents/#a-documents-link).
+- **Copy link**, in a document's panel, gives a different address, `tisty://doc/<folders>/<title>?id=<file>`, made to reach it from outside: a chat, the browser or your agent. Followed, it opens the document read only in a window of its own; written as a link in a document, `[Walks](tisty://doc/personal/rinas-walks?id=k7tq2mzw-0012)`, it opens with `Ctrl`/`⌘` + click, and a bare one stays text. Only the `id` counts, so it keeps working after a rename or a move. See [A document's link](https://www.tisty.app/docs/documents/#a-documents-link).
 - A document's pages come in the order their cards name them: in the tree, on export and in print.
 - For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See [Pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 - A `[`, `]` or `\` in a title is written with a backslash before it.
-- A task is named the same way, by its id after `tisty:task/`, and the `/` menu writes it for you (**A task**), open or archived, or makes it right there with the quick capture's rules (**A new task**). As a card, in any document, it shows its current title, its list, its dates and how many of its steps and parts are done, and opens it; while it is still open, it marks it done and ticks its steps. If the task is not on this machine, its words stay with a notice. Other readers get only its words.
+- A task is named the same way, by its id after `tisty:task/`, and the `/` menu writes it for you (**A task**), open or archived, or makes it right there with the quick capture's rules (**A new task**). As a card, in any document, it shows its current title, its list, its dates, how many of its steps and parts are done and how many steps wait for you to confirm an agent's word, and opens it; while it is still open, it marks it done and ticks its steps. If the task is not on this machine, its words stay with a notice. Other readers get only its words.
 
 **What Brainsty draws from these marks.** [Brainsty](https://www.tisty.app/docs/brainsty-network/) draws each document, page, task, tag and attachment as a node, and reads its lines from what is written, so nothing has to be joined by hand:
 
@@ -555,7 +555,7 @@ erDiagram
 ```
 ````
 
-- Whoever writes the block by hand or through an assistant leaves the `%% tisty:` lines as they are.
+- Whoever writes the block by hand or through an agent leaves the `%% tisty:` lines as they are.
 - Several required columns are separated by spaces, with no commas: `required id customer_id`.
 - When a table or a class is renamed, its line changes with it; the line of something that is gone may be removed.
 - There is no need to make up coordinates: a shape, class or table with no line, or a table whose line has no numbers, lays itself out beside the others.
@@ -706,7 +706,7 @@ Booster due in March. <!-- ask about the tick tablet -->
 
 ## What is outside the language
 
-Whatever arrives from elsewhere is turned into these words on the way in: a web page pasted or imported, a Word document, a note from Obsidian, Markdown sent by an assistant. Its headings, lists, links, tables, colours and pictures become the forms on this page; a colour outside the palette becomes the nearest pen, and what has no word at all is kept as plain text. The file it came from is never touched.
+Whatever arrives from elsewhere is turned into these words on the way in: a web page pasted or imported, a Word document, a note from Obsidian, Markdown sent by an agent. Its headings, lists, links, tables, colours and pictures become the forms on this page; a colour outside the palette becomes the nearest pen, and what has no word at all is kept as plain text. The file it came from is never touched.
 
 Only HTML written into a document by hand stays as it is written. The document still opens, edits and saves whole, with nothing cut out; the page draws that part as best it can.
 

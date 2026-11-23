@@ -23,7 +23,7 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + `C` · `X` (escribiendo un documento) | Copiar · cortar como Markdown las palabras o los bloques elegidos |
 | `Tab` · `Shift` + `Tab` (escribiendo una lista) | Meter un elemento bajo el de arriba o sacarlo |
 | `Ctrl`/`⌘` + `E` (en un documento) | Cambiar entre Enriquecido y Markdown |
-| `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
+| `F1` | Abrir la ayuda de Tisty, también sin conexión; en la vista Markdown, sobre una tabla, un enlace u otra marca, abre esa parte de la guía de Markdown |
 | `Ctrl`/`⌘` + `P` | Abrir la [paleta](#la-paleta) para saltar a un documento, una tarea o una carpeta |
 | `Ctrl`/`⌘` + `Shift` + `P` | Abrir la [paleta](#la-paleta) en sus acciones |
 | `Ctrl`/`⌘` + `K` (fuera de lo que escribes) | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |

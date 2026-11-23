@@ -16,6 +16,7 @@
 
 **Agents (MCP)**
 - [[Agents and MCP|Agents-and-MCP]]
+- [[Hooks and skills|Hooks-and-Skills]]
 - [[What an agent may do|MCP-Permissions]]
 - [[Tools reference|MCP-Tools]]
 - [[Agents: rules, skills and memory|AGENTS-Folder]]
@@ -59,6 +60,7 @@
 
 **Agentes (MCP)**
 - [[Agentes y MCP|Agentes-y-MCP]]
+- [[Hooks y skills|Hooks-y-skills]]
 - [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]]
 - [[Herramientas MCP|Herramientas-MCP]]
 - [[Agentes: reglas, skills y memoria|Carpeta-AGENTS]]

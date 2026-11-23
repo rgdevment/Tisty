@@ -27,10 +27,10 @@ source: the Tisty guide
 
 ### An agent document
 
-`agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI assistant reads. The value says who it is for, what it is and where it goes: `level/kind/name`. It only counts inside the **Agents** folder, and is only written while it syncs; on this sheet, as on any other, it is one more property and nothing is written. Inside Agents:
+`agent:` turns the sheet into an agent document: Tisty writes its body, as it is, to the file an AI agent reads. The value says who it is for, what it is and where it goes: `level/kind/name`. It only counts inside the **Agents** folder, and is only written while it syncs; on this sheet, as on any other, it is one more property and nothing is written. Inside Agents:
 
 - **In the sidebar**, the document is called by its first heading, or by its skill's `name`, with an icon: a book for a rule, a piece for a skill and a brain for memory. A skill's files go together in one single row.
-- **When you make it** with **New document** inside **Global** or an assistant's folder, it already starts with its `agent:` line in place: you only write the rule.
+- **When you make it** with **New document** inside **Global** or an agent's folder, it already starts with its `agent:` line in place: you only write the rule.
 - **When you open it**, the document does not look like this sheet: it opens on its own card, with nothing beside it. At the top, the labels for the kind, the level and the standing, such as **Rule**, **Claude** and **In sync**, and the name in large type. Below, the file's facts box: **Read by**, one **Written to** row for each file, with its path, and its **Size**, **Backups**, **Format** and **Syncs on this computer**. The file's own properties, such as `name` and `description`, show as fields.
 - **Inside the same card** come the notices, such as a file **Changed outside** or words waiting for your approval, and an agent's proposal, with **Approve the change** and **Discard**. Then comes the agent's text, as it is, and at the foot the buttons **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**.
 
@@ -133,7 +133,7 @@ A link alone in its paragraph is drawn as a card; it is further down, under **Ca
 
 Two double brackets name something without linking it: [[Rina's vet card]] stays as a chip with that name. With a number, [[#2]] brings the words of this sheet's second stage, which is further down, under **Lists**, and a click takes you to it. On a task's page, that number is one of its steps.
 
-Another document is mentioned inside a sentence too: here is [Rina's page](tisty:page), and a click opens it. It is written with `[[` and a few words of its title; with `#` after the title, the link goes to one of its sections: `[[what is#tasks` leads to **Tasks**, on [this guide's cover](tisty:guide). Resting the pointer on it shows its preview, and the linked page tells it in **Linked from**. Everything that joins these forms is in [Brainsty](tisty:brainsty).
+Another document is mentioned inside a sentence too: here is [Rina's page](tisty:page), and `Ctrl` (`⌘` on a Mac) + click opens it. It is written with `[[` and a few words of its title; with `#` after the title, the link goes to one of its sections: `[[what is#tasks` leads to **Tasks**, on [this guide's cover](tisty:guide). Resting the pointer on it shows its preview, and the linked page tells it in **Linked from**. Everything that joins these forms is in [Brainsty](tisty:brainsty).
 
 ### Footnotes
 
@@ -152,9 +152,9 @@ Between dollar signs: Rina weighs 14 kilos, so her dose is $\frac{14 \times 0.5}
 ### Lines and paragraphs
 
 A line ends where you end it.
-This one is the same paragraph, one line down: `Shift` + `Enter`.
-And this one was cut with a backslash at its end,\
-which breaks the line in any Markdown reader.
+This one is the same paragraph, one line down.
+And this one was cut with `Shift` + `Enter`, which writes a backslash at its end,\
+and that breaks the line in any Markdown reader.
 
 A blank line starts another paragraph: `Enter`.
 
@@ -836,7 +836,7 @@ A page: **A new page** or **A page that already exists**. Its card also says whe
 
 ![Rina: this guide's example page](tisty:page)
 
-A task: **A task**, in the `/` menu, searches the open ones and the archived ones. Its card reads the task each time it is drawn: its list, its dates, how many of its steps are done and whether it has closed. A click opens it, its circle marks it done and its count unfolds the steps to tick them right there. This one cites a task that is not on your machine, so it shows its words and a notice; cite one of yours to see it live.
+A task: **A task**, in the `/` menu, searches the open ones and the archived ones. Its card reads the task each time it is drawn: its list, its dates, how many of its steps are done, how many wait for you to confirm when an agent says it did them («1 of 3 steps · 1 to confirm») and whether it has closed. A click opens it, its circle marks it done and its count unfolds the steps to tick them right there. This one cites a task that is not on your machine, so it shows its words and a notice; cite one of yours to see it live.
 
 ![Take Rina to the vet](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 

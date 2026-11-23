@@ -74,7 +74,7 @@ Una tarea que cerraste le llega al agente con un aviso que lo dice. Se lee tal c
 
 - **Para corregir un pasaje** tiene que nombrarlo exactamente como está escrito. Si ese texto no está, o está dos veces, no se escribe nada.
 - **Para reescribir un documento entero** tiene que devolver la *huella* de la versión que leyó. Si escribiste en el documento entretanto, la huella ya no cuadra: no se escribe nada y se le pide que vuelva a leer. Lo que escribiste mientras pensaba no se puede perder.
-- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Si lo que reemplazó sigue entre sus [versiones anteriores](Documentos#versiones-anteriores), la misma barra te ofrece **Volver a lo que decía antes**, y lo que dice ahora también queda guardado, así que la elección no es definitiva.
+- La ventana te avisa cuando algo escribió en el documento que tienes abierto. Mientras lo que reemplazó esté exactamente una escritura atrás entre sus [versiones anteriores](Documentos#versiones-anteriores), la misma barra te ofrece **Volver a lo que decía antes**. Lo que el documento dice guardado también se conserva, así que la elección no es definitiva; en un documento, lo que escribiste desde entonces y aún no se guardó se pierde, y Tisty te lo dice antes de volver.
 - Un documento que archivaste lo puede leer igual, y se le avisa que lo archivaste; no puede escribir en él hasta que lo desarchives o se lo pidas.
 
 ## Tu Diario sigue siendo tuyo

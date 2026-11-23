@@ -24,6 +24,7 @@ La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
 | Si la tarea… | La tarjeta muestra |
 | :-- | :-- |
 | está abierta | su título, su lista y sus fechas («Auto · hoy · vence mié, 25 nov 18:30»), el círculo para marcarla y «2 de 5 pasos» |
+| tiene un paso que un agente dice que hizo | lo cuenta aparte, hasta que [tomes su palabra](Qué-puede-hacer-un-agente#su-palabra-sobre-tus-propias-tareas): «1 de 3 pasos · 1 por confirmar» |
 | tiene partes | cuántas están cerradas: «1 de 3 partes» |
 | se completó | «Hecha» y «cerrada el 14 de marzo de 2026» |
 | se descartó con **No lo haré** | «No se hará» |

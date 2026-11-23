@@ -152,9 +152,10 @@ productivity tool** that lives on your machine and nowhere else.
   your agent an outline and one section at a time.
 - **Memory that outlasts the session** — your agent starts from what moved, the
   task it was on and what it noted yesterday, not from a blank chat.
-- **Nothing closes without you** — your agent says when a task or a step is
-  done, and it waits in *To confirm* until you finish it or send it back. It
-  cannot close or delete a task, or delete a document or an idea.
+- **Nothing closes without you** — your agent says when a task is done, and it
+  waits in *To confirm* until you finish it or send it back; a step it calls
+  done waits on its task's page until you tick it. It cannot close or delete a
+  task, or delete a document or an idea.
 - **Made for agents as much as for people** — an outline costs a few hundred
   tokens, a read brings one section, and picking up again brings only what
   changed: a fraction of rereading your Markdown files.
@@ -232,7 +233,8 @@ sidebar, draws all of it as one network, in the content panel beside your lists.
   a task as a live card, and the panel beside a document lists who links to it.
 - **A map from afar, the detail up close** — documents as squares, tasks as
   circles in their list's colour, tags and files; folders and lists give the
-  colour and tint their zone. What someone wrote — a citation, a mention, a part
+  colour and, with **Turning** off, tint their zone. What
+  someone wrote — a citation, a mention, a part
   — pulls hardest and shows most. Up close, every title, each kind of line, and
   each node drawn as its own icon. A folded legend says what each shape, colour
   and line means.
@@ -551,8 +553,8 @@ gathers them in Tisty as documents, with their skills and memory.
   **Apply here**, and a change made outside Tisty is never written over: you
   bring it in or keep Tisty's.
 - **Nothing it should not touch** — settings, credentials, links and anything
-  shaped like a secret are never brought in, and nothing is read until you click
-  the folder.
+  shaped like a secret are never brought in, and Agents reads nothing until you
+  click the folder.
 
 </details>
 
@@ -1512,10 +1514,21 @@ with its name, and it reads a document's card first, then only the part it
 needs. Say it picks up *Move payments to v2*: it asks what moved, opens that
 task and reads what it noted yesterday.
 
+Two optional helps make that a habit, each with its own yes in Settings ›
+Agents, and when you connect an agent there Tisty offers once the ones it can
+take. Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
+bring the agent its open tasks when a session starts, and hand the turn back
+once when it edited files without writing anything here. Its **own skills**,
+`tisty`, `consolidate` and `writing-for-the-next-agent`, teach it what
+“Pick up where we left off”, “Tidy up my Tisty” or “Make this page clear for
+the next agent” mean, in your own words. And when it says a step of yours is
+done, the list counts it apart, `1/3 ◆1`, until you take its word.
+
 - [Agents and MCP](https://www.tisty.app/docs/agents-and-mcp/) — the
   door, the signature and every agent Tisty knows
 - [What an agent may do](https://www.tisty.app/docs/mcp-permissions/)
 - [How an agent works](https://www.tisty.app/docs/how-an-agent-works/)
+- [Hooks and skills](https://www.tisty.app/docs/hooks-and-skills/)
 - [MCP tools](https://www.tisty.app/docs/mcp-tools/)
 
 <details>
@@ -1540,7 +1553,8 @@ $ <your-agent> mcp add tisty -- <path-to-tisty> mcp
 ```
 
 Where `<your-agent>` is whatever yours is called. That `tisty` is not a
-command line any more: it opens only the agent's door. It speaks
+command line any more: it only opens the agent's door, with `tisty mcp`, and
+answers Tisty's hooks, with `tisty hook`. The door speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no account, no
 token, nothing over the network. **You hold the door.** It comes open on its own
 until you choose — on a new install, and on an update if you never closed it —

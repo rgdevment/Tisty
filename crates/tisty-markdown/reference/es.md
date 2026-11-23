@@ -1,6 +1,6 @@
 # Markdown de Tisty
 
-Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta. La ayuda sobre las tareas, los asistentes por MCP y el resto de Tisty está en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
+Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta. La ayuda sobre las tareas, los agentes por MCP y el resto de Tisty está en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
 
 Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor lo escriben todo por ti; esto es lo que encuentras si abres el archivo en otra parte, o si quieres escribirlo a mano.
 
@@ -55,15 +55,15 @@ fuente: la libreta de la veterinaria
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
 - `paper:` es la hoja en que se imprime el documento: `letter` (Carta), `folio` (Oficio, 216 × 330 mm) o `tabloid` (Tabloide), y A4 cuando no está. `sheets: on` dibuja la página en esas hojas, y `orientation: landscape` las pone en horizontal. **Papel** y **Hojas** en el panel las escriben, y al quitarlas no queda nada escrito.
 - `lang:` es el idioma en que está escrito el documento, con una etiqueta como `es`, `en` o `pt-BR`. Un documento en varios idiomas es un documento por idioma, que Tisty muestra como uno solo con un selector entre ellos: **Traducir a…** escribe la copia para traducir con su `lang:`, y **Unir con su otro idioma…** pregunta el que le falte a cada documento, nombrándolo. `translationKey:` es lo que un idioma lleva fuera de Tisty para encontrar a los demás cuando vuelve; Tisty lo escribe al salir y lo lee al entrar.
-- `agent:` marca un **documento de agente**: una regla, una skill o la memoria de un asistente de IA. Dentro de la carpeta **Agentes**, y solo mientras sincroniza, Tisty lo escribe en el archivo que ese asistente lee; en cualquier otra parte la línea se guarda pero no se escribe nada. El valor es `nivel/tipo/nombre`, como `claude/rule/CLAUDE.md` o `global/skill/pdf/SKILL.md`. El nivel es `global` (va a todos los asistentes) o uno solo (`claude`, `codex`, `copilot`, `gemini`, `cursor`); el tipo es `rule`, `skill` o `memory`; el nombre es la ruta del archivo dentro de la carpeta del asistente. Después pueden ir marcas que conservan el archivo byte a byte: `crlf`, `as-is`, `bom` y `open-end`, como en `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. La página no lo muestra: el documento se abre en su propia ficha, que muestra el tipo, el destino, el estado y los respaldos sobre el texto. El cuerpo es el archivo tal cual: si es código va en un bloque de código, y si el archivo trae sus propias propiedades, como un `SKILL.md`, se muestran como campos.
-- Fuera de esas, Tisty solo escribe `task:`, una vez, en el documento de una tarea, y `agent:` al traer el archivo de un asistente o con **Documento nuevo** en **Global** o en la carpeta de un asistente. Ningún asistente escribe ni cambia una línea `agent:`. Una etiqueta que agrega va en el texto como `#etiqueta`.
+- `agent:` marca un **documento de agente**: una regla, una skill o la memoria de un agente de IA. Dentro de la carpeta **Agentes**, y solo mientras sincroniza, Tisty lo escribe en el archivo que ese agente lee; en cualquier otra parte la línea se guarda pero no se escribe nada. El valor es `nivel/tipo/nombre`, como `claude/rule/CLAUDE.md` o `global/skill/pdf/SKILL.md`. El nivel es `global` (va a todos los agentes) o uno solo (`claude`, `codex`, `copilot`, `gemini`, `cursor`); el tipo es `rule`, `skill` o `memory`; el nombre es la ruta del archivo dentro de la carpeta del agente. Después pueden ir marcas que conservan el archivo byte a byte: `crlf`, `as-is`, `bom` y `open-end`, como en `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. La página no lo muestra: el documento se abre en su propia ficha, que muestra el tipo, el destino, el estado y los respaldos sobre el texto. El cuerpo es el archivo tal cual: si es código va en un bloque de código, y si el archivo trae sus propias propiedades, como un `SKILL.md`, se muestran como campos.
+- Fuera de esas, Tisty solo escribe `task:`, una vez, en el documento de una tarea, y `agent:` al traer el archivo de un agente o con **Documento nuevo** en **Global** o en la carpeta de un agente. Ningún agente escribe ni cambia una línea `agent:`. Una etiqueta que agrega va en el texto como `#etiqueta`.
 - Un bloque de más de 4 KiB, con más de 32 propiedades o con un valor de más de 500 caracteres se guarda tal cual, pero no se lee nada de él. Solo se leen propiedades simples: `clave: valor`, una lista entre corchetes o líneas `- elemento`.
 
 ### Las propiedades de una tarea
 
 Una tarea y un documento guardan palabras, pero por razones distintas. Una tarea termina: es algo por hacer, y cuando se hace pasa al archivo, donde se sigue encontrando y leyendo —qué se intentó, qué funcionó, cómo se resolvió—. Un documento perdura: una receta, un procedimiento, una referencia, las notas de un cliente; se consulta una y otra vez, crece con los años y rara vez se archiva. Lo que hay que hacer es una tarea; lo que se va a volver a consultar es un documento.
 
-Las palabras de una tarea viven en un documento propio, que lleva una línea fija con la tarea a la que pertenece. Lo que cambia seguido se queda con la tarea, así que marcarla desde el celular nunca mueve el documento: el día, la fecha límite, los recordatorios, la lista, la prioridad y cómo se repite. Cuando el documento sale de Tisty —exportado o leído por un asistente— todo eso sale escrito como propiedades, y un documento que entra con ellas se las pasa a su tarea.
+Las palabras de una tarea viven en un documento propio, que lleva una línea fija con la tarea a la que pertenece. Lo que cambia seguido se queda con la tarea, así que marcarla desde el celular nunca mueve el documento: el día, la fecha límite, los recordatorios, la lista, la prioridad y cómo se repite. Cuando el documento sale de Tisty —exportado o leído por un agente— todo eso sale escrito como propiedades, y un documento que entra con ellas se las pasa a su tarea.
 
 ```markdown
 ---
@@ -119,7 +119,7 @@ Este ya es un párrafo nuevo.
 
 GitHub junta esas dos líneas en una cuando muestra un archivo; Tisty las deja separadas. Una barra invertida al final de la línea la corta en todas partes.
 
-Escribiendo en un bloque, `Enter` deja esa línea en blanco y empieza un párrafo, y `Shift` + `Enter` escribe el salto simple.
+Escribiendo en un bloque, `Enter` deja esa línea en blanco y empieza un párrafo, y `Shift` + `Enter` corta la línea con una barra invertida al final, que la corta en cualquier lector. En un título, que no admite cortes, empieza la línea siguiente.
 
 Para escribir una línea que si no empezaría otra cosa (un título, una lista, una cita), pon una barra invertida delante: `\#`, `\-`, `1\.`, `\>`.
 
@@ -349,11 +349,11 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 - Lo mismo dentro de una frase es una palabra en la que puedes hacer clic.
 - Un enlace puede llegar a un encabezado del otro documento, con su ancla después de `#`, escrita como la escribe GitHub: `[Viajes › Hoteles](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT#hoteles)`. Si ese encabezado ya no está, abre el documento al comienzo. Escribir `[[` en un documento escribe estos enlaces por ti.
 - Al copiar como Markdown estándar, un enlace a otro documento queda como su texto.
-- **Copiar enlace**, en el panel de un documento, da otra dirección, `tisty://doc/<carpetas>/<título>?id=<archivo>`, hecha para llegar a él desde afuera: un chat, el navegador o tu agente. Al seguirla, el documento se abre en solo lectura en una ventana aparte; escrita como enlace en un documento, `[Paseos](tisty://doc/personal/paseos-de-rina?id=k7tq2mzw-0012)`, se abre con `Ctrl` + clic, y una suelta queda como texto. Solo cuenta el `id`, así que sigue llegando aunque lo renombres o lo cambies de carpeta. Mira [El enlace de un documento](https://www.tisty.app/es/ayuda/documentos/#el-enlace-de-un-documento).
+- **Copiar enlace**, en el panel de un documento, da otra dirección, `tisty://doc/<carpetas>/<título>?id=<archivo>`, hecha para llegar a él desde afuera: un chat, el navegador o tu agente. Al seguirla, el documento se abre en solo lectura en una ventana aparte; escrita como enlace en un documento, `[Paseos](tisty://doc/personal/paseos-de-rina?id=k7tq2mzw-0012)`, se abre con `Ctrl`/`⌘` + clic, y una suelta queda como texto. Solo cuenta el `id`, así que sigue llegando aunque lo renombres o lo cambies de carpeta. Mira [El enlace de un documento](https://www.tisty.app/es/ayuda/documentos/#el-enlace-de-un-documento).
 - Las páginas de un documento van en el orden en que sus tarjetas las nombran: en el árbol, al exportar y al imprimir.
 - En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira [Páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
-- Una tarea se nombra igual, por su identificador después de `tisty:task/`, y el menú `/` la escribe por ti (**Una tarea**), abierta o archivada, o la crea ahí mismo con las reglas de la captura rápida (**Una tarea nueva**). Como tarjeta, en cualquier documento, muestra su título de ahora, su lista, sus fechas y cuántos pasos y partes lleva hechos, y la abre; mientras sigue abierta, la marca hecha y tacha sus pasos. Si la tarea no está en esta máquina, quedan sus palabras y un aviso. Otros lectores reciben solo sus palabras.
+- Una tarea se nombra igual, por su identificador después de `tisty:task/`, y el menú `/` la escribe por ti (**Una tarea**), abierta o archivada, o la crea ahí mismo con las reglas de la captura rápida (**Una tarea nueva**). Como tarjeta, en cualquier documento, muestra su título de ahora, su lista, sus fechas, cuántos pasos y partes lleva hechos y cuántos pasos esperan que confirmes lo que dijo un agente, y la abre; mientras sigue abierta, la marca hecha y tacha sus pasos. Si la tarea no está en esta máquina, quedan sus palabras y un aviso. Otros lectores reciben solo sus palabras.
 
 **Lo que Brainsty dibuja con estas marcas.** [Brainsty](https://www.tisty.app/es/ayuda/red-de-brainsty/) dibuja cada documento, página, tarea, etiqueta y adjunto como un nodo, y lee sus líneas de lo escrito, así que nada se une a mano:
 
@@ -395,7 +395,7 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 ```
 
 - `[[nombre]]` se dibuja como una ficha con el nombre.
-- En la descripción o el diario de una tarea, `[[#2]]` muestra las palabras del segundo paso de esa tarea.
+- En la descripción o la bitácora de una tarea, `[[#2]]` muestra las palabras del segundo paso de esa tarea.
 - En un documento, `[[#2]]` muestra las palabras de la segunda [etapa](#listas) del documento, contadas en el orden en que se leen, y un clic te lleva a ella.
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
 - En Brainsty un `[[nombre]]` es una **mención** del documento con ese título, encontrado por su título, así que lo alcanza aunque se haya escrito antes. `[[#2]]` no dibuja nada.
@@ -555,7 +555,7 @@ erDiagram
 ```
 ````
 
-- Quien escribe el bloque a mano o con un asistente deja las líneas `%% tisty:` tal como están.
+- Quien escribe el bloque a mano o con un agente deja las líneas `%% tisty:` tal como están.
 - Varias columnas obligatorias van separadas por espacios, sin comas: `required id cliente_id`.
 - Al renombrar una tabla o una clase, su línea cambia con ella; la de algo que ya no existe se puede quitar.
 - No hace falta inventar coordenadas: una forma, clase o tabla sin línea, o una tabla con una línea sin números, se acomoda sola junto a las demás.
@@ -706,7 +706,7 @@ Refuerzo en marzo. <!-- preguntar por la pastilla de garrapatas -->
 
 ## Lo que queda fuera del lenguaje
 
-Lo que llega de afuera se convierte en estas palabras al entrar: una página web pegada o importada, un documento de Word, una nota de Obsidian, el Markdown que manda un asistente. Sus títulos, listas, enlaces, tablas, colores e imágenes pasan a las formas de esta página; un color fuera de la paleta pasa al rotulador más cercano, y lo que no tiene ninguna palabra queda como texto. El archivo de donde vino no se toca.
+Lo que llega de afuera se convierte en estas palabras al entrar: una página web pegada o importada, un documento de Word, una nota de Obsidian, el Markdown que manda un agente. Sus títulos, listas, enlaces, tablas, colores e imágenes pasan a las formas de esta página; un color fuera de la paleta pasa al rotulador más cercano, y lo que no tiene ninguna palabra queda como texto. El archivo de donde vino no se toca.
 
 Solo el HTML que alguien escribe a mano en un documento queda tal como está escrito. El documento se sigue abriendo, editando y guardando entero, sin que se corte nada; la página dibuja esa parte como buenamente puede.
 

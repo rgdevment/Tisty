@@ -86,6 +86,8 @@ Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el �
 
 Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes; lo que tu agente reemplazó queda además como una versión en su historial, que cuenta **Volver a lo que decía antes**, más abajo.
 
+Al conectarlo, Tisty te ofrece una sola vez dos ayudas, cada una con su propio sí: sus **hooks**, que le traen al empezar las tareas que dejó abiertas y le recuerdan anotar al terminar un turno, y las **skills de Tisty**, que le enseñan a retomar, ordenar y dejar el trabajo listo para el próximo agente cuando se lo pides con tus palabras, como «Retoma donde quedamos». Las dos son opcionales, y las enciendes o las quitas cuando quieras.
+
 Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
 
 ![Paso a paso con tu agente de IA: la página de esta guía que lo cuenta](tisty:agent)
@@ -225,7 +227,7 @@ Las ideas esperan ahí como notas adhesivas de colores, la más nueva primero. A
 
 ![La hoja Ideas con las ideas del momento como notas adhesivas de colores, con fecha y escritas a mano](ideas.png)
 
-Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a ordenarlas: lo cuenta **Tu agente de IA**, casi al final.
+Tu agente de IA también puede hacer una lluvia de ideas contigo y ayudarte a ordenarlas: lo cuenta [la página de tu agente](tisty:agent).
 
 ---
 
@@ -268,7 +270,7 @@ Para escribir:
 - La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) también lo mueve.
 - El **⋯** de arriba del documento lo pasa a **Markdown**, el texto con todas sus marcas a la vista; `Ctrl`/`⌘` + `E` también, y **Enriquecido** te devuelve a la página.
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
-- Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. En los dos casos, un clic lo abre.
+- Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. La tarjeta se abre con un clic; el enlace, mientras escribes, con `Ctrl` (`⌘` en un Mac) + clic.
 - Escribe `[[` y unas palabras de un título para enlazar otro documento, o una de sus secciones con `#`. Junto a cada documento, **Enlazado desde** te dice quién lo enlaza.
 
 **Exportar**, en el panel del documento, te muestra su PDF, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
@@ -291,7 +293,7 @@ Un año de actas, un libro por capítulos, la vida de Rina contada año a año: 
 
 Una página es un documento como cualquier otro, con su propio archivo, que además dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
 
-**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. **Pruébalo:** esta guía tiene una página, y es esta tarjeta. Ábrela con un clic y mira arriba de qué documento es:
+**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. **Pruébalo:** esta guía tiene varias páginas, y esta tarjeta es una de ellas. Ábrela con un clic y mira arriba de qué documento es:
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
@@ -464,10 +466,10 @@ Del código hay más que decir, y cabe en su propia página:
 Cada documento guarda en este equipo lo que decía antes, para el día en que un cambio se lleva algo que todavía necesitas. Por ejemplo, le pides a tu agente que ordene «Paseos de Rina» y lo deja sin los horarios:
 
 1. En el panel junto al documento, la fila **Historial** tiene **Ver el historial**.
-2. A la izquierda están sus versiones, la más nueva primero, con la hora, quién la escribió (**tú**, **un asistente** o el nombre de su programa, como **Claude Code**) y cuánto pesa. Haz clic en la de antes del cambio de tu agente y léela a la derecha. **Qué cambió**, arriba, te muestra en rojo lo que tu agente quitó y en verde lo que puso; **Comparar**, en otra fila, compara dos versiones entre sí.
+2. A la izquierda están sus versiones, la más nueva primero, con la hora, quién la escribió (**tú**, **un agente** o el nombre de su programa, como **Claude Code**) y cuánto pesa. Haz clic en la de antes del cambio de tu agente y léela a la derecha. **Qué cambió**, arriba, te muestra en rojo lo que tu agente quitó y en verde lo que puso; **Comparar**, en otra fila, compara dos versiones entre sí.
 3. **Volver a esta versión** la trae de vuelta. Lo que decía queda guardado, y **Volver a lo que decía antes**, en la barra del documento, deshace la vuelta.
 
-Tisty no guarda una versión en cada tecla. Lo que había queda como versión cuando alguien escribe después de 30 minutos sin cambios, o cuando cambia quien escribe: tú después de un asistente, un asistente después de ti, o dos asistentes distintos. Así, lo que dejó tu agente y lo que escribiste tú nunca se mezclan en una sola versión.
+Tisty no guarda una versión en cada tecla. Lo que había queda como versión cuando alguien escribe después de 30 minutos sin cambios, o cuando cambia quien escribe: tú después de un agente, un agente después de ti, o dos agentes distintos. Así, lo que dejó tu agente y lo que escribiste tú nunca se mezclan en una sola versión.
 
 - **La página de una tarea** tiene lo mismo en **Versiones de esta página**, y vuelven las palabras sin quitar ningún paso.
 - **Cada página de un libro y tu hoja de Ideas** llevan su propio historial.
@@ -484,7 +486,7 @@ Cada documento tiene un enlace para llegar a él desde afuera: un chat, el naveg
 
 - Al seguirlo, el documento se abre en solo lectura en una ventana aparte, aunque Tisty esté cerrado o el documento archivado.
 - Sigue llegando aunque lo renombres o lo cambies de carpeta: lo que cuenta es el `id` del final.
-- Dentro de una tarea o de otro documento, escríbelo como enlace, `[Paseos](el enlace)`, y ábrelo con Ctrl+clic.
+- Dentro de una tarea o de otro documento, escríbelo como enlace, `[Paseos](el enlace)`, y ábrelo con `Ctrl` (`⌘` en un Mac) + clic.
 - Pégaselo a tu agente y lee o cambia ese mismo documento sin buscarlo.
 - En [Brainsty](tisty:brainsty), la ficha de cada documento, página o tarea trae su **Enlace** con **Copiar enlace**.
 

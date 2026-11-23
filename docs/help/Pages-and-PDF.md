@@ -39,6 +39,6 @@ Tisty makes its own PDF, and shows it to you before you export it:
 - Its own margins.
 - Its pictures carried inside; any other attachment is named where it sits.
 - Optionally, **who wrote it and when** — a PDF leaves Tisty for good, so what goes in it is your choice.
-- The page exactly as it looks on screen — code colours, callouts, diagrams, formulas and icons — since the PDF is the page itself, laid on paper.
+- The page with everything it draws on screen — code colours, callouts, diagrams, formulas and icons — in the type it has with **Sheets** on.
 
 From **Export**, in the document's panel: **Preview the PDF** shows it and **Export to PDF…** saves it.

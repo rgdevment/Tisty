@@ -8,7 +8,7 @@ Settings is where Tisty fits itself to you: how it looks, how it tells you thing
 - **The command palette**: type «settings» and choose **Settings** (the shortcuts are in [Keyboard shortcuts](Keyboard-Shortcuts)).
 - **From a notice**: the foot of the sidebar, when sync needs something, takes you to the page that sorts it out.
 
-The gear and the palette always open it on **Overview**. On the left you have, in this order, **Back**, **Search a setting**, **Overview** and the eleven pages in four groups:
+The gear and the palette always open it on **Overview**. On the left you have, in this order, **Back**, **Search a setting**, **Overview** and the ten pages in four groups:
 
 | Group | Pages | What it holds |
 |---|---|---|
@@ -103,9 +103,9 @@ Results come in the order of the column, from **Look and window** to **Help and 
 |---|---|
 | backup | **Save a copy** and **Documents from another Tisty**, in Copies |
 | language | **Language**, in Look and window, and **The welcome**, in Help and about |
-| encrypt | **Your identity** and **Encrypt my data in the cloud**, in Security |
+| encrypt | **Your identity** and **Encrypt my data in the cloud**, in Security, among others |
 | keyboard | **Quick capture** and **Quick idea**, in Tasks and reminders |
-| folder | **Hidden folders**, **Where it syncs** and **Turn syncing off** |
+| folder | **Hidden folders**, **Where it syncs** and **Turn syncing off**, among others |
 
 When nothing matches, it says «Nothing with those words. Try «backup», «shortcut» or «language».». A setting that exists but is not showing right now, such as **Your computers** in Sync while you do not sync, opens its page from the top, with nothing highlighted.
 
@@ -197,7 +197,7 @@ More in [Large attachments](Sync-and-Backup#large-attachments) and [Privacy](Pri
 «Tisty has no AI inside. Your agent brings it; Tisty is the memory you share.» The page has five tabs:
 
 - **Door**: **An agent can file work here**, with **Stop it** to close it (and **Let an agent file here** to open it again), **Ask it to keep its task up to date** and **Remind it when a turn starts and ends**.
-- **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere** and **How to connect one**, folded, to connect it by hand.
+- **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere**, the **Tisty's skills** row, with **See**, and **How to connect one**, folded, to connect it by hand. Under each agent that takes them, the **Hooks: when a turn starts and ends** row, with **Add** or **Remove**; and when you connect one, once, a box that offers its hooks and the skills. [Hooks and skills](Hooks-and-Skills) tells it.
 - **Agents folder**: the **Agents** card, to bring and sync your agents' rules, skills and memory. More in [Agents: rules, skills and memory](AGENTS-Folder).
 - **How its signature looks**: **Who signs what an agent writes**, with a **Preview of a row** that changes at once, **Only a diamond**, **Name the agent in the task list** and **Name the agent inside a task**.
 - **What it can and cannot do**: **What it can do** and **What it can never do**, side by side.

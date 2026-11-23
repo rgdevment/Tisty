@@ -1825,5 +1825,120 @@
         "said": "Brainstorm is now called Ideas and wears a light bulb. A folder, the Diary or Ideas can be hidden from the sidebar on this computer."
       }
     ]
+  },
+  {
+    "version": "1.50.0",
+    "headline": {
+      "es": "Las skills de Tisty, en tus agentes, y el relevo queda escrito en la tarea",
+      "en": "Tisty's skills, in your agents, and the handover kept in the task"
+    },
+    "es": [
+      {
+        "title": "Las skills de Tisty, en tus agentes",
+        "said": "Tisty trae tres skills que les enseñan a Claude Code, Cursor, Codex, GitHub Copilot y Gemini a trabajar con él: retomar donde quedaron, dejar el trabajo listo para el próximo agente y ordenar lo que guardas sin borrar nada."
+      },
+      {
+        "title": "Con su propio interruptor",
+        "said": "las enciendes en Configuración › Agentes, en cada equipo, sin abrir la carpeta Agentes. Se actualizan con Tisty, nunca pisan una skill tuya, y apagarlas no las elimina."
+      },
+      {
+        "title": "Todo al conectar un agente",
+        "said": "al conectar uno, Tisty te ofrece en la misma pantalla sus hooks y las skills de Tisty, cada uno con su sí. Ahora no lo deja para después, en las filas de siempre."
+      },
+      {
+        "title": "Pídeselo con tus palabras",
+        "said": "dile «Retoma donde quedamos», «Deja esto listo para el próximo agente» u «Ordena mi Tisty». Dónde quedó el trabajo, lo descartado y el siguiente paso quedan escritos en la tarea, para otro agente o para ti."
+      },
+      {
+        "title": "Quitar también de tus agentes",
+        "said": "al eliminar de Agentes una regla o una skill, el mismo aviso te pregunta si la quitas también de los agentes que la tienen, con respaldo. Solo de Tisty deja sus archivos, y Configuración › Agentes los sigue listando por si cambias de idea."
+      },
+      {
+        "title": "Su palabra se cuenta aparte",
+        "said": "un paso que tu agente dice que terminó se cuenta aparte en la lista, en Brainsty y en tus documentos, como 1/3 ◆1, hasta que lo confirmas."
+      },
+      {
+        "title": "La bitácora, a un clic",
+        "said": "Bitácora, encima de la página de una tarea, te lleva a las notas que dejó tu agente."
+      },
+      {
+        "title": "Tu agente elige mejor qué leer",
+        "said": "ve cuánto pesa cada documento antes de abrirlo, y una búsqueda pone primero el título exacto."
+      },
+      {
+        "title": "Un editor más firme",
+        "said": "muchos arreglos de teclas y del cursor, y los atajos funcionan también con teclados de otros alfabetos."
+      },
+      {
+        "title": "Documentos que se leen como una página",
+        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila."
+      },
+      {
+        "title": "Lo que escribes no se pierde",
+        "said": "si un guardado no puede escribir lo que tecleaste, Tisty lo guarda aparte en este equipo, y Recuperar lo que escribiste te lo devuelve."
+      },
+      {
+        "title": "Agentes, en todas partes",
+        "said": "la ventana dice Agentes en vez de Asistentes. Configuración › Agentes reúne la conexión, la puerta, los hooks y las skills de Tisty."
+      },
+      {
+        "title": "Una ayuda que empieza por ti",
+        "said": "la ayuda abre por lo que quieres hacer: por tu cuenta, con tu agente o con tus archivos y tu privacidad."
+      }
+    ],
+    "en": [
+      {
+        "title": "Tisty's skills, in your agents",
+        "said": "Tisty brings three skills that teach Claude Code, Cursor, Codex, GitHub Copilot and Gemini to work with it: pick up where they left off, leave the work ready for the next agent and tidy up what you keep without deleting anything."
+      },
+      {
+        "title": "With their own switch",
+        "said": "you turn them on in Settings › Agents, on each computer, without opening the Agents folder. They update with Tisty, never write over a skill of yours, and turning them off does not delete them."
+      },
+      {
+        "title": "Everything when you connect an agent",
+        "said": "when you connect one, Tisty offers its hooks and Tisty's skills on the same screen, each with its own yes. Not now leaves it for later, on the usual rows."
+      },
+      {
+        "title": "Ask in your own words",
+        "said": "tell it “Pick up where we left off”, “Leave this ready for the next agent” or “Tidy up my Tisty”. Where the work stands, what was ruled out and the next step stay written in the task, for another agent or for you."
+      },
+      {
+        "title": "Take it away from your agents too",
+        "said": "when you delete a rule or a skill from Agents, the same box asks whether to take it away from the agents that have it too, with a backup. Only from Tisty leaves their files, and Settings › Agents keeps listing them in case you change your mind."
+      },
+      {
+        "title": "Its word is counted apart",
+        "said": "a step your agent says it finished is counted apart in the list, in Brainsty and in your documents, as 1/3 ◆1, until you confirm it."
+      },
+      {
+        "title": "The journal, one click away",
+        "said": "Journal, above a task's page, takes you to the notes your agent left."
+      },
+      {
+        "title": "Your agent picks better what to read",
+        "said": "it sees how long each document is before opening it, and a search puts the exact title first."
+      },
+      {
+        "title": "A steadier editor",
+        "said": "many fixes to keys and the cursor, and shortcuts work with keyboards in other alphabets too."
+      },
+      {
+        "title": "Documents that read like a page",
+        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row."
+      },
+      {
+        "title": "What you write is not lost",
+        "said": "if a save cannot write what you typed, Tisty keeps it aside on this computer, and Recover what you wrote gives it back."
+      },
+      {
+        "title": "Agents, everywhere",
+        "said": "the window says Agents instead of Assistants. Settings › Agents holds the connection, the door, the hooks and Tisty's skills."
+      },
+      {
+        "title": "Help that starts with you",
+        "said": "the help opens on what you want to do: on your own, with your agent, or with your files and your privacy."
+      }
+    ]
   }
 ]

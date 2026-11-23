@@ -74,7 +74,7 @@ A task you closed comes to the agent with a notice saying so. It reads as it end
 
 - **To correct a passage** it has to name it exactly as it is written. If that text is not there, or is there twice, nothing is written at all.
 - **To write a whole body again** it has to send back the *print* of the version it read. If you wrote in the document in between, the print no longer matches: nothing is written, and it is told to read again. What you typed while it was thinking cannot be lost.
-- The window tells you when something wrote in the document you have open. Where what it replaced is still among its [earlier versions](Documents#earlier-versions), the same bar offers **Put back what it said before** — and what it says now is kept too, so the choice is not final.
+- The window tells you when something wrote in the document you have open. While what it replaced is exactly one write back among its [earlier versions](Documents#earlier-versions), the same bar offers **Put back what it said before**. What the document says saved is kept too, so the choice is not final; in a document, anything you typed since that is not saved yet is lost, and Tisty says so before going back.
 - A document you archived it can still read, and it is told you archived it; it cannot write in it until you bring it back, or ask it to.
 
 ## Your Diary stays yours

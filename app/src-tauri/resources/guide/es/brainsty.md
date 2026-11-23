@@ -28,7 +28,7 @@ Lo que sabes de un tema vive en su documento, y el trabajo que hiciste sobre él
 
 ![Las tarjetas de «Renovar el seguro del auto» y «Cambiar los neumáticos del auto» en el documento «Auto», cada una con su lista, Finanzas, y «1 de 3 pasos»; la segunda, además, con su fecha](tarjeta.png)
 
-La tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos y, si se cerró, el día. Un clic la abre; su círculo la marca hecha; su contador despliega los pasos para marcarlos ahí mismo. Una tarea cerrada se lee, pero ya no cambia desde el documento.
+La tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos, cuántos esperan que confirmes si un agente dice que los hizo («1 de 3 pasos · 1 por confirmar») y, si se cerró, el día. Un clic la abre; su círculo la marca hecha; su contador despliega los pasos para marcarlos ahí mismo. Una tarea cerrada se lee, pero ya no cambia desde el documento.
 
 **Pruébalo:** en una línea vacía de esta hoja escribe `/`, elige **Una tarea** y escribe una palabra de una tarea tuya. Si todavía no tienes ninguna, la captura rápida está a un `Ctrl` + `Shift` + `Space`.
 
@@ -83,7 +83,7 @@ Las carpetas y las listas no son puntos de la red: dan el color a lo suyo, tiñe
 
 **Lo que escribiste manda.** Al acomodarse, la red junta lo que se cita, se menciona o es parte de lo mismo; una línea a un archivo acerca la mitad, y una etiqueta compartida, apenas. Los parecidos no mueven a nadie. Por eso las etiquetas se ven tenues: dicen de qué trata algo, no qué escribiste. Si citas la tarea «Vacuna anual de Rina» en la ficha de Rina, las dos quedan juntas, aunque la tarea viva en la lista **Casa** y la ficha en la carpeta **Mascotas**.
 
-La red cambia con la distancia. De lejos, como abre o con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos, y cada clase tiene la forma de la tabla. A media distancia aparecen las zonas de color. De cerca aparecen todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen, y cada nodo pasa a ser su ícono, del color de su carpeta o lista: una hoja para un documento, unas líneas de texto para una página, una casilla para una tarea y un tic cuando está hecha, un `#` para una etiqueta y un clip para un archivo. Con la red girada, las zonas se ocultan y se ven menos títulos.
+La red cambia con la distancia. De lejos, como abre o con la rueda hacia atrás, sus puntos forman un cerebro visto de lado, sin títulos, y cada clase tiene la forma de la tabla. A media distancia llevan título los nodos más conectados y, con **Girar** apagado, aparecen las zonas de color. De cerca aparecen todos los títulos, cada tipo de línea, las etiquetas y la miniatura de cada imagen, y cada nodo pasa a ser su ícono, del color de su carpeta o lista: una hoja para un documento, unas líneas de texto para una página, una casilla para una tarea y un tic cuando está hecha, un `#` para una etiqueta y un clip para un archivo. Con **Girar** encendido, como viene, las zonas no se ven, ni siquiera mientras el globo está quieto, y se ven menos títulos.
 
 ![«Ficha de Rina» elegida de cerca en Brainsty, en el panel de contenido junto a la barra lateral: a su alrededor, cada nodo dibujado como su ícono del color de su carpeta o lista (la hoja de un documento, la casilla de una tarea, el clip de un archivo) y la foto de Rina en miniatura; abajo a la izquierda, la Leyenda abierta; a la derecha, su ficha: «Documento · Salud · 7 conexiones», las filas Escrito por última vez, Creado y Tamaño con sus palabras, la etiqueta rina, Conexiones con 6 menciones y 1 etiqueta, Apuntan aquí con «Ir a la veterinaria por la vacuna de Rina» y «Paseos del sábado», el Enlace con Copiar enlace y el botón Abrir](red-cerca.png)
 
@@ -98,7 +98,7 @@ La ficha cambia según lo que eliges:
 | Eliges | La ficha muestra |
 | --- | --- |
 | Un documento o una página | **Página de**, si es página de un libro; **Escrito por última vez**, **Creado**, **Tamaño** con sus palabras e **Idioma** |
-| Una tarea | **Estado**, como «En curso · Por vencer»; **Día**, **Plazo**, **Parte de**, **Partes**, **Pasos**, como «1 de 3 hechos», y **Origen** |
+| Una tarea | **Estado**, como «En curso · Por vencer»; **Día**, **Plazo**, **Parte de**, **Partes**, **Pasos**, como «1 de 3 hechos», o «1 de 3 hechos · 1 por confirmar» si un agente dice que hizo uno tuyo, y **Origen** |
 | Una etiqueta | qué es y cuántas conexiones tiene |
 | Una imagen o un archivo | su miniatura, o el ícono de su tipo; **Tipo**, **Tamaño** y **Modificado**; **Se usa en**, con cada documento o tarea que lo usa, a un clic, y los botones **Abrir** y **Mostrar en la carpeta** |
 

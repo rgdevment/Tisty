@@ -175,7 +175,7 @@ Tasks an agent claims are done wait under **To confirm** — see [[What an agent
 The same task that keeps your work is the memory of the AI agent you connect through [[MCP|Agents-and-MCP]].
 
 - **What it files is its own to keep true.** It describes the task, plans the steps, ticks each one when it is done, notes what it learns in the journal, and splits a big job into parts.
-- **What settles it stays yours.** On a task you wrote, the agent works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours.
+- **What settles it stays yours.** On a task you wrote, the agent works as in a document — the description, the page, the open steps, the title and the list — but a step it calls done waits for you to tick it, the day stays yours and closing is always yours. While it waits, the row counts it apart: **1/3 ◆1**, with «1 to confirm» when you rest the pointer on it, and so does **What it carries**, on the whole page.
 - **The page tells it when to stop.** *Done when* says when the task is finished, and the unticked steps say what is left, so the next session starts there.
 - **The journal stops it repeating itself.** What was tried and ruled out stays dated, and the next session, or another agent, reads it before trying again.
 - **One ticket, one task.** Filed with its source — a ticket, a thread — the same work is never filed twice.

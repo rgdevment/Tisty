@@ -55,7 +55,7 @@ El engranaje al pie de la barra lateral abre Configuración en **Resumen**, que 
 
 - **Este equipo**: **Aspecto y ventana** (idioma, aspecto, arranque, qué hace al cerrar la ventana y las carpetas ocultas), **Tareas y avisos** (los atajos de captura, los avisos y tu calendario) y **Documentos y firma** (tu alias, tu nombre en los PDF y cuánto guarda el historial de cada documento).
 - **Tus datos**: **Sincronización** (dónde van tus copias), **Seguridad** (tu frase de 24 palabras, tus equipos y [cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube)), **Copias** (los respaldos, los documentos de otro Tisty, restaurar y cómo irte) y **Almacenamiento** (dónde viven tus archivos, cuánto ocupan, los adjuntos grandes y liberar espacio).
-- **Conexiones**: **Agentes**, la [[puerta MCP|Agentes-y-MCP]].
+- **Conexiones**: **Agentes**, con la [[puerta MCP|Agentes-y-MCP]], los agentes conectados, la carpeta Agentes y las skills de Tisty.
 - **Tisty**: **Salud** (la revisión del almacén, el índice rápido y reportar un problema) y **Ayuda y acerca de**: la versión, las actualizaciones y las versiones candidatas. Al pie, **Avisos de terceros** nombra cada pieza que Tisty lleva dentro, con su versión y su licencia; ahí están también los datos del diccionario español–inglés de Brainsty, con sus autores y la licencia de WordNet completa. **Textos de las licencias** trae el texto completo de cada licencia del núcleo.
 
 Todo, página por página y con ejemplos, en [[Configuración]].
@@ -81,3 +81,5 @@ En Windows, cuando la Store o un instalador cierra Tisty para reemplazarlo, Wind
 ## Desinstalar
 
 Desinstalar quita el programa y **deja tus tareas y documentos donde están**, así que al reinstalar los encuentras como los dejaste. Para irte del todo, borra esa carpeta tú mismo.
+
+Si usas Agentes, los hooks o las skills de Tisty, lo que Tisty escribió en las carpetas de tus agentes se queda ahí. Si no lo quieres, quítalo antes de desinstalar, desde **Configuración › Agentes**: las skills con **Apagar en este equipo**, los hooks con **Quitar** bajo cada agente, y los archivos de Agentes al eliminar sus documentos con **Quitar también**, o con **Revisar** en la tarjeta Agentes los que dejaste. Una copia que cambiaste se queda hasta que la quitas tú. Lo cuentan [Hooks y skills](Hooks-y-skills) y [la carpeta Agentes](Carpeta-AGENTS#eliminar-una-regla-o-una-skill).

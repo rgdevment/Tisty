@@ -12,7 +12,7 @@ Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más 
 No. Todo lo que trae Tisty está desde el principio: tareas en lenguaje natural con sus pasos, documentos enlazados, Ideas, el Diario y [[Brainsty|Red-de-Brainsty]]. También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Agentes y MCP|Agentes-y-MCP]].
 
 **¿Dónde se guardan mis datos?**
-En una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
+Casi todo, en una carpeta de tu propio disco. **Configuración › Almacenamiento** muestra la ruta, y **Mostrar carpeta** la abre. Mira [Instalación](Instalación#dónde-viven-tus-datos).
 
 **¿Qué pasa con mis notas si Tisty desaparece?**
 Se quedan donde están: Markdown y texto plano, que se leen con `cat`, se buscan con `grep` y se abren con cualquier editor.
@@ -84,7 +84,7 @@ Sí: elige Tisty en **Abrir con**, o sigue un enlace `tisty://open?path=…`. Se
 Sí: **Copiar enlace**, en **Exportar** o en el menú del documento, te da una dirección `tisty://doc/…?id=…`. Al seguirla, el documento se abre en solo lectura en el visor ligero de un equipo que lo tenga, y tu agente lee o cambia ese mismo documento sin buscarlo. Mira [Documentos](Documentos#el-enlace-de-un-documento).
 
 **Un documento se abrió solo para leer y yo no lo pedí.**
-Está archivado, o lo está una página suya (o su documento). La barra del pie dice cuál es. Un documento con etiquetas HTML no queda solo para leer: se abre, se edita y se guarda entero. Mira [El editor Markdown](Editor-Markdown#cuando-un-documento-se-abre-solo-para-leer).
+Lo bloqueaste, está archivado (o lo está su carpeta), o lo está una página suya (o su documento). La barra del pie dice cuál es. Un documento con etiquetas HTML no queda solo para leer: se abre, se edita y se guarda entero. Mira [El editor Markdown](Editor-Markdown#cuando-un-documento-se-abre-solo-para-leer).
 
 **¿Los diagramas y las fórmulas necesitan internet?**
 No. Los dos se dibujan con código que va dentro de Tisty: no se descarga nada, no se carga ninguna fuente de ninguna parte y funcionan con la red desconectada. Los dos siguen siendo Markdown que GitHub también dibuja. Mira [diagramas, fórmulas y widgets](https://markdown.tisty.app/es/diagramas-formulas-y-widgets) en la guía de Markdown de Tisty.

@@ -11,6 +11,7 @@ This page follows a real agent session, step by step, with the calls it makes an
 - **It leaves the task up to date in one call.** `tick` ticks the steps and writes the task's state, a «State» section of its page that is replaced whole each time. When it picks the task up, `read` brings that state first.
 - **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when each turn starts and ends.
 - **What it names gets linked.** A task or a document named by its id or by its exact title between quotes becomes a link when saved, just as if you had made it.
+- **It knows what to do when you say it in your own words.** With Tisty's skills on, “Pick up where we left off” or “Leave this ready for the next agent” is enough: the `tisty` skill tells it to start with `catch_up` and to leave the task up to date with `tick` and a note. [[Hooks and skills|Hooks-and-Skills]] tells it.
 
 ## Before you start
 
@@ -18,7 +19,10 @@ In **Settings › Agents**:
 
 1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
 2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the agent uses them.
-3. On the **Door** tab, two switches, on from the start:
+3. At the end of the same list, the **Tisty's skills** row says **Off**. **See** opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
+
+   If you connect the agent now, steps 2 and 3 come together: under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with its hooks and **See Tisty's skills**.
+4. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
 
@@ -28,7 +32,7 @@ Mario works with Claude Code on the task «Payments through the new gateway», i
 
 ### 1. It starts knowing where things stand
 
-With the hooks, each session starts with the last open tasks your agents wrote on on this computer, how many steps they have and the next one, without the agent having to ask. This is how tomorrow's session starts, after the work this page tells:
+With the hooks, each session starts with the last open tasks that same agent wrote on this computer, how many steps they have and the next one, without the agent having to ask. This is how tomorrow's session starts, after the work this page tells:
 
 ```json
 "Your last open tasks here, newest first:
@@ -118,7 +122,7 @@ With each section's lines, the agent reads only the one it needs, with the same 
 ```json
 > read {"task": "…", "print": "…"}
 { "id": "…", "status": "open", "unchanged": true, "print": "…" }
-"Nothing on \"Confirmation webhook\" changed since you read it, 22:50: what you hold still stands. Without `print`, `read` brings it whole again."
+"Nothing on \"Confirmation webhook\" in Work […] changed since you read it, 2026-11-18 22:50: what you hold still stands. Without `print`, `read` brings it whole again."
 ```
 
 Measured on a store of 5,000 tasks, reading a task again this way costs 336 bytes instead of 4,360, and a whole document 332 instead of 9,321. If something changed, a ticked step or a new line, it brings everything again. A section always comes with its text.
@@ -217,7 +221,8 @@ An agent that still calls one of them is told where it went («`find` moved into
 
 ## Good to know
 
-- **Agents without hooks.** Codex and Claude Desktop run no hooks: they get only the question in the answers, and only when they call Tisty.
+- **Agents without hooks.** Codex and Claude Desktop run no hooks: they get only the question in the answers, and only when they call Tisty. Codex does read Tisty's skills, from `~/.agents/skills`, so “Pick up where we left off” still leads it to `catch_up`.
+- **With the Tisty plugin** in Claude Code, the plugin brings the hooks and the skills: the hooks row says **The Tisty plugin brings them** and Tisty does not copy its skills there. See [[Hooks and skills|Hooks-and-Skills]].
 - **Work that edits no files**, like planning or researching, is not seen by the end-of-turn hook: there the question in the answers remains.
 - **GitHub Copilot** may spend a premium request on the turn that is handed back.
 - **Cursor** also runs Claude Code's hooks; even if both fire, the turn goes back only once.

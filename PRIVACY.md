@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 18, 2026
+**Last updated:** November 23, 2026
 
 ## The short version
 
@@ -125,6 +125,10 @@ visible instead of making it for you.
   them, including the ones Tisty writes on its own before a change. Deleting a
   document deletes its versions; **Empty the history** deletes them without
   deleting the document.
+- **Words a save refused** — if a document got locked or too long while you were
+  writing, Tisty keeps what it could not save in the window's own storage on
+  this computer, until you put it back, discard it or delete the document in
+  this window. It is never synced, backed up, put in a parcel or shared by link.
 - **Attachments** — the files themselves, unmodified. The log keeps a note of
   each one: the name it is kept under (a lowercased form of the file's name
   with a short fingerprint), its size and fingerprint, how it came in (dropped
@@ -163,6 +167,8 @@ visible instead of making it for you.
   whether important reminders are on and the calendar you chose for **Save to my
   calendar**. Which assistants
   are on this machine is read when the offer is decided and is not written down.
+  Those that take Tisty's hooks or skills, once you connect them from Settings,
+  are noted in the window's own storage, so each is offered them once.
   The day this copy opened is, with the time zone below, the only field here
   that says anything about you rather than about your work, and none of them
   leaves this machine: the file is not synced, not backed up, and not put in a
@@ -628,16 +634,18 @@ computer, and only these:
   this computer: it is kept on it, stamped with its identifier, and a copy that
   reaches another computer counts for nothing there, so each of your computers
   asks for its own.
-- **After that**, it opens only the files that belong to a document in Agents:
-  to see whether they changed outside and, only while it syncs, to write them.
-  Brought but not synced, it writes none of them. Only words you approved reach
-  a file: a document whose text waits for your approval is not written, and one
-  that arrives from another computer waits for **Apply here** on this one. A
-  document in Global is written to every assistant Tisty finds on this computer,
-  even one whose files you did not tick. A change made outside is never written
-  over; it stays marked until you bring it in or write Tisty's version over it.
-  In Gemini CLI's `GEMINI.md`, which Gemini writes itself, Tisty only ever adds
-  one line, `@tisty-rules.md`, and takes nothing out.
+- **After that**, it opens only the files that belong to a document in Agents,
+  to see whether they changed outside and, only while it syncs, to write them;
+  and, while it syncs, those it wrote for one that is gone, also the ones you
+  chose to leave, to see whether they changed. Brought but not synced, it writes
+  none of them. Only words you approved reach a file: a document whose text
+  waits for your approval is not written, and one that arrives from another
+  computer waits for **Apply here** on this one. A document in Global is written
+  to every assistant Tisty finds on this computer, even one whose files you did
+  not tick. A change made outside is never written over; it stays marked until
+  you bring it in or write Tisty's version over it. In Gemini CLI's `GEMINI.md`,
+  which Gemini writes itself, Tisty only ever adds one line, `@tisty-rules.md`,
+  and takes nothing out.
 - **The memory an assistant writes for itself** is brought in and shown, and
   never written back.
 - **An assistant connected through the door below** reads these documents like
@@ -648,18 +656,20 @@ computer, and only these:
 What Agents never brings in:
 
 - **Settings and credentials, by their names**: `settings.json`,
-  `settings.local.json`, `config.toml`, `config.json`, `hooks.json`,
-  `mcp.json`, `mcp-config.json`, `.claude.json` and `keybindings.json` — except
-  a file of those names inside a skill's own folder, which is part of the skill
-  — and, anywhere, `.credentials.json`, `credentials.json`, `auth.json`,
-  `.netrc`, `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in
-  `.pem`, `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being
-  brought in. One key is read: with your yes to Agents or to Tisty's own
-  skills, Claude Code's `settings.json` is opened only to see whether the
-  Tisty plugin is turned off (`enabledPlugins`), and nothing of it is kept.
-  Nor is an Agents document ever written to an assistant's own settings
-  or credentials: a document goes only where each assistant keeps its rules,
-  its skills and its memory.
+  `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`,
+  `mcp-config.json`, `.claude.json` and `keybindings.json` — except a file of
+  those names inside a skill's own folder, which is part of the skill — and,
+  anywhere, `.credentials.json`, `credentials.json`, `auth.json`, `.netrc`,
+  `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in `.pem`,
+  `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being brought in.
+  Apart from adding or taking out Tisty's hooks when you ask, Claude Code's
+  `settings.json` is opened for two things, and neither keeps anything of it:
+  with your yes to Agents or to Tisty's own skills, to see whether the Tisty
+  plugin is turned off (`enabledPlugins`); and, for the hooks row in Settings ›
+  Agents › Connected, to see whether Tisty's hooks are in it. Nor is an Agents
+  document ever written to an assistant's own settings or credentials: a
+  document goes only where each assistant keeps its rules, its skills and its
+  memory.
 - **A file that reads like it holds a credential.** A file you ticked is
   checked on this computer, before it becomes a document, for the shapes of
   tokens, passwords and private keys; if it matches, it is left out and you
@@ -680,11 +690,12 @@ What travels, and what stays:
   or not it is connected to Tisty. That is the point of the folder, and it is
   also a way your words leave this computer.
 - **This computer's own record stays on it**, in `data/agents/` inside Tisty's
-  folder, out of everything sync, backups and parcels carry: your yes, whether
-  Agents syncs here, which assistants you paused, which documents you applied
-  or left out on this computer, a fingerprint of each file Tisty last wrote,
-  and the backups. It is readable by your user alone, where the system allows
-  it.
+  folder, out of everything sync, backups and parcels carry: your yes to Agents
+  and your yes to Tisty's own skills, whether Agents syncs here, which
+  assistants you paused, which documents you applied or left out on this
+  computer, a fingerprint of each file Tisty last wrote, which of those files
+  you left with your assistants when you deleted what wrote them, and the
+  backups. It is readable by your user alone, where the system allows it.
 - **Backups before every overwrite.** Before Tisty writes over one of your
   assistants' files, it keeps the version that was there. Backup #1 is the
   file as it was before Tisty first touched it, and it is never removed; after
@@ -694,11 +705,17 @@ What travels, and what stays:
 Turning it off loses nothing. You can pause one assistant, or **Stop syncing**
 for the whole folder; either way Tisty neither opens nor writes those files on
 its own: they stay as its last write left them, and your documents stay in
-Tisty. A pause belongs to this computer, like the yes. If you take a rule out
-of Agents, Tisty asks whether to take its file away too: on a no the file stays
-as it was; on a yes it is deleted, after a backup of it. Short of that answer,
-Tisty never empties or deletes an assistant's file. The help page [The Agents
-folder](https://www.tisty.app/docs/agents-folder/) tells each step.
+Tisty. A pause belongs to this computer, like the yes. Deleting a rule or skill
+from Agents asks once, right then, whether to take it away from the assistants
+Tisty wrote it for: **Take away too** deletes each file after a backup, and
+**Only from Tisty** leaves them and notes them on this computer, listed with
+**Review** in Settings › Agents › Agents folder. A copy changed outside, or one
+a paused assistant reads, stays and is asked about apart; a file other rules
+still make up is written again without this one, after a backup. When a rule
+leaves Agents any other way, or is deleted on another computer, Tisty asks here
+before deleting its file. Short of those answers Tisty never empties or deletes
+an assistant's file, apart from its own skills' copies, below. The help page
+[The Agents folder](https://www.tisty.app/docs/agents-folder/) tells each step.
 
 ## Tisty's own skills
 
@@ -708,12 +725,15 @@ your store: they never sync, never go into a backup, a parcel or your cloud,
 and no agent can name or change them through the MCP. Only the bytes of the
 release, checked against a fingerprint built into the app, are written.
 
-- **They have their own yes, on this computer.** Settings › Agents shows them
-  in a row of their own, and **Turn on here** is that yes. It needs no
-  Agents folder, and a record copied from another computer does not count.
-- **Before that yes, their card opens nothing inside your agents' folders.**
-  It looks only at which agents' folders exist, as Settings › Agents already
-  does, and, for copies Tisty wrote before, whether they are still there.
+- **They have their own yes, on this computer.** Settings › Agents › Connected
+  shows them in a row of their own, and **Turn on here** is that yes. It needs
+  no Agents folder, and a record copied from another computer does not count.
+- **Before that yes, and with no yes to Agents either, their card opens nothing
+  inside your agents' folders.** It looks only at which agents' folders exist,
+  as Settings › Agents already does, and, for copies Tisty wrote before, whether
+  they are still there. With the yes to Agents alone, it reads the plugin's
+  records named below and any copy Tisty wrote before, to tell whether it
+  changed.
 - **With it, Tisty reads and writes only this:** one folder per skill in each
   agent's skills folder on this computer (such as `~/.claude/skills/tisty`,
   `~/.cursor/skills/tisty` and the shared `~/.agents/skills/tisty`), the other
@@ -726,8 +746,10 @@ release, checked against a fingerprint built into the app, are written.
   whole folder, holds only your own documents; the skills follow their own
   switch.
 - **They never write over your files.** A skill folder holding a file Tisty did
-  not write, or a copy you changed, is left as it is. They update by
-  themselves when you open a newer Tisty.
+  not write, or a copy you changed, is left as it is. The one exception: a
+  folder holding exactly the files of this release, byte for byte and nothing
+  else, counts as Tisty's copy, so it updates and goes when you turn them off.
+  They update by themselves when you open a newer Tisty.
 - **Turning them off** takes out of your agents' folders only the copies still
   as Tisty wrote them, after a backup kept in `data/agents/`; the skills stay in
   Tisty, ready to turn on again, and are never deleted. A copy you changed is
@@ -780,12 +802,14 @@ happens on its own:
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
-- **Its hooks, if you add them.** Settings › Agents › Connected can add
-  Tisty's hooks to an assistant's own settings file; it names the file and asks
-  first, and leaves the rest of that file as it is. With them, a session starts
-  with the tasks it left open, and after each edit and each call to Tisty a mark
-  is kept in Tisty's cache on this computer, without reading the conversation.
-  The marks never leave it, and **Remove** takes the hooks out.
+- **Its hooks, if you add them.** Settings › Agents › Connected can add Tisty's
+  hooks to an assistant's own settings file; it names the file and asks first,
+  and leaves the rest of that file as it is. If the file held anything, a copy
+  of it as it was stays beside it, as `.before-tisty`. With them, a session
+  starts with the tasks it left open, what moved and how much is pressing, and
+  after each edit and each call to Tisty a mark is kept in Tisty's cache on this
+  computer, without reading the conversation. The marks never leave it, and
+  **Remove** takes the hooks out.
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
   never leaves this computer. A summary it leaves on a long document is an

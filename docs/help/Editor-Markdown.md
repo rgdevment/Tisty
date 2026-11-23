@@ -63,7 +63,7 @@ Un documento se ve de dos maneras, y las dos escriben el mismo archivo:
 - **Enriquecido** es la página dibujada, la que se lee, se imprime y se comparte. Ahí se escribe casi todo.
 - **Markdown** muestra el texto tal como está guardado, con todas sus marcas a la vista: los `**`, el `#`, el `>`, las rayas de una tabla. Sirve para los cambios que cruzan varios bloques, para escribir un diagrama como texto y para cambiar las letras de un código en línea o de una etiqueta, que en la página son una sola pieza donde el cursor no entra.
 
-El **⋯** de la cinta, arriba del documento, cambia entre las dos, y `Ctrl`/`⌘` + `E` también. En una tarea, **Ver Markdown** en su columna hace lo mismo, y **Ver enriquecido** vuelve. Al bajar por un documento, la cinta también recuerda su título.
+El **⋯** a la derecha del título cambia entre las dos, y `Ctrl`/`⌘` + `E` también; se va con el texto al bajar. Con **Hojas** encendidas o en un documento de Agentes, está en la barra de arriba. En una tarea, **Ver Markdown** en su columna hace lo mismo, y **Ver enriquecido** vuelve.
 
 En la vista Markdown:
 
@@ -114,7 +114,7 @@ Una tabla más ancha que la página se desplaza hacia el lado, y sus copias en P
 
 ## Lo que cabe en un documento
 
-Todo lo que lleva un documento, desde la negrita y las listas hasta los avisos, los rotuladores, los iconos, las tablas, los diagramas, las fórmulas, los widgets, el código y las páginas, es Markdown normal con unas pocas palabras cortas propias de Tisty, así que el archivo sobrevive sin Tisty. Cómo se escribe cada cosa, con sus ejemplos dibujados, está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/), que también se abre dentro de Tisty con `F1`. Nunca la necesitas para escribir: el menú `/` y la barra lo escriben todo por ti.
+Todo lo que lleva un documento, desde la negrita y las listas hasta los avisos, los rotuladores, los iconos, las tablas, los diagramas, las fórmulas, los widgets, el código y las páginas, es Markdown normal con unas pocas palabras cortas propias de Tisty, así que el archivo sobrevive sin Tisty. Cómo se escribe cada cosa, con sus ejemplos dibujados, está en la [guía de Markdown de Tisty](https://markdown.tisty.app/es/), que también está en la ayuda de Tisty; en la vista Markdown, `F1` sobre una marca abre su parte. Nunca la necesitas para escribir: el menú `/` y la barra lo escriben todo por ti.
 
 Un enlace web solo en su línea se dibuja como tarjeta, hecha con la dirección misma: el nombre del sitio y las palabras que escribiste. No se descarga nada para dibujarla. Presiona **Traer la vista previa** y Tisty le pide a esa página, una sola vez, su título, su descripción y la imagen que ofrece, guarda la respuesta en este equipo para no volver a preguntar, y no lee más de la página de lo que necesita: una página no decide cuánto de tu equipo ocupa.
 

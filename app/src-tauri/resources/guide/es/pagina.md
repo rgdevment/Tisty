@@ -6,7 +6,7 @@ Esta hoja es una página de la guía. No está aquí para contarte nada de Tisty
 
 Fíjate en tres cosas que solo se ven estando dentro de una.
 
-Arriba tienes de qué documento es esta página y en qué lugar va, con flechas a sus hermanas si las tuviera. Es un documento igual que cualquier otro —el mismo archivo en el disco, la misma salida al exportar— y lo único que lo distingue es esa línea: dice de quién es.
+Arriba tienes de qué documento es esta página y en qué lugar va, con flechas a sus hermanas. Es un documento igual que cualquier otro —el mismo archivo en el disco, la misma salida al exportar— y lo único que lo distingue es esa línea: dice de quién es.
 
 En el texto de la guía, esta hoja no está pegada al final. Está nombrada justo donde tenía sentido nombrarla, y ahí es donde va. Si mueves ese bloque de lugar, la página se mueve con él: en el árbol, al imprimir y al exportar.
 
