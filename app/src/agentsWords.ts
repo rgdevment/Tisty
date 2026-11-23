@@ -510,6 +510,150 @@ const words = {
     "This document already says what the file says; only the way the file ends differs. Overwrite it with Tisty to make them agree.",
     "Este documento ya dice lo mismo que el archivo; solo cambia cómo termina el archivo. Sobrescríbelo con Tisty para que coincidan.",
   ],
+  tistySkills: ["Tisty's skills", "Skills de Tisty"],
+  tistySkillsOff: ["Off", "Apagadas"],
+  tistySkillsOn: ["On this computer", "En este equipo"],
+  tistySkillsLead: [
+    "Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.",
+    "Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.",
+  ],
+  tistySkill_tisty: [
+    "Picking up where it left off, tasks, documents and ideas.",
+    "Retomar donde quedó, tareas, documentos e ideas.",
+  ],
+  tistySkill_consolidate: [
+    "Tidying what is kept: it proposes and never deletes.",
+    "Ordenar lo guardado: propone y nunca borra.",
+  ],
+  "tistySkill_writing-for-the-next-agent": [
+    "Writing for the next agent. Adapted from mattpocock/skills, under the MIT licence, which travels with it.",
+    "Escribir para el próximo agente. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella.",
+  ],
+  tistySkillsSay: ["Ask your agent:", "Pídele a tu agente:"],
+  tistySkillsQuote: ["“{name}”", "«{name}»"],
+  tistySkillSay_tisty_1: ["Pick up where we left off", "Retoma donde quedamos"],
+  tistySkillSay_tisty_2: [
+    "Leave this ready for the next agent",
+    "Deja esto listo para el próximo agente",
+  ],
+  tistySkillSay_consolidate_1: ["Tidy up my Tisty", "Ordena mi Tisty"],
+  "tistySkillSay_writing-for-the-next-agent_1": [
+    "Make this page clear for the next agent",
+    "Deja esta página clara para el próximo agente",
+  ],
+  tistySkillsWhere: ["Where they go on this computer", "Dónde van en este equipo"],
+  tistySkillsShared: [
+    "Codex, Copilot and Gemini share this folder: turning them on or off here does it for the three.",
+    "Codex, Copilot y Gemini comparten esta carpeta: encenderlas o apagarlas aquí vale para los tres.",
+  ],
+  tistySkillsUpdate: [
+    "They update when you update Tisty, and never write over a skill of yours with the same name.",
+    "Se actualizan cuando actualizas Tisty, y nunca pisan una skill tuya con el mismo nombre.",
+  ],
+  tistySkillsHere: [
+    "Only on this computer: on another one, you decide there. Pausing Agents does not reach them: they have their own switch.",
+    "Solo en este equipo: en otro equipo lo decides allí. La pausa de Agentes no las alcanza: tienen su propio interruptor.",
+  ],
+  tistySkillsPlugged: [
+    "{name} already has them through the Tisty plugin, so Tisty does not copy them there.",
+    "{name} ya las tiene por el plugin de Tisty, así que Tisty no las copia ahí.",
+  ],
+  tistySkillsCursor: [
+    "If you installed the Tisty plugin in Cursor, Cursor will list each skill twice: Tisty cannot tell.",
+    "Si instalaste el plugin de Tisty en Cursor, Cursor mostrará cada skill dos veces: Tisty no puede saberlo.",
+  ],
+  tistySkillsYours: [
+    "You already have a skill named {name} in Agents, so Tisty's is left out.",
+    "Ya tienes en Agentes una skill llamada {name}, así que la de Tisty no se agrega.",
+  ],
+  tistySkillsNone: [
+    "This build of Tisty carries no skills: only installed versions do.",
+    "Esta build de Tisty no trae skills: solo las versiones instaladas.",
+  ],
+  tistySkillsAdd: ["Turn on here", "Encender en este equipo"],
+  tistySkillsRemove: ["Turn off on this computer", "Apagar en este equipo"],
+  tistySkillsRemoveSaid: [
+    "Turning them off takes Tisty's untouched copies out of your agents' folders, with a backup, and the skills stay in Tisty, ready to turn on again. A copy you changed stays in this card.",
+    "Apagarlas saca de las carpetas de tus agentes las copias intactas de Tisty, con respaldo, y las skills siguen en Tisty, listas para encenderlas otra vez. Una copia que cambiaste se queda en esta ficha.",
+  ],
+  tistySkillsAsk: [
+    "To turn them on, Tisty writes only one folder per skill in the folders above, and reads the files already in those skill folders so as never to write over one of yours. In Claude Code it also reads its plugin's records (installed_plugins.json and settings.json) so as not to copy them twice. It reads no rules, memory or other files of your agents, and needs no Agents folder.",
+    "Para encenderlas, Tisty escribe solo una carpeta por skill en las carpetas de arriba, y lee los archivos que ya hay en esas carpetas de skill para no escribir nunca sobre uno tuyo. En Claude Code lee además el registro de su plugin (installed_plugins.json y settings.json) para no copiarlas dos veces. No lee reglas, memoria ni otros archivos de tus agentes, y no necesita la carpeta Agentes.",
+  ],
+  tistySkillsLeftover: [
+    "Copies left over: Tisty no longer writes them there. Removing one keeps a backup.",
+    "Copias que sobran: Tisty ya no las escribe ahí. Si quitas una, queda un respaldo.",
+  ],
+  tistySkillsLeftoverChanged: ["Changed outside Tisty", "Cambiada fuera de Tisty"],
+  tistySkillsHideRow: [
+    "Hide Tisty's skills from Agents on this computer",
+    "Ocultar Skills de Tisty de Agentes en este equipo",
+  ],
+  tistySkillsHidden: [
+    "Hidden from Agents on this computer; they stay as they are.",
+    "Ocultas de Agentes en este equipo; siguen como están.",
+  ],
+  tistySkillsShowRow: ["Show in Agents", "Mostrar en Agentes"],
+  tistySkillsLeftoverAway: ["Remove {name}", "Quitar {name}"],
+  tistySkillsSettingsLine: [
+    "Three skills that teach your agents to work with Tisty. They have their own yes, on this computer.",
+    "Tres skills que les enseñan a tus agentes a trabajar con Tisty. Tienen su propio sí, en este equipo.",
+  ],
+  tistySkillsVersion: ["From Tisty {name}", "De Tisty {name}"],
+  connectOfferTitle: [
+    "{name} is connected. This helps it work with Tisty:",
+    "{name} ya está conectado. Esto lo ayuda a trabajar con Tisty:",
+  ],
+  connectOfferHooks: [
+    "With its hooks, {name} tells Tisty when each turn starts and ends.",
+    "Con sus hooks, {name} le avisa a Tisty al empezar y al terminar cada turno.",
+  ],
+  connectOfferPlugged: [
+    "The Tisty plugin already brings its hooks.",
+    "Sus hooks ya los trae el plugin de Tisty.",
+  ],
+  connectOfferSkills: [
+    "Tisty's skills teach {name} to pick up where it left off, tidy up and leave work ready for the next agent.",
+    "Las skills de Tisty le enseñan a {name} a retomar, ordenar y dejar el trabajo listo para el próximo agente.",
+  ],
+  connectOfferSkillsSee: ["See Tisty's skills", "Ver las skills de Tisty"],
+  connectOfferSkillsOn: [
+    "Tisty's skills are already on this computer.",
+    "Las skills de Tisty ya están en este equipo.",
+  ],
+  connectOfferSkillsPlugged: [
+    "{name} already has Tisty's skills through the Tisty plugin.",
+    "{name} ya tiene las skills de Tisty por el plugin de Tisty.",
+  ],
+  tistyLanding_upToDate: ["In sync", "Al día"],
+  tistyLanding_wrote: ["In sync", "Al día"],
+  tistyLanding_write: ["About to be written", "Por escribir"],
+  tistyLanding_foreign: [
+    "A skill that is not Tisty's: left as it is",
+    "Una skill que no es de Tisty: se deja como está",
+  ],
+  tistyLanding_outside: [
+    "Changed outside Tisty: left as it is",
+    "Cambiada fuera de Tisty: se deja como está",
+  ],
+  tistyLanding_agreed: ["In sync", "Al día"],
+  tistyLanding_noConsent: ["Not turned on here", "Sin encender en este equipo"],
+  tistyLanding_held: ["Left as it is", "Se deja como está"],
+  tistyLanding_unproven: [
+    "Written by an earlier Tisty: left as it is",
+    "Escrito por un Tisty anterior: se deja como está",
+  ],
+  tistyLanding_empty: ["Nothing to write", "Nada que escribir"],
+  tistyLanding_linked: [
+    "The folder is a link: left as it is",
+    "La carpeta es un enlace: se deja como está",
+  ],
+  tistyLanding_broken: ["This release's copy is damaged", "La copia de esta versión está dañada"],
+  tistyLanding_both: [
+    "Changed outside Tisty: left as it is",
+    "Cambiada fuera de Tisty: se deja como está",
+  ],
+  tistyLanding_unreadable: ["Cannot be read: left as it is", "No se puede leer: se deja como está"],
 } as const satisfies Record<string, readonly [string, string]>;
 
 type Key = keyof typeof words;

@@ -1,5 +1,8 @@
-use super::{WakeOffer, reminded, wake_offer};
+use std::collections::BTreeSet;
+
+use super::{WakeOffer, marked, reminded, wake_offer};
 use crate::waking::Waking;
+use crate::wiring::{Manual, Seen, hooks::Hooks};
 
 fn standing(offered: bool, wakes: bool) -> Waking {
     Waking {
@@ -82,4 +85,87 @@ fn only_an_open_task_with_a_reminder_counts() {
 
     state.apply(&fired(tisty_core::Op::TaskDone { id, filled: false }));
     assert!(!reminded(&state));
+}
+
+fn row(id: &str, place: Option<&str>, hooked: bool) -> Seen {
+    Seen {
+        id: id.into(),
+        name: id.into(),
+        also: None,
+        place: place.map(str::to_string),
+        at: String::new(),
+        wired: true,
+        astray: false,
+        gone: false,
+        points: None,
+        maybe: false,
+        by_hand: false,
+        manual: Manual {
+            file: String::new(),
+            snippet: String::new(),
+            cli: None,
+        },
+        hooks: hooked.then(|| Hooks {
+            on: false,
+            at: "~/.claude/settings.json".into(),
+            plugged: false,
+        }),
+    }
+}
+
+fn plugged_rows(seen: Vec<Seen>, plugged: &[&str]) -> Vec<Option<bool>> {
+    marked(seen, &plugged.iter().copied().collect::<BTreeSet<_>>())
+        .into_iter()
+        .map(|one| one.hooks.map(|hooks| hooks.plugged))
+        .collect()
+}
+
+#[test]
+fn claude_codes_hooks_row_says_the_plugin_brings_them_on_this_computer_only() {
+    let seen = vec![
+        row("claude-code", None, true),
+        row("claude-code", Some("Ubuntu"), true),
+        row("cursor", None, true),
+        row("codex", None, false),
+    ];
+    assert_eq!(
+        plugged_rows(seen, &["claude"]),
+        vec![Some(true), Some(false), Some(false), None]
+    );
+}
+
+#[test]
+fn without_the_plugin_no_hooks_row_says_it() {
+    let seen = vec![row("claude-code", None, true), row("cursor", None, true)];
+    assert_eq!(plugged_rows(seen, &[]), vec![Some(false), Some(false)]);
+}
+
+#[test]
+fn the_plugins_records_are_read_only_after_this_computers_yes() {
+    let home = tempfile::tempdir().unwrap();
+    let installed = home.path().join(".claude/plugins/installed_plugins.json");
+    std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
+    std::fs::write(
+        &installed,
+        r#"{"plugins":{"tisty@rgdevment":[{"scope":"user"}]}}"#,
+    )
+    .unwrap();
+    let mut ledger = tisty_core::agents::Ledger::fresh("machine-a");
+    let refused = super::plugged_with(&ledger, || unreachable!("never looked before the yes"));
+    assert!(refused.is_empty());
+
+    ledger.consent(true);
+    let homes = || Some(crate::wiring::agents::Homes::with(home.path(), &[]));
+    assert_eq!(
+        super::plugged_with(&ledger, homes),
+        BTreeSet::from(["claude"])
+    );
+
+    ledger.consent(false);
+    ledger.take_tisty_skills(true);
+    assert_eq!(
+        super::plugged_with(&ledger, homes),
+        BTreeSet::from(["claude"]),
+        "the skills' own yes reads it too"
+    );
 }

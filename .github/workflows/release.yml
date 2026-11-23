@@ -533,6 +533,10 @@ jobs:
           } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
           Write-Host "the bundler signs with $($cert.Thumbprint)"
 
+      - name: Tisty's own skills, from the commit skills.lock names
+        shell: bash
+        run: bash scripts/skills.sh
+
       - name: Bundle
         working-directory: app
         shell: bash
@@ -543,8 +547,8 @@ jobs:
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
           TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
-          packs=""
-          if [ -f sign.json ]; then packs="--config sign.json"; fi
+          packs="--config src-tauri/tauri.skills.conf.json"
+          if [ -f sign.json ]; then packs="$packs --config sign.json"; fi
           # The bundler downloads NSIS and its plugin from GitHub releases, which now and then answer 500.
           for try in 1 2 3; do
             if npm run tauri build -- --bundles nsis $packs 2>&1 | tee bundle.log; then exit 0; fi
@@ -553,6 +557,26 @@ jobs:
             sleep 60
           done
           exit 1
+
+      # Only the release config ships the skills, so the installer is opened to see they and the dictionary went in.
+      - name: The installer carries the skills and the dictionary
+        shell: bash
+        run: |
+          setup=$(ls target/release/bundle/nsis/*-setup.exe | head -1)
+          seven=$(command -v 7z || echo "/c/Program Files/7-Zip/7z.exe")
+          shipped=$(bash scripts/skills.sh files)
+          listed=$("$seven" l -slt "$setup" | tr -d '\r' | sed -n 's/^Path = //p' | tr '\\' '/')
+          missing=0
+          for one in resources/brain/dictionary.tsv $shipped; do
+            case $'\n'"$listed"$'\n' in
+              *$'\n'"$one"$'\n'* | *"/$one"$'\n'*) ;;
+              *) echo "::error::$one did not reach the installer"; missing=1 ;;
+            esac
+          done
+          if [ "$missing" != 0 ]; then
+            echo "$listed"
+            exit 1
+          fi
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
@@ -870,6 +894,9 @@ jobs:
             > "$RUNNER_TEMP/urgent.json"
           echo "URGENT_CONFIG=--config $RUNNER_TEMP/urgent.json" >> "$GITHUB_ENV"
 
+      - name: Tisty's own skills, from the commit skills.lock names
+        run: bash scripts/skills.sh
+
       - name: Bundle
         working-directory: app
         env:
@@ -881,7 +908,18 @@ jobs:
           TISTY_MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
           TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
-        run: npm run tauri build -- --target "$TARGET" --bundles app,dmg ${URGENT_CONFIG:-}
+        run: npm run tauri build -- --target "$TARGET" --bundles app,dmg --config src-tauri/tauri.skills.conf.json ${URGENT_CONFIG:-}
+
+      - name: The app carries the skills and the dictionary
+        run: |
+          app=$(ls -d "target/$TARGET/release/bundle/macos"/*.app | head -1)
+          shipped=$(bash scripts/skills.sh files)
+          for one in resources/brain/dictionary.tsv $shipped; do
+            if ! test -s "$app/Contents/Resources/$one"; then
+              echo "::error::$one did not reach $(basename "$app")"
+              exit 1
+            fi
+          done
 
       - name: The app is one architecture
         run: |
@@ -973,6 +1011,13 @@ jobs:
           tar -xzf "$out/Tisty.app.tar.gz" -C "$RUNNER_TEMP/rt"
           codesign --verify --deep --strict "$RUNNER_TEMP/rt/Tisty.app"
           xcrun stapler validate "$RUNNER_TEMP/rt/Tisty.app"
+          shipped=$(bash scripts/skills.sh files)
+          for one in resources/brain/dictionary.tsv $shipped; do
+            if ! test -s "$RUNNER_TEMP/rt/Tisty.app/Contents/Resources/$one"; then
+              echo "::error::$one did not reach the tarball the updater unpacks"
+              exit 1
+            fi
+          done
 
       - name: Name it after the release
         run: |
@@ -1055,11 +1100,14 @@ jobs:
           test "$(cat msix/Tisty.exe msix/cli/tisty.exe | sha256sum | cut -d' ' -f1)" \
             = "${{ needs.bundle-windows.outputs.stage }}"
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
-          # The app reads the dictionary beside its exe; without it the package would ship with no alike by translation.
-          if ! test -s msix/resources/brain/dictionary.tsv; then
-            echo "::error::resources/brain/dictionary.tsv did not reach the package"
-            exit 1
-          fi
+          # The app reads the dictionary and its own skills beside its exe; without them the package would ship without either.
+          shipped=$(bash scripts/skills.sh files)
+          for one in resources/brain/dictionary.tsv $shipped; do
+            if ! test -s "msix/$one"; then
+              echo "::error::$one did not reach the package"
+              exit 1
+            fi
+          done
           mkdir -p msix/Assets
           cp app/src-tauri/icons/msix/*.png msix/Assets/
 

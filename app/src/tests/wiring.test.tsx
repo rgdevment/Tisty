@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AGENTS_FIRST } from "../agentsSync";
 import type { Wired } from "../core";
 import { adopt } from "../locales";
 import Wiring from "../ui/Wiring";
@@ -209,6 +211,32 @@ describe("connecting assistants", () => {
     expect(sent("unhook")[0].args.id).toBe("gemini-cli");
   });
 
+  it("says the Tisty plugin brings Claude Code's hooks and offers none of its own", async () => {
+    shown([
+      one("claude-code", {
+        wired: true,
+        hooks: { on: false, at: "/home/someone/.claude/settings.json", plugged: true },
+      }),
+    ]);
+
+    expect(screen.getByText("The Tisty plugin brings them")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Add · Hooks/ })).toBeNull();
+    expect(screen.queryByText(/run twice/)).toBeNull();
+  });
+
+  it("warns that hooks run twice when Tisty's and the plugin's are both there", async () => {
+    shown([
+      one("claude-code", {
+        wired: true,
+        hooks: { on: true, at: "/home/someone/.claude/settings.json", plugged: true },
+      }),
+    ]);
+
+    expect(screen.getByText(/The Tisty plugin brings them too, so they run twice/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
+    await waitFor(() => expect(sent("unhook")).toHaveLength(1));
+  });
+
   it("still offers to remove hooks left on an assistant that is no longer connected", async () => {
     ipc.answer = (cmd) => Promise.resolve(cmd === "wsl_distros" ? [] : []);
     shown([one("claude-code", { hooks: { on: true, at: "/home/someone/.claude/settings.json" } })]);
@@ -216,5 +244,114 @@ describe("connecting assistants", () => {
     await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
 
     await waitFor(() => expect(sent("unhook")).toHaveLength(1));
+  });
+});
+
+const tistySkills = (more: Record<string, unknown> = {}) => ({
+  version: "1.50.0",
+  on: false,
+  leftover: [],
+  skills: [{ name: "tisty", label: "tisty", about: null, files: ["tisty/SKILL.md"], yours: false }],
+  landing: [],
+  plugged: [],
+  ...more,
+});
+
+const joining = (after: Wired, skills: unknown) => {
+  ipc.answer = (cmd) => {
+    if (cmd === "wsl_distros") return Promise.resolve([]);
+    if (cmd === "wire") return Promise.resolve([after]);
+    if (cmd === "unwire") return Promise.resolve([{ ...after, wired: false }]);
+    if (cmd === "agents_tisty_skills") return Promise.resolve(skills);
+    return Promise.resolve([]);
+  };
+};
+
+function Live({ first }: Readonly<{ first: Wired[] }>) {
+  const [agents, setAgents] = useState(first);
+  const quietly = <T,>(_card: string, work: Promise<T>, then: (answer: T) => void) => {
+    void work.then(then);
+  };
+  return (
+    <Wiring
+      agents={agents}
+      setAgents={setAgents}
+      hands={[]}
+      held={false}
+      quietly={quietly as never}
+      tell={() => {}}
+      fail={() => {}}
+      wroteSaid={() => ""}
+    />
+  );
+}
+
+const live = (first: Wired[]) => render(<Live first={first} />);
+
+describe("right after connecting an agent", () => {
+  const hooks = { on: false, at: "/home/someone/.claude/settings.json" };
+
+  it("offers its hooks, still asking first, and Tisty's skills through their own card", async () => {
+    joining(one("claude-code", { wired: true, hooks }), tistySkills());
+    const first = vi.fn();
+    window.addEventListener(AGENTS_FIRST, first);
+    live([one("claude-code", { hooks })]);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(
+      await screen.findByText("claude-code is connected. This helps it work with Tisty:"),
+    ).toBeTruthy();
+    expect(screen.getByText(/With its hooks, claude-code tells Tisty/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Add · Hooks/ }));
+    expect(sent("hook")).toHaveLength(0);
+    expect(screen.getByText(/Tisty will add its hooks to/)).toBeTruthy();
+
+    await userEvent.click(await screen.findByRole("button", { name: "See Tisty's skills" }));
+    expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
+    expect(first).not.toHaveBeenCalled();
+    expect(sent("agents_tisty_skills_take")).toHaveLength(0);
+    window.removeEventListener(AGENTS_FIRST, first);
+  });
+
+  it("offers only Tisty's skills to an agent without hooks, through their card", async () => {
+    joining(one("codex", { wired: true }), tistySkills());
+    live([one("codex")]);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText(/Tisty's skills teach codex to pick up/)).toBeTruthy();
+    expect(screen.queryByText(/With its hooks/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "See Tisty's skills" }));
+    expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
+    expect(sent("agents_tisty_skills_take")).toHaveLength(0);
+  });
+
+  it("says the plugin brings what it already brings", async () => {
+    joining(
+      one("claude-code", { wired: true, hooks: { ...hooks, plugged: true } }),
+      tistySkills({ plugged: ["claude"] }),
+    );
+    live([one("claude-code", { hooks })]);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText("The Tisty plugin already brings its hooks.")).toBeTruthy();
+    expect(
+      await screen.findByText("claude-code already has Tisty's skills through the Tisty plugin."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "See Tisty's skills" })).toBeNull();
+  });
+
+  it("takes «Not now» and never offers again, and an agent already connected is never offered", async () => {
+    joining(one("codex", { wired: true }), tistySkills({ on: true }));
+    live([one("codex"), one("cursor", { wired: true })]);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(await screen.findByText("Tisty's skills are already on this computer.")).toBeTruthy();
+    expect(screen.getAllByRole("region")).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByRole("region")).toBeNull();
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(await screen.findByRole("button", { name: "Connect" }));
+    await waitFor(() => expect(sent("wire")).toHaveLength(2));
+    expect(screen.queryByRole("region")).toBeNull();
   });
 });

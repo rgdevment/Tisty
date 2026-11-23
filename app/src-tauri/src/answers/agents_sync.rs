@@ -75,14 +75,26 @@ pub(crate) fn untagged(session: &mut Session) {
 
 /// The only way to what may be written into an agent's file on this computer.
 pub fn gated(session: &Session, ledger: &Ledger) -> Gate {
+    gated_with(session, ledger, super::tisty_skills::bundled_here)
+}
+
+pub(crate) fn gated_with(
+    session: &Session,
+    ledger: &Ledger,
+    bundled: impl FnOnce() -> Vec<agents::Bundled>,
+) -> Gate {
     let docs = session.paths.docs();
-    agents::gate(&agents::Asked {
+    let mut gate = agents::gate(&agents::Asked {
         state: &session.state,
         docs: &docs,
         root: root_of(&session.state),
         ledger,
         me: session.store.device(),
-    })
+    });
+    if ledger.tisty_skills() {
+        gate.admit_builtins(ledger, &bundled());
+    }
+    gate
 }
 
 // Two AGENTS made before their computers synced become one before anything here reads the folder.
@@ -233,7 +245,7 @@ fn address_of(one: &Found) -> String {
     format!("{}/{}/{}", one.assistant, one.kind.word(), one.name)
 }
 
-fn found_here(homes: &Homes) -> Vec<Found> {
+pub(crate) fn found_here(homes: &Homes) -> Vec<Found> {
     let spots: Vec<agents::Place> = homes
         .detected()
         .into_iter()
@@ -355,6 +367,15 @@ fn known(held: &BTreeSet<String>, writes: &BTreeSet<PathBuf>, one: &Found) -> bo
 
 /// Names and sizes only: no agent file is opened before the person says yes.
 pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
+    looked_with(seen, homes, found, &super::tisty_skills::bundled_here())
+}
+
+pub(crate) fn looked_with(
+    seen: &Gathered,
+    homes: &Homes,
+    found: &[Found],
+    bundled: &[agents::Bundled],
+) -> Look {
     let ledger = &seen.ledger;
     let (root, docs) = (seen.root, seen.docs);
     let held = addresses(&seen.bodies, &seen.gate);
@@ -380,8 +401,15 @@ pub fn looked(seen: &Gathered, homes: &Homes, found: &[Found]) -> Look {
                     at: seen.at.to_string_lossy().into_owned(),
                     name: seen.name.clone(),
                     kind: seen.kind.word(),
-                    skip: seen.skip.map(skip_word),
-                    held: known(&held, &writes, seen),
+                    skip: match agents::shipped_copy(ledger, &seen.at)
+                        || super::tisty_skills::shipped_alike(seen, bundled, None)
+                    {
+                        true => Some(skip_word(agents::Skip::Tisty)),
+                        false => seen.skip.map(skip_word),
+                    },
+                    held: known(&held, &writes, seen)
+                        && !agents::shipped_copy(ledger, &seen.at)
+                        && !super::tisty_skills::shipped_alike(seen, bundled, None),
                 })
                 .collect(),
         })
@@ -447,7 +475,12 @@ pub(crate) fn loose_in(
     };
     let mut out = Vec::new();
     for (at, files) in ledger.written_files() {
-        if placing(at) || places::agents_own(homes, at) || files.is_empty() {
+        // Tisty's own copies are offered in their card, never here.
+        if placing(at)
+            || places::agents_own(homes, at)
+            || files.is_empty()
+            || agents::shipped_copy(ledger, at)
+        {
             continue;
         }
         let Some((assistant, root)) = places::owner_of(homes, at) else {
@@ -547,7 +580,7 @@ pub struct Rounded {
     pub unled: Vec<String>,
 }
 
-fn word(standing: &Standing) -> &'static str {
+pub(crate) fn word(standing: &Standing) -> &'static str {
     match standing {
         Standing::NoConsent => "noConsent",
         Standing::Off => "off",
@@ -561,6 +594,8 @@ fn word(standing: &Standing) -> &'static str {
         Standing::Wrote => "wrote",
         Standing::Outside { .. } => "outside",
         Standing::Both { .. } => "both",
+        Standing::Foreign { changed: false } => "foreign",
+        Standing::Foreign { changed: true } => "outside",
         Standing::Unreadable(_) => "unreadable",
     }
 }
@@ -672,7 +707,17 @@ fn led_in(
 }
 
 pub(crate) fn round_now(session: &Session, homes: &Homes, ledger: &mut Ledger) -> Rounded {
-    round_after(session, homes, ledger, &[])
+    round_through(session, homes, ledger, gated(session, ledger))
+}
+
+/// A round through a gate already built, so every write goes the one way whoever built it.
+pub(crate) fn round_through(
+    session: &Session,
+    homes: &Homes,
+    ledger: &mut Ledger,
+    gate: Gate,
+) -> Rounded {
+    round_after(session, homes, ledger, &[], gate)
 }
 
 // An earlier build marked no line: a file it wrote nothing but its line into, or one still holding it, had it put there.
@@ -698,9 +743,9 @@ fn round_after(
     homes: &Homes,
     ledger: &mut Ledger,
     brought: &[(String, PathBuf)],
+    gate: Gate,
 ) -> Rounded {
     let data = session.paths.data();
-    let gate = gated(session, ledger);
     let taken = ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file));
     if ledger.wait_all(gate.unclaimed()) | taken {
         let _ = ledger.keep(session.paths.data());
@@ -804,6 +849,7 @@ pub fn read_chosen(
     chosen: &BTreeSet<String>,
     held: &BTreeSet<String>,
     writes: &BTreeSet<PathBuf>,
+    bundled: &[agents::Bundled],
 ) -> (Vec<(Found, String)>, Vec<Turned>) {
     let mut bodies = Vec::new();
     let mut refused = Vec::new();
@@ -812,7 +858,14 @@ pub fn read_chosen(
         if !chosen.contains(&at) || known(held, writes, one) {
             continue;
         }
-        match agents::brought_in(ledger, one) {
+        let brought = agents::brought_in(ledger, one).and_then(|body| {
+            let bytes = agents::rendered(&body).unwrap_or_default();
+            match super::tisty_skills::shipped_alike(one, bundled, Some(&bytes)) {
+                true => Err(agents::Refused::Skipped(agents::Skip::Tisty)),
+                false => Ok(body),
+            }
+        });
+        match brought {
             Ok(body) => bodies.push((one.clone(), body)),
             Err(why) => refused.push(Turned {
                 at,
@@ -966,7 +1019,8 @@ pub fn brought_home(
 ) -> Answer<Brought> {
     let made = filed(session, read)?;
     subfolders_made(session, homes, &ledger)?;
-    let round = round_after(session, homes, &mut ledger, &made);
+    let gate = gated(session, &ledger);
+    let round = round_after(session, homes, &mut ledger, &made, gate);
     Ok(Brought {
         made: made.len(),
         refused,
@@ -1242,7 +1296,15 @@ pub fn agents_bring(
     joined_here(&mut held(&session))?;
     let (ledger, known, writes) = consented_here(&held(&session), &homes, &here(), sync)?;
     let chosen: BTreeSet<String> = chosen.into_iter().collect();
-    let (read, refused) = read_chosen(&ledger, &found_here(&homes), &chosen, &known, &writes);
+    let bundled = super::tisty_skills::bundled_here();
+    let (read, refused) = read_chosen(
+        &ledger,
+        &found_here(&homes),
+        &chosen,
+        &known,
+        &writes,
+        &bundled,
+    );
     brought_home(&mut held(&session), &homes, ledger, &read, refused)
 }
 

@@ -254,3 +254,109 @@ fn every_assistant_the_app_writes_is_one_whose_folder_the_core_guards() {
     let ids: Vec<&str> = ASSISTANTS.iter().map(|one| one.id).collect();
     assert_eq!(ids, tisty_core::agents::KNOWN);
 }
+
+const TISTY_PLUGIN: &str =
+    r#"{"version":2,"plugins":{"tisty@rgdevment":[{"scope":"user","version":"1.5.0"}]}}"#;
+
+fn tistys_own(ledger: &mut Ledger) -> Gate {
+    ledger.take_tisty_skills(true);
+    let mut gate = gated(ledger, &[]).gate;
+    let body = doc_of(GLOBAL, Kind::Skill, "tisty/SKILL.md", b"Tisty.\n").unwrap();
+    gate.admit_builtins(
+        ledger,
+        &[agents::Bundled {
+            skill: "tisty".into(),
+            name: "tisty/SKILL.md".into(),
+            body,
+        }],
+    );
+    gate
+}
+
+fn shipped_to(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<String> {
+    targets(homes, gate, ledger)
+        .into_iter()
+        .filter(|one| one.target.shipped())
+        .map(|one| one.target.assistant)
+        .collect()
+}
+
+#[test]
+fn tistys_own_skills_reach_every_agent_and_the_shared_folder_once() {
+    let (_tmp, homes) = seeded();
+    let mut ledger = consented();
+    let gate = tistys_own(&mut ledger);
+    let mut reached = shipped_to(&homes, &gate, &ledger);
+    reached.sort();
+    assert_eq!(reached.len(), 2, "{reached:?}");
+    assert!(reached.contains(&"claude".to_string()));
+}
+
+#[test]
+fn claude_codes_tisty_plugin_keeps_tistys_copies_out_of_its_folder_alone() {
+    let (tmp, homes) = seeded();
+    put(
+        &tmp.path().join(".claude/plugins/installed_plugins.json"),
+        TISTY_PLUGIN,
+    );
+    let mut ledger = consented();
+    let gate = tistys_own(&mut ledger);
+    assert_eq!(homes.plugged(), BTreeSet::from(["claude"]));
+    let reached = shipped_to(&homes, &gate, &ledger);
+    assert_eq!(reached.len(), 1, "{reached:?}");
+    assert!(!reached.contains(&"claude".to_string()));
+}
+
+#[test]
+fn a_plugin_turned_off_installed_for_one_project_or_unreadable_brings_nothing() {
+    let (tmp, homes) = seeded();
+    let installed = tmp.path().join(".claude/plugins/installed_plugins.json");
+    let settings = tmp.path().join(".claude/settings.json");
+    assert!(homes.plugged().is_empty(), "no records, no plugin");
+
+    put(&installed, TISTY_PLUGIN);
+    put(&settings, r#"{"enabledPlugins":{"tisty@rgdevment":false}}"#);
+    assert!(homes.plugged().is_empty(), "turned off");
+
+    put(&settings, r#"{"enabledPlugins":{"tisty@rgdevment":true}}"#);
+    assert_eq!(homes.plugged().len(), 1);
+
+    put(&installed, &TISTY_PLUGIN.replace("\"user\"", "\"project\""));
+    assert!(homes.plugged().is_empty(), "one project only");
+
+    put(&installed, &TISTY_PLUGIN.replace("tisty@", "other@"));
+    assert!(homes.plugged().is_empty(), "another plugin");
+
+    put(
+        &installed,
+        &TISTY_PLUGIN.replace("tisty@rgdevment", "tisty@team/m~1"),
+    );
+    put(&settings, r#"{"enabledPlugins":{"tisty@team/m~1":false}}"#);
+    assert!(
+        homes.plugged().is_empty(),
+        "turned off, whatever its key holds"
+    );
+
+    put(&installed, "not json");
+    assert!(homes.plugged().is_empty());
+}
+
+#[test]
+fn without_their_own_yes_no_target_carries_them_and_with_it_agents_yes_is_not_needed() {
+    let (tmp, homes) = seeded();
+    put(
+        &tmp.path().join(".claude/plugins/installed_plugins.json"),
+        TISTY_PLUGIN,
+    );
+    let mut ledger = consented();
+    let switched_off = gated(&ledger, &[]).gate;
+    assert!(shipped_to(&homes, &switched_off, &ledger).is_empty());
+    ledger.consent(false);
+    let skills_alone = tistys_own(&mut ledger);
+    let reached = shipped_to(&homes, &skills_alone, &ledger);
+    assert_eq!(reached.len(), 1, "{reached:?}");
+    assert!(
+        !reached.contains(&"claude".to_string()),
+        "the plugin still counts"
+    );
+}

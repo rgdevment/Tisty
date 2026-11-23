@@ -114,7 +114,7 @@ pub(crate) fn said(standing: Standing, piece: usize) -> Said {
     match standing {
         Standing::UpToDate | Standing::Agreed => Said::Synced,
         Standing::Write | Standing::Wrote => Said::Pending,
-        Standing::Held => Said::Held,
+        Standing::Held | Standing::Foreign { .. } => Said::Held,
         Standing::Unproven => Said::Unproven,
         Standing::Outside { now, piece: traced } => Said::Outside {
             mine: traced == Some(piece),

@@ -443,3 +443,31 @@ fn a_folder_the_assistant_keeps_stays_out_at_every_level_and_a_skill_holds_its_i
         ["pr/SKILL.md", "pr/examples/mini/SKILL.md"]
     );
 }
+
+#[test]
+fn a_copy_of_tistys_own_skill_is_never_brought_in_as_a_document() {
+    let home = tempfile::tempdir().unwrap();
+    let at = home.path().join(".claude/skills/tisty/SKILL.md");
+    put(&at, "Work with Tisty.\n");
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.consent(true);
+    ledger.settle(&at, b"Work with Tisty.\n");
+    ledger.applied_to(&at, ["tisty:skill/tisty/SKILL.md".to_string()]);
+    let one = found(&claude(home.path()))
+        .into_iter()
+        .find(|one| one.at == at)
+        .unwrap();
+    assert_eq!(
+        brought_in(&ledger, &one),
+        Err(Refused::Skipped(Skip::Tisty))
+    );
+
+    ledger.applied_to(
+        &at,
+        ["tisty:skill/tisty/SKILL.md".to_string(), "0001".to_string()],
+    );
+    assert!(
+        brought_in(&ledger, &one).is_ok(),
+        "a document writes there too"
+    );
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { agentsPaint, askAgents, folderShown } from "../agentsSync";
+import { agentsPaint, askAgents, folderShown, holdsTistySkills } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
@@ -26,6 +26,7 @@ import {
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { letterOf, modKey, shortcut } from "./macKeys";
+import { TistySkillsRow } from "./TistySkills";
 
 const STIRS = 4;
 
@@ -910,6 +911,7 @@ export default function Tree({
     const shown = folderShown(folder);
     const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
+    const tistySkillsHere = holdsTistySkills(folder, papers.folders);
     return (
       <li key={folder.id} className={folder.away ? "relative text-faint" : "relative"}>
         <div
@@ -989,7 +991,8 @@ export default function Tree({
             {grouped(papersIn, agentRows).map((one) =>
               "doc" in one ? paper(one.doc, depth + 1) : skill(one.skill, depth + 1),
             )}
-            {!under(folder.id).length && !papersIn.length && (
+            {tistySkillsHere && <TistySkillsRow depth={depth + 1} step={STEP} />}
+            {!under(folder.id).length && !papersIn.length && !tistySkillsHere && (
               <li
                 className="py-0.5 text-[11.5px] text-faint italic"
                 style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}

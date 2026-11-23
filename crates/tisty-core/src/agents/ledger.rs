@@ -30,6 +30,8 @@ pub struct Ledger {
     led: BTreeSet<String>,
     #[serde(default)]
     waits: BTreeSet<String>,
+    #[serde(default)]
+    tisty_skills: bool,
 }
 
 impl Ledger {
@@ -91,7 +93,20 @@ impl Ledger {
 
     // A computer that cannot name itself cannot tell its own consent from a copied one.
     pub fn consented(&self) -> bool {
-        self.consented && !self.machine.is_empty()
+        self.consented && self.named()
+    }
+
+    // Tisty's own skills have their own yes; like the other, it never holds on a computer that cannot name itself.
+    pub fn tisty_skills(&self) -> bool {
+        self.tisty_skills && self.named()
+    }
+
+    pub fn named(&self) -> bool {
+        !self.machine.is_empty()
+    }
+
+    pub fn take_tisty_skills(&mut self, on: bool) {
+        self.tisty_skills = on;
     }
 
     pub fn turn_all(&mut self, on: bool) {
@@ -142,7 +157,7 @@ impl Ledger {
     // What the person's hand let in here stays taken after another computer is the last to approve it.
     pub fn taken_all<'a>(&mut self, files: impl IntoIterator<Item = &'a str>) -> bool {
         let before = self.took.len();
-        self.took.extend(files.into_iter().map(str::to_string));
+        self.took.extend(documents(files));
         self.took.len() != before
     }
 
@@ -157,7 +172,8 @@ impl Ledger {
     // What went into a file stays taken here, so a later change of this computer's name drops nothing from it.
     pub fn applied_to(&mut self, at: &Path, files: impl IntoIterator<Item = String>) {
         let files: BTreeSet<String> = files.into_iter().collect();
-        self.took.extend(files.iter().cloned());
+        self.took
+            .extend(documents(files.iter().map(String::as_str)));
         self.applied.insert(keyed(at), files);
     }
 
@@ -204,6 +220,14 @@ impl Ledger {
             .map(String::as_str)
             .collect()
     }
+}
+
+// Tisty's own skills are taken by their one switch, so their keys never count as a document taken here.
+fn documents<'a>(files: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = String> {
+    files
+        .into_iter()
+        .filter(|file| !super::builtin(file))
+        .map(str::to_string)
 }
 
 fn keyed(at: &Path) -> String {

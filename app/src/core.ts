@@ -972,7 +972,7 @@ export interface Wired {
   maybe: boolean;
   byHand: boolean;
   manual: { file: string; snippet: string; cli?: string | null };
-  hooks?: { on: boolean; at: string } | null;
+  hooks?: { on: boolean; at: string; plugged?: boolean } | null;
 }
 
 export interface InDistro {

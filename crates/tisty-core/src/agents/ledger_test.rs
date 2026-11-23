@@ -167,3 +167,32 @@ fn only_this_computers_own_ledger_is_handed_back_to_be_written() {
     assert_eq!(Ledger::mine(data.path(), "machine-a"), Some(ledger));
     assert_eq!(Ledger::mine(data.path(), "machine-b"), None);
 }
+
+#[test]
+fn tistys_own_skills_have_their_switch_and_never_count_as_a_document_taken() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    assert!(!ledger.tisty_skills());
+    ledger.take_tisty_skills(true);
+    let at = Path::new("/home/rina/.claude/skills/tisty/SKILL.md");
+    ledger.applied_to(at, ["tisty:skill/tisty/SKILL.md".to_string()]);
+    assert!(!ledger.taken_all(["tisty:skill/consolidate/SKILL.md"]));
+    assert!(ledger.taken_all(["dev_here-0001"]));
+    assert!(!ledger.took("tisty:skill/tisty/SKILL.md"));
+    assert!(ledger.took("dev_here-0001"));
+    assert_eq!(
+        ledger.applied_at(at).collect::<Vec<_>>(),
+        ["tisty:skill/tisty/SKILL.md"]
+    );
+    ledger.keep(data.path()).unwrap();
+    assert!(Ledger::open(data.path(), "machine-a").tisty_skills());
+    assert!(!Ledger::open(data.path(), "machine-b").tisty_skills());
+}
+
+#[test]
+fn a_ledger_from_before_tistys_own_skills_reads_with_them_off() {
+    let ledger: Ledger =
+        serde_json::from_str(r#"{"machine":"machine-a","consented":true}"#).unwrap();
+    assert!(ledger.consented());
+    assert!(!ledger.tisty_skills());
+}

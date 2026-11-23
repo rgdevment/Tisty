@@ -14,6 +14,7 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Run, Word } from "./Card";
+import ConnectOffer, { markOffered, offered, offers } from "./ConnectOffer";
 import Hooking from "./Hooking";
 
 const LOOKED = "tisty.wsl.looked";
@@ -79,11 +80,13 @@ interface RowProps {
   one: Wired;
   hand?: string;
   held: boolean;
+  offering?: boolean;
   onJoin: (one: Wired) => void;
   onHook: (one: Wired, on: boolean) => void;
+  onOffered?: (one: Wired) => void;
 }
 
-function Row({ one, hand, held, onJoin, onHook }: Readonly<RowProps>) {
+function Row({ one, hand, held, offering, onJoin, onHook, onOffered }: Readonly<RowProps>) {
   const [open, setOpen] = useState(false);
   const state = one.byHand
     ? "wiringStateHand"
@@ -158,8 +161,12 @@ function Row({ one, hand, held, onJoin, onHook }: Readonly<RowProps>) {
           ⋯
         </button>
       </div>
-      {(one.hooks?.on || (one.wired && !one.astray)) && (
-        <Hooking one={one} held={held} onHook={onHook} />
+      {offering && one.wired && !one.astray ? (
+        <ConnectOffer one={one} held={held} onHook={onHook} onDone={() => onOffered?.(one)} />
+      ) : (
+        (one.hooks?.on || (one.wired && !one.astray)) && (
+          <Hooking one={one} held={held} onHook={onHook} />
+        )
       )}
       {open && <Manual one={one} />}
     </div>
@@ -170,14 +177,18 @@ function Rows({
   all,
   hands,
   held,
+  fresh,
   onJoin,
   onHook,
+  onOffered,
 }: Readonly<{
   all: Wired[];
   hands?: (one: Wired) => string | undefined;
   held: boolean;
+  fresh?: readonly string[];
   onJoin: (one: Wired) => void;
   onHook: (one: Wired, on: boolean) => void;
+  onOffered?: (one: Wired) => void;
 }>) {
   return (
     <div className="overflow-hidden rounded-[10px] border border-hair">
@@ -187,8 +198,10 @@ function Rows({
           one={one}
           hand={hands?.(one)}
           held={held}
+          offering={fresh?.includes(one.id)}
           onJoin={onJoin}
           onHook={onHook}
+          onOffered={onOffered}
         />
       ))}
     </div>
@@ -220,6 +233,17 @@ export default function Wiring({
   const [inside, setInside] = useState<Record<string, { shut: boolean; seen: Wired[] }>>({});
   const [known, setKnown] = useState<Wired[] | null>(null);
   const [asked, setAsked] = useState("");
+  const [fresh, setFresh] = useState<string[]>([]);
+  // Right after its first connection an agent is offered its hooks and Tisty's skills, once.
+  const offer = (joined: readonly Wired[]) => {
+    const now = joined
+      .filter((one) => offers(one) && !offered().includes(one.id))
+      .map((one) => one.id);
+    if (now.length === 0) return;
+    markOffered(now);
+    setFresh((was) => [...new Set([...was, ...now])]);
+  };
+  const offeredNow = (one: Wired) => setFresh((was) => was.filter((id) => id !== one.id));
 
   const look = (name: string) =>
     quietly("wiring", wslSeen(name), (found) => {
@@ -257,6 +281,7 @@ export default function Wiring({
     const out = one.wired && !one.astray;
     quietly("wiring", out ? unwireAgent(one.id) : wireAgent(one.id), (now) => {
       place(one, now);
+      if (!out) offer(now.filter((it) => it.id === one.id && it.wired));
       tell({ card: "wiring", text: t(out ? "wiringGone" : "wiringFresh") });
     });
   };
@@ -279,6 +304,7 @@ export default function Wiring({
         Promise.resolve([]),
       ),
       () => {
+        offer(waiting.filter((one) => !one.place));
         tell({ card: "wiring", text: t("wiringFresh") });
         for (const one of waiting) {
           if (one.place) look(one.place);
@@ -361,7 +387,15 @@ export default function Wiring({
       )}
       {agents && agents.length > 0 && (
         <div className="mt-3">
-          <Rows all={agents} hands={hand} held={held} onJoin={join} onHook={hook} />
+          <Rows
+            all={agents}
+            hands={hand}
+            held={held}
+            fresh={fresh}
+            onJoin={join}
+            onHook={hook}
+            onOffered={offeredNow}
+          />
         </div>
       )}
 

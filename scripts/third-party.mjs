@@ -118,6 +118,27 @@ PERFORMANCE OF THIS SOFTWARE.`;
 
 const STANDARD = { MIT, ISC };
 
+const SKILLS_LOCK = readFileSync(join(root, "app", "src-tauri", "skills.lock"), "utf8");
+const lockSays = (key) => {
+  const found = SKILLS_LOCK.split(/\r?\n/).find((line) => line.startsWith(`${key} `));
+  if (!found) throw new Error(`skills.lock names no ${key}`);
+  return found.slice(key.length + 1).trim();
+};
+
+const SKILLS = [
+  {
+    name: "mattpocock/skills",
+    source: "https://github.com/mattpocock/skills",
+    licence: "MIT",
+    said:
+      "Tisty's own skill `writing-for-the-next-agent`, shipped in `resources/skills/` from " +
+      `\`${lockSays("repo").replace("https://github.com/", "")}\` at commit \`${lockSays("commit")}\` (see ` +
+      "`app/src-tauri/skills.lock`), adapts `writing-for-agents` from it, at commit " +
+      "`321658273cb1d20b76026717d027d505790106d4`. Its licence travels beside it as `LICENSE`.",
+    text: MIT("2026 Matt Pocock"),
+  },
+];
+
 const authored = (pkg) => {
   const who = typeof pkg.author === "string" ? pkg.author : pkg.author?.name;
   const named = who ?? pkg.contributors?.[0]?.name ?? pkg.maintainers?.[0]?.name;
@@ -299,6 +320,12 @@ const fenced = (text) => {
   return `${fence}text\n${text}\n${fence}`;
 };
 
+const skills = () =>
+  SKILLS.map(
+    (one) =>
+      `### [${one.name}](${one.source}) — ${one.licence}\n\n${one.said}\n\n${fenced(one.text)}`,
+  ).join("\n\n");
+
 const inOrder = (a, b) =>
   a.name.localeCompare(b.name, "en") || a.version.localeCompare(b.version, "en", { numeric: true });
 
@@ -389,6 +416,10 @@ ${listed(rs)}
 ## Data (${DATA.length})
 
 ${data()}
+
+## Skills (${SKILLS.length})
+
+${skills()}
 
 ## The notices themselves
 

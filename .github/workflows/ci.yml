@@ -137,6 +137,13 @@ jobs:
       - name: The contracts hold in Rust too
         if: ${{ !matrix.part || matrix.part == 'clippy' }}
         run: cargo test --manifest-path contracts/dist/rust/Cargo.toml
+      # The test that compares Tisty's own skills byte for byte fails here without them, instead of passing with nothing.
+      - name: Tisty's own skills, for the test that compares them
+        if: matrix.part != 'clippy'
+        shell: bash
+        run: |
+          bash scripts/skills.sh
+          echo "TISTY_SKILLS_FETCHED=1" >> "$GITHUB_ENV"
       - if: matrix.part != 'clippy'
         run: cargo nextest run --workspace --no-tests=pass ${{ matrix.part && format('--partition count:{0}', matrix.part) || '' }}
       # Compiling the doc tests is most of what they cost, and macOS is the job with time to spare.

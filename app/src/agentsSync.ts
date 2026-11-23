@@ -159,6 +159,51 @@ export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });
 export const agentsLead = (): Promise<Rounded> => invoke("agents_lead");
 
+export interface TistySkill {
+  name: string;
+  label: string;
+  about: string | null;
+  files: string[];
+  yours: boolean;
+}
+
+export interface TistySkills {
+  version: string;
+  on: boolean;
+  skills: TistySkill[];
+  landing: { assistant: string; at: string; standing: string }[];
+  plugged: string[];
+  leftover: { assistant: string; at: string; changed: boolean }[];
+}
+
+// The sidebar and the folder view ask at once after each round; one answer serves both, never one asked before a change.
+let tistySkillsAsked: Promise<TistySkills> | null = null;
+if (typeof window !== "undefined")
+  window.addEventListener(AGENTS_CHANGED, () => {
+    tistySkillsAsked = null;
+  });
+export const tistySkills = (): Promise<TistySkills> => {
+  tistySkillsAsked ??= invoke<TistySkills>("agents_tisty_skills").finally(() => {
+    tistySkillsAsked = null;
+  });
+  return tistySkillsAsked;
+};
+export const tistySkillsTake = (on: boolean): Promise<TistySkills> => {
+  tistySkillsAsked = null;
+  return invoke("agents_tisty_skills_take", { on });
+};
+export const tistySkillsLeftover = (at: string): Promise<TistySkills> => {
+  tistySkillsAsked = null;
+  return invoke("agents_tisty_skills_leftover", { at });
+};
+export const tistySkillsRound = (): Promise<TistySkills> => {
+  tistySkillsAsked = null;
+  return invoke("agents_tisty_round");
+};
+
+export const holdsTistySkills = (folder: Folded | null, folders: readonly Folded[]): boolean =>
+  !!folder && folder.name === "Global" && folder.parent === agentsRoot(folders)?.id;
+
 export const agentsRoots = (folders: readonly Folded[]): Folded[] =>
   folders
     .filter((one) => one.parent === null && !one.archived && isAgentsFolder(one))

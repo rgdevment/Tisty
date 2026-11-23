@@ -22,6 +22,8 @@ pub enum Kind {
 pub struct Hooks {
     pub on: bool,
     pub at: String,
+    /// The Tisty plugin brings its own hooks, which live in the plugin and never in this file.
+    pub plugged: bool,
 }
 
 pub fn kind(client: &str) -> Option<Kind> {
@@ -151,6 +153,7 @@ pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
     Some(Hooks {
         on: hooked(kind, &text),
         at: at.display().to_string(),
+        plugged: false,
     })
 }
 

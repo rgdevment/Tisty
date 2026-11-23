@@ -12,6 +12,17 @@ const SHARED_SKILLS_OWNERS: [&str; 3] = ["codex", "copilot", "gemini"];
 const GEMINI_RULES: &str = "tisty-rules.md";
 const GEMINI_MEMORY: &str = "GEMINI.md";
 const CODEX_OVERRIDE: &str = "AGENTS.override.md";
+const TISTY_PLUGIN: &str = "tisty@";
+const JSON_AT_MOST: u64 = 4 * 1024 * 1024;
+
+fn read_json(at: &Path) -> serde_json::Value {
+    std::fs::metadata(at)
+        .ok()
+        .filter(|meta| meta.len() <= JSON_AT_MOST)
+        .and_then(|_| std::fs::read(at).ok())
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Assistant {
@@ -144,6 +155,38 @@ impl Homes {
         SHARED_SKILLS_OWNERS
             .into_iter()
             .find(|id| detected.iter().any(|one| one.id == *id))
+    }
+
+    /// The agents whose Tisty plugin already brings Tisty's skills.
+    pub fn plugged(&self) -> BTreeSet<&'static str> {
+        match self.claude_plugged() {
+            true => BTreeSet::from(["claude"]),
+            false => BTreeSet::new(),
+        }
+    }
+
+    // Claude Code lists a plugin's skills beside the person's, so the plugin's copy is the one it keeps.
+    fn claude_plugged(&self) -> bool {
+        let Some(root) = self.root("claude") else {
+            return false;
+        };
+        let installed = read_json(&root.join("plugins").join("installed_plugins.json"));
+        let enabled = read_json(&root.join("settings.json"));
+        installed
+            .get("plugins")
+            .and_then(serde_json::Value::as_object)
+            .is_some_and(|all| {
+                all.iter().any(|(key, installs)| {
+                    key.starts_with(TISTY_PLUGIN)
+                        && enabled.get("enabledPlugins").and_then(|all| all.get(key))
+                            != Some(&false.into())
+                        && installs.as_array().is_some_and(|all| {
+                            all.iter().any(|one| {
+                                one.get("scope").and_then(|s| s.as_str()) == Some("user")
+                            })
+                        })
+                })
+            })
     }
 
     fn skills_of(&self, id: &str) -> Option<(PathBuf, PathBuf)> {
@@ -282,7 +325,25 @@ pub fn wordless(piece: &Admitted) -> bool {
         .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty())
 }
 
+// Tisty's own skills come in only with this computer's yes, so the plugin's records are never read before it.
 pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
+    let plugged = match gate
+        .admitted()
+        .iter()
+        .any(|one| agents::builtin(one.file()))
+    {
+        true => homes.plugged(),
+        false => BTreeSet::new(),
+    };
+    placed(homes, gate, ledger, &plugged)
+}
+
+pub fn placed(
+    homes: &Homes,
+    gate: &Gate,
+    ledger: &Ledger,
+    plugged: &BTreeSet<&'static str>,
+) -> Vec<Placed> {
     let detected = homes.detected();
     let mut pieces: Vec<&Admitted> = gate.admitted().iter().collect();
     pieces.sort_by(|a, b| {
@@ -331,6 +392,7 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
                     };
                     target_of(homes, &card)
                 }),
+                Kind::Skill if agents::builtin(piece.file()) && plugged.contains(one.id) => None,
                 Kind::Skill => {
                     let shared = SHARED_SKILLS_OWNERS.contains(&one.id);
                     if shared && homes.shared_owner(&detected) != Some(one.id) {
@@ -371,6 +433,22 @@ pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
         return homes.shared_owner(&detected).map(|id| (id, homes.shared()));
     }
     detected.into_iter().find_map(|one| {
+        homes
+            .root(one.id)
+            .filter(|root| at.starts_with(root))
+            .map(|root| (one.id, root))
+    })
+}
+
+// A copy Tisty wrote stays its to take away even after its agent left this computer or moved its folder.
+pub fn owner_any(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
+    if let Some(found) = owner_of(homes, at) {
+        return Some(found);
+    }
+    if at.starts_with(homes.shared()) {
+        return Some((SHARED_SKILLS_OWNERS[0], homes.shared()));
+    }
+    ASSISTANTS.iter().find_map(|one| {
         homes
             .root(one.id)
             .filter(|root| at.starts_with(root))

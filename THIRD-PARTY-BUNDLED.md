@@ -563,6 +563,36 @@ Open Multilingual Wordnet 2.0. The English side of the same table, and how often
 >
 > The name of Princeton University or Princeton may not be used in advertising or publicity pertaining to distribution of the software and/or database. Title to copyright in this software, database and any associated documentation shall at all times remain with Princeton University and LICENSEE agrees to preserve same.
 
+## Skills (1)
+
+### [mattpocock/skills](https://github.com/mattpocock/skills) — MIT
+
+Tisty's own skill `writing-for-the-next-agent`, shipped in `resources/skills/` from `rgdevment/mcp-plugins` at commit `466820291eaf75c04718218909b0c0ec25e1d4a3` (see `app/src-tauri/skills.lock`), adapts `writing-for-agents` from it, at commit `321658273cb1d20b76026717d027d505790106d4`. Its licence travels beside it as `LICENSE`.
+
+```text
+MIT License
+
+Copyright (c) 2026 Matt Pocock
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## The notices themselves
 
 ### `@antfu/install-pkg` — MIT

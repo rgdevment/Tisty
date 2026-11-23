@@ -1,5 +1,5 @@
 use super::*;
-use crate::agents::{Admitted, GLOBAL, KEPT_AT_MOST, doc_of, kept as backups, read_kept};
+use crate::agents::{Admitted, BUILTIN, GLOBAL, KEPT_AT_MOST, doc_of, kept as backups, read_kept};
 
 struct Room {
     data: tempfile::TempDir,
@@ -10,6 +10,7 @@ struct Room {
 fn room() -> Room {
     let mut ledger = Ledger::fresh("machine-a");
     ledger.consent(true);
+    ledger.take_tisty_skills(true);
     Room {
         data: tempfile::tempdir().unwrap(),
         home: tempfile::tempdir().unwrap(),
@@ -1070,4 +1071,426 @@ fn a_locked_file_tried_again_and_again_keeps_one_backup_of_what_it_held() {
     overwrite(room.data.path(), &mut room.ledger, &target).unwrap();
     assert_eq!(read(&target), "New.\n");
     assert_eq!(backups(room.data.path(), &target.at).len(), 1);
+}
+
+const OURS: &str = "tisty:skill/tisty/SKILL.md";
+
+fn ours(said: &str) -> Admitted {
+    let body = doc_of(GLOBAL, Kind::Skill, "tisty/SKILL.md", said.as_bytes()).unwrap();
+    Admitted::trusted(OURS, &body).unwrap()
+}
+
+impl Room {
+    fn shipped(&self, said: &str) -> Target {
+        Target {
+            pieces: vec![ours(said)],
+            ..self.target(".claude/skills/tisty/SKILL.md", Vec::new())
+        }
+    }
+
+    fn put(&self, target: &Target, said: &str) {
+        std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+        std::fs::write(&target.at, said).unwrap();
+    }
+
+    fn one_round(&mut self, target: &Target) -> Standing {
+        self.round(std::slice::from_ref(target)).remove(0)
+    }
+}
+
+#[test]
+fn tistys_own_skill_is_written_where_nothing_is_and_kept_up_to_date() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    assert!(target.shipped());
+    assert_eq!(room.one_round(&target), Standing::Wrote);
+    assert_eq!(read(&target), "Tisty 1.50.\n");
+    assert_eq!(room.one_round(&target), Standing::UpToDate);
+    assert!(
+        !room.ledger.took(OURS),
+        "no document is taken by Tisty's own skill"
+    );
+}
+
+#[test]
+fn a_newer_release_renews_a_copy_still_as_tisty_wrote_it() {
+    let mut room = room();
+    room.one_round(&room.shipped("Tisty 1.50.\n"));
+    let newer = room.shipped("Tisty 1.51.\n");
+    assert_eq!(room.one_round(&newer), Standing::Wrote);
+    assert_eq!(read(&newer), "Tisty 1.51.\n");
+}
+
+#[test]
+fn bytes_tisty_never_wrote_are_foreign_even_when_they_read_the_same() {
+    for there in ["Someone else's skill.\n", "Tisty 1.50.\n"] {
+        let mut room = room();
+        let target = room.shipped("Tisty 1.50.\n");
+        room.put(&target, there);
+        assert_eq!(
+            room.one_round(&target),
+            Standing::Foreign { changed: false }
+        );
+        assert_eq!(read(&target), there);
+        assert_eq!(
+            room.ledger.written(&target.at),
+            None,
+            "never recorded as Tisty's"
+        );
+        assert!(backups(room.data.path(), &target.at).is_empty());
+    }
+}
+
+#[test]
+fn a_copy_changed_or_taken_away_by_the_person_is_left_and_never_put_to_them_as_both() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    room.one_round(&target);
+    room.put(&target, "Tisty 1.50, with my line.\n");
+    let newer = room.shipped("Tisty 1.51.\n");
+    assert_eq!(room.one_round(&newer), Standing::Foreign { changed: true });
+    assert_eq!(read(&newer), "Tisty 1.50, with my line.\n");
+
+    std::fs::remove_file(&target.at).unwrap();
+    assert_eq!(room.one_round(&newer), Standing::Foreign { changed: true });
+    assert!(!target.at.exists());
+}
+
+#[test]
+fn a_file_a_document_of_the_persons_wrote_is_never_taken_by_tistys_own_skill() {
+    let mut room = room();
+    let theirs = room.target(
+        ".claude/skills/tisty/SKILL.md",
+        vec![rule(GLOBAL, "tisty/SKILL.md", "Mine.\n")],
+    );
+    room.one_round(&theirs);
+    let target = room.shipped("Tisty 1.50.\n");
+    assert_eq!(
+        room.one_round(&target),
+        Standing::Foreign { changed: false }
+    );
+    assert_eq!(read(&target), "Mine.\n");
+    assert_eq!(
+        overwrite(room.data.path(), &mut room.ledger, &target),
+        Err(Refused::Foreign)
+    );
+    assert_eq!(read(&target), "Mine.\n");
+}
+
+#[test]
+fn a_file_an_earlier_build_wrote_without_a_record_is_foreign() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    room.put(&target, "Tisty 1.50.\n");
+    room.ledger.settle(&target.at, b"Tisty 1.50.\n");
+    assert_eq!(
+        room.one_round(&target),
+        Standing::Foreign { changed: false }
+    );
+}
+
+#[test]
+fn a_pause_in_agents_never_reaches_tistys_own_skill_and_only_their_switch_stops_it() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    room.ledger.turn("codex", false);
+    room.ledger.turn_all(false);
+    assert_eq!(room.one_round(&target), Standing::Wrote);
+    let newer = room.shipped("Tisty 1.51.\n");
+    assert_eq!(
+        room.one_round(&newer),
+        Standing::Wrote,
+        "paused or not, it updates"
+    );
+    let gone = Target {
+        pieces: Vec::new(),
+        ..newer.clone()
+    };
+    room.ledger.take_tisty_skills(false);
+    assert_eq!(room.one_round(&newer), Standing::NoConsent);
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &gone),
+        Ok(true)
+    );
+    assert!(
+        !newer.at.exists(),
+        "turning them off takes it away, paused or not"
+    );
+}
+
+#[test]
+fn a_pause_in_agents_still_holds_the_persons_own_documents() {
+    let mut room = room();
+    room.ledger.turn("codex", false);
+    let theirs = room.target(
+        ".codex/AGENTS.md",
+        vec![rule(GLOBAL, "AGENTS.md", "Mine.\n")],
+    );
+    assert_eq!(room.one_round(&theirs), Standing::Off);
+    assert!(!theirs.at.exists());
+}
+
+#[test]
+fn with_agents_off_their_own_yes_writes_them_and_a_pause_from_before_counts_no_more() {
+    let mut room = room();
+    room.ledger.turn("codex", false);
+    room.ledger.consent(false);
+    let target = room.shipped("Tisty 1.50.\n");
+    assert_eq!(room.one_round(&target), Standing::Wrote);
+    assert_eq!(read(&target), "Tisty 1.50.\n");
+    let theirs = room.target(
+        ".codex/AGENTS.md",
+        vec![rule(GLOBAL, "AGENTS.md", "Mine.\n")],
+    );
+    assert_eq!(
+        room.one_round(&theirs),
+        Standing::NoConsent,
+        "documents still need Agents' yes"
+    );
+}
+
+#[test]
+fn a_copy_is_taken_away_on_a_computer_that_names_itself_even_after_their_yes_is_gone() {
+    let mut room = room();
+    let skill = room.shipped("Tisty 1.50.\n");
+    room.one_round(&skill);
+    let gone = Target {
+        pieces: Vec::new(),
+        ..skill.clone()
+    };
+    room.ledger.take_tisty_skills(false);
+    room.ledger.consent(false);
+    room.ledger.turn("codex", false);
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &gone),
+        Ok(true)
+    );
+    assert!(!skill.at.exists());
+}
+
+#[test]
+fn turning_them_off_takes_away_only_a_copy_still_as_tisty_wrote_it_with_a_backup() {
+    let mut room = room();
+    let skill = room.shipped("Tisty 1.50.\n");
+    room.one_round(&skill);
+    let gone = Target {
+        pieces: Vec::new(),
+        ..skill.clone()
+    };
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &gone),
+        Ok(true)
+    );
+    assert!(!skill.at.exists());
+    assert!(
+        !skill.at.parent().unwrap().exists(),
+        "its emptied folder goes too"
+    );
+    assert_eq!(room.ledger.written(&skill.at), None);
+    assert_eq!(
+        read_kept(room.data.path(), &skill.at, 1).unwrap(),
+        b"Tisty 1.50.\n"
+    );
+}
+
+#[test]
+fn turning_them_off_leaves_a_changed_copy_loose_and_forgets_one_already_gone() {
+    let mut room = room();
+    let skill = room.shipped("Tisty 1.50.\n");
+    room.one_round(&skill);
+    room.put(&skill, "Mine now.\n");
+    let gone = Target {
+        pieces: Vec::new(),
+        ..skill.clone()
+    };
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &gone),
+        Ok(false)
+    );
+    assert_eq!(read(&skill), "Mine now.\n");
+    assert!(
+        room.ledger.written(&skill.at).is_some(),
+        "it stays loose, for the person"
+    );
+
+    std::fs::remove_file(&skill.at).unwrap();
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &gone),
+        Ok(false)
+    );
+    assert_eq!(room.ledger.written(&skill.at), None);
+}
+
+#[test]
+fn turning_them_off_never_touches_a_file_a_document_placed_or_still_places() {
+    let mut room = room();
+    let theirs = room.target(
+        ".claude/skills/tisty/SKILL.md",
+        vec![rule(GLOBAL, "tisty/SKILL.md", "Mine.\n")],
+    );
+    room.one_round(&theirs);
+    let loose = Target {
+        pieces: Vec::new(),
+        ..theirs.clone()
+    };
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Held)
+    );
+    let skill = room.shipped("Tisty 1.50.\n");
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &skill),
+        Err(Refused::Held)
+    );
+    assert_eq!(read(&theirs), "Mine.\n");
+    room.ledger.turn("codex", false);
+    room.ledger.consent(false);
+    assert_eq!(
+        unshipped(room.data.path(), &mut room.ledger, &loose),
+        Err(Refused::Held),
+        "whatever the yes, a document's file is never Tisty's to take"
+    );
+    assert_eq!(read(&theirs), "Mine.\n");
+}
+
+const NEXT: &str = "writing-for-the-next-agent";
+
+impl Room {
+    fn shipped_as(&self, name: &str, said: &str) -> Target {
+        let body = doc_of(GLOBAL, Kind::Skill, name, said.as_bytes()).unwrap();
+        Target {
+            pieces: vec![Admitted::trusted(&format!("{BUILTIN}{name}"), &body).unwrap()],
+            ..self.target(&format!(".agents/skills/{name}"), Vec::new())
+        }
+    }
+
+    fn next_agent(&self, skill: &str, licence: &str) -> [Target; 2] {
+        [
+            self.shipped_as(&format!("{NEXT}/LICENSE"), licence),
+            self.shipped_as(&format!("{NEXT}/SKILL.md"), skill),
+        ]
+    }
+}
+
+#[test]
+fn a_file_of_the_persons_in_a_skills_folder_keeps_all_of_tistys_skill_out() {
+    let mut room = room();
+    let [licence, skill] = room.next_agent("Tisty's.\n", "MIT.\n");
+    room.put(&skill, "My own skill.\n");
+    assert_eq!(
+        room.round(&[licence.clone(), skill.clone()]),
+        vec![Standing::Foreign { changed: false }; 2]
+    );
+    assert!(
+        !licence.at.exists(),
+        "no licence lands beside a skill that is not Tisty's"
+    );
+    assert_eq!(read(&skill), "My own skill.\n");
+}
+
+#[test]
+fn a_stray_file_beside_tistys_skill_holds_it_as_it_is() {
+    let mut room = room();
+    let both = room.next_agent("Tisty 1.50.\n", "MIT.\n");
+    room.round(&both);
+    let stray = both[0].at.with_file_name("notes.md");
+    std::fs::write(&stray, "Mine.\n").unwrap();
+    let newer = room.next_agent("Tisty 1.51.\n", "MIT.\n");
+    assert_eq!(
+        room.round(&newer),
+        vec![Standing::Foreign { changed: false }; 2]
+    );
+    assert_eq!(read(&newer[1]), "Tisty 1.50.\n");
+    assert_eq!(std::fs::read_to_string(stray).unwrap(), "Mine.\n");
+}
+
+#[test]
+fn a_copy_the_person_changed_holds_the_rest_of_its_skill() {
+    let mut room = room();
+    room.round(&room.next_agent("Tisty 1.50.\n", "MIT.\n"));
+    let newer = room.next_agent("Tisty 1.50.\n", "MIT, 2027.\n");
+    room.put(&newer[1], "Tisty 1.50, with my line.\n");
+    assert_eq!(
+        room.round(&newer),
+        vec![Standing::Foreign { changed: true }; 2]
+    );
+    assert_eq!(read(&newer[0]), "MIT.\n");
+}
+
+#[test]
+fn a_file_an_earlier_release_wrote_and_this_one_dropped_still_lets_it_update() {
+    let mut room = room();
+    let old = room.shipped_as(&format!("{NEXT}/OLD.md"), "Gone in 1.51.\n");
+    let [_, skill] = room.next_agent("Tisty 1.50.\n", "MIT.\n");
+    room.round(&[old.clone(), skill]);
+    let [licence, skill] = room.next_agent("Tisty 1.51.\n", "MIT.\n");
+    assert_eq!(
+        room.round(&[licence.clone(), skill.clone()]),
+        vec![Standing::Wrote; 2]
+    );
+    assert_eq!(read(&skill), "Tisty 1.51.\n");
+    assert_eq!(read(&licence), "MIT.\n");
+    assert_eq!(read(&old), "Gone in 1.51.\n");
+}
+
+#[test]
+fn folders_nested_too_deep_beside_tistys_skill_count_as_not_tistys() {
+    let mut room = room();
+    let [licence, skill] = room.next_agent("Tisty's.\n", "MIT.\n");
+    let deep = skill.at.with_file_name("a/b/c/d/e");
+    std::fs::create_dir_all(&deep).unwrap();
+    assert_eq!(
+        room.round(&[licence.clone(), skill]),
+        vec![Standing::Foreign { changed: false }; 2]
+    );
+    assert!(!licence.at.exists());
+    std::fs::remove_dir_all(licence.at.with_file_name("a/b/c/d/e")).unwrap();
+    assert_eq!(
+        room.round(std::slice::from_ref(&licence)),
+        vec![Standing::Wrote]
+    );
+}
+
+#[test]
+fn a_document_over_a_path_tistys_skill_wrote_still_needs_agents_yes() {
+    let mut room = room();
+    room.ledger.consent(false);
+    let skill = room.shipped("Tisty 1.50.\n");
+    assert_eq!(room.one_round(&skill), Standing::Wrote);
+    let theirs = room.target(
+        ".claude/skills/tisty/SKILL.md",
+        vec![rule(GLOBAL, "tisty/SKILL.md", "Mine.\n")],
+    );
+    assert_eq!(room.one_round(&theirs), Standing::NoConsent);
+    assert_eq!(read(&skill), "Tisty 1.50.\n");
+}
+
+#[test]
+fn with_agents_yes_a_document_over_a_path_tistys_skill_wrote_is_not_refused_for_their_yes() {
+    let mut room = room();
+    let skill = room.shipped("Tisty 1.50.\n");
+    room.one_round(&skill);
+    room.ledger.take_tisty_skills(false);
+    let theirs = room.target(
+        ".claude/skills/tisty/SKILL.md",
+        vec![rule(GLOBAL, "tisty/SKILL.md", "Mine.\n")],
+    );
+    assert_ne!(room.one_round(&theirs), Standing::NoConsent);
+}
+
+#[test]
+fn a_junction_on_the_way_to_tistys_skill_is_never_written_through() {
+    let mut room = room();
+    let elsewhere = tempfile::tempdir().unwrap();
+    let skills = room.home.path().join(".claude").join("skills");
+    std::fs::create_dir_all(&skills).unwrap();
+    linked_folder(&skills.join("tisty"), elsewhere.path());
+    let target = room.shipped("Tisty 1.50.");
+    assert_eq!(room.one_round(&target), Standing::Linked);
+    assert!(
+        std::fs::read_dir(elsewhere.path())
+            .unwrap()
+            .next()
+            .is_none()
+    );
 }

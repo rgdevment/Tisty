@@ -1,6 +1,6 @@
 pub mod agents;
 mod catalog;
-mod hooks;
+pub(crate) mod hooks;
 mod json;
 mod places;
 mod shape;

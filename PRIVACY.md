@@ -654,7 +654,10 @@ What Agents never brings in:
   — and, anywhere, `.credentials.json`, `credentials.json`, `auth.json`,
   `.netrc`, `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in
   `.pem`, `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being
-  opened. Nor is an Agents document ever written to an assistant's own settings
+  brought in. One key is read: with your yes to Agents or to Tisty's own
+  skills, Claude Code's `settings.json` is opened only to see whether the
+  Tisty plugin is turned off (`enabledPlugins`), and nothing of it is kept.
+  Nor is an Agents document ever written to an assistant's own settings
   or credentials: a document goes only where each assistant keeps its rules,
   its skills and its memory.
 - **A file that reads like it holds a credential.** A file you ticked is
@@ -696,6 +699,40 @@ of Agents, Tisty asks whether to take its file away too: on a no the file stays
 as it was; on a yes it is deleted, after a backup of it. Short of that answer,
 Tisty never empties or deletes an assistant's file. The help page [The Agents
 folder](https://www.tisty.app/docs/agents-folder/) tells each step.
+
+## Tisty's own skills
+
+Tisty ships three skills that teach your agents to work with it: `tisty`,
+`consolidate` and `writing-for-the-next-agent`. They live inside the app, not in
+your store: they never sync, never go into a backup, a parcel or your cloud,
+and no agent can name or change them through the MCP. Only the bytes of the
+release, checked against a fingerprint built into the app, are written.
+
+- **They have their own yes, on this computer.** Settings › Agents shows them
+  in a row of their own, and **Turn on here** is that yes. It needs no
+  Agents folder, and a record copied from another computer does not count.
+- **Before that yes, their card opens nothing inside your agents' folders.**
+  It looks only at which agents' folders exist, as Settings › Agents already
+  does, and, for copies Tisty wrote before, whether they are still there.
+- **With it, Tisty reads and writes only this:** one folder per skill in each
+  agent's skills folder on this computer (such as `~/.claude/skills/tisty`,
+  `~/.cursor/skills/tisty` and the shared `~/.agents/skills/tisty`), the other
+  files already in those folders, to leave alone any skill that is not
+  Tisty's, and, for Claude Code, `plugins/installed_plugins.json` and
+  `settings.json`, only to tell whether the Tisty plugin already brings them.
+  Nothing else in those files is kept, copied or shown. No rule, memory or
+  other file of your agents is opened.
+- **Pausing Agents does not reach them.** A pause, for one agent or for the
+  whole folder, holds only your own documents; the skills follow their own
+  switch.
+- **They never write over your files.** A skill folder holding a file Tisty did
+  not write, or a copy you changed, is left as it is. They update by
+  themselves when you open a newer Tisty.
+- **Turning them off** takes out of your agents' folders only the copies still
+  as Tisty wrote them, after a backup kept in `data/agents/`; the skills stay in
+  Tisty, ready to turn on again, and are never deleted. A copy you changed is
+  left for you to take away from the same card. No file is ever taken away on
+  its own or through the MCP.
 
 ## The door you can open for an assistant
 

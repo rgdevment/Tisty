@@ -3215,6 +3215,9 @@ const en = {
   hooksNo: "Not now",
   hooksFresh: "Added. It runs them from its next session.",
   hooksGone: "Removed. Its next session runs without them.",
+  hooksPlugged: "The Tisty plugin brings them",
+  hooksTwice:
+    "The Tisty plugin brings them too, so they run twice. Remove these to keep the plugin's.",
   wslShut: "Windows programs are turned off in that distro, so nothing was written.",
   wslUnread: "{name} could not be read. Open it once in a terminal and look again.",
   settingsPuzzling:
@@ -6906,6 +6909,9 @@ const es: Catalog = {
   hooksNo: "Ahora no",
   hooksFresh: "Agregados. Los usa desde su próxima sesión.",
   hooksGone: "Quitados. Su próxima sesión corre sin ellos.",
+  hooksPlugged: "Los trae el plugin de Tisty",
+  hooksTwice:
+    "El plugin de Tisty también los trae, así que corren dos veces. Quita estos para dejar los del plugin.",
   wslShut: "En esa distro los programas de Windows están apagados, así que no se escribió nada.",
   wslUnread: "No se pudo leer {name}. Ábrela una vez en una terminal y vuelve a buscar.",
   settingsPuzzling:

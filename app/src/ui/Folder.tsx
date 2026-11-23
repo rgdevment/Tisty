@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { agentsPaint, agentsRoot, agentsStage, folderShown, syncAgents } from "../agentsSync";
+import {
+  agentsPaint,
+  agentsRoot,
+  agentsStage,
+  folderShown,
+  holdsTistySkills,
+  syncAgents,
+} from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { countedAs, dateOf, longAgo, shortStamp } from "../format";
 import { led } from "../leading";
@@ -11,6 +18,7 @@ import { FolderMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
+import { TistySkillsEntry } from "./TistySkills";
 import { clearOfChrome } from "./WindowChrome";
 
 const PEEK = 8;
@@ -48,6 +56,7 @@ export default function Folder({
   const isAgents = !!folder && folder.id === root;
   const stance = useAgentsState(isAgents ? root : null);
   const stage = isAgents ? agentsStage(root, stance) : null;
+  const tistySkillsHere = holdsTistySkills(folder, folders);
   const fold = (id: string) =>
     setShut((was) => {
       const now = new Set(was);
@@ -196,7 +205,9 @@ export default function Folder({
       </span>
       <span className="truncate font-medium text-ink">{folderShown(one)}</span>
       <span className="shrink-0 text-[11.5px] text-faint">
-        {one.holds ? countedAs(one.holds, "paperIsOne", "papersAre") : t("folderEmpty")}
+        {one.holds
+          ? countedAs(one.holds, "paperIsOne", "papersAre")
+          : !holdsTistySkills(one, folders) && t("folderEmpty")}
       </span>
     </button>
   );
@@ -304,7 +315,7 @@ export default function Folder({
         </p>
       )}
       <p className="mt-1 text-[12.5px] text-faint">
-        {under.length + inside.length === 0 ? t("folderHoldsNothing") : said}
+        {under.length + inside.length > 0 ? said : !tistySkillsHere && t("folderHoldsNothing")}
       </p>
 
       {under.map((one) => {
@@ -313,6 +324,7 @@ export default function Folder({
         const held = docs.filter((at) => at.away === shelved && !at.pageOf && at.folder === one.id);
         const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
         const left = held.length - shown.length;
+        const skillsIn = holdsTistySkills(one, folders);
         return (
           <section key={one.id} className="mt-4">
             <div className="flex items-center gap-1">
@@ -329,7 +341,7 @@ export default function Folder({
               {named(one)}
               <span className="h-px min-w-6 flex-1 bg-hair" />
             </div>
-            {!closed && (deeper.length > 0 || held.length > 0) && (
+            {!closed && (deeper.length > 0 || held.length > 0 || skillsIn) && (
               <ul id={`holds-${one.id}`} className={`mt-1 pl-5 ${INDEX}`}>
                 {deeper.map((at) => (
                   <li key={at.id} className="break-inside-avoid">
@@ -337,6 +349,7 @@ export default function Folder({
                   </li>
                 ))}
                 {shown.map((one) => paper(one))}
+                {skillsIn && <TistySkillsEntry className={ROW} />}
                 {left > 0 && (
                   <li className="break-inside-avoid">
                     <button
@@ -354,14 +367,17 @@ export default function Folder({
         );
       })}
 
-      {inside.length > 0 && (
+      {(inside.length > 0 || tistySkillsHere) && (
         <>
           {under.length > 0 && (
             <h2 className="mt-5 mb-1 text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
               {t("papersHere")}
             </h2>
           )}
-          <ul className={`mt-3 ${INDEX}`}>{inside.map((one) => paper(one))}</ul>
+          <ul className={`mt-3 ${INDEX}`}>
+            {inside.map((one) => paper(one))}
+            {tistySkillsHere && <TistySkillsEntry className={ROW} />}
+          </ul>
         </>
       )}
     </main>

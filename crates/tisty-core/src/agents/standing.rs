@@ -36,6 +36,10 @@ pub enum Standing {
     Both {
         now: Vec<u8>,
     },
+    /// Over bytes Tisty never wrote, or, `changed`, bytes it wrote that the person changed or took away since.
+    Foreign {
+        changed: bool,
+    },
     Unreadable(String),
 }
 
@@ -50,6 +54,11 @@ impl Target {
 
     pub fn held(&self) -> bool {
         self.held
+    }
+
+    /// Every piece is one of Tisty's own skills, so no document stands behind the file.
+    pub fn shipped(&self) -> bool {
+        !self.pieces.is_empty() && self.files().all(super::builtin)
     }
 
     fn agents_own(&self) -> bool {
@@ -153,12 +162,39 @@ pub fn standing(ledger: &Ledger, target: &Target) -> Standing {
 
 type Seen = Option<String>;
 
-fn judged(ledger: &Ledger, target: &Target) -> (Standing, Seen) {
-    if !ledger.consented() {
-        return (Standing::NoConsent, None);
+// Tisty's own skills, and copies of them alone, follow their own switch; only a document stops at a paused agent.
+fn allowed(ledger: &Ledger, target: &Target) -> Result<(), Refused> {
+    let copy_alone = target.pieces.is_empty() && shipped_copy(ledger, &target.at);
+    let (consented, paused) = match (target.shipped(), copy_alone) {
+        (true, _) => (ledger.tisty_skills(), false),
+        (false, true) => (ledger.named(), false),
+        (false, false) => (ledger.consented(), true),
+    };
+    if !consented {
+        return Err(Refused::NoConsent);
     }
-    if !ledger.syncs(&target.assistant) {
-        return (Standing::Off, None);
+    if paused && !ledger.syncs(&target.assistant) {
+        return Err(Refused::Off);
+    }
+    Ok(())
+}
+
+/// A file the ledger records as written from Tisty's own skills alone, so it is never anyone's document.
+pub fn shipped_copy(ledger: &Ledger, at: &Path) -> bool {
+    // Compared as paths, not as the text the ledger keeps them under.
+    ledger
+        .written_files()
+        .find(|(one, _)| *one == at)
+        .is_some_and(|(_, files)| {
+            !files.is_empty() && files.iter().all(|file| super::builtin(file))
+        })
+}
+
+fn judged(ledger: &Ledger, target: &Target) -> (Standing, Seen) {
+    match allowed(ledger, target) {
+        Err(Refused::NoConsent) => return (Standing::NoConsent, None),
+        Err(_) => return (Standing::Off, None),
+        Ok(()) => {}
     }
     if target.held {
         return (Standing::Held, None);
@@ -195,6 +231,9 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
         return Standing::Empty;
     }
     let here = printed(wanted);
+    if target.shipped() {
+        return shipped(ledger, target, &here, now);
+    }
     if target.unproven && base != Some(here.as_str()) {
         return Standing::Unproven;
     }
@@ -224,6 +263,93 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
             now: now.unwrap_or_default(),
         },
     }
+}
+
+// Tisty's own skills only go over a file Tisty wrote from them and nothing else, while it still reads as written.
+fn shipped(ledger: &Ledger, target: &Target, here: &str, now: Option<Vec<u8>>) -> Standing {
+    let alone = match (ledger.written(&target.at), now) {
+        _ if !shipped_here(ledger, &target.at) => Standing::Foreign { changed: false },
+        (None, None) => Standing::Write,
+        (None, Some(_)) => Standing::Foreign { changed: false },
+        (Some(base), Some(now)) if printed(&now) == base => match base == here {
+            true => Standing::UpToDate,
+            false => Standing::Write,
+        },
+        (Some(_), _) => Standing::Foreign { changed: true },
+    };
+    match alone {
+        Standing::Write | Standing::UpToDate => beside(ledger, target).unwrap_or(alone),
+        other => other,
+    }
+}
+
+fn shipped_here(ledger: &Ledger, at: &Path) -> bool {
+    ledger.applied_at(at).all(super::builtin) && !ledger.unproven(at)
+}
+
+const SKILL_FOLDER_AT_MOST: usize = 64;
+const SKILL_FOLDER_DEPTH: usize = 4;
+
+// A skill is one folder on disk: a file in it that is not Tisty's, or one the person changed, holds every file of it.
+fn beside(ledger: &Ledger, target: &Target) -> Option<Standing> {
+    let folder = skill_folder(target)?;
+    // The ledger keeps paths as text, and `a/b` and `a\b` are one file on Windows.
+    let recorded: Vec<&Path> = ledger
+        .written_files()
+        .map(|(at, _)| at)
+        .filter(|at| at.starts_with(&folder))
+        .collect();
+    let mut left = vec![(folder, 0)];
+    let mut seen = 0;
+    let mut changed = false;
+    while let Some((dir, depth)) = left.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(_) => return Some(Standing::Foreign { changed: false }),
+        };
+        for entry in entries {
+            seen += 1;
+            let Ok(entry) = entry else {
+                return Some(Standing::Foreign { changed: false });
+            };
+            let at = entry.path();
+            let kind = std::fs::symlink_metadata(&at).map(|meta| meta.file_type());
+            match kind {
+                Ok(kind) if kind.is_dir() && depth < SKILL_FOLDER_DEPTH => {
+                    left.push((at, depth + 1))
+                }
+                Ok(kind) if kind.is_file() && seen <= SKILL_FOLDER_AT_MOST => {
+                    let known = recorded.iter().find(|one| **one == at);
+                    let base = known.and_then(|one| ledger.written(one));
+                    match (base, known.is_some_and(|one| shipped_here(ledger, one))) {
+                        (Some(base), true) => {
+                            changed |= on_disk(&at).ok().flatten().map(|now| printed(&now))
+                                != Some(base.to_string());
+                        }
+                        _ => return Some(Standing::Foreign { changed: false }),
+                    }
+                }
+                _ => return Some(Standing::Foreign { changed: false }),
+            }
+        }
+    }
+    changed.then_some(Standing::Foreign { changed: true })
+}
+
+fn skill_folder(target: &Target) -> Option<PathBuf> {
+    let [piece] = target.pieces.as_slice() else {
+        return None;
+    };
+    let name = &piece.card().name;
+    let steps = name.split('/').count();
+    let folder = target.at.ancestors().nth(steps.checked_sub(1)?)?;
+    let skill = super::skill_of(name);
+    let named = folder
+        .file_name()
+        .is_some_and(|it| it.to_string_lossy().eq_ignore_ascii_case(skill));
+    (steps > 1 && named && folder.starts_with(&target.root) && folder != target.root)
+        .then(|| folder.to_path_buf())
 }
 
 fn attributed(pieces: &[Vec<u8>], now: &[u8]) -> Option<(usize, Vec<u8>)> {
@@ -262,12 +388,7 @@ fn attributed(pieces: &[Vec<u8>], now: &[u8]) -> Option<(usize, Vec<u8>)> {
 }
 
 fn writable(ledger: &Ledger, target: &Target) -> Result<Vec<u8>, Refused> {
-    if !ledger.consented() {
-        return Err(Refused::NoConsent);
-    }
-    if !ledger.syncs(&target.assistant) {
-        return Err(Refused::Off);
-    }
+    allowed(ledger, target)?;
     if target.held {
         return Err(Refused::Held);
     }
@@ -302,6 +423,9 @@ fn written_over(data: &Path, at: &Path, bytes: &[u8], seen: Option<&Seen>) -> Re
 }
 
 pub fn overwrite(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), Refused> {
+    if target.shipped() {
+        return Err(Refused::Foreign);
+    }
     written(data, ledger, target, None)?;
     kept_ledger(data, ledger);
     Ok(())
@@ -390,12 +514,7 @@ pub fn adopted(ledger: &mut Ledger, target: &Target, brought: &str) -> bool {
 
 // No document places this file any more; the person chose to take it away, so it leaves a backup first.
 pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), Refused> {
-    if !ledger.consented() {
-        return Err(Refused::NoConsent);
-    }
-    if !ledger.syncs(&target.assistant) {
-        return Err(Refused::Off);
-    }
+    allowed(ledger, target)?;
     if !target.pieces.is_empty() || target.held {
         return Err(Refused::Held);
     }
@@ -410,6 +529,33 @@ pub fn removed(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), 
     ledger.forget(&target.at);
     kept_ledger(data, ledger);
     Ok(())
+}
+
+// With Tisty's own skills turned off, a copy still as Tisty wrote it goes with a backup; one changed since stays, loose, for the person.
+pub fn unshipped(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<bool, Refused> {
+    if !target.pieces.is_empty() || !shipped_copy(ledger, &target.at) {
+        return Err(Refused::Held);
+    }
+    allowed(ledger, target)?;
+    if linked(target) {
+        return Err(Refused::Linked);
+    }
+    let now = on_disk(&target.at)?;
+    let gone = match now {
+        Some(now) if ledger.written(&target.at) != Some(printed(&now).as_str()) => {
+            return Ok(false);
+        }
+        Some(now) => {
+            kept::keep(data, &target.at, &now)?;
+            std::fs::remove_file(&target.at)?;
+            emptied_up(target);
+            true
+        }
+        None => false,
+    };
+    ledger.forget(&target.at);
+    kept_ledger(data, ledger);
+    Ok(gone)
 }
 
 // A skill's folder left with nothing in it would still be listed; the assistant's own folders, such as `rules`, stay.

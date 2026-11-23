@@ -215,6 +215,10 @@ pub fn brought_in(ledger: &Ledger, found: &Found) -> Result<String, Refused> {
     if !ledger.consented() {
         return Err(Refused::NoConsent);
     }
+    // A copy of Tisty's own skill brought in would travel, take an agent's proposals and never update again.
+    if super::shipped_copy(ledger, &found.at) {
+        return Err(Refused::Skipped(Skip::Tisty));
+    }
     let leaf = found.at.file_name().map(|one| one.to_string_lossy());
     if let Some(why) = found
         .skip

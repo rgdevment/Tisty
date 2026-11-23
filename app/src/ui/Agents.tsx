@@ -22,6 +22,7 @@ import { useCareful } from "./Careful";
 import { DANGERS } from "./dangers";
 import { Note, NoteButton } from "./RowNotes";
 import { Knob, Line } from "./Rows";
+import { TistySkillsSettingsRow } from "./TistySkills";
 import { tabKeys } from "./tabbing";
 import Wiring from "./Wiring";
 import { held as isHeld, type Working } from "./working";
@@ -224,6 +225,7 @@ function Connected({
       {agents && agents.length > 0 && (
         <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("wiringBefore")}</p>
       )}
+      <TistySkillsSettingsRow />
       <ByHand binary={binary} />
     </Card>
   );

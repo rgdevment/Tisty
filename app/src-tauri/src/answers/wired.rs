@@ -1,10 +1,52 @@
+use std::collections::BTreeSet;
 use std::sync::Mutex;
 
+use tisty_core::agents::Ledger;
+
+use crate::wiring::agents::Homes;
 use crate::{Answer, Refusal, Session, held, waking, wiring};
 
-#[tauri::command]
-pub fn wiring() -> Vec<wiring::Seen> {
-    wiring::seen()
+const PLUGGED_CLIENTS: [(&str, &str); 1] = [("claude-code", "claude")];
+
+// The plugin's records are agent files, so they are read only after this computer's yes to Agents or to Tisty's skills.
+fn plugged_here(session: &Mutex<Session>) -> BTreeSet<&'static str> {
+    let data = held(session).paths.data().to_path_buf();
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    plugged_with(&Ledger::open(&data, &machine), Homes::here)
+}
+
+pub(crate) fn plugged_with(
+    ledger: &Ledger,
+    homes: impl FnOnce() -> Option<Homes>,
+) -> BTreeSet<&'static str> {
+    match ledger.consented() || ledger.tisty_skills() {
+        true => homes().map(|homes| homes.plugged()).unwrap_or_default(),
+        false => BTreeSet::new(),
+    }
+}
+
+// Only this computer's own folders hold the plugin Tisty reads; a WSL distro has its own.
+pub(crate) fn marked(mut seen: Vec<wiring::Seen>, plugged: &BTreeSet<&str>) -> Vec<wiring::Seen> {
+    for one in seen.iter_mut().filter(|one| one.place.is_none()) {
+        let agent = PLUGGED_CLIENTS
+            .iter()
+            .find(|(client, _)| *client == one.id)
+            .map(|(_, agent)| *agent);
+        if let (Some(hooks), Some(agent)) = (one.hooks.as_mut(), agent) {
+            hooks.plugged = plugged.contains(agent);
+        }
+    }
+    seen
+}
+
+fn shown(session: &Mutex<Session>, seen: Vec<wiring::Seen>) -> Vec<wiring::Seen> {
+    marked(seen, &plugged_here(session))
+}
+
+// It waits on the session while a round runs, so it never holds the window's thread.
+#[tauri::command(async)]
+pub fn wiring(session: tauri::State<'_, Mutex<Session>>) -> Vec<wiring::Seen> {
+    shown(&session, wiring::seen())
 }
 
 #[tauri::command(async)]
@@ -32,23 +74,31 @@ pub fn wsl_seen(name: String) -> Answer<InDistro> {
 }
 
 #[tauri::command(async)]
-pub fn wire(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::wire(&id).map_err(stuck)
+pub fn wire(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::wire(&id)
+        .map(|seen| shown(&session, seen))
+        .map_err(stuck)
 }
 
 #[tauri::command(async)]
-pub fn unwire(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::unwire(&id).map_err(stuck)
+pub fn unwire(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::unwire(&id)
+        .map(|seen| shown(&session, seen))
+        .map_err(stuck)
 }
 
 #[tauri::command(async)]
-pub fn hook(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::hook(&id).map_err(stuck)
+pub fn hook(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::hook(&id)
+        .map(|seen| shown(&session, seen))
+        .map_err(stuck)
 }
 
 #[tauri::command(async)]
-pub fn unhook(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::unhook(&id).map_err(stuck)
+pub fn unhook(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::unhook(&id)
+        .map(|seen| shown(&session, seen))
+        .map_err(stuck)
 }
 
 fn stuck(why: wiring::Stuck) -> Refusal {

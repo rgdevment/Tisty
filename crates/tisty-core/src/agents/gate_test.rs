@@ -694,3 +694,111 @@ fn losing_and_regaining_its_card_here_never_lets_a_waiting_document_in() {
     assert_eq!(world.gate().seen(&file), Some(Seen::WaitingHere));
     assert_eq!(world.on_disk(), None);
 }
+
+fn shipped(name: &str, said: &str) -> crate::agents::Bundled {
+    crate::agents::Bundled {
+        skill: crate::agents::skill_of(name).to_string(),
+        name: name.to_string(),
+        body: doc_of(crate::agents::GLOBAL, Kind::Skill, name, said.as_bytes()).unwrap(),
+    }
+}
+
+fn tistys_own() -> Vec<crate::agents::Bundled> {
+    vec![
+        shipped("consolidate/SKILL.md", "Consolidate.\n"),
+        shipped("tisty/SKILL.md", "Tisty.\n"),
+    ]
+}
+
+fn admitted_files(gate: &Gate) -> Vec<String> {
+    gate.admitted()
+        .iter()
+        .map(|one| one.file().to_string())
+        .collect()
+}
+
+#[test]
+fn tistys_own_skills_come_in_with_their_own_yes_whatever_agents_says() {
+    let mut world = world();
+    let mut gate = world.gate();
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert!(gate.admitted().is_empty(), "their yes starts off");
+
+    world.ledger.consent(false);
+    world.ledger.take_tisty_skills(true);
+    let mut gate = world.gate();
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert_eq!(
+        admitted_files(&gate),
+        [
+            "tisty:skill/consolidate/SKILL.md",
+            "tisty:skill/tisty/SKILL.md"
+        ],
+        "Agents' yes is not theirs"
+    );
+    assert!(
+        gate.admitted()
+            .iter()
+            .all(|one| one.card().level == crate::agents::GLOBAL)
+    );
+
+    world.ledger.consent(true);
+    world.ledger.take_tisty_skills(false);
+    let mut gate = world.gate();
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert!(gate.admitted().is_empty(), "nor is theirs Agents'");
+}
+
+#[test]
+fn a_ledger_that_cannot_name_its_computer_lets_none_of_tistys_skills_in() {
+    let mut ledger = Ledger::fresh("");
+    ledger.take_tisty_skills(true);
+    assert!(!ledger.tisty_skills());
+    let mut gate = Gate::default();
+    gate.admit_builtins(&ledger, &tistys_own());
+    assert!(gate.admitted().is_empty());
+}
+
+#[test]
+fn a_skill_of_the_persons_named_alike_keeps_tistys_out_whatever_its_level_case_or_wait() {
+    let mut world = world();
+    world.ledger.take_tisty_skills(true);
+    let theirs = doc_of("claude", Kind::Skill, "Tisty/SKILL.md", b"Mine.\n").unwrap();
+    let (_, file) = world.made(THERE, &theirs, false);
+    let mut gate = world.gate();
+    assert_eq!(gate.seen(&file), Some(Seen::NotAgreed));
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert!(gate.skill_named("tisty"));
+    assert_eq!(admitted_files(&gate), ["tisty:skill/consolidate/SKILL.md"]);
+}
+
+#[test]
+fn a_rule_named_like_a_skill_keeps_nothing_out() {
+    let mut world = world();
+    world.ledger.take_tisty_skills(true);
+    world.made(HERE, &rule("A rule.\n"), true);
+    let mut gate = world.gate();
+    gate.admit_builtins(&world.ledger, &[shipped("CLAUDE.md/SKILL.md", "Odd.\n")]);
+    assert!(!gate.skill_named("claude.md"));
+    assert_eq!(gate.admitted().len(), 2);
+}
+
+#[test]
+fn without_agents_tistys_own_skills_still_come_in_and_no_document_is_read() {
+    let mut world = world();
+    world.ledger.consent(false);
+    world.ledger.take_tisty_skills(true);
+    let mut gate = gate(&Asked {
+        state: &world.state,
+        docs: world.docs.path(),
+        root: None,
+        ledger: &world.ledger,
+        me: &DeviceId(HERE.into()),
+    });
+    gate.admit_builtins(&world.ledger, &tistys_own());
+    assert_eq!(gate.admitted().len(), 2);
+    let mut none = Gate::default();
+    none.admit_builtins(&world.ledger, &tistys_own());
+    assert_eq!(none.admitted().len(), 2);
+    assert!(!none.skill_named("tisty"));
+}

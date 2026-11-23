@@ -12,7 +12,7 @@ fn bring_chosen(
 ) -> Answer<Brought> {
     let (ledger, held, writes) = consented_here(session, homes, here, sync)?;
     let chosen: BTreeSet<String> = chosen.iter().cloned().collect();
-    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held, &writes);
+    let (read, refused) = read_chosen(&ledger, &found_here(homes), &chosen, &held, &writes, &[]);
     brought_home(session, homes, ledger, &read, refused)
 }
 

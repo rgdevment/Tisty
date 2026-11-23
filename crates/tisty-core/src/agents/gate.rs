@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use super::{Card, Kind, Ledger, Target};
+use super::{Bundled, Card, Kind, Ledger, Target};
 use crate::State;
 use crate::event::DeviceId;
 use crate::model::{FolderId, Kept};
@@ -57,6 +57,7 @@ pub struct Gate {
     held: BTreeSet<String>,
     carded: BTreeSet<String>,
     unclaimed: BTreeSet<String>,
+    skills_named: BTreeSet<String>,
 }
 
 impl Gate {
@@ -92,6 +93,35 @@ impl Gate {
             .count()
     }
 
+    // They come in with their own yes alone; a skill of the person's in Agents named alike, at any level, keeps them out.
+    pub fn admit_builtins(&mut self, ledger: &Ledger, bundled: &[Bundled]) {
+        if !ledger.tisty_skills() {
+            return;
+        }
+        let pieces: Vec<Admitted> = bundled
+            .iter()
+            .filter(|one| !self.skill_named(&one.skill))
+            .filter_map(|one| {
+                Card::of(&one.body).map(|card| Admitted {
+                    file: one.file(),
+                    body: one.body.clone(),
+                    card,
+                })
+            })
+            .collect();
+        self.admitted.extend(pieces);
+    }
+
+    /// Tisty's own skills alone, so a round through it never writes a document.
+    pub fn shipped_only(mut self) -> Self {
+        self.admitted.retain(|one| super::builtin(one.file()));
+        self
+    }
+
+    pub fn skill_named(&self, skill: &str) -> bool {
+        self.skills_named.contains(&folded(skill))
+    }
+
     pub fn target(&self, ledger: &Ledger, root: PathBuf, at: PathBuf, assistant: &str) -> Target {
         let held = ledger.applied_at(&at).any(|file| self.held.contains(file));
         Target {
@@ -123,9 +153,13 @@ pub fn gate(asked: &Asked) -> Gate {
         if kept.task_of.is_some() || !kept.folder.is_some_and(|at| tree.contains(&at)) {
             continue;
         }
-        let (seen, admitted, carded) = weighed(asked, kept);
-        if carded {
+        let (seen, admitted, card) = weighed(asked, kept);
+        if let Some(card) = card {
             gate.carded.insert(kept.file.clone());
+            if card.kind == Kind::Skill {
+                gate.skills_named
+                    .insert(folded(super::skill_of(&card.name)));
+            }
         }
         if unclaimed(kept, asked.ledger, asked.me) {
             gate.unclaimed.insert(kept.file.clone());
@@ -143,17 +177,21 @@ pub fn gate(asked: &Asked) -> Gate {
     gate
 }
 
-fn weighed(asked: &Asked, kept: &Kept) -> (Seen, Option<Admitted>, bool) {
+// Windows and macOS keep `Tisty` and `tisty` in one folder.
+fn folded(skill: &str) -> String {
+    skill.to_lowercase()
+}
+
+fn weighed(asked: &Asked, kept: &Kept) -> (Seen, Option<Admitted>, Option<Card>) {
     if asked.state.held_away(kept) {
-        return (Seen::Away, None, false);
+        return (Seen::Away, None, None);
     }
     let Ok(body) = crate::docs::read(asked.docs, &kept.file) else {
-        return (Seen::Unread, None, false);
+        return (Seen::Unread, None, None);
     };
     let card = Card::of(&body);
-    let carded = card.is_some();
-    let (seen, admitted) = admitted(asked, kept, body, card);
-    (seen, admitted, carded)
+    let (seen, admitted) = admitted(asked, kept, body, card.clone());
+    (seen, admitted, card)
 }
 
 fn admitted(

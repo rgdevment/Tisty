@@ -1,4 +1,5 @@
 mod agreeing;
+mod builtin;
 mod card;
 mod found;
 mod gate;
@@ -14,6 +15,7 @@ mod subs;
 mod twins;
 
 pub use agreeing::{Agreeing, Approved, Hand, agreeing};
+pub use builtin::{BUILTIN, Bundled, Locked, builtin, bundled, locked, skill_of};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
 pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
@@ -30,7 +32,7 @@ pub use rooted::{
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, removed, restore, round,
-    standing, wanted,
+    shipped_copy, standing, unshipped, wanted,
 };
 pub use subs::{sub_folders, sub_id};
 pub use twins::renamed_twins;
@@ -53,6 +55,7 @@ pub enum Refused {
     Unattributed,
     Changed,
     NoSuchBackup,
+    Foreign,
     Io(String),
 }
 
@@ -81,6 +84,7 @@ impl std::fmt::Display for Refused {
             }
             Self::Changed => "the file changed while it was being written, so it was left alone",
             Self::NoSuchBackup => "there is no such backup",
+            Self::Foreign => "Tisty did not write this file, so its own skill leaves it as it is",
             Self::Io(why) => why,
         };
         f.write_str(said)

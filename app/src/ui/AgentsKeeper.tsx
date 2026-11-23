@@ -18,6 +18,7 @@ import {
   agentsTurn,
   inAgents,
   onlySwitchedOff,
+  tistySkillsRound,
 } from "../agentsSync";
 import { useDesk } from "../desk";
 import { agentsKeys, show, useHidden } from "../hiding";
@@ -75,6 +76,13 @@ export default function AgentsKeeper() {
       window.removeEventListener(AGENTS_MORE, more);
       window.removeEventListener(AGENTS_RESCAN, rescan);
     };
+  }, []);
+
+  // Opening the app is when a new release reaches Tisty's own skills, with or without Agents.
+  useEffect(() => {
+    tistySkillsRound()
+      .then(() => window.dispatchEvent(new Event(AGENTS_CHANGED)))
+      .catch(() => undefined);
   }, []);
 
   // An assistant's proposal changes no document the sidebar lists, so the log stirring is the only sign of it.

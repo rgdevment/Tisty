@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "resources": [
+      "resources/guide/**/*",
+      "resources/brain/*",
+      "resources/skills/**/*"
+    ]
+  }
+}
