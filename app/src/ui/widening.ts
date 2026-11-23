@@ -1,4 +1,5 @@
 import type { Widths } from "tisty-editor/edit";
+import { BOXES } from "tisty-editor/read";
 import { placeOf } from "./pagePlaces";
 
 const STEP = 10;
@@ -6,7 +7,7 @@ const FEWEST = 4;
 const LEAST = FEWEST * STEP;
 
 export const gripped = (page: Document) =>
-  gripsOn(page, page.querySelectorAll<HTMLElement>(".page > .table[data-at] thead th"));
+  gripsOn(page, page.querySelectorAll<HTMLElement>(`${BOXES} thead th`));
 
 export const gripsOn = (page: Document, heads: Iterable<HTMLElement>) => {
   for (const head of heads) {
@@ -26,7 +27,7 @@ export const widening = (
   page.addEventListener("pointerdown", (event) => {
     const grip = (event.target as Element | null)?.closest?.(".col-grip");
     const head = grip?.closest("th");
-    const table = head?.closest<HTMLElement>(".page > .table[data-at]");
+    const table = head?.closest<HTMLElement>(BOXES);
     const at = placeOf(table);
     if (!grip || !head || !table || !at || event.button !== 0) return;
     event.preventDefault();

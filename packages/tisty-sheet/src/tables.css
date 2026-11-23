@@ -77,9 +77,11 @@ html.widening * {
   user-select: none;
 }
 /* The grips sit in the margin, inside the box that scrolls, so scrolling never cuts them off. */
-.page > .table.dressed {
-  margin-left: -26px;
+.table.dressed {
   padding-left: 26px;
+}
+:is(.page, li) > .table.dressed {
+  margin-left: -26px;
 }
 .table.dressed :is(td, th) {
   position: relative;

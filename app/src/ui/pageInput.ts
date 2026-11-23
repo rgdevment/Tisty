@@ -60,6 +60,7 @@ import {
   sideOf,
   unseenLetter,
   unwritable,
+  wholeBehind,
   withoutDressing,
   wordsEndAt,
   wordsStartAt,
@@ -230,6 +231,7 @@ const beforeFeeds = (text: string, one: Span): Span => {
 };
 
 const pastWhole = (range: AbstractRange) => {
+  if (wholeBehind(range.endContainer, range.endOffset)) return true;
   const block = elementIn(range.endContainer.childNodes[range.endOffset - 1]);
   const atSheet = elementIn(range.endContainer)?.matches(".page");
   return Boolean(atSheet && block && drawnWhole(block)) || foldReached(range) !== null;

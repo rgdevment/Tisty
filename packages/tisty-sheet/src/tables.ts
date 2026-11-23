@@ -12,7 +12,7 @@ export type TableAct =
   | "star"
   | "toggle";
 
-export const BOXES = ".page > .table[data-at]";
+export const BOXES = ".page .table[data-at]";
 
 export const tablesIn = (page: Document): HTMLElement[] =>
   Array.from(page.querySelectorAll<HTMLElement>(BOXES));

@@ -1,5 +1,5 @@
 import type { Slashed } from "tisty-editor/edit";
-import { charsAt } from "tisty-editor/read";
+import { BOXES, charsAt } from "tisty-editor/read";
 import { t } from "../locales";
 import type { Begun } from "./pageBegun";
 import { blockPlaced, placed } from "./pageBlocks";
@@ -52,7 +52,7 @@ export const besideOn = (
     const range = held?.rangeCount ? held.getRangeAt(0) : null;
     const sheet = page.querySelector<HTMLElement>(".page");
     const field = page.activeElement?.closest?.(FIELDS);
-    const tabled = elementOf(range?.startContainer)?.closest(".page > .table");
+    const tabled = elementOf(range?.startContainer)?.closest(BOXES);
     if (!range || !sheet?.contains(range.startContainer) || field || tabled || !roomy(page)) {
       plus.hidden = true;
       return;

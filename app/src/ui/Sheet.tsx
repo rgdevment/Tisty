@@ -26,7 +26,7 @@ import {
   widened,
 } from "tisty-editor/edit";
 import type { Head, Sheet as SheetSize } from "tisty-editor/read";
-import { bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
+import { BOXES, bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
 import type { Signing } from "../crediting";
 import { viewDiagram } from "../drawing";
@@ -991,7 +991,7 @@ export default function Sheet(props: Readonly<Props>) {
     leave: left,
     markdown: (at) => {
       const page = shown.current?.document;
-      const nth = page ? nthAt(page, ".page > .table[data-at]", at) : 0;
+      const nth = page ? nthAt(page, BOXES, at) : 0;
       // A cell still open holds words the window would miss, so it is saved first.
       tables.whenIdle(() => piece("table", { at: at[0], nth }));
     },

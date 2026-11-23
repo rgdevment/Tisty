@@ -1,9 +1,10 @@
 import { fittedIn } from "./fitting";
+import { tablesIn } from "./tables";
 import type { Say } from "./words";
 
 // Only a table still wider than its sheet scrolls, and takes a keyboard stop so its hidden columns are reached without a mouse.
 export const sideways = (page: Document, say: Say): (() => void)[] => {
-  const boxes = Array.from(page.querySelectorAll<HTMLElement>(".page > .table[data-at]"));
+  const boxes = tablesIn(page);
   const marked = () => {
     for (const box of boxes) {
       fittedIn(box);

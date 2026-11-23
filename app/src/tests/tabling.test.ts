@@ -235,6 +235,21 @@ describe("a table written in the block", () => {
     expect(page.documentElement.classList.contains("widening")).toBe(false);
   });
 
+  it("drags a head's edge of a table inside a list item into its own rule", () => {
+    const page = document.implementation.createHTMLDocument("");
+    page.body.innerHTML =
+      '<div class="page"><ul data-at="0-80"><li data-at="0-80"><p data-at="2-6">uno</p><div class="table" data-at="9-80"><table><colgroup><col><col></colgroup><thead><tr><th>Name</th><th>Age</th></tr></thead></table></div></li></ul></div>';
+    gripped(page);
+    const asked: [number, Widths][] = [];
+    widening(page, () => (at, widths) => asked.push([at[0], widths]));
+    expect(page.querySelectorAll(".col-grip")).toHaveLength(2);
+    const grip = page.querySelectorAll(".col-grip")[1];
+    grip.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 100, button: 0 }));
+    page.dispatchEvent(new MouseEvent("pointermove", { clientX: 220 }));
+    page.dispatchEvent(new MouseEvent("pointerup", { clientX: 220 }));
+    expect(asked).toEqual([[9, [[1, 12]]]]);
+  });
+
   it("in a table pressed to its sheet, moves width between the two columns, in the rule's own scale", () => {
     const page = drawn(' data-fit="0.5"');
     const asked: Widths[] = [];

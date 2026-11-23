@@ -1,4 +1,4 @@
-import { byteFrom, unitFrom } from "../placing";
+import { byteFrom, type Reckoned, unitFrom } from "../placing";
 import { blankAt, lineEnd, type Span } from "./pageEdits";
 import { foldReached } from "./pageFolds";
 import { closing, opening } from "./pageLists";
@@ -13,9 +13,20 @@ import {
   shownWords,
   unseenLetter,
   WHOLE,
+  wholeBehind,
 } from "./pageNodes";
 import { placeOf, placeSaid } from "./pagePlaces";
-import { endIn, endOf, GHOST, ghostAt, sourceAt, spotOf, startOf, topsAt } from "./pageSpots";
+import {
+  endIn,
+  endOf,
+  GHOST,
+  ghostAt,
+  indexOf,
+  sourceAt,
+  spotOf,
+  startOf,
+  topsAt,
+} from "./pageSpots";
 import { choiceKept, keptUnlaid, type Point, type Writer } from "./pageWriter";
 
 export type Caret = ReturnType<typeof caretOn>;
@@ -23,6 +34,11 @@ export type Caret = ReturnType<typeof caretOn>;
 type Spot = [Node, number];
 
 export type Standing = { readonly range: AbstractRange | null; readonly lagging: boolean };
+
+const wholeEnd = (text: string, range: AbstractRange, known: Reckoned | null) => {
+  const past = placeOf(wholeBehind(range.endContainer, range.endOffset));
+  return past ? unitFrom(known, text, past[1]) : null;
+};
 
 export const caretOn = (writer: Writer) => {
   const { page, hands } = writer;
@@ -63,7 +79,9 @@ export const caretOn = (writer: Writer) => {
     const pointAt = (node: Node, offset: number, opens: boolean) =>
       nameSource(text, node, offset) ?? sourceAt(text, node, offset, known, opens);
     const from = pointAt(range.startContainer, range.startOffset, opening);
-    const to = range.collapsed ? from : pointAt(range.endContainer, range.endOffset, false);
+    const to = range.collapsed
+      ? from
+      : (wholeEnd(text, range, known) ?? pointAt(range.endContainer, range.endOffset, false));
     if (from === null || to === null) return null;
     return { from: Math.min(from, to), to: Math.max(from, to) };
   };
@@ -213,6 +231,21 @@ export const caretOn = (writer: Writer) => {
     return null;
   };
 
+  const beforeWhole = (text: string, at: number) => {
+    const sheet = page.querySelector(".page");
+    const byte = byteFrom(writer.reckoned, text, at);
+    for (const top of sheet ? topsAt(sheet, byte) : []) {
+      const solid = top.querySelectorAll('[data-at][contenteditable="false"]');
+      const inner = Array.from(solid).find((one) => {
+        const span = placeOf(one);
+        return span !== null && span[0] <= byte && byte < span[1] && one.matches(WHOLE);
+      });
+      if (inner?.parentNode)
+        return sourceAt(text, inner.parentNode, indexOf(inner), writer.reckoned);
+    }
+    return null;
+  };
+
   // The properties are kept off the page, so a caret come back from them stands where the words begin.
   const pastFront = (text: string, at: number) => {
     const first = page.querySelector(".page > .front[data-at]");
@@ -242,6 +275,9 @@ export const caretOn = (writer: Writer) => {
         lead: opening(text, past, ""),
         tail: closing(text, past),
       };
+    const within =
+      writer.kept.lead === undefined && !shaping ? beforeWhole(text, writer.kept.at) : null;
+    if (within !== null) writer.kept = { node: page.body, offset: -1, at: within };
     const known = writer.reckoned;
     const spotAt = (at: number) => spotOf(page, hands.text(), at, known);
     const unwritten = writer.kept.lead !== undefined || !spotAt(writer.kept.at);

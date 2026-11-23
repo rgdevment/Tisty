@@ -6,8 +6,11 @@ const LITERAL = "pre, code, kbd, figure.code > figcaption";
 
 export const SOLID_PIECE = '[data-src][contenteditable="false"]';
 
-export const WHOLE =
-  '.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front)';
+const WRITTEN = "p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote, details";
+
+const DRAWN_WITHIN = `[data-at] > [data-at]:not(li, button, ${WRITTEN})`;
+
+export const WHOLE = `.page > [data-at][contenteditable="false"]:not(h1, h2, h3, h4, h5, h6, .front), .page ${DRAWN_WITHIN}[contenteditable="false"]`;
 
 const solidAfter = (box: Element) => {
   const next = box.nextSibling;
@@ -101,8 +104,7 @@ export const besideBox = (node: Node, offset: number): "before" | "after" | null
   return offset === after ? "after" : null;
 };
 
-export const WRITABLE =
-  ".page > :is(p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, figure.code, .footnote, details)";
+export const WRITABLE = `.page > :is(${WRITTEN})`;
 
 export const elementOf = (node: Node | null | undefined) =>
   node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement;
@@ -125,8 +127,15 @@ export const atGhost = (node: Node, offset: number) => {
   return isGhost(node.previousSibling) || isGhost(node.nextSibling);
 };
 
+export const wholeBehind = (node: Node, offset: number): Element | null => {
+  const one = node.childNodes[offset - 1];
+  return one?.nodeType === Node.ELEMENT_NODE && (one as Element).matches(WHOLE)
+    ? (one as Element)
+    : null;
+};
+
 export const unwritable = (node: Node) =>
-  Boolean(elementOf(node)?.closest('.page > [contenteditable="false"]'));
+  Boolean(elementOf(node)?.closest(`.page > [contenteditable="false"], ${WHOLE}`));
 
 export const inCode = (node: Node) => Boolean(elementOf(node)?.closest("code"));
 
@@ -228,6 +237,7 @@ export const opened = (page: Document, laid?: readonly Element[]) => {
           ...one.querySelectorAll(selector),
         ])
       : Array.from(sheet.querySelectorAll(selector));
+  for (const one of within(DRAWN_WITHIN)) said(one, "contenteditable", "false");
   // A step's box and its ↗ are no place for the caret, so ↑ and ↓ go from step to step.
   for (const one of within(".drop-section, .doc-card, .check, .to-part"))
     said(one, "contenteditable", "false");

@@ -297,3 +297,34 @@ describe("a click around a table written in place", () => {
     expect(heard).not.toHaveBeenCalled();
   });
 });
+
+const NESTED = `<ul data-at="0-150"><li data-at="0-63"><p data-at="2-12"><span data-src="2-6">uno</span></p><div class="table" data-at="15-63"><table><thead><tr><th scope="col">norte</th><th scope="col">sur</th></tr></thead><tbody><tr><td>lejos</td><td>cerca</td></tr></tbody></table></div></li></ul>
+<blockquote data-at="150-211"><p data-at="152-157"><span data-src="152-156">cita</span></p><div class="table" data-at="161-211"><table><thead><tr><th scope="col">este</th><th scope="col">oeste</th></tr></thead><tbody><tr><td>arriba</td><td>abajo</td></tr></tbody></table></div></blockquote>`;
+
+describe("a table inside a list item or a quote", () => {
+  it("is dressed and written in place by its own place, as one at the top of the page", () => {
+    const made = page(`${TABLE}${NESTED}`);
+    tabled(made);
+    expect(
+      Array.from(made.querySelectorAll(".table.dressed"), (one) => one.getAttribute("data-at")),
+    ).toEqual(["0-90", "15-63", "161-211"]);
+    expect(nthOf(made, [15, 63])).toBe(1);
+    expect(tablePlace(made, 2)).toEqual([161, 211]);
+    const cell = cellOf(made, 1, 0, 1) as HTMLElement;
+    expect(cell.textContent).toBe("cerca");
+    expect(went(cell, false)).toMatchObject({
+      kind: "table",
+      at: [15, 63],
+      act: "cell",
+      row: 0,
+      column: 1,
+    });
+    const quoted = cellOf(made, 2, 0, 0) as HTMLElement;
+    expect(went(quoted, false)).toMatchObject({ kind: "table", at: [161, 211], row: 0, column: 0 });
+    const grip = made.querySelectorAll<HTMLElement>(".row-grip")[3] as HTMLElement;
+    expect(went(grip, false)).toMatchObject({ kind: "table", at: [15, 63], act: "row", row: 0 });
+    const adding = made.querySelectorAll<HTMLElement>(".row-add")[2] as HTMLElement;
+    expect(went(adding, false)).toMatchObject({ kind: "table", at: [161, 211], act: "rowAdd" });
+    expect(went(made.querySelectorAll(".table")[1] as Element, false)).toBeNull();
+  });
+});

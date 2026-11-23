@@ -309,10 +309,12 @@ export const keysOn = (
   const lastBlock = () => pageEdges()[1];
 
   const wholeBeyond = (block: Element, fromEnd: boolean) => {
-    const tops = Array.from(page.querySelectorAll(".page > [data-at]"));
-    if (fromEnd) tops.reverse();
-    const top = tops.find((one) => one.matches(WHOLE) || one.contains(block));
-    return top?.parentNode && top.matches(WHOLE) ? top : null;
+    const wholes = Array.from(page.querySelectorAll(WHOLE)).filter(
+      (one) => !one.parentElement?.closest('[contenteditable="false"]'),
+    );
+    const edge = fromEnd ? wholes[wholes.length - 1] : wholes[0];
+    const side = fromEnd ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING;
+    return edge?.parentNode && block.compareDocumentPosition(edge) & side ? edge : null;
   };
 
   const pageStart = (first: Element): [Node, number] => {

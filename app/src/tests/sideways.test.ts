@@ -32,6 +32,21 @@ describe("a table that scrolls sideways", () => {
     expect(fits.hasAttribute("role")).toBe(false);
   });
 
+  it("takes the same stop inside a list item or a quote", () => {
+    const made = document.implementation.createHTMLDocument("");
+    made.body.innerHTML =
+      '<div class="page"><ul data-at="0-40"><li data-at="0-40"><div class="table" data-at="2-40"><table></table></div></li></ul><blockquote data-at="40-80"><div class="table" data-at="42-80"><table></table></div></blockquote></div>';
+    for (const box of made.querySelectorAll<HTMLElement>(".table")) {
+      Object.defineProperty(box, "scrollWidth", { get: () => 900 });
+      Object.defineProperty(box, "clientWidth", { get: () => 440 });
+    }
+    sideways(made, SAY);
+    const boxes = Array.from(made.querySelectorAll(".table"), (one) =>
+      one.getAttribute("tabindex"),
+    );
+    expect(boxes).toEqual(["0", "0"]);
+  });
+
   it("is looked at again when its box changes size, and let go when the page is undressed", () => {
     const seen: (() => void)[] = [];
     const disconnect = vi.fn();

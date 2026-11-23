@@ -85,6 +85,21 @@ const NESTED_TABLE = "# Listas\n\n- uno #etiqueta\n  | a | b |\n  |---|---|\n  |
 
 const NESTED_DIAGRAM = "# Listas\n\n- uno `c`\n  ```mermaid\n  flowchart LR\n    A --> B\n  ```\n\nFin.\n";
 
+const NESTED_WHOLE = [
+  "# Anidados", "",
+  "- uno", "",
+  "  | norte | sur |", "  |---|---|", "  | lejos | cerca |", "",
+  "- segundo", "",
+  "  ```mermaid", "  flowchart LR", "    A --> B", "  ```", "",
+  "- tercero", "",
+  "  ```math", "  y^2", "  ```", "",
+  "- cuarto", "",
+  "> cita", ">", "> | este | oeste |", "> |---|---|", "> | arriba | abajo |", "",
+  "Fin.", "",
+].join("\n");
+
+const TABLE_ENDS_THE_LAST_ITEM = "# Tabla\n\nAntes y más\n\n- uno\n\n  | norte | sur |\n  |---|---|\n  | lejos | cerca |\n";
+
 const drawnFirst = (frame) => frame.parentFrame().waitForFunction(() => window.engines.drawn());
 
 const pressedOnceDrawn = async (frame, press, key, many) => {
@@ -2180,6 +2195,97 @@ export const CASES = [
       await drawingsHeld(() => press("Backspace", 3));
     },
     was: "\n- [ ] ",
+  },
+  {
+    name: "typeInACellOfATableInAListItemLeavesItWhole",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, typed }) => { await clickAt("cerc"); await typed("X"); },
+    was: "",
+    now: "",
+  },
+  {
+    name: "typeInACellOfATableInAQuoteLeavesItWhole",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, typed }) => { await clickAt("abaj"); await typed("X"); },
+    was: "",
+    now: "",
+  },
+  {
+    name: "typeInADiagramInAListItemLeavesItsSourceWhole",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, typed, frame }) => {
+      await frame.waitForSelector("li > figure.diagram.drawn svg");
+      await clickAt("B");
+      await typed("X");
+    },
+    was: "",
+    now: "",
+  },
+  {
+    name: "typeInAFormulaInAListItemLeavesItsSourceWhole",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, typed }) => { await clickAt("y"); await typed("X"); },
+    was: "",
+    now: "",
+  },
+  {
+    name: "leftFromTheItemAfterATableInAListItemWritesBeforeTheTable",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, press, typed, page }) => {
+      await clickAt("segundo", true);
+      await press("ArrowLeft");
+      await typed("X");
+      await wrote(page, "- unoX\n");
+    },
+    was: "",
+    now: "X",
+  },
+  {
+    name: "leftFromTheItemAfterADiagramInAListItemWritesBeforeTheDiagram",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, press, typed, page }) => {
+      await clickAt("tercero", true);
+      await press("ArrowLeft");
+      await typed("X");
+      await wrote(page, "- segundoX\n");
+    },
+    was: "",
+    now: "X",
+  },
+  {
+    name: "leftFromTheItemAfterAFormulaInAListItemWritesBeforeTheFormula",
+    doc: NESTED_WHOLE,
+    run: async ({ clickAt, press, typed, page }) => {
+      await clickAt("cuarto", true);
+      await press("ArrowLeft");
+      await typed("X");
+      await wrote(page, "- terceroX\n");
+    },
+    was: "",
+    now: "X",
+  },
+  {
+    name: "chooseAllTakesATableThatEndsTheLastItem",
+    doc: TABLE_ENDS_THE_LAST_ITEM,
+    run: async ({ clickAt, command, typed }) => {
+      await clickAt("Antes");
+      await command("a");
+      await typed("X");
+    },
+    was: "Tabla\n\nAntes y más\n\n- uno\n\n  | norte | sur |\n  |---|---|\n  | lejos | cerca |",
+    now: "X",
+  },
+  {
+    name: "commandShiftDownChoosesPastATableThatEndsTheLastItem",
+    macOnly: PAGE_REACH_ONLY_ON_A_MAC,
+    doc: TABLE_ENDS_THE_LAST_ITEM,
+    run: async ({ clickAt, press, frame }) => {
+      await clickAt("Antes");
+      await caretInWords(frame, "Antes y más", 3);
+      await press("Meta+Shift+ArrowDown");
+      await press("Backspace");
+    },
+    was: "es y más\n\n- uno\n\n  | norte | sur |\n  |---|---|\n  | lejos | cerca |",
     now: "",
   },
   ...keptUnderAnItem,
@@ -2370,6 +2476,11 @@ const caretBeforeCodeEnd = async (frame) => {
     if (!last?.data.endsWith("\n")) throw new Error("no code that ends with its line feed");
     getSelection().collapse(last, last.length - 1);
   });
+};
+
+const wrote = async (page, line) => {
+  const text = await page.evaluate(() => window.engines.text());
+  if (!text.includes(line)) throw new Error(`the text holds no ${JSON.stringify(line)}`);
 };
 
 const chosenPastBlock = async (frame, words, offset, block) => {

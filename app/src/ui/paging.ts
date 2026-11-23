@@ -1,4 +1,4 @@
-import { diagramShot, spanned, type TableAct, taskCardAt } from "tisty-editor/read";
+import { BOXES, diagramShot, spanned, type TableAct, taskCardAt } from "tisty-editor/read";
 import { t } from "../locales";
 import { addressed, docAimed, TASK } from "../markdown";
 import { type DayWent, dayPressed, dayTouched } from "./diaryPaging";
@@ -138,7 +138,7 @@ export const widgetsIn = (block: Element | null): Element[] =>
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
 const tablePressed = (asked: HTMLElement): Went => {
-  const at = placeOf(asked.closest<HTMLElement>(".page > [data-at]"));
+  const at = placeOf(asked.closest<HTMLElement>(BOXES));
   const box = asked.getBoundingClientRect();
   const place = (said?: string) => (said === undefined ? -1 : Number(said));
   return at
@@ -240,12 +240,12 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (shot !== null) return { kind: "picture", nth: shot };
   const tabled = tableClicked(target);
   if (tabled) {
-    const at = placeOf(target.closest<HTMLElement>(".page > [data-at]"));
+    const at = placeOf(target.closest<HTMLElement>(BOXES));
     const box = target.closest("td, th")?.getBoundingClientRect();
     return at ? { kind: "table", at, ...tabled, x: box?.left ?? 0, y: box?.bottom ?? 0 } : null;
   }
   // A table written in place opens its Markdown only from its menu, never from a click around its cells.
-  if (target.closest(".page > .table.dressed")) return null;
+  if (target.closest(`${BOXES}.dressed`)) return null;
   // A stage's box ticks where it is read; the words beside it still open the block.
   const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
   const ticked = placeOf(box);

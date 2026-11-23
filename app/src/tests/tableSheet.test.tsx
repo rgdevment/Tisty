@@ -544,3 +544,27 @@ describe("a typed cell written in place", () => {
     });
   });
 });
+
+describe("a table inside a list item", () => {
+  it("opens its cells and saves them at its own place, as one at the top of the page", async () => {
+    const nested = HTML.replace(
+      '<div class="table" data-at="0-80">',
+      '<ul data-at="0-90"><li data-at="0-90"><p data-at="2-6"><span data-src="2-5">uno</span></p><div class="table" data-at="9-89">',
+    ).replace("</div></article>", "</div></li></ul></article>");
+    const { page, seen } = made(nested);
+    seen.onTable(asked("cell", 1, 1, { at: [9, 89] }));
+    await settle();
+    expect(core.written).toHaveBeenCalledWith(BODY, [9, 89]);
+    const input = page.querySelector<HTMLInputElement>("li .table-input") as HTMLInputElement;
+    expect(input.value).toBe("9990");
+    input.value = "10990";
+    press(input, "Enter");
+    await settle();
+    expect(core.edit).toHaveBeenCalledWith(BODY, [9, 89], {
+      kind: "cell",
+      row: 1,
+      column: 1,
+      said: "**10990**",
+    });
+  });
+});
