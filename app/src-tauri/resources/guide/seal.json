@@ -1,9 +1,9 @@
 {
   "author": "rgdevment",
   "files": {
-    "en/agent.md": "f42a164ee7e69e1b3975d65f8b9b34893dfacb222e7d286488f13d1988474bad",
+    "en/agent.md": "c8c67092487a97ebd8824c39dcf4f0c73ab38afb948cb2dea1e14a74996bc1df",
     "en/agents-card.png": "9762604cd26870aede82bbe11dc077b0395d1aa2079e59145f75981738a10ccb",
-    "en/agents-folder.md": "ee8f2a705477c4144d8136677d8825cd1d2b794a907a4ce8197c6a6f507c8ca5",
+    "en/agents-folder.md": "b3d1fc1fc60b8e944e47aec6d490fd762ebc5ee087b15a33abbf01b70dc2e3cb",
     "en/agents-sidebar.png": "7f370b7aad30cb30bd83a2299dd68e2847d21a87d6c20309164e555ca63ecc98",
     "en/archive.png": "82bf3e265a37b74e70ff295041f768348b4c4a49570b32af694ec54d40e17137",
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
@@ -27,14 +27,14 @@
     "en/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565",
     "en/walks.csv": "a3ed6dec159496854234fbd70110fcde8831f637b0dff3a0b7de2504dda4195d",
     "en/walks.html": "7746e355057ffe4a703e184c14fbe4da15262031ba9f5927c103f10369e64eaf",
-    "es/agentes.md": "2d29db76a3df74055ab2eb2f786c5621db7b86d7303a44fb43a0f230c2017296",
+    "es/agentes.md": "d7f5f6bae2b6847b74bc98a64d09b311902696c6b9dcee8907de419926c0b4ea",
     "es/agents-barra.png": "68dd2c9ad3528f9ab4a2df7e24aab7f989da82d769620f6457b48df5ce184baa",
     "es/agents-ficha.png": "052f41f41066dc5cf9217e382f4ced846e08037e41d2c5e6a5f9b7f972bb4ab9",
     "es/archivo.png": "d04f0780bed5cb9abb666907b4eaf19eebc910a7b403d80133d8a69b3a9d1e19",
     "es/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "es/brainsty.md": "031b5198296177082c4628b060a4503e19e920f967f9abee35fba7a11696deee",
     "es/captura.png": "7913eb165ed6590c797821f1f5664737f9cef62ed2caa707b71bb8f403857a76",
-    "es/carpeta-agents.md": "0fc0fdc37d9b39e19c0b7dfa2754fe52ced48352b879b62f1291f21e986ebc67",
+    "es/carpeta-agents.md": "468eeaa107db6b34ac3eaede999eb98d480950f07025b38ba22f2cacd7cc5447",
     "es/cartilla.pdf": "284c3eef816388b2062d7aa44c587529a978fa6d4a99ad8c268cd2b7e2b82682",
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "84846168283d57087a4eca4b141bfc87351e2dc5dc7db779a895ee9ac228beeb",
@@ -62,6 +62,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "T479e1LrctDN4b3y_5Zr3JfqF24sVwWCZVFpbWqNqtAOkQWBTgs5NggcOo9DqFFl8lHOeSp7hCPn_Ec4NaZDCw"
+    "sig": "20dlH3LsiJF1BgE2L46U3Ol5DA-c1fSumfoGpiikenQ9gzRi1v15MFdVyA-G__rv1zDf1FoCsHfvHWKtQiylAg"
   }
 }

@@ -131,7 +131,7 @@ const SKILLS = [
     source: "https://github.com/mattpocock/skills",
     licence: "MIT",
     said:
-      "Tisty's own skill `writing-for-the-next-agent`, shipped in `resources/skills/` from " +
+      "Tisty's own skill `next-agent`, shipped in `resources/skills/` from " +
       `\`${lockSays("repo").replace("https://github.com/", "")}\` at commit \`${lockSays("commit")}\` (see ` +
       "`app/src-tauri/skills.lock`), adapts `writing-for-agents` from it, at commit " +
       "`321658273cb1d20b76026717d027d505790106d4`. Its licence travels beside it as `LICENSE`.",

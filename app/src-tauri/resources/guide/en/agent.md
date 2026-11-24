@@ -44,7 +44,7 @@ Tisty brings three skills that teach your agent to work with it. There are no co
 | --- | --- | --- |
 | `tisty` | Picking up where it left off, working tasks, documents and ideas, and leaving the task ready for the next one | “Pick up where we left off” · “Leave this ready for the next agent” |
 | `consolidate` | Tidying what is kept: it proposes each fix and never deletes | “Tidy up my Tisty” |
-| `writing-for-the-next-agent` | Writing so the next agent understands it without the conversation | “Make this page clear for the next agent” |
+| `next-agent` | Writing so the next agent understands it without the conversation | “Make this page clear for the next agent” |
 
 You turn them on when you connect an agent or in **Settings › Agents › Connected**, with the switch under each agent or on the **Tisty's skills** row, at the end of the list: **See** opens their card, which says where they go on this computer and what Tisty reads to write them, and **Turn on here** is their yes. They have their own yes and need no Agents folder: they reach `~/.claude/skills`, `~/.cursor/skills` and `~/.agents/skills`, the one Codex, Copilot and Gemini share.
 

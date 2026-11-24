@@ -44,7 +44,7 @@ Tisty trae tres skills que le enseñan a tu agente a trabajar con él. No hace f
 | --- | --- | --- |
 | `tisty` | Retomar donde quedó, trabajar tareas, documentos e ideas, y dejar la tarea lista para el próximo | «Retoma donde quedamos» · «Deja esto listo para el próximo agente» |
 | `consolidate` | Ordenar lo guardado: propone cada arreglo y nunca borra | «Ordena mi Tisty» |
-| `writing-for-the-next-agent` | Escribir para que el próximo agente lo entienda sin la conversación | «Deja esta página clara para el próximo agente» |
+| `next-agent` | Escribir para que el próximo agente lo entienda sin la conversación | «Deja esta página clara para el próximo agente» |
 
 Se encienden al conectar un agente o en **Configuración › Agentes › Conectados**, con el interruptor bajo cada agente o en la fila **Skills de Tisty**, al final de la lista: **Ver** abre su ficha, que dice dónde van en este equipo y qué lee Tisty para escribirlas, y **Encender en este equipo** es su sí. Tienen su propio sí y no necesitan la carpeta Agentes: llegan a `~/.claude/skills`, a `~/.cursor/skills` y a `~/.agents/skills`, la que comparten Codex, Copilot y Gemini.
 

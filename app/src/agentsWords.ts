@@ -651,7 +651,7 @@ const words = {
     "Tidying what is kept: it proposes and never deletes.",
     "Ordenar lo guardado: propone y nunca borra.",
   ],
-  "tistySkill_writing-for-the-next-agent": [
+  "tistySkill_next-agent": [
     "Writing for the next agent. Adapted from mattpocock/skills, under the MIT licence, which travels with it.",
     "Escribir para el próximo agente. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella.",
   ],
@@ -668,7 +668,7 @@ const words = {
     "Deja esto listo para el próximo agente",
   ],
   tistySkillSay_consolidate_1: ["Tidy up my Tisty", "Ordena mi Tisty"],
-  "tistySkillSay_writing-for-the-next-agent_1": [
+  "tistySkillSay_next-agent_1": [
     "Make this page clear for the next agent",
     "Deja esta página clara para el próximo agente",
   ],

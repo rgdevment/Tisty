@@ -731,7 +731,7 @@ an assistant's file, apart from its own skills' copies, below. The help page
 ## Tisty's own skills
 
 Tisty ships three skills that teach your agents to work with it: `tisty`,
-`consolidate` and `writing-for-the-next-agent`. They live inside the app, not in
+`consolidate` and `next-agent`. They live inside the app, not in
 your store: they never sync, never go into a backup, a parcel or your cloud,
 and no agent can name or change them through the MCP. Only the bytes of the
 release, checked against a fingerprint built into the app, are written.

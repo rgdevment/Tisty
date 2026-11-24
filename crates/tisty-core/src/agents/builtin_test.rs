@@ -47,9 +47,9 @@ fn the_lock_names_the_four_files_of_the_three_skills() {
         names,
         [
             "consolidate/SKILL.md",
+            "next-agent/LICENSE",
+            "next-agent/SKILL.md",
             "tisty/SKILL.md",
-            "writing-for-the-next-agent/LICENSE",
-            "writing-for-the-next-agent/SKILL.md",
         ]
     );
     assert!(

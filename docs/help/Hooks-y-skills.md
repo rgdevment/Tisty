@@ -140,7 +140,7 @@ Una skill es una carpeta con un `SKILL.md`: tu agente lee su descripción siempr
 | :-- | :-- | :-- |
 | `tisty` | Retomar donde quedó, trabajar las tareas, los documentos y las ideas, y dejar la tarea lista para el próximo | «Retoma donde quedamos» · «Deja esto listo para el próximo agente» |
 | `consolidate` | Ordenar lo guardado: mira, te propone cada arreglo numerado y hace solo los que eliges. Nunca borra | «Ordena mi Tisty» |
-| `writing-for-the-next-agent` | Escribir una página, el estado de una tarea o un archivo de agente para que el próximo lo entienda sin la conversación. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella | «Deja esta página clara para el próximo agente» |
+| `next-agent` | Escribir una página, el estado de una tarea o un archivo de agente para que el próximo lo entienda sin la conversación. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella | «Deja esta página clara para el próximo agente» |
 
 Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbeselo a tu agente con tus palabras; no hay que llamarlas por su nombre.». No tienen que ser exactas: «sigamos con lo de ayer» o «¿en qué íbamos?» también llevan a la skill `tisty`.
 
@@ -154,7 +154,7 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 
 | Agente | Carpeta |
 | :-- | :-- |
-| **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/writing-for-the-next-agent/` |
+| **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/next-agent/` |
 | **Cursor** | `~/.cursor/skills/…`, con las mismas tres carpetas |
 | **Codex**, **GitHub Copilot**, **Gemini CLI** y **DeepSeek Harness** | `~/.agents/skills/…`, una sola copia que leen los cuatro |
 

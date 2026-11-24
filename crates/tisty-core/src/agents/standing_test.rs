@@ -1303,7 +1303,7 @@ fn turning_them_off_never_touches_a_file_a_document_placed_or_still_places() {
     assert_eq!(read(&theirs), "Mine.\n");
 }
 
-const NEXT: &str = "writing-for-the-next-agent";
+const NEXT: &str = "next-agent";
 
 impl Room {
     fn shipped_as(&self, name: &str, said: &str) -> Target {

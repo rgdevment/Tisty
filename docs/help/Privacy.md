@@ -123,7 +123,7 @@ With **Bring and sync** or **Sync**, sync stays on for this computer, and you ca
 
 **Tisty's own skills**
 
-Tisty ships three skills, `tisty`, `consolidate` and `writing-for-the-next-agent`, that live inside the app, not in your store: they never sync, never go into a backup, a parcel or your cloud, and no agent can name or change them through the MCP. Only the bytes of the installed release are written, checked against a fingerprint built into the app. How they are used is in [[Hooks and skills|Hooks-and-Skills]].
+Tisty ships three skills, `tisty`, `consolidate` and `next-agent`, that live inside the app, not in your store: they never sync, never go into a backup, a parcel or your cloud, and no agent can name or change them through the MCP. Only the bytes of the installed release are written, checked against a fingerprint built into the app. How they are used is in [[Hooks and skills|Hooks-and-Skills]].
 
 - **They have their own yes, on this computer.** **Turn on here**, on their card in **Settings › Agents › Connected**, is that yes, and so is **Yes, connect** with their tick on, which says the same before you press it, **Turn on skills**, or **Add hooks and turn on skills**, in the **Hooks and skills for your agents** box, which says the same before you press it. It needs no Agents folder, and a record copied from another computer does not count.
 - **Before that yes, and with no yes to Agents either, their card opens nothing** inside your agents' folders: it looks only at which agents' folders exist and whether the copies Tisty wrote before are still there. With the yes to Agents alone, it reads the plugin's records, named below, and any copy Tisty wrote before, to tell whether it changed.

@@ -418,7 +418,7 @@ The `SKILL.md`'s own properties stay out of the text: its `name` is the card's n
 
 ### Tisty's skills in Global
 
-Tisty brings three skills of its own, `tisty`, `consolidate` and `writing-for-the-next-agent`, that teach your agents to work with it. They are not Agents documents: they live inside the app and have their own yes, **Turn on here**, which needs no Agents folder. [[Hooks and skills|Hooks-and-Skills]] tells it whole.
+Tisty brings three skills of its own, `tisty`, `consolidate` and `next-agent`, that teach your agents to work with it. They are not Agents documents: they live inside the app and have their own yes, **Turn on here**, which needs no Agents folder. [[Hooks and skills|Hooks-and-Skills]] tells it whole.
 
 Here you see them as a fixed row at the end of **Agents › Global**, **Tisty's skills**, with their standing: **Off** or **On**. The row shows only if this computer has some agent, if the skills are on, or if copies of them remain. A click opens their card, the same one as in **Settings › Agents › Connected**. What having Agents changes:
 

@@ -1576,7 +1576,7 @@ Claude Code, Cursor, Gemini CLI y GitHub Copilot, le traen al agente sus tareas
 abiertas al empezar una sesión, le devuelven el turno una vez cuando editó
 archivos sin escribir nada aquí, y le preguntan una vez antes de dejar un
 archivo de texto fuera de un repo. Sus
-**skills propias**, `tisty`, `consolidate` y `writing-for-the-next-agent`, le
+**skills propias**, `tisty`, `consolidate` y `next-agent`, le
 enseñan qué significa «Retoma donde quedamos», «Ordena mi Tisty» o «Deja esta
 página clara para el próximo agente», dicho con tus palabras. Y cuando dice que
 un paso tuyo está hecho, la lista lo cuenta aparte, `1/3 ◆1`, hasta que tomes

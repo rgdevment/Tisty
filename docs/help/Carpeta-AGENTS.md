@@ -418,7 +418,7 @@ Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombr
 
 ### Las skills de Tisty en Global
 
-Tisty trae tres skills propias, `tisty`, `consolidate` y `writing-for-the-next-agent`, que les enseñan a tus agentes a trabajar con él. No son documentos de Agentes: viven dentro de la app y tienen su propio sí, **Encender en este equipo**, que no necesita esta carpeta. Lo cuenta entero [[Hooks y skills|Hooks-y-skills]].
+Tisty trae tres skills propias, `tisty`, `consolidate` y `next-agent`, que les enseñan a tus agentes a trabajar con él. No son documentos de Agentes: viven dentro de la app y tienen su propio sí, **Encender en este equipo**, que no necesita esta carpeta. Lo cuenta entero [[Hooks y skills|Hooks-y-skills]].
 
 Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de Tisty**, con su estado: **Apagadas** o **Encendidas**. La fila aparece solo si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre su ficha, la misma de **Configuración › Agentes › Conectados**. Lo que cambia por tener Agentes:
 

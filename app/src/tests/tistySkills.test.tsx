@@ -40,10 +40,10 @@ const SKILLS = [
     yours: true,
   },
   {
-    name: "writing-for-the-next-agent",
-    label: "writing-for-the-next-agent",
+    name: "next-agent",
+    label: "next-agent",
     about: null,
-    files: ["writing-for-the-next-agent/LICENSE", "writing-for-the-next-agent/SKILL.md"],
+    files: ["next-agent/LICENSE", "next-agent/SKILL.md"],
     yours: false,
   },
 ];
@@ -57,12 +57,12 @@ const skills = (more: Partial<TistySkills> = {}): TistySkills => ({
     { assistant: "cursor", at: "/h/.cursor/skills/tisty/SKILL.md", standing: "write" },
     {
       assistant: "codex",
-      at: "/h/.agents/skills/writing-for-the-next-agent/SKILL.md",
+      at: "/h/.agents/skills/next-agent/SKILL.md",
       standing: "write",
     },
     {
       assistant: "codex",
-      at: "/h/.agents/skills/writing-for-the-next-agent/LICENSE",
+      at: "/h/.agents/skills/next-agent/LICENSE",
       standing: "write",
     },
   ],

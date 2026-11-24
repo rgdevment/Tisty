@@ -140,7 +140,7 @@ A skill is a folder with a `SKILL.md`: your agent always reads its description, 
 | :-- | :-- | :-- |
 | `tisty` | Picking up where it left off, working tasks, documents and ideas, and leaving the task ready for the next one | “Pick up where we left off” · “Leave this ready for the next agent” |
 | `consolidate` | Tidying what is kept: it looks, proposes each fix numbered and makes only those you pick. It never deletes | “Tidy up my Tisty” |
-| `writing-for-the-next-agent` | Writing a page, a task's state or an agent file so the next one understands it without the conversation. Adapted from mattpocock/skills, under the MIT licence, which travels with it | “Make this page clear for the next agent” |
+| `next-agent` | Writing a page, a task's state or an agent file so the next one understands it without the conversation. Adapted from mattpocock/skills, under the MIT licence, which travels with it | “Make this page clear for the next agent” |
 
 The phrases are the ones their card shows, under **How to use them**: «Write it to your agent in your own words; there is no need to call them by name.». They need not be exact: “let's carry on with yesterday's” or “where were we?” also lead to the `tisty` skill.
 
@@ -154,7 +154,7 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 
 | Agent | Folder |
 | :-- | :-- |
-| **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/writing-for-the-next-agent/` |
+| **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/next-agent/` |
 | **Cursor** | `~/.cursor/skills/…`, with the same three folders |
 | **Codex**, **GitHub Copilot**, **Gemini CLI** and **DeepSeek Harness** | `~/.agents/skills/…`, a single copy the four of them read |
 

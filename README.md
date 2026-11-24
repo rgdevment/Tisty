@@ -1528,7 +1528,7 @@ Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
 bring the agent its open tasks when a session starts, and hand the turn back
 once when it edited files without writing anything here, and ask it once before
 it leaves a text file outside a repository. Its **own skills**,
-`tisty`, `consolidate` and `writing-for-the-next-agent`, teach it what
+`tisty`, `consolidate` and `next-agent`, teach it what
 “Pick up where we left off”, “Tidy up my Tisty” or “Make this page clear for
 the next agent” mean, in your own words. And when it says a step of yours is
 done, the list counts it apart, `1/3 ◆1`, until you take its word.
