@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.11.0";
+pub const VERSION: &str = "1.12.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -83,6 +83,20 @@ pub enum Orientation {
     Portrait,
     #[serde(rename = "landscape")]
     Landscape,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Design {
+    #[serde(rename = "tisty")]
+    Tisty,
+    #[serde(rename = "bosque")]
+    Bosque,
+    #[serde(rename = "coral")]
+    Coral,
+    #[serde(rename = "fiordo")]
+    Fiordo,
+    #[serde(rename = "violeta")]
+    Violeta,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -459,6 +473,8 @@ pub struct Sheet {
     pub on: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub orientation: Option<Orientation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub design: Option<Design>,
 }
 
 /// A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this.

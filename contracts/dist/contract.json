@@ -1,5 +1,5 @@
 {
-  "version": "1.11.0",
+  "version": "1.12.0",
   "contracts": {
     "text": {
       "contract": "text",
@@ -2090,6 +2090,228 @@
           "holds": false
         }
       ]
+    },
+    "designs": {
+      "contract": "designs",
+      "group": "documents",
+      "checked_by": [
+        "writer",
+        "reader"
+      ],
+      "says": "How the sheet of a document looks, by the name its sheet says: its colors, in light and in dark, its type, its title and its tables. What a design does not say is what style says, so a document without one looks as it always did.",
+      "values": {
+        "default": "tisty",
+        "theme": "The light colors or the dark ones, by the theme the reader shows the sheet in.",
+        "colors": {
+          "said": [
+            "sheet",
+            "ink",
+            "soft",
+            "line",
+            "accent",
+            "heading"
+          ],
+          "heading": "The color of the title and of every heading. In CSS, var(--tisty-heading).",
+          "accent_soft_percent": {
+            "light": 8,
+            "dark": 11,
+            "says": "accent-soft is the accent of the design at that percent."
+          },
+          "inherited": "Every other color is the one of style in that theme. rail and desk belong to whoever shows the sheet."
+        },
+        "fonts": {
+          "sans": "The text_font of style.",
+          "serif": [
+            "Georgia",
+            "Cambria",
+            "Times New Roman",
+            "serif"
+          ]
+        },
+        "headings_font": "The title and every heading. Their sizes and margins are those of style, over the size of the design.",
+        "title_says": "Only the title, the one style draws with a rule under it. Any other heading keeps its own measures.",
+        "titles": {
+          "plain": {
+            "border_bottom": "1px solid hair"
+          },
+          "rule": {
+            "border_bottom": "1px solid line"
+          },
+          "bar": {
+            "border_bottom": "4px solid accent"
+          }
+        },
+        "tables": {
+          "grid": "As style says.",
+          "tint": {
+            "head": {
+              "color": "sheet",
+              "background": "accent"
+            },
+            "says": "Nothing else changes, and no measure does."
+          }
+        },
+        "cutting": "The type and the title of a design decide where a sheet is cut, so a reader wears them before it lays the sheets.",
+        "printing": "On paper it wears its light colors over white paper, in whatever theme it is read.",
+        "diagrams": "A diagram travels drawn and keeps its own colors.",
+        "designs": {
+          "tisty": {
+            "names": {
+              "es": "Tisty",
+              "en": "Tisty"
+            },
+            "light": {
+              "sheet": "#ffffff",
+              "ink": "#1d1d1f",
+              "soft": "#57575c",
+              "line": "rgb(0 0 0 / 0.16)",
+              "accent": "#0060e3",
+              "heading": "#1d1d1f"
+            },
+            "dark": {
+              "sheet": "#232326",
+              "ink": "#f2f2f7",
+              "soft": "#adadb4",
+              "line": "rgb(255 255 255 / 0.2)",
+              "accent": "#439bff",
+              "heading": "#f2f2f7"
+            },
+            "type": {
+              "text": "sans",
+              "headings": "sans",
+              "size": "15px",
+              "line_height": 1.65,
+              "align": "left"
+            },
+            "title": "plain",
+            "table": "grid"
+          },
+          "bosque": {
+            "names": {
+              "es": "Bosque",
+              "en": "Forest"
+            },
+            "light": {
+              "sheet": "#f3f8f2",
+              "ink": "#1d2b1f",
+              "soft": "#51654f",
+              "line": "rgb(40 100 50 / 0.28)",
+              "accent": "#2f7d3b",
+              "heading": "#2d5a34"
+            },
+            "dark": {
+              "sheet": "#18211a",
+              "ink": "#e3ece2",
+              "soft": "#a3b5a2",
+              "line": "rgb(166 217 172 / 0.25)",
+              "accent": "#7fc98a",
+              "heading": "#a6d9ac"
+            },
+            "type": {
+              "text": "sans",
+              "headings": "serif",
+              "size": "14.5px",
+              "line_height": 1.65,
+              "align": "left"
+            },
+            "title": "rule",
+            "table": "tint"
+          },
+          "coral": {
+            "names": {
+              "es": "Coral",
+              "en": "Coral"
+            },
+            "light": {
+              "sheet": "#fff7f1",
+              "ink": "#2d1c17",
+              "soft": "#7a5a4e",
+              "line": "rgb(190 80 40 / 0.28)",
+              "accent": "#b9441f",
+              "heading": "#b5391a"
+            },
+            "dark": {
+              "sheet": "#261a16",
+              "ink": "#f5e6df",
+              "soft": "#c9a99c",
+              "line": "rgb(255 181 154 / 0.25)",
+              "accent": "#ff9a76",
+              "heading": "#ffb59a"
+            },
+            "type": {
+              "text": "sans",
+              "headings": "sans",
+              "size": "14.5px",
+              "line_height": 1.65,
+              "align": "left"
+            },
+            "title": "bar",
+            "table": "tint"
+          },
+          "fiordo": {
+            "names": {
+              "es": "Fiordo",
+              "en": "Fjord"
+            },
+            "light": {
+              "sheet": "#f4f7fa",
+              "ink": "#242a35",
+              "soft": "#4f5b6d",
+              "line": "rgb(46 80 110 / 0.28)",
+              "accent": "#2e6f86",
+              "heading": "#2f5d62"
+            },
+            "dark": {
+              "sheet": "#2b303b",
+              "ink": "#e5e9f0",
+              "soft": "#aeb7c6",
+              "line": "rgb(216 222 233 / 0.28)",
+              "accent": "#88c0d0",
+              "heading": "#8fbcbb"
+            },
+            "type": {
+              "text": "sans",
+              "headings": "sans",
+              "size": "14.5px",
+              "line_height": 1.65,
+              "align": "left"
+            },
+            "title": "rule",
+            "table": "tint"
+          },
+          "violeta": {
+            "names": {
+              "es": "Violeta",
+              "en": "Violet"
+            },
+            "light": {
+              "sheet": "#f8f5fd",
+              "ink": "#2a2438",
+              "soft": "#5f5675",
+              "line": "rgb(124 77 204 / 0.28)",
+              "accent": "#7c4dcc",
+              "heading": "#9a3b86"
+            },
+            "dark": {
+              "sheet": "#1e1e2e",
+              "ink": "#cdd6f4",
+              "soft": "#a6adc8",
+              "line": "rgb(205 214 244 / 0.25)",
+              "accent": "#cba6f7",
+              "heading": "#f5c2e7"
+            },
+            "type": {
+              "text": "sans",
+              "headings": "sans",
+              "size": "14.5px",
+              "line_height": 1.65,
+              "align": "left"
+            },
+            "title": "bar",
+            "table": "tint"
+          }
+        }
+      }
     },
     "document": {
       "contract": "document",
@@ -5011,6 +5233,13 @@
         "orientation": [
           "portrait",
           "landscape"
+        ],
+        "design": [
+          "tisty",
+          "bosque",
+          "coral",
+          "fiordo",
+          "violeta"
         ]
       },
       "fields": {
@@ -5027,6 +5256,11 @@
           "type": "orientation",
           "otherwise": "portrait",
           "says": "Only while in sheets. Portrait when it says none, or one this reader does not know."
+        },
+        "design": {
+          "type": "design",
+          "otherwise": "tisty",
+          "says": "How it looks, by its name in designs. Tisty when it says none, or one this reader does not know. In sheets or not."
         }
       },
       "values": {
@@ -5104,6 +5338,27 @@
             "orientation": "diagonal"
           },
           "holds": true
+        },
+        {
+          "says": "A design.",
+          "value": {
+            "design": "bosque"
+          },
+          "holds": true
+        },
+        {
+          "says": "A design this reader does not know, which is read as Tisty.",
+          "value": {
+            "design": "pergamino"
+          },
+          "holds": true
+        },
+        {
+          "says": "A design that is no word.",
+          "value": {
+            "design": 3
+          },
+          "holds": false
         }
       ]
     },
@@ -5843,6 +6098,13 @@
     "orientation": [
       "portrait",
       "landscape"
+    ],
+    "design": [
+      "tisty",
+      "bosque",
+      "coral",
+      "fiordo",
+      "violeta"
     ],
     "status": [
       "open",

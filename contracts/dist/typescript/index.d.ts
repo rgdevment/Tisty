@@ -1,4 +1,4 @@
-export declare const VERSION: "1.11.0";
+export declare const VERSION: "1.12.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -15,6 +15,8 @@ export type Verdict = "holds" | "retired" | "doubtful" | "refused" | "unreadable
 export type Paper = "a4" | "letter" | "folio" | "tabloid";
 
 export type Orientation = "portrait" | "landscape";
+
+export type Design = "tisty" | "bosque" | "coral" | "fiordo" | "violeta";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -275,6 +277,7 @@ export interface Sheet {
   paper?: Paper;
   on?: boolean;
   orientation?: Orientation;
+  design?: Design;
 }
 
 /** A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this. */
@@ -314,7 +317,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "review" | "reviewed" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "designs" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "review" | "reviewed" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

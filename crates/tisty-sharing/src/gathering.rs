@@ -250,6 +250,7 @@ fn sheet_of(body: &str) -> Option<Sheet> {
         paper,
         on: laid.sheets.then_some(true),
         orientation: laid.landscape.then_some(Orientation::Landscape),
+        design: None,
     };
     (sheet.paper.is_some() || sheet.on.is_some()).then_some(sheet)
 }
