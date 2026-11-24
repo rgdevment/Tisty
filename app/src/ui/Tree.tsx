@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { agentsPaint, askAgents, folderShown, holdsTistySkills } from "../agentsSync";
+import {
+  agentsDrawn,
+  agentsPaint,
+  askAgents,
+  folderShown,
+  holdsTistySkills,
+  ofAnother,
+} from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
-import { useAgentsStage } from "./AgentsMark";
+import { useAgentsStage, useSkillsRow } from "./AgentsMark";
 import { FolderMark } from "./AssistantMark";
 import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
 import {
@@ -87,7 +94,8 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
-  const { root, stage } = useAgentsStage(papers);
+  const { root, stage, stance } = useAgentsStage(papers);
+  const skillsRow = useSkillsRow(stance);
   const hidden = useHidden();
   // While the sidebar is sifted everything shows, so a match never sits behind a hidden row.
   const veiled = (key: string) => !unfolded && hidden.includes(key);
@@ -419,7 +427,7 @@ export default function Tree({
   const ideasUnborn = !pin && Boolean(onIdeas) && !unfolded && !veiled(BRAINSTORM);
 
   const drawnUnder = (parent: string | null) =>
-    under(parent).filter(
+    agentsDrawn(under(parent), papers.folders, root).filter(
       (one) => one.away || (!veiled(one.id) && !(one.id === root && agentsVeiled)),
     );
 
@@ -911,9 +919,10 @@ export default function Tree({
     const shown = folderShown(folder);
     const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
-    const tistySkillsHere = holdsTistySkills(folder, papers.folders);
+    const tistySkillsHere = skillsRow && holdsTistySkills(folder, papers.folders);
+    const theirs = ofAnother(folder);
     return (
-      <li key={folder.id} className={folder.away ? "relative text-faint" : "relative"}>
+      <li key={folder.id} className={folder.away || theirs ? "relative text-faint" : "relative"}>
         <div
           data-drop={folder.away ? undefined : folder.id}
           data-drop-kind="folder"
@@ -951,7 +960,11 @@ export default function Tree({
               <span
                 className={`flex items-center ${isRoot ? agentsPaint(stage) : painted(folder.color)}`}
               >
-                <FolderMark folder={folder} root={root} className="h-[15px] w-[15px]" />
+                <FolderMark
+                  folder={folder}
+                  root={root}
+                  className={theirs ? "h-[15px] w-[15px] opacity-50" : "h-[15px] w-[15px]"}
+                />
               </span>
             </Grip>
             <button
@@ -966,7 +979,11 @@ export default function Tree({
               aria-label={folderSaid(folder)}
               aria-current={here === folder.id ? "true" : undefined}
               className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] ${
-                dim ? "text-faint" : here === folder.id ? "text-ink" : "text-soft"
+                dim || (theirs && here !== folder.id)
+                  ? "text-faint"
+                  : here === folder.id
+                    ? "text-ink"
+                    : "text-soft"
               }`}
             >
               <span className="truncate">{shown}</span>
@@ -992,14 +1009,16 @@ export default function Tree({
               "doc" in one ? paper(one.doc, depth + 1) : skill(one.skill, depth + 1),
             )}
             {tistySkillsHere && <TistySkillsRow depth={depth + 1} step={STEP} />}
-            {!under(folder.id).length && !papersIn.length && !tistySkillsHere && (
-              <li
-                className="py-0.5 text-[11.5px] text-faint italic"
-                style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
-              >
-                {t("folderEmpty")}
-              </li>
-            )}
+            {!agentsDrawn(under(folder.id), papers.folders, root).length &&
+              !papersIn.length &&
+              !tistySkillsHere && (
+                <li
+                  className="py-0.5 text-[11.5px] text-faint italic"
+                  style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
+                >
+                  {t("folderEmpty")}
+                </li>
+              )}
           </ul>
         )}
       </li>

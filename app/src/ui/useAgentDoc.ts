@@ -68,12 +68,13 @@ export function useAgentDoc(file: string | null, body: string) {
 
   const shown = isAgent && doc?.file === file ? doc.doc : null;
   const writing = editing === file;
+  // The agent writes its memory itself, and another computer's file is written there: neither opens for editing here.
+  const written = shown !== null && shown.kind !== "memory" && shown.here !== "otherComputer";
   return {
     doc: shown,
-    editing: shown !== null && writing && shown.kind !== "memory",
+    editing: writing && written,
     // Held while the card is asked for; a document the core does not take for an agent's is let go.
     held: isAgent && !writing && (answered !== file || shown !== null),
-    // The agent writes its memory itself, so it is never opened for editing here.
-    onEdit: (on: boolean) => setEditing(on && shown?.kind !== "memory" ? file : null),
+    onEdit: (on: boolean) => setEditing(on && written ? file : null),
   };
 }

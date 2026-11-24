@@ -20,8 +20,13 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const folder = (id: string, name: string, parent: string | null, icon: string | null = null) =>
-  ({ id, name, parent, icon, holds: 0, archived: false, away: false }) as Folded;
+const folder = (
+  id: string,
+  name: string,
+  parent: string | null,
+  icon: string | null = null,
+  holds = 0,
+) => ({ id, name, parent, icon, holds, archived: false, away: false }) as Folded;
 
 const doc = (file: string, title: string, folderId: string | null = "claude"): Filed => ({
   id: `id-${file}`,
@@ -38,7 +43,10 @@ const row = (file: string, name: string, label: string, kind: AgentRow["kind"] =
   return { file, kind, level: "claude", name, label, skill } satisfies AgentRow;
 };
 
-const FOLDERS = [folder("agents", "AGENTS", null, "robot"), folder("claude", "Claude", "agents")];
+const FOLDERS = [
+  folder("agents", "AGENTS", null, "robot"),
+  folder("claude", "Claude", "agents", null, 5),
+];
 
 const ROWS: AgentRow[] = [
   row("d-1", "rules/horario.md", "Horario laboral"),

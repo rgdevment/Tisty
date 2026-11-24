@@ -5,6 +5,7 @@ import App from "../App";
 import type { Papers } from "../core";
 import { AT_A_GLANCE, SHOWN } from "../glance";
 import { fill, filled, t } from "../locales";
+import { sure } from "../sure";
 import Docs from "../ui/Docs";
 import { SETTLING_MS } from "../ui/Sure";
 import Tree from "../ui/Tree";
@@ -1520,5 +1521,44 @@ describe("what asks the other machine to be told", () => {
 
     expect(carrier.made).toBeGreaterThan(0);
     expect(carrier.asked).toBe(0);
+  });
+});
+
+describe("the question the window asks to be sure", () => {
+  it("shows Go on and Cancel when it is asked plainly, and answers yes or no", async () => {
+    await boot();
+
+    const yes = sure("Plain?");
+    const box = await screen.findByRole("dialog", { name: t("sureTitle") });
+    expect(within(box).getByText("Plain?")).toBeTruthy();
+    expect(within(box).getByRole("button", { name: t("cancel") })).toBeTruthy();
+    await new Promise((settle) => setTimeout(settle, SETTLING_MS));
+    await userEvent.click(within(box).getByRole("button", { name: t("sureGoOn") }));
+    expect(await yes).toBe(true);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    const no = sure("Plain again?");
+    const second = await screen.findByRole("dialog", { name: t("sureTitle") });
+    await userEvent.click(within(second).getByRole("button", { name: t("cancel") }));
+    expect(await no).toBe(false);
+  });
+
+  it("shows the buttons it was given instead, and answers yes or no through them", async () => {
+    await boot();
+
+    const yes = sure("Move it?", { yes: "Move", no: "Keep" });
+    const box = await screen.findByRole("dialog", { name: t("sureTitle") });
+    expect(within(box).queryByRole("button", { name: t("sureGoOn") })).toBeNull();
+    expect(within(box).queryByRole("button", { name: t("cancel") })).toBeNull();
+    expect(within(box).getByRole("button", { name: "Keep" })).toBeTruthy();
+    await new Promise((settle) => setTimeout(settle, SETTLING_MS));
+    await userEvent.click(within(box).getByRole("button", { name: "Move" }));
+    expect(await yes).toBe(true);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    const no = sure("Move it again?", { yes: "Move", no: "Keep" });
+    const second = await screen.findByRole("dialog", { name: t("sureTitle") });
+    await userEvent.click(within(second).getByRole("button", { name: "Keep" }));
+    expect(await no).toBe(false);
   });
 });

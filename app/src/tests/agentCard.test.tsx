@@ -371,6 +371,11 @@ describe("an agent document's card", () => {
     expect(screen.queryByRole("button", { name: "Bring the change in" })).toBeNull();
   });
 
+  it("offers no edit on a document of another computer", () => {
+    shown(card([place(OUTSIDE)], { here: "otherComputer" }));
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  });
+
   it("offers no edit on a locked document", () => {
     shown(card([place({ state: "synced" })]), { locked: true });
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();

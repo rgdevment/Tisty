@@ -336,6 +336,7 @@ pub fn folder_file(
     if before.is_some_and(|at| at == id) {
         return Err(Refusal::of("intoItself"));
     }
+    super::agents_moving::folder_resolved(&session.state, id, parent)?;
     let ops = beside_folders(&session.state, id, parent, before);
     stays_hooked(&session.state, &ops)?;
     session.commit_all(ops)?;

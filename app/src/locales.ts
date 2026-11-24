@@ -1400,6 +1400,8 @@ const en = {
     "This one belongs to another of your computers: here you read it and move it, and write it there",
   agentProposalFirst:
     "An agent's proposal waits on this document. Approve or discard it before moving it to another computer",
+  agentProposalInFolder:
+    "An agent's proposal waits on a document in this folder. Approve or discard it before moving the folder to another computer",
   agentsRootStays:
     "Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change",
   folderAwayHolds: "That folder is in the archive. Nothing new goes into it",
@@ -5223,6 +5225,8 @@ const es: Catalog = {
   agentOfAnother: "Este es de otro de tus equipos: aquí lo lees y lo mueves, y lo escribes allá",
   agentProposalFirst:
     "Un agente propuso un cambio en este documento. Apruébalo o descártalo antes de moverlo a otro equipo",
+  agentProposalInFolder:
+    "Un agente propuso un cambio en un documento de esta carpeta. Apruébalo o descártalo antes de mover la carpeta a otro equipo",
   agentsRootStays:
     "Agentes se queda arriba, con su nombre y su robot, para seguir cuidando las reglas de tus agentes. Su color y su lugar entre tus carpetas sí los cambias",
   folderAwayHolds: "Esa carpeta está en el archivo. Nada nuevo entra en ella",

@@ -33,7 +33,11 @@ describe("agent documents", () => {
     expect(carded("---\ntitle: Rules\n---\nagent: not a card\n")).toBe(false);
     expect(carded("# agent: no front matter\n")).toBe(false);
     expect(carded("---\nagent: [claude/skill/pdf/SKILL.md, crlf, bom]\n---\n")).toBe(true);
+    const marked = "agent: [claude/rule/CLAUDE.md, crlf, on-dev_ab12cd34]";
+    expect(carded(`---\n${marked}\n---\n`)).toBe(true);
     for (const odd of [
+      "[claude/rule/CLAUDE.md, on-]",
+      "[claude/rule/CLAUDE.md, on-dev_a, on-dev_b]",
       "global/note/x.md",
       "Global/rule/x.md",
       "global/rule/",

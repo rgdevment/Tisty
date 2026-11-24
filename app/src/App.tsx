@@ -1,3 +1,4 @@
+import { movedOnceSure } from "./agentsMoving";
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
@@ -107,14 +108,14 @@ export default function App() {
             setChosen({ named: "docs" });
           }}
           onMove={(folder, parent, before) =>
-            folderFile(folder, parent, before)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e)))
+            movedOnceSure("folder", folder, parent, () =>
+              folderFile(folder, parent, before).then(papersChanged),
+            ).catch((e) => setError(saidPlainly(e)))
           }
           onFile={(doc, folder, before) =>
-            docFile(doc, folder, before)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e)))
+            movedOnceSure("doc", doc, folder, () =>
+              docFile(doc, folder, before).then(papersChanged),
+            ).catch((e) => setError(saidPlainly(e)))
           }
           onPage={(doc, pageOf) => hangIt(doc, pageOf)}
           onDiary={toDiary}

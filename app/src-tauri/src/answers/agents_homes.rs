@@ -3,14 +3,14 @@ use std::path::{Path, PathBuf};
 
 use tisty_core::agents::{self, Card, GLOBAL, Gate, Kind, Ledger, Seen};
 use tisty_core::event::{DeviceId, DocAdd, Filed, Said};
-use tisty_core::model::{FolderId, Kept};
+use tisty_core::model::{Folder, FolderId, Kept};
 use tisty_core::{Op, State};
 
 use super::agents_sync::{docs_in, gated, refused, rewritten, root_of, tree};
 use crate::wiring::agents::{self as places, GLOBAL_FOLDER, Homes};
 use crate::{Answer, Refusal, Session, signing};
 
-pub(crate) const SINCE: &str = "1.51.0";
+pub(crate) const SINCE: &str = "1.50.2";
 
 fn cannot(e: impl std::fmt::Display) -> Refusal {
     Refusal::about("cannotWrite", e.to_string())
@@ -36,6 +36,45 @@ pub(crate) fn spot(state: &State, folder: Option<FolderId>) -> Option<Spot<'_>> 
         computer: Some(computer),
         name: &at.name,
     })
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Shown {
+    /// The computer's name, on its own folder alone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    computer: Option<String>,
+    mine: bool,
+    /// Right under a computer's folder, where each assistant has its own.
+    room: bool,
+}
+
+/// How a folder inside a computer's own one reads on this computer.
+pub(crate) fn shown(state: &State, me: &DeviceId, folder: &Folder) -> Option<Shown> {
+    let computer = agents::computer_of(state, Some(folder.id))?;
+    let own = |one: &Folder| one.computer.is_some();
+    let up = folder.parent.and_then(|up| state.folders.get(&up));
+    Some(Shown {
+        computer: own(folder).then(|| named(state, &computer, folder)),
+        mine: computer == *me,
+        room: up.is_some_and(own),
+    })
+}
+
+// Two computers may share a name; the stored one tells them apart.
+fn named(state: &State, computer: &DeviceId, folder: &Folder) -> String {
+    let called = state.called(computer);
+    let shared = state.folders.values().any(|one| {
+        one.parent == folder.parent
+            && one
+                .computer
+                .as_ref()
+                .is_some_and(|other| other != computer && state.called(other) == called)
+    });
+    match shared {
+        true => folder.name.clone(),
+        false => called,
+    }
 }
 
 pub(crate) struct Rooms {
@@ -86,7 +125,7 @@ fn committed(session: &mut Session, ops: Vec<Op>) -> Answer<()> {
 }
 
 // An approval an earlier Tisty said of a document for one computer stands for words it may have rewritten.
-fn approved(kept: &Kept, body: &str) -> bool {
+pub(crate) fn approved(kept: &Kept, body: &str) -> bool {
     let known = kept.agreed_knowing || Card::of(body).is_none_or(|card| card.computer.is_none());
     known && kept.agreed.as_deref() == Some(tisty_core::docs::print_of_text(body).as_str())
 }
@@ -96,6 +135,14 @@ pub(crate) fn of_another(session: &Session, file: &str) -> bool {
         .filter(|kept| agents::holds(&session.state, kept))
         .and_then(|kept| agents::computer_of(&session.state, kept.folder))
         .is_some_and(|one| one != *session.store.device())
+}
+
+// Another computer's own agent files are only read and moved from this one.
+pub(crate) fn read_here(session: &Session, file: &str) -> Answer<()> {
+    match of_another(session, file) {
+        true => Err(Refusal::of("agentOfAnother")),
+        false => Ok(()),
+    }
 }
 
 pub(crate) fn let_in(gate: &Gate, ledger: &mut Ledger) -> bool {
@@ -108,11 +155,11 @@ pub(crate) fn let_in(gate: &Gate, ledger: &mut Ledger) -> bool {
         })
 }
 
-fn kept_of<'a>(session: &'a Session, file: &str) -> Option<&'a Kept> {
+pub(crate) fn kept_of<'a>(session: &'a Session, file: &str) -> Option<&'a Kept> {
     session.state.docs.values().find(|one| one.file == file)
 }
 
-fn read(session: &Session, file: &str) -> Answer<String> {
+pub(crate) fn read(session: &Session, file: &str) -> Answer<String> {
     tisty_core::docs::read(&session.paths.docs(), file).map_err(cannot)
 }
 
@@ -573,4 +620,4 @@ pub(crate) fn chosen(
 
 #[cfg(test)]
 #[path = "agents_homes_test.rs"]
-mod tests;
+pub(crate) mod tests;

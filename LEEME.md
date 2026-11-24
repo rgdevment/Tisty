@@ -560,13 +560,17 @@ junta en Tisty como documentos, con sus skills y su memoria.
   leerlos y ordenarlos, sin escribir nada en ellos; **Traer y sincronizar**
   además escribe la regla que cambias una vez en el archivo de cada agente, con
   un respaldo antes de cada sobrescritura.
-- **Una regla para todos** — un documento en **Global** llega a cada agente
-  del equipo; uno en **Claude**, solo a Claude.
+- **Cada equipo lo suyo** — cada equipo tiene su carpeta dentro de Agentes y
+  escribe solo esa; la carpeta de otro equipo la lees desde aquí, pero no la
+  cambias. Un documento es un archivo, palabra por palabra.
+- **Skills en Global, reglas donde quieras** — una skill en **Global** llega a
+  todos tus agentes; una regla que mueves a la raíz de Agentes es para todos
+  tus equipos, y si un equipo tiene la suya, Tisty pregunta cuál manda ahí.
 - **Tu agente propone, tú apruebas** — un agente lee tus reglas como cualquier
   documento, pero un cambio suyo espera en la ficha, junto a lo que aprobaste,
   hasta que dices que sí.
-- **Cada equipo decide** — una regla escrita en otro equipo espera **Aplicar
-  aquí**, y un cambio hecho por fuera de Tisty nunca se pisa: lo traes o te
+- **Cada equipo decide** — una regla para todos espera **Aplicar aquí** en cada
+  equipo, y un cambio hecho por fuera de Tisty nunca se pisa: lo traes o te
   quedas con el de Tisty.
 - **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
   secreto nunca entran, y Agentes no lee nada hasta que haces clic en la

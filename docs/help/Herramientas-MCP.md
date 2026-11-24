@@ -78,6 +78,7 @@ Los documentos de la carpeta [[Agentes|Carpeta-AGENTS]] son las reglas, skills y
 - **`read`** de un documento con una propuesta trae `proposal`, con `approved: false`, para que el agente sepa que lo que lee no es lo que llega a tus agentes.
 - **Toda otra herramienta que los nombre se rechaza**, sin tocar nada: `page_doc`, `tongue_doc`, `attach`, `flag_doc`, `archive_doc`, `file_doc`, `sum_up`, `restore_doc`, un `edit_table` que cambia, y `folder` dentro de `AGENTS` o con ese nombre. Vale igual cuando el documento llega por `doc`, `page_of`, `translation_of`, `of`, `after`, `before`, `order`, `instead`, `folder` o `inside`.
 - **La línea `agent:`**, la que dice a qué archivo va una regla, no la pone ni la cambia ningún agente, en ningún documento de ninguna carpeta.
+- **Un documento de otro de tus equipos** el agente lo lee como datos: la respuesta de `read` trae `of_computer`, de qué equipo es, y `read_as`, que le dice que no es una regla suya para este equipo, y no puede proponer sobre él. Sobre los documentos de este equipo propone como siempre. No hay ninguna herramienta nueva.
 
 El rechazo le dice qué puede hacer en su lugar: proponer el cambio o contarte qué cambiaría.
 

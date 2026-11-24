@@ -92,4 +92,21 @@ describe("an agent document's hold", () => {
     rerender({ file: "a.md" });
     expect(result.current.held).toBe(true);
   });
+
+  it("never opens another computer's file for editing, though the card is held and shown", async () => {
+    ipc.answer = () => Promise.resolve({ ...rule, here: "otherComputer" });
+    const { result } = renderHook(() => useAgentDoc("theirs.md", RULE));
+    await waitFor(() => expect(result.current.doc).not.toBeNull());
+    act(() => result.current.onEdit(true));
+    expect(result.current.editing).toBe(false);
+    expect(result.current.held).toBe(true);
+  });
+
+  it("opens for editing a file that is here, as before", async () => {
+    ipc.answer = () => Promise.resolve({ ...rule, here: "applied" });
+    const { result } = renderHook(() => useAgentDoc("mine.md", RULE));
+    await waitFor(() => expect(result.current.doc).not.toBeNull());
+    act(() => result.current.onEdit(true));
+    expect(result.current.editing).toBe(true);
+  });
 });

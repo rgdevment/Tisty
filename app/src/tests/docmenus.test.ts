@@ -16,6 +16,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_export") return Promise.resolve({ files: 2, missed: 0, left: 0 });
     if (cmd === "doc_copy") return Promise.resolve({ id: "d9" });
     if (cmd === "agents_state") return agentsAnswer.now();
+    if (cmd === "agents_moving") return Promise.resolve(movingAnswer.now);
     if (cmd === "agents_turn" && agentsAnswer.refuses) return Promise.reject({ code: "x" });
     return Promise.resolve(null);
   },
@@ -24,6 +25,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve("C:/fuera"),
 }));
+
+const movingAnswer = vi.hoisted(() => ({ now: null as unknown }));
 
 const agentsAnswer = vi.hoisted(() => ({
   refuses: false,
@@ -114,6 +117,7 @@ const sent = () => calls.map((one) => one.cmd);
 beforeEach(() => {
   calls.length = 0;
   agentsAnswer.refuses = false;
+  movingAnswer.now = null;
   asksSure(null);
   showAll();
   linking.files.length = 0;
@@ -508,5 +512,142 @@ describe("the menu of a document", () => {
 
     expect(board.map((one) => one.key)).toEqual(["copy", "away", "hide", "drop"]);
     expect(board[0]?.apart).toBe(false);
+  });
+});
+
+describe("the menus of the folders and documents of the computers in Agents", () => {
+  const mineFolder = {
+    ...agentsClaude,
+    id: "m1",
+    name: "desk",
+    parent: "a1",
+    agents: { computer: "Desk", mine: true, room: false },
+  } as unknown as Folded;
+  const mineClaude = {
+    ...agentsClaude,
+    id: "m2",
+    parent: "m1",
+    agents: { mine: true, room: true },
+  } as unknown as Folded;
+  const theirFolder = {
+    ...agentsClaude,
+    id: "o1",
+    name: "laptop",
+    parent: "a1",
+    agents: { computer: "Laptop", mine: false, room: false },
+  } as unknown as Folded;
+  const theirClaude = {
+    ...agentsClaude,
+    id: "o2",
+    parent: "o1",
+    agents: { mine: false, room: true },
+  } as unknown as Folded;
+  const theirRule = { ...doc, id: "d3", file: "dev_a-0003", folder: "o2" } as unknown as Filed;
+  const mineRule = { ...doc, id: "d4", file: "dev_a-0004", folder: "m2" } as unknown as Filed;
+
+  const inComputers = () => {
+    const h = hands();
+    h.papers = {
+      folders: [folder, agentsRoot, mineFolder, mineClaude, theirFolder, theirClaude],
+      docs: [theirRule, mineRule],
+    } as unknown as Papers;
+    return h;
+  };
+  const keys = (choices: Choice[]) => choices.map((one) => one.key);
+
+  it("offers to pause an assistant inside this computer's folder, and not the computer's folder", () => {
+    const h = inComputers();
+    expect(keys(folderChoices(mineClaude, h, "syncs", lit()))).toContain("agentsTurn");
+    expect(keys(folderChoices(mineFolder, h, "syncs", lit()))).not.toContain("agentsTurn");
+  });
+
+  it("pauses the assistant whose folder it is from inside the computer's folder", async () => {
+    const h = inComputers();
+    pick(folderChoices(mineClaude, h, "syncs", lit()), "agentsTurn").onPick?.();
+    await flush();
+    expect(calls).toEqual([{ cmd: "agents_turn", args: { assistant: "claude", on: false } }]);
+  });
+
+  it("offers only Hide on every folder of another computer, whatever the stage", () => {
+    const h = inComputers();
+    for (const stage of ["syncs", "brought", null] as const) {
+      expect(keys(folderChoices(theirFolder, h, stage, lit()))).toEqual(["hide"]);
+      expect(keys(folderChoices(theirClaude, h, stage, lit()))).toEqual(["hide"]);
+    }
+  });
+
+  it("hides the folder of another computer and nothing else", () => {
+    const h = inComputers();
+    pick(folderChoices(theirClaude, h, "brought", lit()), "hide").onPick?.();
+    expect(isHidden("o2")).toBe(true);
+    expect(calls).toEqual([]);
+  });
+
+  it("offers on a document of another computer only to move, copy as text or link, take out and pack", () => {
+    const h = inComputers();
+    const all = keys(docChoices(theirRule, h));
+    expect(all.sort()).toEqual(["asLink", "asPlain", "move", "packIt", "takeOut"]);
+    expect(all).not.toContain("drop");
+  });
+
+  it("leaves a document of this computer with its whole menu", () => {
+    const h = inComputers();
+    const mineAll = keys(docChoices(mineRule, h));
+    expect(mineAll).toEqual(expect.arrayContaining(["drop", "copy", "lock", "away", "newPage"]));
+  });
+});
+
+describe("moving inside Agents asks first", () => {
+  const claude = { ...agentsClaude, id: "a2" } as unknown as Folded;
+  const preview = {
+    from: { is: "everyone" },
+    to: { is: "mine" },
+    docs: [{ title: "Minuta", file: "AGENTS.md", here: "keeps" }],
+    older: [],
+  };
+  const inAgents = () => {
+    const h = hands();
+    h.papers = { folders: [folder, agentsRoot, claude], docs: [doc] } as unknown as Papers;
+    return h;
+  };
+  const files = () => sent().filter((cmd) => cmd === "doc_file" || cmd === "folder_file");
+  const land = (choices: Choice[]) => pick(pick(choices, "move").into?.choices ?? [], "a2");
+
+  it("does not move a document or a folder when the answer is no", async () => {
+    movingAnswer.now = preview;
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(false);
+    });
+    const h = inAgents();
+    land(docChoices(doc, h)).onPick?.();
+    land(folderChoices(folder, h)).onPick?.();
+    await flush();
+    expect(asked).toHaveLength(2);
+    expect(sent().filter((cmd) => cmd === "agents_moving")).toHaveLength(2);
+    expect(files()).toEqual([]);
+    expect(h.changed).not.toHaveBeenCalled();
+  });
+
+  it("moves a document and a folder when the answer is yes", async () => {
+    movingAnswer.now = preview;
+    asksSure(() => Promise.resolve(true));
+    const h = inAgents();
+    land(docChoices(doc, h)).onPick?.();
+    land(folderChoices(folder, h)).onPick?.();
+    await flush();
+    expect(files()).toEqual(["doc_file", "folder_file"]);
+    expect(h.changed).toHaveBeenCalledTimes(2);
+  });
+
+  it("moves without asking when the core has nothing to say", async () => {
+    const asked = vi.fn(() => Promise.resolve(false));
+    asksSure(asked);
+    const h = inAgents();
+    land(docChoices(doc, h)).onPick?.();
+    await flush();
+    expect(asked).not.toHaveBeenCalled();
+    expect(files()).toEqual(["doc_file"]);
   });
 });

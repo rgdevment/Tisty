@@ -174,8 +174,8 @@ const words = {
     "{name} ya tiene un archivo distinto del de Tisty. Elige cuál conservar. Lo otro queda en respaldos.",
   ],
   agentsBothComposed: [
-    "This file is made of several documents, so from here you can only keep Tisty's or leave it as it is.",
-    "Este archivo se arma con varios documentos: desde aquí solo puedes conservar el de Tisty o dejarlo como está.",
+    "This document goes to several agents, so from here you can only keep Tisty's or leave the file as it is.",
+    "Este documento va a varios agentes: desde aquí solo puedes conservar el de Tisty o dejar el archivo como está.",
   ],
   agentsInTisty: ["In Tisty", "En Tisty"],
   agentsInFile: ["In the file", "En el archivo"],
@@ -184,8 +184,8 @@ const words = {
   agentsLater: ["Decide later", "Decidir después"],
   agentsBringIn: ["Bring it into Agents", "Traer a Agentes"],
   agentsBothBring: [
-    "Tisty has never brought this file. Bring it into Agents and it keeps what it says, with Tisty's part added on top.",
-    "Tisty nunca trajo este archivo. Si lo traes a Agentes, queda con lo que dice y con lo de Tisty agregado arriba.",
+    "Tisty has never brought this file. Bring it into Agents and it stays as it is, as a document of this computer.",
+    "Tisty nunca trajo este archivo. Si lo traes a Agentes, queda como está, como un documento de este equipo.",
   ],
   agentsMoreTitle: ["Bring another file", "Traer otro archivo"],
   agentsMoreLead: [
@@ -356,6 +356,58 @@ const words = {
     "Another computer's agent memory: on this one it is only read.",
     "Memoria del agente de otro equipo: en este solo se lee.",
   ],
+  agentsThisComputer: ["{name} (this computer)", "{name} (este equipo)"],
+  agentsMoveYes: ["Move", "Mover"],
+  agentsMoveOne: ["Move «{name}» to {other}?", "¿Mover «{name}» a {other}?"],
+  agentsMoveMany: [
+    "Move {name} agent documents to {other}?",
+    "¿Mover {name} documentos de agentes a {other}?",
+  ],
+  agentsMoveEveryone: ["the root, for all your computers", "la raíz, para todos tus equipos"],
+  agentsMoveMine: ["this computer's folder", "la carpeta de este equipo"],
+  agentsMoveOther: ["{name}'s folder", "la carpeta de {name}"],
+  agentsMoveWrites: [
+    "On this computer, Tisty writes it to {name}, with a backup first.",
+    "En este equipo, Tisty lo escribe en {name}, con un respaldo antes.",
+  ],
+  agentsMoveKeeps: [
+    "On this computer, it keeps being written to {name}.",
+    "En este equipo, se sigue escribiendo en {name}.",
+  ],
+  agentsMoveAsks: [
+    "On this computer, another document also writes {name}: Tisty asks which one rules here.",
+    "En este equipo, otro documento también escribe {name}: Tisty pregunta cuál manda aquí.",
+  ],
+  agentsMoveStops: [
+    "On this computer, Tisty stops writing {name} and asks what to do with the file, with a backup.",
+    "En este equipo, Tisty deja de escribir {name} y te pregunta qué hacer con el archivo, con un respaldo.",
+  ],
+  agentsMoveUnapproved: [
+    "Its words are not approved yet: no computer writes {name} until you approve them.",
+    "Su texto aún no está aprobado: ningún equipo escribe {name} hasta que lo apruebes.",
+  ],
+  agentsMoveUnread: [
+    "On this computer, no agent reads it yet, so Tisty writes nothing here.",
+    "En este equipo, todavía ningún agente lo lee, así que Tisty no escribe nada aquí.",
+  ],
+  agentsMoveOthersWait: [
+    "On your other computers, it waits for Apply here.",
+    "En tus otros equipos, espera «Aplicar aquí».",
+  ],
+  agentsMoveOthersLeave: [
+    "Your other computers keep their file as it is, as a document of their own.",
+    "Tus otros equipos conservan su archivo como está, como un documento propio.",
+  ],
+  agentsMoveToOther: ["On {name}, it waits for Apply here.", "En {name}, espera «Aplicar aquí»."],
+  agentsMoveFromOther: [
+    "{name} keeps its file as it is, as a document of its own.",
+    "{name} conserva su archivo como está, como un documento propio.",
+  ],
+  agentsMoveOlder: [
+    "On {name}, an earlier Tisty reads it as a document for all your computers until it updates.",
+    "En {name}, un Tisty anterior lo lee como un documento para todos tus equipos hasta que se actualice.",
+  ],
+  agentsMoveMore: ["And {name} more.", "Y {name} más."],
   agentHereOtherComputer: [
     "It belongs to another of your computers: on this one it is only read.",
     "Es de otro de tus equipos: en este solo se lee.",

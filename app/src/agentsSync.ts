@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Filed, Folded } from "./core";
-import { t } from "./locales";
+import { fill, t } from "./locales";
 
+const ASSISTANT_FOLDERS = new Set(["Claude", "Codex", "Copilot", "Gemini", "Cursor"]);
 export const AGENTS_ICON = "robot";
 export const AGENTS_MORE = "tisty:agents-more";
 
@@ -150,8 +151,38 @@ export const isAgentsFolder = (one: Pick<Folded, "parent" | "icon" | "name">): b
   !one.parent && one.icon === AGENTS_ICON && one.name === AGENTS_NAME;
 
 /// The folder keeps its stored name, which older builds look for; the window says it in the person's language.
-export const folderShown = (one: Pick<Folded, "parent" | "icon" | "name">): string =>
-  isAgentsFolder(one) ? t("agentsName") : one.name;
+export const folderShown = (
+  one: Pick<Folded, "parent" | "icon" | "name"> & Partial<Pick<Folded, "agents">>,
+): string => {
+  if (isAgentsFolder(one)) return t("agentsName");
+  const computer = one.agents?.computer;
+  if (!computer) return one.name;
+  return one.agents?.mine ? fill("agentsThisComputer", computer) : computer;
+};
+
+/// What another computer keeps is read and moved here, never written nor applied.
+export const ofAnother = (folder: Folded | null | undefined): boolean =>
+  !!folder?.agents && !folder.agents.mine;
+
+// An assistant with nothing at the root says nothing: what each computer has sits in its own folder.
+const emptyAtRoot = (one: Folded, folders: readonly Folded[], root: string): boolean =>
+  one.parent === root &&
+  !one.agents &&
+  !one.icon &&
+  ASSISTANT_FOLDERS.has(one.name) &&
+  one.holds === 0 &&
+  !folders.some((at) => at.parent === one.id);
+
+/// The folders of Agents as they are drawn: the empty ones of the root left out, other computers' last.
+export const agentsDrawn = (
+  shown: readonly Folded[],
+  folders: readonly Folded[],
+  root: string | null | undefined,
+): Folded[] => {
+  if (!root) return [...shown];
+  const kept = shown.filter((one) => one.away || !emptyAtRoot(one, folders, root));
+  return [...kept.filter((one) => !ofAnother(one)), ...kept.filter(ofAnother)];
+};
 
 export const AGENTS_CHANGED = "tisty:agents-changed";
 export const AGENTS_FIRST = "tisty:agents-first";

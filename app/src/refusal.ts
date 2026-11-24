@@ -290,6 +290,7 @@ const KNOWN = [
   "folderAwayHolds",
   "agentOfAnother",
   "agentProposalFirst",
+  "agentProposalInFolder",
   "agentsRootStays",
   "folderIsAway",
   "pageIsAway",

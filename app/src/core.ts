@@ -1140,6 +1140,8 @@ export interface Folded {
   archived: boolean;
   /// What the archive holds, the folders above it counted in.
   away: boolean;
+  /// Inside a computer's own folder of Agents: whose it is, and the computer's name on that folder alone.
+  agents?: { computer?: string; mine: boolean; room: boolean };
 }
 
 export type { Paper } from "tisty-editor/read";

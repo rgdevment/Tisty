@@ -34,11 +34,13 @@ const LEVELS: Record<string, string> = {
   Cursor: "cursor",
 };
 
-export const levelOf = (
-  folder: Pick<Folded, "parent" | "name" | "icon">,
-  root: string | null,
-): string | null =>
-  root !== null && folder.parent === root && !folder.icon ? (LEVELS[folder.name] ?? null) : null;
+type Drawn = Pick<Folded, "parent" | "name" | "icon"> & Partial<Pick<Folded, "agents">>;
+
+export const levelOf = (folder: Drawn, root: string | null): string | null => {
+  const placed = folder.parent === root || folder.agents?.room;
+  if (root === null || !placed || folder.icon || folder.agents?.computer) return null;
+  return LEVELS[folder.name] ?? null;
+};
 
 interface Props {
   readonly id: string;
@@ -55,7 +57,7 @@ export function AssistantMark({ id, className = "h-4 w-4" }: Props) {
 }
 
 interface Folder {
-  readonly folder: Pick<Folded, "parent" | "name" | "icon">;
+  readonly folder: Drawn;
   readonly root: string | null;
   readonly className?: string;
 }
@@ -63,5 +65,7 @@ interface Folder {
 export function FolderMark({ folder, root, className }: Folder) {
   const level = levelOf(folder, root);
   if (level) return <AssistantMark id={level} className={className} />;
+  if (folder.agents?.computer)
+    return <Glyph name={folder.icon ?? "monitor"} className={className} />;
   return <Glyph name={folder.icon ?? "folder"} className={className} />;
 }

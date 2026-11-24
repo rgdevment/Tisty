@@ -1,5 +1,6 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { agentsHideChoice } from "./agentsHiding";
+import { movedOnceSure } from "./agentsMoving";
 import {
   AGENTS_CHANGED,
   type AgentsStage,
@@ -10,6 +11,7 @@ import {
   agentsTurn,
   bringMoreAgents,
   inAgents,
+  ofAnother,
   rescanAgents,
   syncAgents,
 } from "./agentsSync";
@@ -148,7 +150,7 @@ const agentsRootChoices = (folder: Folded, h: Hands, stage: AgentsStage | null):
 
 const underRoot = (folder: Folded, folders: readonly Folded[], root: string | undefined) => {
   let at: Folded | undefined = folder;
-  while (at && at.parent !== root) {
+  while (at && at.parent !== root && !at.agents?.room) {
     const parent: string | null = at.parent;
     at = folders.find((one) => one.id === parent);
   }
@@ -166,7 +168,8 @@ const assistantOf = (
 ): Assistant | undefined => {
   if (stage !== "syncs" || !state) return undefined;
   const top = underRoot(folder, h.papers.folders, agentsRoot(h.papers.folders)?.id);
-  return top && state.assistants.find((one) => one.name === top.name);
+  if (!top || ofAnother(top) || top.agents?.computer) return undefined;
+  return state.assistants.find((one) => one.name === top.name);
 };
 
 const turnChoice = (h: Hands, assistant: Assistant, off: boolean): Choice => ({
@@ -204,6 +207,7 @@ const agentsFolderChoices = (
   stage: AgentsStage | null,
   state: AgentsState | null,
 ): Choice[] => {
+  if (ofAnother(folder)) return [agentsHideChoice([folder.id], stage, h, folder.away)];
   const assistant = assistantOf(folder, h, stage, state);
   return [
     {
@@ -270,7 +274,10 @@ export const folderChoices = (
         choices: destinations(
           h.papers.folders,
           folder.id,
-          (parent) => folderFile(folder.id, parent).then(h.changed).catch(h.fail),
+          (parent) =>
+            movedOnceSure("folder", folder.id, parent, () =>
+              folderFile(folder.id, parent).then(h.changed),
+            ).catch(h.fail),
           folder,
         ),
       },
@@ -343,7 +350,9 @@ const everyChoice = (doc: Filed, h: Hands): Choice[] => [
     into: {
       label: t("moveHere"),
       choices: destinations(h.papers.folders, doc.folder, (folder) =>
-        docFile(doc.id, folder).then(h.changed).catch(h.fail),
+        movedOnceSure("doc", doc.id, folder, () => docFile(doc.id, folder).then(h.changed)).catch(
+          h.fail,
+        ),
       ),
     },
   },
@@ -446,8 +455,13 @@ const everyChoice = (doc: Filed, h: Hands): Choice[] => [
 // The idea board is Tisty's own page of ideas, so only copying it, shelving it and deleting it are left to the person.
 const ON_BOARD = new Set(["copy", "away", "drop"]);
 
+// Another computer's agent file is read, moved and taken out here; what it says and whether it stands is that computer's.
+const OF_ANOTHER = new Set(["move", "asPlain", "asLink", "takeOut", "packIt"]);
+
 export const docChoices = (doc: Filed, h: Hands, board = false): Choice[] => {
   const all = everyChoice(doc, h);
+  if (ofAnother(h.papers.folders.find((one) => one.id === doc.folder)))
+    return all.filter((one) => OF_ANOTHER.has(one.key));
   if (!board) return all;
   const kept = all
     .filter((one) => ON_BOARD.has(one.key))

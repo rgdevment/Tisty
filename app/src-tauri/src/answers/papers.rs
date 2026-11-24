@@ -927,6 +927,8 @@ pub struct Folded {
     archived: bool,
     /// What the archive holds, the folders above it counted in.
     away: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    agents: Option<super::agents_homes::Shown>,
 }
 
 #[derive(serde::Serialize)]
@@ -1085,7 +1087,7 @@ pub fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
     let mut session = held(&session);
     session.reload()?;
     Ok(Papers {
-        folders: hanging(&session.state, None),
+        folders: hanging(&session.state, session.store.device(), None),
         docs: gathered(&session),
     })
 }
@@ -1144,7 +1146,11 @@ fn gathered(session: &Session) -> Vec<Filed> {
         .collect()
 }
 
-fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Folded> {
+fn hanging(
+    state: &State,
+    me: &tisty_core::event::DeviceId,
+    parent: Option<tisty_core::model::FolderId>,
+) -> Vec<Folded> {
     state
         .under(parent)
         .into_iter()
@@ -1158,8 +1164,9 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
                 holds: state.held_by(one.id),
                 archived: one.archived,
                 away: state.folder_away(one.id),
+                agents: super::agents_homes::shown(state, me, one),
             }];
-            branch.append(&mut hanging(state, Some(one.id)));
+            branch.append(&mut hanging(state, me, Some(one.id)));
             branch
         })
         .collect()
@@ -1221,14 +1228,6 @@ pub fn doc_write(
     })?
 }
 
-// Another computer's own agent files are only read and moved from this one.
-pub(crate) fn read_here(session: &Session, file: &str) -> Answer<()> {
-    match super::agents_homes::of_another(session, file) {
-        true => Err(Refusal::of("agentOfAnother")),
-        false => Ok(()),
-    }
-}
-
 pub(crate) fn written_by_hand(
     session: &mut Session,
     id: String,
@@ -1237,7 +1236,7 @@ pub(crate) fn written_by_hand(
     since: Option<String>,
 ) -> Answer<Kept> {
     writable(&session.state, &id)?;
-    read_here(session, &id)?;
+    super::agents_homes::read_here(session, &id)?;
     // Written anyway, the words came from what the page was opened on, not from what the disk holds now.
     let built_on = since.clone();
     let since = since.filter(|_| !anyway.unwrap_or(false));

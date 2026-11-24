@@ -213,7 +213,7 @@ El interruptor de la fila **Skills de Tisty**, bajo cualquier agente, o **Apagar
 
 ### En la carpeta Agentes
 
-Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra una fila fija, **Skills de Tisty**, con el mismo estado que en Configuración. Un clic abre la misma ficha.
+Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra una fila fija, **Skills de Tisty**, con el mismo estado que en Configuración, solo si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre la misma ficha.
 
 - **Encendidas o Apagadas.** La fila lo dice, en verde o en gris, y abre la misma ficha, donde se encienden o se apagan, con el sí y las carpetas. Si la habías ocultado antes, vuelve a verse.
 - **No tiene menú.** Ni **Eliminar**, ni **Pausar**, ni **Documento nuevo**: no es un documento.

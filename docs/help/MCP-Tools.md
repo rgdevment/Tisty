@@ -78,6 +78,7 @@ The documents in the [[Agents|AGENTS-Folder]] folder are your agents' rules, ski
 - **`read`** of a document with a proposal brings `proposal`, with `approved: false`, so the agent knows what it reads is not what reaches your agents.
 - **Every other tool that names them is refused**, touching nothing: `page_doc`, `tongue_doc`, `attach`, `flag_doc`, `archive_doc`, `file_doc`, `sum_up`, `restore_doc`, an `edit_table` that changes, and `folder` inside `AGENTS` or with that name. It holds the same when the document comes through `doc`, `page_of`, `translation_of`, `of`, `after`, `before`, `order`, `instead`, `folder` or `inside`.
 - **The `agent:` line**, the one that says which file a rule goes to, is never set or changed by an agent, in any document of any folder.
+- **A document of another of your computers** the agent reads as data: the `read` answer carries `of_computer`, which computer it belongs to, and `read_as`, which tells it that it is not a rule of its own for this computer, and it cannot propose on it. On this computer's documents it proposes as always. There is no new tool.
 
 The refusal tells it what it can do instead: propose the change or tell you what it would change.
 

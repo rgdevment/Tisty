@@ -15,6 +15,7 @@ import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import type { ShapeChoice } from "../reshaping";
+import type { Buttons } from "../sure";
 import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
 import Cheer from "./Cheer";
@@ -39,6 +40,7 @@ export interface Torn {
 
 export interface Asked {
   said: string;
+  buttons?: Buttons;
   turn: number;
   hurried: boolean;
   done: (yes: boolean) => void;
@@ -139,6 +141,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
         <Sure
           key={asked.turn}
           said={asked.said}
+          buttons={asked.buttons}
           hurried={asked.hurried}
           onAnswer={(yes) => {
             asked.done(yes);

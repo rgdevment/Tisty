@@ -641,11 +641,15 @@ computer, and only these:
   and, while it syncs, those it wrote for one that is gone, also the ones you
   chose to leave, to see whether they changed. Brought but not synced, it writes
   none of them. Only words you approved reach a file: a document whose text
-  waits for your approval is not written, and one that arrives from another
-  computer waits for **Apply here** on this one. A document in Global is written
-  to every assistant Tisty finds on this computer, even one whose files you did
-  not tick. A change made outside is never written over; it stays marked until
-  you bring it in or write Tisty's version over it. In Gemini CLI's `GEMINI.md`,
+  waits for your approval is not written. Each computer reads and writes only
+  its own folder in Agents: a document in another of your computers' folders is
+  only read here, and one at the root, which is for all of them, waits for
+  **Apply here** on this one. A document is one file, word for word: nothing is
+  joined with another. A skill in Global is written to every assistant Tisty
+  finds on this computer, even one whose files you did not tick; a rule in
+  Global is no longer written to any. A change made outside is never written
+  over; it stays marked until you bring it in or write Tisty's version over
+  it. In Gemini CLI's `GEMINI.md`,
   which Gemini writes itself, Tisty only ever adds one line, `@tisty-rules.md`,
   and takes nothing out.
 - **The memory an assistant writes for itself** is brought in and shown, and
@@ -653,7 +657,9 @@ computer, and only these:
 - **An assistant connected through the door below** reads these documents like
   any other, but cannot change, move or create them: what it writes there stays
   as a proposal until you approve it on the document's card, and only then can
-  it reach a file.
+  it reach a file. A document that sits in another of your computers' folders
+  is read by that assistant as data, never as a rule for this computer, and it
+  cannot propose a change on it.
 
 What Agents never brings in:
 
@@ -686,7 +692,9 @@ What travels, and what stays:
 - **The documents travel like any document.** They sync, go into Tisty's
   backups, into a `.tistyx` parcel that carries everything, and into your
   cloud — encrypted, if you encrypted it. They never take part in Brainsty's
-  alike pairs, and the network keeps them hidden until you show them.
+  alike pairs, and the network keeps them hidden until you show them. The
+  `agent:` line of a computer's document also carries that computer's code,
+  which travels with it.
 - **While it syncs, what you approve in Agents reaches your assistants.** Each
   one reads its file and sends it to whatever service it works with, whether
   or not it is connected to Tisty. That is the point of the folder, and it is
@@ -695,8 +703,10 @@ What travels, and what stays:
   folder, out of everything sync, backups and parcels carry: your yes to Agents
   and your yes to Tisty's own skills, whether Agents syncs here, which
   assistants you paused, which documents you applied or left out on this
-  computer, a fingerprint of each file Tisty last wrote, which of those files
-  you left with your assistants when you deleted what wrote them, and the
+  computer, which of two documents rules here when they go to the same file,
+  what moved by itself into this computer's folder on updating, a fingerprint
+  of each file Tisty last wrote, which of those files you left with your
+  assistants when you deleted what wrote them, and the
   backups. It is readable by your user alone, where the system allows it.
 - **Backups before every overwrite.** Before Tisty writes over one of your
   assistants' files, it keeps the version that was there. Backup #1 is the
@@ -712,8 +722,7 @@ from Agents asks once, right then, whether to take it away from the assistants
 Tisty wrote it for: **Take away too** deletes each file after a backup, and
 **Only from Tisty** leaves them and notes them on this computer, listed with
 **Review** in Settings › Agents › Agents folder. A copy changed outside, or one
-a paused assistant reads, stays and is asked about apart; a file other rules
-still make up is written again without this one, after a backup. When a rule
+a paused assistant reads, stays and is asked about apart. When a rule
 leaves Agents any other way, or is deleted on another computer, Tisty asks here
 before deleting its file. Short of those answers Tisty never empties or deletes
 an assistant's file, apart from its own skills' copies, below. The help page

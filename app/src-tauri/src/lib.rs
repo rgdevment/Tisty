@@ -1057,6 +1057,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::tisty_skills::agents_tisty_round,
         answers::agents_sync::agents_lead,
         answers::agent_docs::agent_doc,
+        answers::agents_moving::agents_moving,
         answers::agent_rows::agents_rows,
         answers::agents::agent_turn,
         answers::agents::agent_asks,

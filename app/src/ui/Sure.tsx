@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { createPortal } from "react-dom";
 import { t } from "../locales";
+import type { Buttons } from "../sure";
 import Modal from "./Modal";
 
 /// Long enough that the second click of a double-click lands before a question queued behind it can take it.
@@ -8,11 +9,12 @@ export const SETTLING_MS = 400;
 
 interface Props {
   said: string;
+  buttons?: Buttons;
   hurried?: boolean;
   onAnswer: (yes: boolean) => void;
 }
 
-export default function Sure({ said, hurried, onAnswer }: Props) {
+export default function Sure({ said, buttons, hurried, onAnswer }: Props) {
   const opened = useRef(performance.now());
   const answer = (yes: boolean) => {
     if (yes && hurried && performance.now() - opened.current < SETTLING_MS) return;
@@ -28,14 +30,14 @@ export default function Sure({ said, hurried, onAnswer }: Props) {
           onClick={() => answer(false)}
           className="rounded-md px-2.5 py-1 text-[12.5px] text-faint hover:bg-hover"
         >
-          {t("cancel")}
+          {buttons?.no ?? t("cancel")}
         </button>
         <button
           type="button"
           onClick={() => answer(true)}
           className="rounded-md border border-line px-3 py-1 text-[12.5px] hover:border-ink"
         >
-          {t("sureGoOn")}
+          {buttons?.yes ?? t("sureGoOn")}
         </button>
       </div>
     </Modal>,

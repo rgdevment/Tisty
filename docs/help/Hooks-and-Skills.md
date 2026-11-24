@@ -213,7 +213,7 @@ The switch on the **Tisty's skills** row, under any agent, or **Turn off on this
 
 ### In the Agents folder
 
-If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fixed row, **Tisty's skills**, with the same standing as in Settings. A click opens the same card.
+If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fixed row, **Tisty's skills**, with the same standing as in Settings, only if this computer has some agent, if the skills are on, or if copies of them remain. A click opens the same card.
 
 - **On or Off.** The row says so, in green or in gray, and opens the same card, where they are turned on or off, with the yes and the folders. If you had hidden it before, it shows again.
 - **It has no menu.** No **Delete**, no **Pause**, no **New document**: it is not a document.

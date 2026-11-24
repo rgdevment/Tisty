@@ -6,6 +6,7 @@ import {
   agentsRoot,
   agentsStage,
   agentsState,
+  tistySkills,
 } from "../agentsSync";
 import type { Papers } from "../core";
 
@@ -28,6 +29,28 @@ export function useAgentsState(root: string | null): AgentsState | null {
     return () => window.removeEventListener(AGENTS_CHANGED, ask);
   }, [ask, root]);
   return root ? state : null;
+}
+
+/// Tisty's skills have a row only where some agent would read them, or where there is something of theirs to turn off.
+export function useSkillsRow(stance: AgentsState | null): boolean {
+  const agents = stance === null ? null : stance.assistants.length > 0;
+  const [left, setLeft] = useState(false);
+  useEffect(() => {
+    if (agents !== false) return setLeft(false);
+    let gone = false;
+    const ask = () => {
+      tistySkills()
+        .then((one) => !gone && setLeft(one.on || one.leftover.length > 0))
+        .catch(() => {});
+    };
+    ask();
+    window.addEventListener(AGENTS_CHANGED, ask);
+    return () => {
+      gone = true;
+      window.removeEventListener(AGENTS_CHANGED, ask);
+    };
+  }, [agents]);
+  return agents === true || left;
 }
 
 export interface AgentsSeen {

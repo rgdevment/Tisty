@@ -322,7 +322,7 @@ function useOverlays() {
     let turn: Promise<unknown> = Promise.resolve();
     let turns = 0;
     let answeredAt = Number.NEGATIVE_INFINITY;
-    asksSure((said) => {
+    asksSure((said, buttons) => {
       const answer = turn.then(
         () =>
           new Promise<boolean>((done) => {
@@ -330,6 +330,7 @@ function useOverlays() {
             const hurried = performance.now() - answeredAt < SETTLING_MS;
             setAsked({
               said,
+              buttons,
               turn: turns,
               hurried,
               done: (yes) => {

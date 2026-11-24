@@ -94,6 +94,7 @@ export interface AgentDoc {
 const LEVEL = /^[a-z0-9-]{1,40}$/;
 const KINDS = new Set(["rule", "skill", "memory"]);
 const FLAGS = new Set(["crlf", "as-is", "bom", "open-end"]);
+const ON_COMPUTER = /^on-[a-z0-9_]{1,48}$/;
 const BARRED = /[\\:,[\]"'#\p{Cc}]/u;
 const NAME_BYTES = 400;
 
@@ -112,7 +113,8 @@ export const carded = (body: string): boolean => {
     LEVEL.test(level) &&
     KINDS.has(kind) &&
     nameFits(name.join("/")) &&
-    flags.every((one) => FLAGS.has(one))
+    flags.every((one) => FLAGS.has(one) || ON_COMPUTER.test(one)) &&
+    flags.filter((one) => ON_COMPUTER.test(one)).length <= 1
   );
 };
 

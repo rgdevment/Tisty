@@ -14,9 +14,9 @@ Agents is a folder in your Library, at the top, with a robot icon. It sits in yo
 It helps when:
 
 - you want to read and arrange the rules you already have, as documents, with headings and search: **Bring** is enough for that;
-- you use several agents and want the same rules in all of them: for that, **Sync**;
+- you use several agents and want the same skill in all of them: for that, **Sync**, with the skill in **Global**;
 - you want to be able to go back: while syncing, Tisty keeps the original file and the last 20 before each overwrite;
-- you work on more than one computer and want to choose which one syncs and which rules each one applies.
+- you work on more than one computer: each one has its own folder, reads and writes only its own, and what belongs to another computer you read but do not change from this one.
 
 It does not handle each repository's rules: only the files in your user folder, such as `~/.claude/CLAUDE.md`.
 
@@ -26,7 +26,7 @@ It does not handle each repository's rules: only the files in your user folder, 
 - **Sync** makes what you change in Agents reach your agents' files from then on, with a backup before each overwrite, and has Tisty warn you on a document's card if its file changed outside.
 - **Stop syncing** stops it: no agent file is touched and no document is deleted.
 
-**An example.** Jaime only wants to read his `CLAUDE.md` and his skills calmly: he chooses **Bring**, and Claude Code keeps reading its files as always. Yisset uses Claude Code and Codex and wants one rule for both: she chooses **Bring and sync**, writes the rule once in **Agents → Global**, and Tisty writes it to her `CLAUDE.md` and her `AGENTS.md`.
+**An example.** Jaime only wants to read his `CLAUDE.md` and his skills calmly: he chooses **Bring**, and Claude Code keeps reading its files as always. Yisset uses Claude Code and Codex and wants one rule for both: she chooses **Bring and sync**, writes the rule in Claude's document and in Codex's, inside her computer's folder, and Tisty writes it to her `CLAUDE.md` and her `AGENTS.md`. A skill for both, on the other hand, she writes once in **Agents → Global**.
 
 ## Three states in the sidebar
 
@@ -36,7 +36,7 @@ Agents carries no word beside it: its colour tells you how it stands.
 2. **Brought, not synced**: the grey robot and the name like any folder; when you hover over it, how many documents it holds, like any folder. It opens like any folder, and at the top it shows one quiet line: «Not synced with your agents · Sync», where **Sync** is a link. Its right-click offers **Sync**, **Look again** and **Hide from the sidebar**, nothing else.
 3. **Syncing**: the **coral** robot and the name like any folder; when you hover over it, how many documents it holds. It opens like any folder. Its right-click offers **Stop syncing**, **Look again** and **Hide from the sidebar**, which first asks you to stop syncing.
 
-Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings › Agents › Agents folder**. The right-click on Agents itself has no other folder action; its subfolders, such as **Agents › Claude**, have a menu for agents only: **New document**, **Bring another file**, **Pause sync with Claude** while Agents syncs, **Hide from the sidebar** and **Delete**. **Global** has no pause, since it belongs to no agent, and a folder inside **Claude** has the same menu as **Claude**.
+Coral is Agents' own: purple belongs to diagrams. What waits for your decision, such as a file changed outside or a proposal from your agent, does not show in the sidebar: you see it on each document's card and in **Settings › Agents › Agents folder**. The right-click on Agents itself has no other folder action; its subfolders, such as **Agents › Home (this computer) › Claude**, have a menu for agents only: **New document**, **Bring another file**, **Pause sync with Claude** while Agents syncs, **Hide from the sidebar** and **Delete**. **Global** and your computer's folder have no pause, since they belong to no agent, and a folder inside **Claude** has the same menu as **Claude**. Another computer's folder offers only **Hide from the sidebar**.
 
 **Agents stays on the first level**, with its name and its robot: it cannot be put inside another folder, renamed, given another icon or archived, and while it holds anything, it cannot be deleted either, not from the window, not by an agent, not from another computer. Inside it is kept as `AGENTS`, and that is how earlier versions of Tisty and your agents through MCP find it. If you try, for example by dragging it into another folder, Tisty tells you «Agents stays at the top, with its name and its robot, so it keeps guarding your agents' rules. Its color and its place among your folders are yours to change».
 
@@ -53,21 +53,21 @@ The X or `Esc` close the box without reading or bringing anything, and Agents st
 
 The list brings only what your agent really reads. A skill is a folder with its `SKILL.md` at the root, such as `~/.claude/skills/pr/`, found as deep as its agent looks: right inside for Claude, Copilot and Gemini, up to six folders down for Codex, and in any category folder for Cursor. From `~/.claude/rules` the `.md` files come in, and from `~/.copilot/instructions`, the `.instructions.md` ones. Nothing starting with a dot shows, such as Codex's `skills/.system/`, and neither does Claude Code's `skills/synced/`, the copy of the skills in your claude.ai account, which Claude Code may overwrite or delete. Each agent's row counts rules, skills and memories, not files: with nothing to bring, it says **Claude · nothing to bring**. An agent it found with no file yet has a line of its own: «Gemini: no rules, skills or memory yet. It gets what you write in Global or in its folder.».
 
-If you have no agent files yet, the box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». **Bring** stays greyed out, and **Bring and sync** still makes Agents with **Global** and one subfolder for each agent it found, empty, ready for your first rule, and says «Nothing new came in. The Agents folder syncs on this computer now: what you write there reaches your agents.». What your agent makes later you bring with **Look again** or **Bring another file**, as told further down.
+If you have no agent files yet, the box says «I found no agent files on this computer. You can still sync: Agents fills up as you write your rules.». **Bring** stays greyed out, and **Bring and sync** still makes Agents with **Global** and this computer's folder, with one subfolder for each agent it found, empty, ready for your first rule, and says «Nothing new came in. The Agents folder syncs on this computer now: what you write there reaches your agents.». What your agent makes later you bring with **Look again** or **Bring another file**, as told further down.
 
 **Try it:** click **Agents**, in grey in your sidebar, to see which agents it finds on this computer. If you only wanted to look, the X leaves it as it was. The same is in **Settings › Agents › Agents folder**, on the **Agents** card: before anything is brought it says which agents it found and offers **Bring**, **Bring and sync** and **Hide**; brought, **Sync**, **Hide** and, once this computer has given permission, **Bring another file**; while syncing, **Bring another file**, **Stop syncing**, **Hide** and one switch per agent, such as **Sync Claude**. Under the switch of an agent with no files it says it has no rules, skills or memory yet.
 
-Afterwards, in the sidebar, each agent Tisty found on this computer has its subfolder, even an empty one. **Global** has a blue globe and each agent a symbol of its own in its label's colour: an orange chat bubble for Claude, a teal terminal for Codex, indigo braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. A subfolder you delete does not come back. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
+Afterwards, in the sidebar, Agents has **Global**, for skills only, and one folder for each of your computers: this one's carries its name with «(this computer)» and the others go last, faint. What you bring goes to this computer's folder, and each agent Tisty found here has its subfolder in it, even an empty one. A loose agent folder at the root, such as **Codex**, shows only if you moved or made something there: it is for all your computers. **Global** has a blue globe and each agent a symbol of its own in its label's colour: an orange chat bubble for Claude, a teal terminal for Codex, indigo braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. A subfolder you delete does not come back. Each document shows with its name and an icon: a book for a rule, a piece for a skill and a brain for memory. Hover over one and you see which file it is.
 
 ![The sidebar with the Agents folder open and syncing, with the robot in coral: inside, Global with its blue globe and Claude with its orange chat bubble; in Claude, the rule Rules, picked, with a book icon, and below it the skills, each with a puzzle-piece icon and how many files it holds](agents-sidebar.png)
 
 ## A rule: in Tisty and in `CLAUDE.md`
 
-Your `CLAUDE.md` comes into Agents as a document. At the top it carries its properties; the `agent:` line says who it is for, what it is and where it goes: `level/kind/name`.
+Your `CLAUDE.md` comes into Agents as a document. At the top it carries its properties; the `agent:` line says who it is for, what it is and where it goes: `level/kind/name`, plus one more mark, `on-` and your computer's code, which Tisty puts there. The folder and the line must agree; if they do not, no computer writes it and the card offers **Go by its folder**.
 
-```markdown title="The document in Tisty, in Agents / Claude"
+```markdown title="The document in Tisty, in Agents / Home / Claude"
 ---
-agent: claude/rule/CLAUDE.md
+agent: [claude/rule/CLAUDE.md, on-dev_ab12cd34]
 title: claude · CLAUDE.md
 ---
 # How I work
@@ -87,47 +87,26 @@ In the sidebar it is called **How I work**, after its first heading. And this is
 
 To change a rule, open the document, press **Edit** on its card, write and press **Done**. If Agents syncs, a moment later the file says the same.
 
-### One rule for all: Global
+### One document is one file, and Global is for skills
 
-While syncing, a document in **Agents → Global** reaches every agent on this computer. It goes at the start of each one's main file, before its own rules:
+One document is one file, word for word: what the document says is what the file says, and nothing is joined with anything else. **Global** is for skills only, Tisty's and your own, for all agents. Rules belong to each agent, and live in your computer's folder.
 
-```markdown title="The document in Agents / Global"
----
-agent: global/rule/for-all.md
-title: global · for-all.md
----
-# For all my agents
+To add rules to an agent, make another file that agent reads: Claude reads every file in `rules/`, and Copilot every one in `instructions/`. Codex and Gemini read a single rules file.
 
-- Ask before deleting anything.
-```
-
-```markdown title="~/.claude/CLAUDE.md, with Global in front"
-# For all my agents
-
-- Ask before deleting anything.
-
-# How I work
-
-- Answer in English.
-- Branches shaped type/name.
-```
-
-The same goes for Codex's `AGENTS.md`, Copilot's `copilot-instructions.md` and Gemini's rules. Cursor gets no rules: its own live in its settings.
+A Global rule from 1.49 or 1.50 stays there for you to read, copy or delete, but it is no longer written to any agent.
 
 > [!IMPORTANT]
-> Bring in each agent's main file. If `~/.codex/AGENTS.md` already exists and you never brought it, Tisty cannot tell which part is yours and does not write over it: it asks **It exists on both sides**, and there **Bring it into Agents** brings it in with its own words and writes Global in front, with its backup first. **Bring another file**, further down, tells how.
+> Bring in each agent's main file. If `~/.codex/AGENTS.md` already exists and you never brought it, Tisty cannot tell which part is yours and does not write over it: it asks **It exists on both sides**, and there **Bring it into Agents** brings it in with its own words. **Bring another file**, further down, tells how.
 
 ### A new rule, without writing the `agent:` line
 
-Right-click **Global** or an agent's folder, and **New document**: the document already starts as a rule of that place, with its `agent:` line in place.
+Right-click an agent's folder on your computer, and **New document**: the document already starts as a rule of that agent, with its `agent:` line in place.
 
-- In **Global**, `agent: global/rule/rule.md`; the next one, `rule-2.md`.
 - In an agent's folder, its main file while no document has it: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md` or, for Gemini, `tisty-rules.md`. Then a file in its rules folder: `rules/rule.md` for Claude, `instructions/rule.instructions.md` for Copilot.
-- Codex and Gemini read a single rules file: once a document holds it, **New document** in their folder opens that same one, so you add what is new there, or in **Global**.
-- Two Global rules born with the same name on two computers before they synced each keep one: the older stays `rule.md` and the other becomes `rule-2.md`, and both reach your agents once their text has your approval.
-- In **Cursor**, which has no rules file, in Agents itself and in a subfolder of yours, **New document** makes a plain document, with no `agent:` line.
+- Codex and Gemini read a single rules file: once a document holds it, **New document** in their folder opens that same one, so you add what is new there.
+- In **Global**, in **Cursor**, which has no rules file, in Agents itself and in a subfolder of yours, **New document** makes a plain document, with no `agent:` line.
 
-**An example.** Marisol installs Gemini CLI, and **Agents › Gemini** shows up in her sidebar, empty. Right-click **Gemini** and **New document**; on its card she presses **Edit**, writes «Answer in Spanish.» and presses **Done**. Since Agents syncs, Tisty writes it to `~/.gemini/tisty-rules.md` and adds the line `@tisty-rules.md` to her `GEMINI.md`, so Gemini reads it.
+**An example.** Marisol installs Gemini CLI, and **Agents › Home (this computer) › Gemini** shows up in her sidebar, empty. Right-click **Gemini** and **New document**; on its card she presses **Edit**, writes «Answer in Spanish.» and presses **Done**. Since Agents syncs, Tisty writes it to `~/.gemini/tisty-rules.md` and adds the line `@tisty-rules.md` to her `GEMINI.md`, so Gemini reads it.
 
 ## A skill with its `SKILL.md`
 
@@ -135,7 +114,7 @@ A skill is a folder with a `SKILL.md` and, sometimes, scripts. Each file is a do
 
 ```markdown title="The SKILL.md of the pr skill"
 ---
-agent: claude/skill/pr/SKILL.md
+agent: [claude/skill/pr/SKILL.md, on-dev_ab12cd34]
 title: claude · pr/SKILL.md
 ---
 ---
@@ -153,7 +132,7 @@ A script is kept inside a code block, and Tisty writes it as is, without the blo
 
 ````markdown title="The skill's script"
 ---
-agent: claude/skill/pr/scripts/open-pr.sh
+agent: [claude/skill/pr/scripts/open-pr.sh, on-dev_ab12cd34]
 title: claude · pr/scripts/open-pr.sh
 ---
 ```sh
@@ -164,7 +143,7 @@ gh pr create --fill
 
 Tisty writes the skill to `~/.claude/skills/pr/`. In the sidebar, the skill is **one single row**, **pr**, with **3 files** on the right: a click opens it and shows `SKILL.md`, `scripts/open-pr.sh` and the rest. A **Global** skill is written for all: to `~/.claude/skills/`, to `~/.cursor/skills/` and one single copy to `~/.agents/skills/`, which Codex, Copilot and Gemini read.
 
-**Tisty's skills.** Tisty brings three skills of its own, `tisty`, `consolidate` and `writing-for-the-next-agent`, which are not Agents documents: they live inside the app and are turned on with their own yes, in **Settings › Agents › Connected**, even if you never open this folder. In **Agents › Global** you see them as a fixed row, **Tisty's skills**, which opens the same card. **Bring** does not bring them: their copies show as **Tisty's own**. A skill of yours with the same name leaves Tisty's out, pausing an agent does not reach them and the row says **On** or **Off**, and opens the card. They are never deleted. [Step by step with your AI agent](tisty:agent) tells it.
+**Tisty's skills.** Tisty brings three skills of its own, `tisty`, `consolidate` and `writing-for-the-next-agent`, which are not Agents documents: they live inside the app and are turned on with their own yes, in **Settings › Agents › Connected**, even if you never open this folder. In **Agents › Global** you see them as a fixed row, **Tisty's skills**, which opens the same card; it shows only if this computer has some agent, if the skills are on, or if copies of them remain. **Bring** does not bring them: their copies show as **Tisty's own**. A skill of yours with the same name leaves Tisty's out, pausing an agent does not reach them and the row says **On** or **Off**, and opens the card. They are never deleted. [Step by step with your AI agent](tisty:agent) tells it.
 
 ## Gemini and the `@tisty-rules.md` line
 
@@ -182,14 +161,14 @@ It touches nothing else in that file, and if the line is already there it does n
 
 ## The card of an agent document
 
-A document in Agents does not look like one more document: it opens for reading, on a single **card**, with no column beside it. At the top, the folder path, such as «Agents / Claude», and then:
+A document in Agents does not look like one more document: it opens for reading, on a single **card**, with no column beside it. At the top, the folder path, such as «Agents / Home (this computer) / Claude», and then:
 
 - **the labels**: **Rule**, **Skill** or **Agent memory**; **Global** or the agent; and the standing, such as **In sync**;
 - **the name**, **How I work**; on a skill, its `description` sits under it, in grey;
-- **the file's facts box**: **Read by**, **Written to** with its button to copy the path, one row per file on a Global document, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
+- **the file's facts box**: **Read by**, **Written to** with its button to copy the path, one row per file on a Global skill, **Size**, **Backups** with **See**, **Format**, **Last written**, **Original kept**, **Syncs on this computer**, **Shared** when the document has a live shared link and, in small rows, the file's other properties, such as `disable-model-invocation`;
 - **the agent's text**, just as you wrote it, with compact headings and no separate sheet. Tisty imposes no sections on it and never turns its first line into a title, and the file stays the same, byte for byte;
-- **the notices and proposals**, inside the same card, under the facts box: a file changed outside, a document that comes from another computer, words waiting for your approval or the change an agent proposes to you;
-- **at the foot, the buttons**, held at the bottom while the whole card scrolls: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**; on a Global document, one button per agent, such as **Pause Claude**, and its backups open with **See**, on each file's row. While you edit, the text moves right to leave room for the editor's bar, as in any document.
+- **the notices and proposals**, inside the same card, under the facts box: a file changed outside, a document that comes from another computer, two documents that go to the same file, words waiting for your approval or the change an agent proposes to you;
+- **at the foot, the buttons**, held at the bottom while the whole card scrolls: **Edit**, **Backups**, **History**, **Copy link** and **Pause sync with Claude**; on a Global skill, one button per agent, such as **Pause Claude**, and its backups open with **See**, on each file's row. While you edit, the text moves right to leave room for the editor's bar, as in any document. Another computer's document has no **Edit**, **Apply here**, **Delete** or pause: the card says «It belongs to another of your computers: on this one it is only read.».
 
 Codex reads its `AGENTS.md` only up to 32 KiB. When the file nears that cap, **Size** says so in amber, «close to the 32 KiB Codex reads», and past it, in red: time to move the long part into a skill.
 
@@ -225,8 +204,8 @@ That way you never lose either side.
 If one day you want Tisty to leave Claude's files alone, for example while you try other rules by hand:
 
 - in **Settings › Agents › Agents folder**, on the **Agents** card, turn off the **Sync Claude** switch;
-- or at the foot of a document's card, **Pause sync with Claude**; on a Global document, the **Pause Claude** button;
-- or in the sidebar, right-click **Agents › Claude** and choose **Pause sync with Claude**. While paused, the same menu offers **Resume sync with Claude**. This choice shows only while Agents syncs: when it does not sync, there is nothing to pause.
+- or at the foot of a document's card, **Pause sync with Claude**; on a Global skill, the **Pause Claude** button;
+- or in the sidebar, right-click **Agents › Home (this computer) › Claude** and choose **Pause sync with Claude**. While paused, the same menu offers **Resume sync with Claude**. This choice shows only while Agents syncs: when it does not sync, there is nothing to pause.
 
 To stop them all at once, **Stop syncing**, as the next section tells.
 
@@ -236,7 +215,7 @@ Paused, Tisty neither opens nor writes those files, and you keep editing your do
 
 **Stopping sync.** Right-click **Agents** and choose **Stop syncing**, or the same button on its card in **Settings › Agents › Agents folder**. No agent file is touched and no document is deleted: your agents keep reading what Tisty wrote last time, and your documents stay in Agents, to read and edit. Agents goes back to the grey robot, and when you open it, it says «Not synced with your agents · Sync» at the top.
 
-**Syncing again.** The **Sync** link in that line, **Sync** on its right-click or on its card. Since this computer had already let you read your agents' files, it syncs at once, without the first-time box. It writes what you changed in the meantime, except a file that changed outside, which stays marked for you to decide. A file you had only brought that is still as it was is taken as it stands, and what joins it, such as a Global rule, is written over it with its backup first.
+**Syncing again.** The **Sync** link in that line, **Sync** on its right-click or on its card. Since this computer had already let you read your agents' files, it syncs at once, without the first-time box. It writes what you changed in the meantime, except a file that changed outside, which stays marked for you to decide. A file you had only brought that is still as it was is taken as it stands.
 
 **An example.** Lucas wants to try some new rules by hand in his `CLAUDE.md` for a week. He chooses **Stop syncing**, edits the file in his editor and keeps arranging his documents in Agents. At the end of the week he presses **Sync**: the card of **How I work** says **Changed outside**, and he chooses **Bring the change in** to keep what he tried, or **Overwrite with Tisty** to go back to what his documents say.
 
@@ -260,27 +239,17 @@ The first time does not have to be the only one. If you install a new agent or w
 - Run the tests before every commit.
 ```
 
-1. In the sidebar, right-click a subfolder of Agents, such as **Agents › Claude**, and choose **Bring another file**. With Agents or one of its subfolders open, it is also on the **+** button beside **Library** and in the command palette, under **Create**; and always in **Settings › Agents › Agents folder**, on the **Agents** card. It does not change whether Agents syncs: brought but not synced, your agent's file stays as it is.
+1. In the sidebar, right-click a subfolder of Agents, such as **Agents › Home (this computer) › Claude**, and choose **Bring another file**. With Agents or one of its subfolders open, it is also on the **+** button beside **Library** and in the command palette, under **Create**; and always in **Settings › Agents › Agents folder**, on the **Agents** card. It does not change whether Agents syncs: brought but not synced, your agent's file stays as it is.
 2. The box says «These are the agent files on this computer that are not in Agents yet. Choose what to bring:». This time **nothing comes ticked**, and what already has a document says **already in Agents**. **Not now** closes it without bringing anything.
-3. Tick `rules/tests.md` and press **Bring**. **Tests** shows up in **Agents › Claude**, and from then on you read it and change it in Tisty.
+3. Tick `rules/tests.md` and press **Bring**. **Tests** shows up in **Agents › Home (this computer) › Claude**, and from then on you read it and change it in Tisty.
 
 **Look again.** If you installed an agent or your agent made new files, right-click **Agents** itself, brought or syncing, and choose **Look again**. Tisty looks for your agents on this computer again, makes the subfolder of any that is missing and opens **Bring another file** with **only what is new already ticked**; memory, as always, unticked. If nothing is left to bring, not even an unticked memory, it says «Nothing new found. This is what each agent has:» and one line per agent, such as «Claude · already in Agents». On a computer that has not given permission yet, it opens the first-time box instead, with its names and sizes, and opens no file and makes no folder before your yes.
 
 **Bring touches nothing**, not even the record of what Tisty wrote: a file you only brought is never offered for taking away, even if you later take its document out of Agents.
 
-**A file you never brought.** If `~/.codex/AGENTS.md` already held your Codex rules and the first time you left it unticked, a Global rule does not write over it: Tisty asks **It exists on both sides**, with «Tisty has never brought this file. Bring it into Agents and it keeps what it says, with Tisty's part added on top.». **Bring it into Agents** brings it in as a document and writes Global in front of yours, with its backup first:
+**A file you never brought.** If `~/.codex/AGENTS.md` already held your Codex rules and the first time you left it unticked, and then you write a Codex document that goes to that same file, Tisty cannot tell which part is yours and does not write over it: it asks **It exists on both sides**, with «Tisty has never brought this file. Bring it into Agents and it stays as it is, as a document of this computer.». **Bring it into Agents** brings it in as a document, with its words just as they are, and what it held before stays in its backups. A document is one file: Tisty adds nothing to it.
 
-```markdown title="~/.codex/AGENTS.md, after Bring it into Agents"
-# For all my agents
-
-- Ask before deleting anything.
-
-# Codex rules
-
-- Use pnpm, never npm.
-```
-
-The same goes for `AGENTS.override.md`, the file Codex reads instead of `AGENTS.md` when it exists: if you make it later, bring it into Agents, and from then on Global goes there.
+`AGENTS.override.md` is the file Codex reads instead of `AGENTS.md` when it exists, and for Tisty it is another file and another document: if you make it later, bring it with **Bring another file**, and it sits beside `AGENTS.md`.
 
 ## Deleting a rule or a skill
 
@@ -296,41 +265,44 @@ The box says apart what does not go, and nothing goes without you seeing it:
 
 - **A copy changed outside Tisty**: «Changed outside Tisty in Codex and Copilot: that copy stays, and you see it after, on its own.». After deleting, Tisty asks about it with **Take the file away too?**, which the section below tells.
 - **The copy a paused agent reads**: «Paused: Copilot. Its copy stays, and Tisty asks again once it syncs.».
-- **A file other rules also make up**, such as a `CLAUDE.md` with a Global rule: it is written again without that part, with a backup first, and never taken away.
 
 **What you leave with Only from Tisty stays yours.** The **Agents** card in **Settings › Agents › Agents folder** lists it apart, like «2 files you left with your agents when you deleted them from Agents.», with **Review**, in case you change your mind; if you deleted the last document in Agents and the folder went, the list is still there. Tisty does not ask about those files by itself and never writes over them: if a new rule or skill lands on the same file again, it asks you first. That list is this computer's only.
 
 ## Taking a rule and its file out
 
-When you move a rule out of Agents or go back to a version without its card, Tisty stops writing it. If it was the only one making up its file, that file is still on disk and your agent keeps reading it, so about a second later Tisty asks **Take the file away too?**, with the file's path, for example `~/.claude/rules/tests.md`, and «If you take it away, a backup stays on this computer.»:
+When you move a rule out of Agents, move it to another computer's folder, leave its text with no words or go back to a version without its card, Tisty stops writing it. Its file is still on disk and your agent keeps reading it, so about a second later Tisty asks **Take the file away too?**, with the file's path, for example `~/.claude/rules/tests.md`, and «If you take it away, a backup stays on this computer.»:
 
 - **Take the file away** keeps a backup on this computer and deletes it: Claude stops reading that rule.
 - **Leave it** leaves it where it is, and Tisty neither writes it nor asks again. If one day you want it back, it shows in **Bring another file**.
 
 If you edited it by hand after Tisty wrote it, the box tells you before you choose. It never asks about your agent's memory, about a paused agent, or while Agents does not sync: then Tisty wrote no file.
 
-**Deleting a subfolder.** Right-click a subfolder, such as **Agents › Claude**, and choose **Delete**. Tisty asks first, and its documents go to **Unfiled**: as they leave Agents, Tisty stops writing them and asks you about each file they made up, just as when you take a rule out, always with its backup. A file that a Global rule also makes up, such as `CLAUDE.md`, is not asked about: Tisty writes it again without that part, with its backup first. The folder does not come back by itself.
+**Deleting a subfolder.** Right-click a subfolder, such as **Agents › Home (this computer) › Claude**, and choose **Delete**. Tisty asks first, and its documents go to **Unfiled**: as they leave Agents, Tisty stops writing them and asks you about each file they wrote, just as when you take a rule out, always with its backup. The folder does not come back by itself.
 
-**An example.** Marisol kept her testing rules in a folder of her own, **Agents › Claude › Tests**, and no longer wants them. She right-clicks **Tests** and chooses **Delete**; a second later, Tisty asks **Take the file away too?** about `~/.claude/rules/tests.md`. She chooses **Take the file away**: the backup stays on this computer and Claude stops reading those rules.
+**An example.** Marisol kept her testing rules in a folder of her own, **Agents › Home (this computer) › Claude › Tests**, and no longer wants them. She right-clicks **Tests** and chooses **Delete**; a second later, Tisty asks **Take the file away too?** about `~/.claude/rules/tests.md`. She chooses **Take the file away**: the backup stays on this computer and Claude stops reading those rules.
 
 **Emptying Agents.** If you take all its documents out with Tisty open, it first asks about each file it wrote, and then the folder goes. Agents stays in the sidebar in grey, as at the start: a click on it opens the first-time box again, with your rules and skills already ticked.
 
 ## A second computer
 
-Your documents in Agents travel with your sync to your other computers, but **each computer chooses whether it syncs and what it applies to its agents**.
+Your documents in Agents travel with your sync to your other computers, but **each computer has its own folder and writes only its own**. What is in another computer's folder you read, move, copy as text and take out; you do not edit it, apply it or delete it from this one.
 
-**An example.** On the home computer you chose **Bring and sync**, brought in your `CLAUDE.md` and wrote the rule «For all my agents». There they applied by themselves. On the work computer:
+**An example.** On the home computer you chose **Bring and sync**: your `CLAUDE.md`, **How I work**, sits in **Agents › Home (this computer) › Claude**. On the work computer:
 
-1. In the sidebar, Agents arrives brought, not synced: the grey robot and its documents, which you can already read. At the top it says «Not synced with your agents · Sync».
-2. Press **Sync**. Since this computer never let you read its agents' files, the first-time box opens: tick what you want to bring from this computer and press **Bring and sync**. Agents is left with its coral robot.
-3. Open **For all my agents**. The card says «This document comes from another computer. Apply it to the agents on this one?».
-4. **Apply here** writes it to this computer's files, with its backup first. **Not on this computer** leaves it out here, and **Apply here** stays at hand if you change your mind.
+1. In the sidebar, Agents arrives brought, not synced: the grey robot and, last and faint, the **Home** folder with its documents, which you can already read. At the top it says «Not synced with your agents · Sync».
+2. Press **Sync**. Since this computer never let you read its agents' files, the first-time box opens: tick what you want to bring from this computer and press **Bring and sync**. This computer's folder is made, with a subfolder for each agent it found, and Agents is left with its coral robot.
+3. Open **How I work**, the one in **Home**. The card says «It belongs to another of your computers: on this one it is only read.», with no **Edit** or **Apply here**: on the work computer it is written to no file.
+4. If you want that same rule on both computers, move it to the root: right-click the document, **Move to** and **Agents**. On the computer where you move it, it counts as applied; on the other, the card says «This document comes from another computer. Apply it to the agents on this one?». **Apply here** writes it to that computer's files, with its backup first, and **Not on this computer** leaves it out, with **Apply here** at hand if you change your mind.
 
-From then on, what you already apply updates by itself when you change it on the other computer. What you write or bring in on a computer that syncs is applied on that same computer with no click. And an agent's memory belongs to the computer that brought it: on the others it is only read.
+From then on, what you already apply updates by itself when you change it on the other computer. What you write or bring in on a computer that syncs is applied on that same computer with no click. Moving a document to another computer's folder stops applying it on this one, and Tisty asks about its file. A document with an agent's proposal waiting does not move to another computer until you approve or discard it. And an agent's memory belongs to the computer that brought it: on the others it is only read.
 
-**Approving is not applying.** If on the work computer you approve a proposal, press **Approve this text** or go back to an earlier version of a document that waits, you change its words on all your computers, but there it keeps waiting. The card says «You approved its words on this computer, but applying it here is a separate choice. Apply it to the agents on this one?», with the same two buttons. Only **Apply here** writes its files on that computer.
+**Two documents to the same file.** If the document in your folder and one at the root write the same file, or the same skill, nothing changes on this computer until you choose: the card says «On this computer «X» already goes to the same file. Which one rules here?», with **This one** and **The other**. A skill is chosen whole, and it is chosen per file: if you choose for Claude, a Global skill keeps working in the other agents. The one that does not rule stays in its folder, and you can change your mind with **This one**. If the one that ruled goes away, Tisty does not write the other by itself: it asks again.
 
-**Two Agents folders.** If home and work both made Agents before they synced, two show up for a moment once they meet. Tisty joins them by itself, into the oldest: it puts their subfolders together by name (Global, Claude…), moves the documents over and deletes the one left empty. It touches none of your agents' files, offers none for taking away and loses no approval, and the other computer's documents wait for their **Apply here** like any other. A document the other computer wrote right before the join goes into the subfolder of the same name by itself once it arrives. If the second Agents holds something an agent put there, Tisty leaves it as it is until you move that document to a folder of yours yourself.
+**Approving is not applying.** If on the work computer you approve a proposal, press **Approve this text** or go back to an earlier version of a root document that waits, you change its words on all your computers, but there it keeps waiting. The card says «You approved its words on this computer, but applying it here is a separate choice. Apply it to the agents on this one?», with the same two buttons. Only **Apply here** writes its files on that computer.
+
+**Two Agents folders.** If home and work both made Agents before they synced, two show up for a moment once they meet. Tisty joins them by itself, into the oldest: it puts their subfolders together by name (Global, each computer's…), moves the documents over and deletes the one left empty. It touches none of your agents' files, offers none for taking away and loses no approval. If the second Agents holds something an agent put there, Tisty leaves it as it is until you move that document to a folder of yours yourself.
+
+**If you come from 1.50.1.** What each computer brought or wrote moves by itself to its own folder once all your computers have 1.50.2 or later, and no agent file changes by a byte. A `CLAUDE.md` that 1.50 had joined with a Global rule becomes one document that says exactly what the file says. While another computer is still on an earlier version, nothing moves. A Global rule from that time stays there for you to read, copy or delete.
 
 Two more notices you may see on a card:
 
@@ -341,7 +313,7 @@ Two more notices you may see on a card:
 
 In the Brainsty network, which the page **Brainsty: everything joined** of this guide tells, your Agents documents come hidden, so they do not cover what is yours: they show, small and in a faint coral, when you turn **Show AGENTS** on in its filters, and Tisty never marks them as alike to anything.
 
-Your agent **reads** your documents in Agents like any other, whether it syncs or not: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. While syncing, a rule in Agents reaches all your agents, on each computer where Agents syncs and you applied it, and nobody but you should decide what it says.
+Your agent **reads** your documents in Agents like any other, whether it syncs or not: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. While syncing, a rule in Agents reaches all your agents, on each computer where Agents syncs and you applied it, and nobody but you should decide what it says. A document in another of your computers' folders it reads as data, not as a rule of its own for this computer, and it cannot propose on it; on this computer's documents it proposes as always.
 
 Any other tool that names those documents or the folder `AGENTS` is refused: it cannot move, archive or mark them, propose on a memory, or move, rename or archive Agents. Nor can it add or change an `agent:` line in any document, in any folder, not even with `edit_doc`, or make a new document with that line. If it tries, Tisty refuses it, touching nothing, and tells it how to propose the change or to tell you what it would change.
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { movedOnceSure } from "../agentsMoving";
 import { docAway, docFile, type Filed, folderAdd, type Papers } from "../core";
 import { trail } from "../folders";
 import { fill, t } from "../locales";
@@ -58,7 +59,11 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
     docAway(doc.id, false)
       .then(lands)
       .then((folder) =>
-        folder === (doc.folder ?? null) ? undefined : docFile(doc.id, folder ?? undefined),
+        folder === (doc.folder ?? null)
+          ? undefined
+          : movedOnceSure("doc", doc.id, folder ?? undefined, () =>
+              docFile(doc.id, folder ?? undefined),
+            ),
       )
       .then(onDone)
       .catch((e) => fail(e));

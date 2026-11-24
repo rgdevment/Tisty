@@ -544,14 +544,18 @@ gathers them in Tisty as documents, with their skills and memory.
 - **Bring or sync** — **Bring** copies the files you tick, to read and arrange
   them, and writes nothing back; **Bring and sync** also writes a rule you
   change once into each agent's file, with a backup before every overwrite.
-- **One rule for all of them** — a document in **Global** reaches every
-  agent on the computer; one in **Claude** only Claude.
+- **Each computer keeps its own** — each computer has its folder inside
+  Agents and writes only that one; another computer's folder you read from
+  here but do not change. One document is one file, word for word.
+- **Skills in Global, rules where you want them** — a skill in **Global**
+  reaches all your agents; a rule moved to the root of Agents is for every
+  computer, and if a computer has its own, Tisty asks which one rules there.
 - **Your agent proposes, you approve** — an agent reads your rules like any
   document, but a change of its own waits on the card, beside what you approved,
   until you say yes.
-- **Each computer decides** — a rule written on another computer waits for
-  **Apply here**, and a change made outside Tisty is never written over: you
-  bring it in or keep Tisty's.
+- **Each computer decides** — a rule for all computers waits for **Apply
+  here** on each one, and a change made outside Tisty is never written over:
+  you bring it in or keep Tisty's.
 - **Nothing it should not touch** — settings, credentials, links and anything
   shaped like a secret are never brought in, and Agents reads nothing until you
   click the folder.

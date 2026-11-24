@@ -1,10 +1,12 @@
 import { useState } from "react";
 import {
+  agentsDrawn,
   agentsPaint,
   agentsRoot,
   agentsStage,
   folderShown,
   holdsTistySkills,
+  ofAnother,
   syncAgents,
 } from "../agentsSync";
 import type { Filed, Folded } from "../core";
@@ -13,7 +15,7 @@ import { led } from "../leading";
 import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import { atRandom, type Recalled, useForgotten } from "../useForgotten";
-import { useAgentsState } from "./AgentsMark";
+import { useAgentsState, useSkillsRow } from "./AgentsMark";
 import { FolderMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
@@ -53,9 +55,11 @@ export default function Folder({
   const forgotten = useForgotten(docs, !folder);
   const root = agentsRoot(folders)?.id ?? null;
   const isAgents = !!folder && folder.id === root;
-  const stance = useAgentsState(isAgents ? root : null);
+  const global = holdsTistySkills(folder, folders);
+  const stance = useAgentsState(isAgents || global ? root : null);
   const stage = isAgents ? agentsStage(root, stance) : null;
-  const tistySkillsHere = holdsTistySkills(folder, folders);
+  const skillsRow = useSkillsRow(stance);
+  const tistySkillsHere = global && skillsRow;
   const fold = (id: string) =>
     setShut((was) => {
       const now = new Set(was);
@@ -63,7 +67,13 @@ export default function Folder({
       return now;
     });
 
-  const under = folder ? folders.filter((one) => one.parent === folder.id) : [];
+  const held = (id: string) =>
+    agentsDrawn(
+      folders.filter((one) => one.parent === id),
+      folders,
+      root,
+    );
+  const under = folder ? held(folder.id) : [];
   const shelved = Boolean(folder?.away);
   const inside = docs.filter(
     (one) =>
@@ -200,13 +210,19 @@ export default function Folder({
       className={ROW}
     >
       <span className={`shrink-0 ${painted(one.color)}`}>
-        <FolderMark folder={one} root={root} className="h-3.5 w-3.5" />
+        <FolderMark
+          folder={one}
+          root={root}
+          className={ofAnother(one) ? "h-3.5 w-3.5 opacity-50" : "h-3.5 w-3.5"}
+        />
       </span>
-      <span className="truncate font-medium text-ink">{folderShown(one)}</span>
+      <span className={`truncate font-medium ${ofAnother(one) ? "text-faint" : "text-ink"}`}>
+        {folderShown(one)}
+      </span>
       <span className="shrink-0 text-[11.5px] text-faint">
         {one.holds
           ? countedAs(one.holds, "paperIsOne", "papersAre")
-          : !holdsTistySkills(one, folders) && t("folderEmpty")}
+          : !(skillsRow && holdsTistySkills(one, folders)) && t("folderEmpty")}
       </span>
     </button>
   );
@@ -323,13 +339,13 @@ export default function Folder({
 
         {under.map((one) => {
           const closed = shut.has(one.id);
-          const deeper = folders.filter((at) => at.parent === one.id);
-          const held = docs.filter(
+          const deeper = held(one.id);
+          const papers = docs.filter(
             (at) => at.away === shelved && !at.pageOf && at.folder === one.id,
           );
-          const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
-          const left = held.length - shown.length;
-          const skillsIn = holdsTistySkills(one, folders);
+          const shown = papers.slice(0, Math.max(PEEK - deeper.length, 2));
+          const left = papers.length - shown.length;
+          const skillsIn = skillsRow && holdsTistySkills(one, folders);
           return (
             <section key={one.id} className="mt-4">
               <div className="flex items-center gap-1">
@@ -346,7 +362,7 @@ export default function Folder({
                 {named(one)}
                 <span className="h-px min-w-6 flex-1 bg-hair" />
               </div>
-              {!closed && (deeper.length > 0 || held.length > 0 || skillsIn) && (
+              {!closed && (deeper.length > 0 || papers.length > 0 || skillsIn) && (
                 <ul id={`holds-${one.id}`} className={`mt-1 pl-5 ${INDEX}`}>
                   {deeper.map((at) => (
                     <li key={at.id} className="break-inside-avoid">

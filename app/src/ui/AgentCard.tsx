@@ -221,7 +221,7 @@ export function AgentButtons({ card, shelf, onEarlier }: Buttons) {
       aria-label={t("agentCardActions")}
       className="sticky bottom-0 z-[2] mx-auto mb-4 flex w-full max-w-[760px] flex-wrap gap-2 rounded-b-[10px] border border-line border-t-hair bg-sheet px-4 py-3"
     >
-      {!hands.own && !locked && (
+      {!hands.own && !locked && doc.here !== "otherComputer" && (
         <Action
           glyph={editing ? "done" : "pencil"}
           label={t(editing ? "agentDoneEditing" : "agentEdit")}

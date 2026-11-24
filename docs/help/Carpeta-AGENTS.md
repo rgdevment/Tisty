@@ -1,9 +1,9 @@
 # Agentes: las reglas, skills y memoria de tus agentes
 
-Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, en una carpeta distinta: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Cambiar una regla en todos era abrir cuatro archivos, y tarde o temprano uno quedaba atrás. La carpeta **Agentes** junta esos archivos en Tisty, como documentos, para que los leas y los ordenes. Y si quieres, Tisty escribe por debajo el archivo que lee cada agente.
+Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, en una carpeta distinta: `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`, `GEMINI.md`. Cambiar una regla en todos era abrir cuatro archivos, y tarde o temprano uno quedaba atrás. La carpeta **Agentes** junta esos archivos en Tisty, como documentos, para que los leas y los ordenes: un documento es un archivo, palabra por palabra. Y si quieres, Tisty escribe por debajo el archivo que lee cada agente.
 
 > [!TIP]
-> **En corto:** la carpeta **Agentes** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Hay dos palabras, y cada una significa una sola cosa. **Traer** copia los archivos de tus agentes a Tisty, para leerlos y ordenarlos, y no escribe nada en ellos. **Sincronizar** hace que, desde ese momento, lo que cambias en Tisty llegue a esos archivos, y que Tisty te avise si alguien los cambia por fuera. Sincronizando, lo que escribes en **Global** llega a todos y lo que escribes en la carpeta de un agente, solo a él; antes de sobrescribir un archivo Tisty guarda lo que tenía, y un cambio hecho por fuera nunca se pisa. Y un agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas.
+> **En corto:** la carpeta **Agentes** guarda como documentos las reglas, las skills y la memoria de Claude Code, Codex, GitHub Copilot CLI, Gemini CLI y Cursor. Hay dos palabras, y cada una significa una sola cosa. **Traer** copia los archivos de tus agentes a Tisty, para leerlos y ordenarlos, y no escribe nada en ellos. **Sincronizar** hace que, desde ese momento, lo que cambias en Tisty llegue a esos archivos, y que Tisty te avise si alguien los cambia por fuera. Sincronizando, cada equipo escribe solo lo de su propia carpeta: las skills de **Global** llegan a todos tus agentes, y lo que escribes en la carpeta de un agente de tu equipo, solo a él. Antes de sobrescribir un archivo Tisty guarda lo que tenía, y un cambio hecho por fuera nunca se pisa. Y un agente no escribe tus reglas: te propone el cambio, y solo tú lo apruebas.
 
 ![La primera vez de Agentes en español: el aviso Tus agentes, en un solo lugar, con la X para cerrar arriba a la derecha, la línea Tisty busca las reglas, skills y memoria de tus agentes y las trae aquí como documentos, para leerlas y ordenarlas. Traer solo las copia; Traer y sincronizar además hace que lo que cambies en Agentes llegue solo a tus agentes., sus tres líneas con candado, flechas y copias (Queda en tu Tisty…, Si sincronizas, llega solo a Claude, Codex, Copilot, Gemini., Antes de cambiar un archivo de un agente, Tisty guarda un respaldo en este equipo.), y debajo Encontré esto. Elige qué traer:, la línea Gemini: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta., y tres filas plegadas, Claude · 2 reglas · 29 skills · 49 memorias, Codex · 1 regla · 4 skills y Copilot · 1 regla; abajo a la derecha, solo dos botones, Traer y Traer y sincronizar, este destacado](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-01-primera-vez.png)
 
@@ -14,8 +14,8 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 Te sirve cuando:
 
 - **Quieres leer y ordenar las reglas que ya tienes.** Con **Traer**, tu `CLAUDE.md`, tus skills y tus reglas de Copilot entran como documentos, con títulos y búsqueda, en vez de archivos planos en carpetas ocultas. Tus agentes siguen leyendo sus archivos como estaban.
-- **Usas varios agentes y quieres las mismas reglas en todos.** Con **Sincronizar**, escribes «Responde en español» una vez en **Global**, y llega al `CLAUDE.md` de Claude Code, al `AGENTS.md` de Codex, al `copilot-instructions.md` de Copilot y a las reglas de Gemini.
-- **Trabajas en más de un equipo.** Escribes la regla una vez, y cada equipo elige si la sincroniza y qué aplica a sus agentes.
+- **Usas varios agentes y quieres la misma skill en todos.** Con **Sincronizar**, escribes la skill una vez en **Global**, y llega a Claude Code, a Cursor y a la carpeta que comparten Codex, Copilot y Gemini. Las reglas, en cambio, son de cada agente: cada uno lee su propio archivo, y lo que dice ese archivo es lo que dice tu documento.
+- **Trabajas en más de un equipo.** Cada equipo tiene su propia carpeta dentro de Agentes y escribe solo la suya: lo del trabajo no pisa lo de la casa, y lo de otro equipo lo lees, pero no lo cambias desde este.
 - **Tienes skills con scripts.** Cada archivo de la skill es un documento, y un script se guarda en un bloque de código que se escribe tal cual.
 - **Quieres poder volver atrás.** Sincronizando, Tisty guarda el archivo original antes de tocarlo por primera vez, y los últimos 20 antes de cada sobrescritura.
 - **Quieres ver lo que tu agente anotó de ti.** La memoria que escribe Claude Code en cada proyecto, o el `GEMINI.md` de Gemini, se puede traer para leerla en Tisty, sin que Tisty la cambie nunca.
@@ -37,8 +37,8 @@ Son dos pasos distintos, y puedes quedarte en el primero todo lo que quieras.
 
 **Dos ejemplos.**
 
-- Jaime usa solo Claude Code y quiere leer sus reglas y sus skills con calma, sin que nada cambie en `~/.claude`. Elige **Traer**. Sus documentos quedan en **Agentes › Claude**, y Claude Code sigue leyendo su `CLAUDE.md` como siempre. Si edita uno de esos documentos, el cambio queda en Tisty y nada más.
-- Yisset usa Claude Code y Codex, y quiere que los dos sepan que sus ramas van con la forma `tipo/nombre`. Elige **Traer y sincronizar**, escribe esa regla una vez en **Agentes › Global**, y Tisty la escribe al principio de su `CLAUDE.md` y de su `AGENTS.md`.
+- Jaime usa solo Claude Code y quiere leer sus reglas y sus skills con calma, sin que nada cambie en `~/.claude`. Elige **Traer**. Sus documentos quedan en **Agentes › Casa (este equipo) › Claude**, y Claude Code sigue leyendo su `CLAUDE.md` como siempre. Si edita uno de esos documentos, el cambio queda en Tisty y nada más.
+- Yisset usa Claude Code y Codex, y quiere que los dos sepan que sus ramas van con la forma `tipo/nombre`. Elige **Traer y sincronizar**, escribe la regla en el documento de Claude y la misma en el de Codex, dentro de la carpeta de su equipo, y Tisty las escribe en su `CLAUDE.md` y en su `AGENTS.md`. Si lo que quiere compartir es una skill, esa sí la escribe una vez en **Agentes › Global**.
 
 Si un día Jaime quiere que sus cambios lleguen a Claude Code, pulsa **Sincronizar** y Agentes pasa a sincronizar, sin volver a traer nada. Si Yisset quiere dejar todo quieto un tiempo, **Dejar de sincronizar**: sus archivos quedan como Tisty los dejó y sus documentos siguen en Agentes.
 
@@ -158,23 +158,23 @@ Después de traer, un archivo marcado puede quedar fuera:
 
 ### Si todavía no tienes archivos de agentes
 
-El aviso dice «No encontré archivos de agentes en este equipo. Igual puedes sincronizar: Agentes se llena a medida que escribes tus reglas.». Debajo, cada agente que encontró sin archivos tiene su línea, como «Codex: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». **Traer** queda desactivado, porque no hay nada que traer, y **Traer y sincronizar** sigue disponible: pulsarlo deja que este equipo sincronice y crea igual la carpeta **Agentes**, con **Global** y una subcarpeta vacía por cada agente que encontró, como **Codex** y **Gemini**. El aviso dice «No entró nada nuevo. La carpeta Agentes ya sincroniza en este equipo: lo que escribas ahí llega a tus agentes.», y en la barra Agentes queda con su robot coral. Entrar en ella no vuelve a abrir el aviso.
+El aviso dice «No encontré archivos de agentes en este equipo. Igual puedes sincronizar: Agentes se llena a medida que escribes tus reglas.». Debajo, cada agente que encontró sin archivos tiene su línea, como «Codex: todavía sin reglas, skills ni memoria. Recibe lo que escribas en Global o en su carpeta.». **Traer** queda desactivado, porque no hay nada que traer, y **Traer y sincronizar** sigue disponible: pulsarlo deja que este equipo sincronice y crea igual la carpeta **Agentes**, con **Global** y la carpeta de este equipo, con una subcarpeta vacía por cada agente que encontró, como **Codex** y **Gemini**. El aviso dice «No entró nada nuevo. La carpeta Agentes ya sincroniza en este equipo: lo que escribas ahí llega a tus agentes.», y en la barra Agentes queda con su robot coral. Entrar en ella no vuelve a abrir el aviso.
 
 Desde ahí tienes dos caminos:
 
-- **Escribir tu primera regla.** Botón derecho sobre **Global** o sobre la carpeta de un agente, y **Documento nuevo**: el documento ya empieza como una regla de ese lugar, con su línea `agent:` puesta, como cuenta [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla). Tisty escribe el archivo apenas escribes algo en él.
+- **Escribir tu primera regla.** Botón derecho sobre la carpeta de un agente de tu equipo, como **Casa (este equipo) › Gemini**, y **Documento nuevo**: el documento ya empieza como una regla de ese agente, con su línea `agent:` puesta, como cuenta [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla). Tisty escribe el archivo apenas escribes algo en él.
 - **Traer lo que aparezca después.** Cuando tu agente cree sus archivos, por ejemplo después de usarlo por primera vez, tráelos con [Traer otro archivo](#traer-otro-archivo).
 
 ## Traer otro archivo
 
 La primera vez no tiene que ser la única. Si instalas un agente nuevo, si creas un archivo de reglas que antes no existía o si dejaste algo sin marcar, lo traes después:
 
-- **Desde la barra lateral:** botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude**, y **Traer otro archivo**. El botón derecho de Agentes misma no lo ofrece: ahí está [Buscar de nuevo](#buscar-de-nuevo), que hace lo mismo y además marca lo nuevo por ti. En el estado 1 todavía no hay nada traído, y un clic en Agentes abre la primera vez.
+- **Desde la barra lateral:** botón derecho sobre una subcarpeta de Agentes, como **Agentes › Casa (este equipo) › Claude**, y **Traer otro archivo**. El botón derecho de Agentes misma no lo ofrece: ahí está [Buscar de nuevo](#buscar-de-nuevo), que hace lo mismo y además marca lo nuevo por ti. En el estado 1 todavía no hay nada traído, y un clic en Agentes abre la primera vez.
 - **Desde el menú de la Biblioteca:** con Agentes o una de sus subcarpetas abierta, el botón **+** junto al título **Biblioteca** ofrece **Traer otro archivo**, entre las opciones para crear e importar.
 - **Desde la paleta de comandos:** con Agentes o una de sus subcarpetas abierta, escribe «traer» y elige **Traer otro archivo**, en el grupo **Crear**.
 - **Desde Configuración › Agentes › Carpeta Agentes:** en la tarjeta **Agentes**, el botón **Traer otro archivo**.
 
-**Traer otro archivo no cambia si Agentes sincroniza.** Traída sin sincronizar, el archivo nuevo entra como documento y el archivo de tu agente queda como está; sincronizando, desde ese momento Tisty también lo mantiene al día.
+**Traer otro archivo no cambia si Agentes sincroniza.** Traída sin sincronizar, el archivo nuevo entra como documento y el archivo de tu agente queda como está; sincronizando, desde ese momento Tisty también lo mantiene al día. Lo que traes, aquí o en la primera vez, va a la carpeta de este equipo, y cada agente que Tisty encuentra aquí tiene su carpeta vacía en ella.
 
 Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:» y la misma lista de la primera vez, con sus mismas reglas: una skill es una sola fila que entra entera, y lo oculto o lo que mantiene el propio agente no aparece. Con una diferencia: **no viene nada marcado**, ni siquiera las reglas. Marca lo que quieres y pulsa **Traer**: el botón no se activa hasta que marcas algo. **Ahora no** lo cierra sin traer nada. Lo que ya tiene documento dice **ya está en Agentes**, y si no queda nada por traer, el aviso dice «Todos los archivos de agentes de este equipo ya están en Agentes.».
 
@@ -186,14 +186,14 @@ Se abre **Traer otro archivo**, con «Estos son los archivos de agentes de este 
 - Corre los tests antes de cada commit.
 ```
 
-1. Botón derecho sobre **Agentes › Claude** y **Traer otro archivo**.
+1. Botón derecho sobre **Agentes › Casa (este equipo) › Claude** y **Traer otro archivo**.
 2. Abre la fila de Claude: `CLAUDE.md` aparece atenuado, con **ya está en Agentes**, y `rules/pruebas.md`, sin marcar, como **Regla**.
 3. Márcalo y pulsa **Traer**. Si Agentes sincroniza, el aviso dice «Entró 1 documento a Agentes, y desde ahora Tisty lo mantiene al día.»; si está traída sin sincronizar, «Entró 1 documento a Agentes. Los archivos de tus agentes quedan como están hasta que elijas Sincronizar.». **Listo** lo cierra.
-4. En **Agentes › Claude** aparece **Pruebas**, con el icono de un libro. Desde ahora lo lees y lo cambias en Tisty, como cualquier regla.
+4. En **Agentes › Casa (este equipo) › Claude** aparece **Pruebas**, con el icono de un libro. Desde ahora lo lees y lo cambias en Tisty, como cualquier regla.
 
 Si este equipo todavía no te dejó leer los archivos de tus agentes, por ejemplo porque Agentes llegó traída desde [otro equipo](#en-varios-equipos), **Traer otro archivo** abre el aviso de la primera vez, con sus tres líneas, lo que encontró ya marcado y sus dos botones, **Traer** y **Traer y sincronizar**.
 
-**Traer no toca nada.** Ni los archivos de tus agentes ni la cuenta que Tisty lleva de lo que escribió: un archivo que solo trajiste nunca queda anotado como escrito por Tisty, así que, si después sacas su documento de Agentes, Tisty no te ofrece quitarlo con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Si más adelante eliges **Sincronizar**, un archivo que sigue tal cual lo trajiste se toma como está, y lo que se le suma, como una regla de Global, se escribe encima con su respaldo antes.
+**Traer no toca nada.** Ni los archivos de tus agentes ni la cuenta que Tisty lleva de lo que escribió: un archivo que solo trajiste nunca queda anotado como escrito por Tisty, así que, si después sacas su documento de Agentes, Tisty no te ofrece quitarlo con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Si más adelante eliges **Sincronizar**, un archivo que sigue tal cual lo trajiste se toma como está.
 
 ### Buscar de nuevo
 
@@ -201,7 +201,7 @@ Si este equipo todavía no te dejó leer los archivos de tus agentes, por ejempl
 
 **Un ejemplo.** Marisol tenía Agentes sincronizando con Claude y Codex. Una tarde instala Gemini CLI, le pide que recuerde el nombre de su perra, y escribe una skill nueva para Claude en `~/.claude/skills/informe/`. Botón derecho sobre **Agentes** y **Buscar de nuevo**:
 
-1. En la barra aparece **Agentes › Gemini**, con su brújula verde, vacía.
+1. En la barra aparece **Agentes › Casa (este equipo) › Gemini**, con su brújula verde, vacía.
 2. Se abre **Traer otro archivo**. En la fila de Claude, **informe · Skill · 2 archivos** viene marcada; en la de Gemini, `GEMINI.md` aparece como **Memoria del agente**, sin marcar.
 3. Marisol deja la memoria fuera y pulsa **Traer**: «Entraron 2 documentos a Agentes, y desde ahora Tisty los mantiene al día.», uno por cada archivo de la skill.
 
@@ -223,62 +223,56 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 
 Esto pasa sincronizando: traída sin sincronizar, Tisty no escribe ningún archivo y no tiene nada que preguntar.
 
-**Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes una regla en **Global**, que también va a ese archivo. Tisty no sabe qué parte es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en Agentes o con **Revisar** en Configuración › Agentes › Carpeta Agentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a Agentes, queda con lo que dice y con lo de Tisty agregado arriba.» y el botón **Traer a Agentes**.
+**Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes en **Agentes › Casa (este equipo) › Codex** un documento que va a ese mismo archivo. Tisty no sabe qué parte del archivo es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en Agentes o con **Revisar** en Configuración › Agentes › Carpeta Agentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a Agentes, queda como está, como un documento de este equipo.» y el botón **Traer a Agentes**.
 
-Con **Traer a Agentes**, el archivo entra como un documento en **Agentes › Codex**, con sus palabras, y Tisty lo vuelve a escribir con tu regla de Global arriba. Lo que tenía antes queda en sus [respaldos](#respaldos):
+Con **Traer a Agentes**, el archivo entra como un documento en **Agentes › Casa (este equipo) › Codex**, con sus palabras tal como están. Un documento es un archivo, palabra por palabra: Tisty no le suma nada. Lo que tenía antes queda en sus [respaldos](#respaldos).
 
-```markdown title="~/.codex/AGENTS.md, después de Traer a Agentes"
-# Para todos mis agentes
-
-- Antes de borrar algo, pregunta.
-
-# Reglas de Codex
-
-- Usa pnpm, nunca npm.
-```
-
-**Traer otro archivo** hace lo mismo: ese `AGENTS.md` aparece en su lista, sin marcar, y al traerlo queda igual, con Global arriba y su respaldo.
+**Traer otro archivo** hace lo mismo: ese `AGENTS.md` aparece en su lista, sin marcar, y al traerlo queda igual que el archivo.
 
 ### El `AGENTS.override.md` de Codex
 
-Codex lee `~/.codex/AGENTS.override.md` en vez de `AGENTS.md` cuando existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez y tienes reglas en Global, Tisty te pregunta **Existe en los dos lados** con **Traer a Agentes**, como con cualquier archivo que nunca trajo. Sin reglas en Global no pregunta nada: tráelo con **Traer otro archivo**. Al traerlo:
-
-- `AGENTS.override.md` queda con tu regla de Global arriba y lo que escribiste debajo, y desde ahí Codex recibe Global ahí;
-- `AGENTS.md` queda solo con tus reglas de Codex, sin Global. Codex no lo lee mientras exista el override.
+Codex lee `~/.codex/AGENTS.override.md` en vez de `AGENTS.md` cuando existe, y no lee los dos a la vez. Para Tisty son dos archivos y dos documentos, cada uno con lo que dice su archivo: no se pasa nada de uno al otro. Si creas el override después de la primera vez, tráelo con **Traer otro archivo**: queda en **Agentes › Casa (este equipo) › Codex**, junto al `AGENTS.md`. Mientras exista el override, Codex solo lee ese.
 
 ## Cómo queda la carpeta
 
-Después de traer, la Biblioteca tiene una carpeta **Agentes** con una subcarpeta por agente y una **Global**. En la barra lateral, cada documento se ve con su nombre y un icono que dice qué es:
+Después de traer, la Biblioteca tiene una carpeta **Agentes** con **Global**, una carpeta por cada equipo tuyo y, a veces, una carpeta de agente suelta en la raíz. En la barra lateral, cada documento se ve con su nombre y un icono que dice qué es:
 
 ```text
 Agentes
-├── Global
-├── Claude
-│   ├── [libro]    Cómo trabajo
-│   ├── [libro]    Estilo de código
-│   ├── [pieza]    pr                3 archivos
-│   └── [cerebro]  MEMORY.md
-├── Codex
-│   └── [libro]    Reglas de Codex
-└── Gemini
-    └── [cerebro]  GEMINI.md
+├── Global                      solo skills: las de Tisty y las tuyas, para todos los agentes
+├── Codex                       solo si moviste o creaste algo aquí: es para todos tus equipos
+├── Casa (este equipo)
+│   ├── Claude
+│   │   ├── [libro]    Cómo trabajo
+│   │   ├── [libro]    Estilo de código
+│   │   ├── [pieza]    pr                3 archivos
+│   │   └── [cerebro]  MEMORY.md
+│   └── Codex
+│       └── [libro]    Reglas de Codex
+└── Trabajo                     otro equipo tuyo: en gris tenue
+    └── Claude
 ```
 
-- **El icono de cada subcarpeta**: **Global** lleva un globo azul, y cada agente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Agentes › Carpeta Agentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
+- **Una carpeta por equipo.** Cada equipo lee y sincroniza solo la suya. Lo que traes (**Traer**, **Traer otro archivo**, **Buscar de nuevo**) va a la carpeta de este equipo, y cada agente que Tisty encuentra aquí tiene su subcarpeta en ella, aunque esté vacía. Se llama como el equipo se llama en la sincronización, con «(este equipo)» detrás cuando es el tuyo de ahora; los demás van por su nombre, al final y en gris tenue. Si dos equipos se llaman igual, un código corto los distingue.
+- **La raíz es para todos los equipos.** Una carpeta de agente suelta en **Agentes**, como **Codex** en el dibujo, solo existe si tú moviste algo ahí o creaste algo ahí; no la crea Tisty. Si no tiene nada adentro, no se ve. Qué significa tener un documento en la raíz lo cuenta [En varios equipos](#en-varios-equipos).
+- **Global es solo de skills.** Las de Tisty y las tuyas, para todos los agentes. Lo cuenta [Global y la carpeta de tu equipo](#global-y-la-carpeta-de-tu-equipo).
+- **El icono de cada agente**: **Global** lleva un globo azul, y cada agente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Agentes › Carpeta Agentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
 - **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
 - **La ruta**: pasa el puntero sobre una fila y aparece, con el agente delante: `claude · CLAUDE.md`, `claude · rules/estilo.md`.
 - **Una skill es una sola fila**, con cuántos archivos tiene a la derecha, como **pr** y **3 archivos**. Un clic la abre y muestra sus archivos por su ruta dentro de la skill: `SKILL.md`, `scripts/abrir-pr.sh`. Así, una skill de 200 archivos ocupa una línea hasta que la abres. Una skill de un solo archivo se ve como un documento más.
 
-Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un documento es su línea `agent:`**, no la carpeta en que está. Puedes mover un documento entre subcarpetas o crear las tuyas dentro de Agentes, y se sigue escribiendo en el mismo archivo.
+Las subcarpetas son para que encuentres las cosas, pero **dónde está un documento sí cuenta**: la carpeta dice de qué equipo es (o que es de todos), y la línea `agent:` dice qué archivo escribe. Las dos tienen que estar de acuerdo, como cuenta [La línea `agent:`](#la-línea-agent). Dentro de la carpeta de un agente de tu equipo puedes mover un documento entre tus propias carpetas o crear las tuyas, y se sigue escribiendo en el mismo archivo.
 
-**Una subcarpeta por cada agente de este equipo, aunque esté vacía.** Cada agente que Tisty encuentra aquí tiene su carpeta en Agentes: **Global**, **Claude**, **Codex**, **Copilot**, **Gemini** y **Cursor**, según cuáles tengas. Tisty la crea al traer, al [buscar de nuevo](#buscar-de-nuevo) o cuando aparece un agente nuevo, para que tengas dónde escribirle aunque todavía no tenga ningún archivo. Crear una carpeta no toca ningún archivo de tus agentes. Si borras una de esas subcarpetas, por ejemplo **Cursor** porque no lo usas, Tisty no la vuelve a crear. Y si dos equipos la crean a la vez antes de sincronizarse, queda una sola.
+**Una subcarpeta por cada agente de este equipo, aunque esté vacía.** Tisty la crea al traer, al [buscar de nuevo](#buscar-de-nuevo) o cuando aparece un agente nuevo, para que tengas dónde escribirle aunque todavía no tenga ningún archivo. Crear una carpeta no toca ningún archivo de tus agentes. Si borras una de esas subcarpetas, por ejemplo **Cursor** porque no lo usas, Tisty no la vuelve a crear. Y si dos equipos la crean a la vez antes de sincronizarse, queda una sola.
+
+**Un equipo sin agentes** no escribe nada con Agentes: los documentos de agentes que tienen tus otros equipos los ves ahí solo como documentos.
 
 **La barra no dice nada junto a Agentes**: ninguna palabra, ni cuántos archivos esperan. Lo que espera tu decisión está en tres lugares:
 
 | Dónde | Qué ves |
 | :-- | :-- |
-| **La ficha de cada documento** | Su estado, siempre, en la etiqueta de color: **Cambiado por fuera**, **Cambiado en los dos lados**, **Escrito por un Tisty anterior** o **En espera**; la etiqueta **Propuesta**, si un agente te propone un cambio; o un aviso ámbar dentro de la ficha, cuando el documento [viene de otro equipo](#en-varios-equipos) o su texto [espera tu aprobación](#por-aprobar). La tabla de [cada estado](#cada-estado) dice qué hacer con cada uno |
+| **La ficha de cada documento** | Su estado, siempre, en la etiqueta de color: **Cambiado por fuera**, **Cambiado en los dos lados**, **Escrito por un Tisty anterior** o **En espera**; la etiqueta **Propuesta**, si un agente te propone un cambio; o un aviso dentro de la ficha, cuando el documento [viene de otro equipo](#en-varios-equipos), cuando [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo) o cuando su texto [espera tu aprobación](#por-aprobar). La tabla de [cada estado](#cada-estado) dice qué hacer con cada uno |
 | **Configuración › Agentes › Carpeta Agentes**, en la tarjeta **Agentes** | Los archivos que piden tu decisión: «1 archivo dice algo distinto en Tisty y en el agente.», o «1 archivo ya no es de ninguna regla ni skill de Agentes.», cada uno con **Revisar**; y bajo **Sincronizar Gemini**, si falta [su línea](#gemini-en-pausa) |
 | **Al entrar en Agentes** | Si Agentes sincroniza y un archivo existe en los dos lados, ya no es de ninguna regla ni skill o perdió la línea de Gemini, Tisty te pregunta por él apenas entras, uno por uno |
 
@@ -286,23 +280,24 @@ Las subcarpetas son para que encuentres las cosas: **lo que decide adónde va un
 
 ### El botón derecho de una subcarpeta
 
-**Global**, **Claude**, **Codex** y cualquier carpeta dentro de Agentes tienen un menú solo de agentes. Sobre **Agentes › Claude**, mientras Agentes sincroniza, ofrece esto, y nada más:
+**Global**, la carpeta de tu equipo, **Claude**, **Codex** y cualquier carpeta dentro de Agentes tienen un menú solo de agentes. Sobre **Agentes › Casa (este equipo) › Claude**, mientras Agentes sincroniza, ofrece esto, y nada más:
 
 | Opción | Qué hace |
 | :-- | :-- |
-| **Documento nuevo** | Crea un documento en esa carpeta que ya nace con su línea `agent:`: en **Claude**, una regla de Claude; en **Global**, una regla de Global. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla) |
+| **Documento nuevo** | Crea un documento en esa carpeta que ya nace con su línea `agent:`: en **Claude**, una regla de Claude. En **Global** crea un documento común, porque Global no escribe reglas. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla) |
 | **Traer otro archivo** | Abre la lista de los archivos de tus agentes que todavía no están en Agentes. Mira [Traer otro archivo](#traer-otro-archivo) |
 | **Pausar la sincronización con Claude** | Deja de escribir los archivos de Claude en este equipo, como el botón del mismo nombre en la ficha. En pausa, dice **Reanudar la sincronización con Claude**. Mira [Pausar, dejar de sincronizar y vaciar](#pausar-dejar-de-sincronizar-y-vaciar) |
 | **Ocultar de la barra** | La saca de la barra en este equipo. Si Agentes sincroniza, antes te pide dejar de sincronizar. Mira [Ocultarla de la barra](#ocultarla-de-la-barra) |
-| **Eliminar** | Pregunta antes; sus documentos pasan a **Sin carpeta**, y Tisty te pregunta por los archivos que armaban, con su respaldo. Mira [Eliminar una subcarpeta](#eliminar-una-subcarpeta) |
+| **Eliminar** | Pregunta antes; sus documentos pasan a **Sin carpeta**, y Tisty te pregunta por los archivos que escribían, con su respaldo. Mira [Eliminar una subcarpeta](#eliminar-una-subcarpeta) |
 
-- **Global no tiene pausa**: no es de un agente, y lo que tiene llega a todos. Para pausar uno, usa la subcarpeta de ese agente.
-- **La pausa solo aparece mientras Agentes sincroniza.** Traída sin sincronizar, Tisty no escribe ningún archivo, y no hay nada que pausar. Tampoco aparece para un agente que no está instalado en este equipo, aunque su carpeta haya llegado desde otro.
-- **Una carpeta dentro de una subcarpeta**, como **Agentes › Claude › Pruebas**, tiene el mismo menú que **Claude**, con la pausa de Claude.
-- **No hay Diagrama nuevo, Carpeta nueva, Cambiar nombre, Mover a, Importar ni Desempaquetar.** Esas son acciones de tus carpetas; dentro de Agentes, cada carpeta es de un agente, y su nombre es el que Tisty usa para saber a quién le escribe.
+- **La carpeta de otro equipo solo ofrece Ocultar de la barra.** Lo que hay en ella es de ese equipo: aquí se lee, se mueve y se copia como texto, pero no se escribe.
+- **Global y la carpeta de tu equipo no tienen pausa**: no son de un agente. Para pausar uno, usa la subcarpeta de ese agente.
+- **La pausa solo aparece mientras Agentes sincroniza.** Traída sin sincronizar, Tisty no escribe ningún archivo, y no hay nada que pausar. Tampoco aparece para un agente que no está instalado en este equipo.
+- **Una carpeta dentro de una subcarpeta**, como **Agentes › Casa (este equipo) › Claude › Pruebas**, tiene el mismo menú que **Claude**, con la pausa de Claude.
+- **No hay Diagrama nuevo, Carpeta nueva, Cambiar nombre, Mover a, Importar ni Desempaquetar.** Esas son acciones de tus carpetas; dentro de Agentes, el nombre de cada carpeta es el que Tisty usa para saber a quién le escribe.
 - **Una subcarpeta archivada** muestra además **Desarchivar**, para que vuelva.
 
-**Un ejemplo.** Jaime prueba a mano unas reglas nuevas de Claude esta tarde, pero quiere que Codex siga recibiendo lo de Global. Botón derecho sobre **Agentes › Claude** y **Pausar la sincronización con Claude**. Codex sigue sincronizando; Claude queda como lo dejó la última escritura. Al terminar, botón derecho otra vez y **Reanudar la sincronización con Claude**.
+**Un ejemplo.** Jaime prueba a mano unas reglas nuevas de Claude esta tarde, pero quiere que Codex siga recibiendo lo suyo. Botón derecho sobre **Agentes › Casa (este equipo) › Claude** y **Pausar la sincronización con Claude**. Codex sigue sincronizando; Claude queda como lo dejó la última escritura. Al terminar, botón derecho otra vez y **Reanudar la sincronización con Claude**.
 
 ### La línea `agent:`
 
@@ -310,7 +305,7 @@ Cada documento de Agentes empieza con sus propiedades, y una de ellas dice qué 
 
 ```markdown
 ---
-agent: claude/rule/CLAUDE.md
+agent: [claude/rule/CLAUDE.md, on-dev_ab12cd34]
 title: claude · CLAUDE.md
 ---
 # Cómo trabajo
@@ -319,94 +314,81 @@ title: claude · CLAUDE.md
 - Ramas con la forma tipo/nombre.
 ```
 
-El valor tiene tres partes, separadas por `/`:
+El primer valor tiene tres partes, separadas por `/`:
 
 - **El nivel**: `global`, o un agente: `claude`, `codex`, `copilot`, `gemini` o `cursor`.
 - **El tipo**: `rule`, `skill` o `memory`.
 - **El nombre**: la ruta del archivo dentro de la carpeta del agente, como `CLAUDE.md`, `rules/estilo.md` o `pr/SKILL.md`.
 
-A veces lleva marcas más, que Tisty pone solo al traer un archivo para escribirlo igual que estaba: `crlf` (líneas que terminan como en Windows), `bom` (una marca invisible al principio), `as-is` (finales de línea mezclados) y `open-end` (el archivo no termina en salto de línea). Por ejemplo, `agent: [copilot/rule/copilot-instructions.md, crlf, bom]`. La [guía de propiedades](https://markdown.tisty.app/es/propiedades) explica el resto.
+**Un documento de un equipo lleva una marca más**: `on-` y el código de ese equipo, como `on-dev_ab12cd34`. La pone Tisty, no tú. Un documento de Global o de la raíz no la lleva, porque es de todos.
+
+**La línea y la carpeta tienen que estar de acuerdo.** Si no lo están, por ejemplo porque restauraste una versión anterior del documento o lo moviste con un Tisty más viejo, ningún equipo lo escribe: la ficha dice «Está en la carpeta de un equipo y su texto dice otro, así que ningún equipo lo escribe hasta que lo resuelvas.» y ofrece **Según su carpeta**, que deja la línea como dice la carpeta.
+
+A veces lleva marcas más, que Tisty pone solo al traer un archivo para escribirlo igual que estaba: `crlf` (líneas que terminan como en Windows), `bom` (una marca invisible al principio), `as-is` (finales de línea mezclados) y `open-end` (el archivo no termina en salto de línea). Por ejemplo, `agent: [copilot/rule/copilot-instructions.md, crlf, bom, on-dev_ab12cd34]`. La [guía de propiedades](https://markdown.tisty.app/es/propiedades) explica el resto.
 
 La página no muestra esa línea: el documento se abre en su [ficha](#la-ficha-de-un-documento-de-agente).
 
-## Global o un agente
+## Global y la carpeta de tu equipo
 
-**Un documento de Global llega a cada agente que Tisty encuentra en este equipo.** Uno de la carpeta de un agente llega solo a ese agente.
+**Un documento es un archivo, palabra por palabra.** Nada se junta con otra cosa: lo que dice el documento es lo que dice el archivo que lee tu agente. **Global** es solo de skills, y las reglas son de cada agente, en la carpeta de tu equipo.
 
-### Una regla en Global
+### Un documento es un archivo
 
-Escribe en **Agentes › Global** un documento con estas propiedades:
+Escribe en **Agentes › Casa (este equipo) › Claude** un documento con estas propiedades:
 
 ```markdown
 ---
-agent: global/rule/para-todos.md
-title: global · para-todos.md
+agent: [claude/rule/CLAUDE.md, on-dev_ab12cd34]
+title: claude · CLAUDE.md
 ---
-# Para todos mis agentes
-
-- Antes de borrar algo, pregunta.
-- Nunca subas cambios sin que te lo pida.
-```
-
-Esa regla no se escribe en un archivo propio: va **al principio del archivo principal de cada agente**, antes de las reglas de ese agente. Si en este equipo tienes Claude Code, Codex y Gemini, Tisty escribe:
-
-- `~/.claude/CLAUDE.md`: la regla de Global, y después lo que dice tu documento de ese archivo, **Cómo trabajo** en el ejemplo.
-- `~/.codex/AGENTS.md`: la regla de Global, y después tu documento de `AGENTS.md`, si lo tienes.
-- `~/.gemini/tisty-rules.md`: la regla de Global, y después tu documento `gemini/rule/tisty-rules.md`, si lo tienes.
-
-Así queda el `CLAUDE.md` de Claude Code:
-
-```markdown
-# Para todos mis agentes
-
-- Antes de borrar algo, pregunta.
-- Nunca subas cambios sin que te lo pida.
-
 # Cómo trabajo
 
 - Responde en español.
 - Ramas con la forma tipo/nombre.
 ```
 
-El cuadro de datos de cada uno de esos documentos lo dice: en **Cómo trabajo**, **Lo lee** Claude y **Se escribe en** `~/.claude/CLAUDE.md`, con «junto con otro documento» debajo; en **Para todos mis agentes**, una fila por agente, **Archivo de Claude**, **Archivo de Codex** y **Archivo de Gemini**. Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
+Tisty escribe `~/.claude/CLAUDE.md` con esas líneas, y nada más. Si mañana cambias el documento, cambia el archivo; si alguien cambia el archivo por fuera, la ficha te lo dice. El cuadro de datos del documento lo confirma: **Lo lee** Claude y **Se escribe en** `~/.claude/CLAUDE.md`, sin ningún «junto con otro documento».
+
+Codex lee un solo archivo de reglas, `AGENTS.md`, y Gemini también, `tisty-rules.md`. Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
 
 > [!IMPORTANT]
-> **Trae el archivo principal de cada agente.** Si `~/.codex/AGENTS.md` ya existe y nunca lo trajiste, Tisty no sabe qué parte es tuya: al escribir una regla de Global, la ficha marca ese archivo **Cambiado en los dos lados**, y **Sobrescribir con Tisty** lo reemplazaría entero por tus reglas de Global. En vez de eso, usa **Traer a Agentes**: lo trae con sus palabras y escribe Global delante, con el original como respaldo n.º 1. Lo cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
+> **Una regla de Global de la 1.49 o la 1.50 se queda para que la leas.** Ya no se escribe en ningún agente: puedes leerla, copiarla a la carpeta de tu agente o borrarla. Si quieres que siga llegando a un agente, copia su texto a un documento de la carpeta de ese agente.
 
-### Una regla solo para Claude
+### Sumar reglas a un agente
 
-Claude Code también lee cada archivo de `~/.claude/rules`. Para una regla que solo Claude debe leer, escribe un documento con `agent: claude/rule/rules/pruebas.md`, en cualquier lugar de Agentes, y Tisty escribe `~/.claude/rules/pruebas.md`. Copilot hace lo mismo con su carpeta `instructions`: `agent: copilot/rule/instructions/rust.instructions.md`.
+Para sumar reglas a un agente, haz otro archivo que ese agente lea, no más texto en el mismo:
+
+- **Claude Code** lee cada archivo de `~/.claude/rules`: escribe un documento con `agent: claude/rule/rules/pruebas.md`, en la carpeta **Claude** de tu equipo, y Tisty escribe `~/.claude/rules/pruebas.md`.
+- **Copilot** hace lo mismo con su carpeta `instructions`: `agent: copilot/rule/instructions/rust.instructions.md`.
+- **Codex y Gemini** leen un solo archivo de reglas, así que lo que quieras sumarles va en ese mismo documento.
 
 Un nombre que el agente no lee no se escribe en ninguna parte: `agent: claude/rule/notas.md` deja la ficha diciendo «Ningún agente de este equipo lee este documento todavía.».
 
 ### Un documento nuevo ya es una regla
 
-No tienes que escribir la línea `agent:` a mano. Un documento que creas con **Documento nuevo** dentro de **Global** o de la carpeta de un agente empieza como una regla de ese lugar: sus propiedades ya traen su línea `agent:`, y tú solo escribes la regla.
+No tienes que escribir la línea `agent:` a mano. Un documento que creas con **Documento nuevo** dentro de la carpeta de un agente de tu equipo empieza como una regla de ese agente: sus propiedades ya traen su línea `agent:`, y tú solo escribes la regla.
 
 | Dónde lo creas | Con qué línea empieza |
 | :-- | :-- |
-| **Global** | `agent: global/rule/rule.md`; el siguiente, `rule-2.md`, y así |
 | **Claude** | `agent: claude/rule/CLAUDE.md` mientras ningún documento lo tenga; después, `claude/rule/rules/rule.md`, `rules/rule-2.md`… |
 | **Codex** | `agent: codex/rule/AGENTS.md` mientras ningún documento lo tenga |
 | **Copilot** | `agent: copilot/rule/copilot-instructions.md` mientras ningún documento lo tenga; después, `copilot/rule/instructions/rule.instructions.md`, `rule-2.instructions.md`… |
 | **Gemini** | `agent: gemini/rule/tisty-rules.md` mientras ningún documento lo tenga |
-| **Cursor**, Agentes misma o una carpeta tuya dentro de Agentes | Ninguna: es un documento común |
+| **Global**, **Cursor**, Agentes misma o una carpeta tuya dentro de Agentes | Ninguna: es un documento común |
 
-**Codex y Gemini leen un solo archivo de reglas.** Cuando un documento ya lo tiene, **Documento nuevo** en su carpeta no crea otro: abre ese mismo documento, para que sumes ahí lo nuevo. Lo que es para todos va en **Global**.
+En cada caso Tisty le suma la marca del equipo. **Codex y Gemini leen un solo archivo de reglas.** Cuando un documento ya lo tiene, **Documento nuevo** en su carpeta no crea otro: abre ese mismo documento, para que sumes ahí lo nuevo. **Cursor** no tiene un archivo de reglas propio, así que un documento nuevo en su carpeta también empieza común; sus skills las traes con **Traer otro archivo**.
 
-**Dos reglas Global con el mismo nombre.** Si en la casa y en el trabajo creaste una regla en **Global** antes de que los dos equipos se sincronizaran, las dos nacieron como `rule.md`. Al encontrarse, Tisty le deja el nombre a la más antigua y le da a la otra el siguiente libre, `rule-2.md`, sin tocar su texto: las dos llegan a tus agentes. En el equipo donde la otra llegó de afuera, espera su **Aplicar aquí** como cualquier documento de otro equipo. **Cursor** no tiene un archivo de reglas propio, así que un documento nuevo en su carpeta también empieza común; sus skills las traes con **Traer otro archivo**.
-
-**Un ejemplo.** Marisol tiene Agentes sincronizando y acaba de instalar Gemini CLI. En la barra aparece **Agentes › Gemini**, con su brújula verde, vacía.
+**Un ejemplo.** Marisol tiene Agentes sincronizando y acaba de instalar Gemini CLI. En la barra aparece **Agentes › Casa (este equipo) › Gemini**, con su brújula verde, vacía.
 
 1. Botón derecho sobre **Gemini** y **Documento nuevo**. El documento se abre en su ficha, con las etiquetas **Regla** y **Gemini**, todavía sin texto.
 2. Pulsa **Editar**, escribe «Responde en español.» y pulsa **Listo**.
-3. Tisty escribe `~/.gemini/tisty-rules.md` con esa línea, delante de ella lo que tengas en **Global**, y agrega la línea `@tisty-rules.md` al final de `~/.gemini/GEMINI.md`, para que Gemini lo lea. La ficha pasa a **Al día**, y en la barra el documento se llama `tisty-rules.md`, porque no tiene un título; si le escribes `# Reglas de Gemini` arriba, se llama así.
+3. Tisty escribe `~/.gemini/tisty-rules.md` con esa línea y agrega la línea `@tisty-rules.md` al final de `~/.gemini/GEMINI.md`, para que Gemini lo lea. La ficha pasa a **Al día**, y en la barra el documento se llama `tisty-rules.md`, porque no tiene un título; si le escribes `# Reglas de Gemini` arriba, se llama así.
 
 Sus propiedades, que la ficha no muestra, quedaron así:
 
 ```markdown
 ---
-agent: gemini/rule/tisty-rules.md
+agent: [gemini/rule/tisty-rules.md, on-dev_ab12cd34]
 title: gemini · tisty-rules.md
 ---
 Responde en español.
@@ -431,11 +413,13 @@ Una skill de Global se escribe una sola vez donde la leen varios a la vez:
 
 Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombre de la ficha, su `description` va debajo en una línea discreta, y el resto, como `disable-model-invocation: true`, va en filas chicas del cuadro de datos. El script se guarda en un bloque de código y se escribe tal cual, sin el bloque: la fila **Formato** del cuadro de datos dice el tipo del script, como SH · LF, y en un documento Markdown, Markdown · LF.
 
+**Una skill de un agente** va en la carpeta de ese agente, y se escribe solo en su carpeta de skills.
+
 ### Las skills de Tisty en Global
 
 Tisty trae tres skills propias, `tisty`, `consolidate` y `writing-for-the-next-agent`, que les enseñan a tus agentes a trabajar con él. No son documentos de Agentes: viven dentro de la app y tienen su propio sí, **Encender en este equipo**, que no necesita esta carpeta. Lo cuenta entero [[Hooks y skills|Hooks-y-skills]].
 
-Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de Tisty**, con su estado: **Apagadas** o **Encendidas**. Un clic abre su ficha, la misma de **Configuración › Agentes › Conectados**. Lo que cambia por tener Agentes:
+Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de Tisty**, con su estado: **Apagadas** o **Encendidas**. La fila aparece solo si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre su ficha, la misma de **Configuración › Agentes › Conectados**. Lo que cambia por tener Agentes:
 
 - **No se traen.** En la lista de la primera vez, en **Traer otro archivo** y en **Buscar de nuevo**, sus copias en las carpetas de tus agentes salen como **propio de Tisty**, y no entran como documentos.
 - **Una skill tuya con el mismo nombre gana.** Si en Agentes tienes tu propia `consolidate`, en cualquier nivel, la de Tisty no se escribe en ningún agente, y su ficha dice «Ya tienes en Agentes una skill llamada consolidate, así que la de Tisty no se agrega.».
@@ -452,18 +436,20 @@ Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de
 | Agente | Su carpeta | La mueve | Reglas que escribe Tisty | Skills | Memoria, solo para leer |
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | **Claude Code** | `~/.claude` | `CLAUDE_CONFIG_DIR` | `CLAUDE.md` y lo que va en `rules/` | `skills/` en su carpeta | `projects/*/memory/`, la memoria de cada proyecto |
-| **Codex** | `~/.codex` | `CODEX_HOME` | `AGENTS.md`, y Global en `AGENTS.override.md` cuando ese archivo existe | `~/.agents/skills/` | — |
-| **GitHub Copilot CLI** | `~/.copilot` | `COPILOT_HOME` | `copilot-instructions.md` y lo que va en `instructions/` | `skills/` en su carpeta; Global en `~/.agents/skills/` | — |
-| **Gemini CLI** | `~/.gemini` | `GEMINI_CLI_HOME`, la carpeta que contiene `.gemini` | `tisty-rules.md`, y la línea `@tisty-rules.md` en `GEMINI.md` | `skills/` en su carpeta; Global en `~/.agents/skills/` | `GEMINI.md` |
+| **Codex** | `~/.codex` | `CODEX_HOME` | `AGENTS.md`, y `AGENTS.override.md` si tienes un documento para él | `~/.agents/skills/` | — |
+| **GitHub Copilot CLI** | `~/.copilot` | `COPILOT_HOME` | `copilot-instructions.md` y lo que va en `instructions/` | `skills/` en su carpeta; las de Global, en `~/.agents/skills/` | — |
+| **Gemini CLI** | `~/.gemini` | `GEMINI_CLI_HOME`, la carpeta que contiene `.gemini` | `tisty-rules.md`, y la línea `@tisty-rules.md` en `GEMINI.md` | `skills/` en su carpeta; las de Global, en `~/.agents/skills/` | `GEMINI.md` |
 | **Cursor** | `~/.cursor` | — | Ninguna: sus reglas viven en sus ajustes | `skills/` en su carpeta | — |
 
 Lo que hace Tisty con cada uno:
 
 - **Claude Code.** Trae `CLAUDE.md`, cada archivo de `rules/`, cada skill y, si la marcas, la memoria de cada proyecto, solo la carpeta `memory` y nunca las conversaciones guardadas. Escribe `CLAUDE.md` y `rules/`, y las skills.
-- **Codex.** Codex lee `AGENTS.override.md` en vez de `AGENTS.md` cuando el primero existe, así que tus reglas de Global van a ese archivo mientras exista. Si lo creas después de la primera vez, [tráelo](#el-agentsoverridemd-de-codex) para que Global vaya ahí sin pisar lo tuyo. Sus skills van a `~/.agents/skills`, que `CODEX_HOME` no mueve.
+- **Codex.** Codex lee `AGENTS.override.md` en vez de `AGENTS.md` cuando el primero existe, y cada uno es su propio documento. Si creas el override después de la primera vez, [tráelo](#el-agentsoverridemd-de-codex). Sus skills van a `~/.agents/skills`, que `CODEX_HOME` no mueve.
 - **GitHub Copilot CLI.** Trae y escribe `copilot-instructions.md` y cada archivo de `instructions/`, como `rust.instructions.md`.
 - **Gemini CLI.** Gemini escribe su propio `GEMINI.md` cuando le pides que recuerde algo, así que ese archivo es suyo: Tisty lo puede traer como memoria y nunca lo sobrescribe. Tus reglas van a un archivo aparte, `~/.gemini/tisty-rules.md`, y Tisty agrega **una sola línea** al final de `GEMINI.md`, `@tisty-rules.md`, para que Gemini lo lea. No toca nada más de ese archivo, y si la línea ya está, no la repite. Si después la borras, Tisty no la vuelve a poner: Gemini queda [en pausa](#gemini-en-pausa) hasta que tú lo decides.
 - **Cursor.** Solo skills, propias o de Global.
+
+Un agente cuenta en cada equipo por separado: Tisty solo escribe lo de un agente cuya carpeta existe en ese equipo.
 
 **Las variables que mueven una carpeta** se leen del entorno con que arrancó Tisty. Si usas `CLAUDE_CONFIG_DIR` para guardar Claude Code en otra parte, defínela como variable de tu usuario y vuelve a abrir Tisty, para que la vea.
 
@@ -473,7 +459,7 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 
 ![La ficha de la regla Reglas en Agentes / Claude: las etiquetas Regla, Claude y Al día; el cuadro de datos con Lo lee Claude, Se escribe en con su botón de copiar, Tamaño, Respaldos con Ver, Formato Markdown · LF, Última escritura, Original guardado y Sincroniza en este equipo Sí; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-regla-light.webp)
 
-**Arriba de todo, el camino de carpetas**: «Agentes / Claude». Un clic en una carpeta la abre.
+**Arriba de todo, el camino de carpetas**: «Agentes / Casa (este equipo) / Claude». Un clic en una carpeta la abre.
 
 **La cabecera:**
 
@@ -485,13 +471,13 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 | Fila | Qué dice | Ejemplo |
 | :-- | :-- | :-- |
 | **Lo lee** | Qué agentes de este equipo leen el archivo | Claude, Codex |
-| **Se escribe en** | La ruta completa del archivo, con un botón para copiarla. Un documento de Global tiene una por agente: **Archivo de Claude**, **Archivo de Codex**. Debajo, si el archivo se arma con otros documentos, «junto con otro documento» | `~/.claude/CLAUDE.md` |
-| **Tamaño** | Cuánto pesa el archivo que lee el agente, entero, aunque se arme con varios documentos | 12,7 kB |
+| **Se escribe en** | La ruta completa del archivo, con un botón para copiarla. Una skill de Global tiene una por agente: **Archivo de Claude**, **Archivo de Codex**. Es siempre un solo documento por archivo: nada se escribe «junto con otro» | `~/.claude/CLAUDE.md` |
+| **Tamaño** | Cuánto pesa el archivo que lee el agente | 12,7 kB |
 | **Respaldos** | Cuántos guarda este equipo, y **Ver** para abrirlos | 3 respaldos · Ver, o Ninguno todavía |
 | **Formato** | Markdown, o el tipo del script; cómo terminan sus líneas, y las marcas que conserva | Markdown · LF, o PY · CRLF · BOM |
 | **Última escritura** | Cuándo cambió el archivo por última vez | hoy, 19:37 |
 | **Original guardado** | Si ya está el respaldo n.º 1, el archivo de antes de que Tisty lo tocara | Sí, el de antes de la primera escritura de Tisty |
-| **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, Agentes no se sincroniza; No: espera «Aplicar aquí»; No: su texto espera tu aprobación. Con una propuesta esperando, se suma «un cambio propuesto por un agente espera tu aprobación» |
+| **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, Agentes no se sincroniza; No: espera «Aplicar aquí»; No: su texto espera tu aprobación; No: es de otro equipo; Espera que elijas, o No: aquí manda otro, cuando [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo); No: su carpeta y su texto dicen equipos distintos. Con una propuesta esperando, se suma «un cambio propuesto por un agente espera tu aprobación» |
 | **Compartido** | Solo si el documento tiene un enlace compartido activo: si se puede leer o editar, y **Ver** muestra los enlaces con su botón para copiarlos y las acciones de siempre, como **Dejar de compartir**. Lo cuenta [Compartir](Documentos#compartir) | Solo leer · Ver |
 | **Las propiedades del archivo** | Las otras claves de su encabezado, en filas chicas de clave y valor. Si son demasiadas o muy largas para leerlas como campos, van tal como están escritas | `disable-model-invocation` true; `applyTo` `**/*.rs` |
 
@@ -502,14 +488,15 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 **Los botones, al pie**, fijos abajo mientras la ficha entera se desplaza junto con el texto:
 
 - **Editar** abre el editor de Tisty sobre el texto, con su encabezado y la barra del editor de siempre para títulos y listas, y **Listo** lo vuelve a cerrar.
-- **Respaldos**, cuando el documento se escribe en un solo archivo y ese archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos. Un documento de **Global**, que se escribe en varios archivos, no lo tiene al pie: los respaldos de cada archivo se abren con **Ver**, en su fila.
+- **Respaldos**, cuando el documento se escribe en un solo archivo y ese archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos. Una skill de **Global**, que se escribe en varios archivos, no lo tiene al pie: los respaldos de cada archivo se abren con **Ver**, en su fila.
 - **Historial**: las versiones anteriores del documento, no del archivo. Lo cuenta [[Versiones anteriores|Documentos#versiones-anteriores]]. La comparación con lo **Aprobado** lee de ahí: si vacías el historial, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
 - **Copiar enlace** copia su [enlace](Documentos#el-enlace-de-un-documento).
-- **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo. Uno de Global tiene un botón por agente: **Pausar Claude**, **Pausar Codex**…
+- **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo. Una skill de Global tiene un botón por agente: **Pausar Claude**, **Pausar Codex**…
+- **Los de otro equipo no tienen Editar, ni Aplicar, ni Eliminar, ni pausa**: la ficha dice «Es de otro de tus equipos: en este solo se lee.». Lo que sí puedes es leerlo, moverlo, copiarlo como texto y sacarlo. Un cambio que otro equipo aprobó para este espera aquí cada vez, como cuenta [En varios equipos](#documentos-de-otros-equipos).
 
 Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha dice «Este archivo lo escribe el agente: Tisty lo muestra y lo trae, y nunca lo sobrescribe.».
 
-**Un ejemplo.** Abres la regla **Horario laboral** de Codex, que va en `~/.codex/AGENTS.md` junto con tu regla de Global. Arriba ves «Agentes / Codex» y las etiquetas **Regla**, **Codex** y **Al día**. En el cuadro, «Se escribe en `~/.codex/AGENTS.md`», con «junto con otro documento» debajo, y «Tamaño 29 kB · cerca de los 32 KiB que lee Codex» en ámbar. Lees el texto, decides pasar la parte larga a una skill y pulsas **Editar** al pie.
+**Un ejemplo.** Abres la regla **Horario laboral** de Codex, que va en `~/.codex/AGENTS.md`. Arriba ves «Agentes / Casa (este equipo) / Codex» y las etiquetas **Regla**, **Codex** y **Al día**. En el cuadro, «Se escribe en `~/.codex/AGENTS.md`», y «Tamaño 29 kB · cerca de los 32 KiB que lee Codex» en ámbar. Lees el texto, decides pasar la parte larga a una skill y pulsas **Editar** al pie.
 
 ### Cada estado
 
@@ -520,7 +507,7 @@ Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha di
 | **Cambiado por fuera** | Alguien cambió el archivo fuera de Tisty, o lo borró | Elegir: [traer o sobrescribir](#un-cambio-por-fuera-traer-o-sobrescribir) |
 | **Cambiado en los dos lados** | Cambiaron el archivo y el documento desde la última escritura | Elegir cuál conservar |
 | **Escrito por un Tisty anterior** | Una versión anterior de Tisty escribió el archivo sin anotar de qué documentos venía, y hoy no dice lo mismo que ellos | **Ver el archivo**, y después **Sobrescribir con Tisty** si te quedas con el documento |
-| **En espera** | Uno de los documentos que arman este archivo [cambió sin tu aprobación](#por-aprobar), o salió de Agentes por mano de un agente, así que el archivo queda como estaba. La ficha nombra ese documento | Aprobar ese documento, o volver a ponerlo y sacarlo tú |
+| **En espera** | El texto de este documento [cambió sin tu aprobación](#por-aprobar), o el documento salió de Agentes por mano de un agente, así que el archivo queda como estaba. La ficha lo nombra | Aprobar el documento, o volver a ponerlo y sacarlo tú |
 | **En pausa** | Pausaste la sincronización de ese agente, o Agentes no sincroniza en este equipo; entonces la ficha suma «La carpeta Agentes no se sincroniza con tus agentes. Elige Sincronizar en la barra o en Configuración › Agentes › Carpeta Agentes.». En Gemini, también cuando falta en `GEMINI.md` la línea `@tisty-rules.md` que Tisty había puesto | **Reanudar** cuando quieras, o **Sincronizar** la carpeta; en Gemini, [**Volver a ponerla**](#gemini-en-pausa) |
 | **Sin permiso en este equipo** | Este equipo todavía no te dejó leer los archivos de tus agentes, por ejemplo porque Agentes llegó traída desde otro equipo | **Sincronizar**, en la barra o en Configuración › Agentes › Carpeta Agentes, y elegir en el aviso de la primera vez |
 | **Nada que escribir** | El documento quedó vacío, y Tisty nunca vacía un archivo de un agente | Escribir algo, o sacar el documento de Agentes |
@@ -531,9 +518,9 @@ Un documento de memoria no tiene **Editar**: lo escribe el agente, y la ficha di
 Dos avisos más pueden aparecer bajo el cuadro de datos:
 
 - **«Ningún agente de este equipo lee este documento todavía.»** El agente no está en este equipo, o el nombre no es un archivo que ese agente lea.
-- **«Otro documento de Agentes ya escribe este archivo, así que este queda fuera.»** Dos documentos tienen la misma línea `agent:`: solo uno se escribe.
+- **«En este equipo otro documento escribe este archivo.»** Dos documentos, el de tu carpeta y uno de la raíz, van al mismo archivo: solo uno se escribe, y la ficha del otro lo dice.
 
-Y si el documento todavía no se aplica en este equipo, un aviso ámbar dice por qué, con el botón que lo resuelve: lo cuenta [En varios equipos](#en-varios-equipos).
+Y si el documento todavía no se aplica en este equipo, un aviso dice por qué, con el botón que lo resuelve: **Aplicar aquí** y **No en este equipo** si espera tu sí; **Este** y **El otro** si [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo); **Según su carpeta** si su carpeta y su línea `agent:` no se ponen de acuerdo. Todo eso lo cuenta [En varios equipos](#en-varios-equipos).
 
 ## Un cambio por fuera: traer o sobrescribir
 
@@ -547,15 +534,15 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 
 Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
 
-**Traer el cambio** solo aparece cuando el cambio se puede atribuir a este documento: el documento es de ese mismo agente, no de Global, y no lo estás editando. Si `CLAUDE.md` se arma con una regla de Global y tu documento de Claude, y el cambio cae en la parte de Global, solo queda **Sobrescribir con Tisty**: copia a mano en Global lo que quieras conservar y después sobrescribe.
+**Traer el cambio** aparece cuando el documento es de un solo agente, no de Global, y no lo estás editando: como un documento es el archivo entero, lo que cambió en el archivo es lo que pasa al documento. Si estás editando, pulsa **Listo** primero.
 
 **Si borraron el archivo**, la ficha dice **Cambiado por fuera** sin **Ver el archivo**: **Sobrescribir con Tisty** lo vuelve a crear.
 
 ### Cambiado en los dos lados
 
-Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los dos lados**. Cuando el documento es el único que arma ese archivo, aparece **Quedarse con el archivo**, que pregunta «¿Dejar este documento como está ahora …? Lo que dice ahora queda en su historial.»; si no, solo **Sobrescribir con Tisty**.
+Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los dos lados**. Aparece **Quedarse con el archivo**, que pregunta «¿Dejar este documento como está ahora …? Lo que dice ahora queda en su historial.», junto a **Sobrescribir con Tisty**.
 
-Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si el archivo se arma con varios documentos, solo puedes conservar el de Tisty o decidir después. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Agentes › Carpeta Agentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
+Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Agentes › Carpeta Agentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
 
 ## Respaldos
 
@@ -578,7 +565,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 ## Pausar, dejar de sincronizar y vaciar
 
-**Pausar un agente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Agentes › Carpeta Agentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También en la barra: botón derecho sobre **Agentes › Claude** y **Pausar la sincronización con Claude**; en pausa, el mismo menú dice **Reanudar la sincronización con Claude**. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por agente, **Pausar Claude**, **Pausar Codex**…, en uno de Global. En pausa, Tisty no abre ni escribe los archivos de ese agente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
+**Pausar un agente.** Mientras Agentes sincroniza, el lugar de siempre es **Configuración › Agentes › Carpeta Agentes**: en la tarjeta **Agentes**, apaga el interruptor **Sincronizar Claude**, que aparece solo mientras la carpeta sincroniza. También en la barra: botón derecho sobre **Agentes › Casa (este equipo) › Claude** y **Pausar la sincronización con Claude**; en pausa, el mismo menú dice **Reanudar la sincronización con Claude**. También desde la ficha de un documento, con los botones del pie: **Pausar la sincronización con Claude**, en un documento que se escribe en un solo archivo, o un botón por agente, **Pausar Claude**, **Pausar Codex**…, en una skill de Global. En pausa, Tisty no abre ni escribe los archivos de ese agente: quedan como los dejó la última escritura, y tú sigues editando tus documentos. **Reanudar la sincronización con Claude** escribe lo que cambiaste, salvo un archivo que cambió por fuera mientras tanto, que queda marcado para que decidas.
 
 **Dejar de sincronizar toda la carpeta.** Botón derecho sobre **Agentes** y **Dejar de sincronizar**, o el botón **Dejar de sincronizar** en su tarjeta de **Configuración › Agentes › Carpeta Agentes**. Pasa esto, y nada más:
 
@@ -590,7 +577,7 @@ Las versiones anteriores del **documento**, en cambio, son las de cualquier docu
 
 Al sincronizar, Tisty escribe lo que cambiaste en tus documentos mientras tanto, con su respaldo antes, salvo un archivo que cambió por fuera, que queda marcado para que decidas. Lo que encuentra distinto en los dos lados, o que ya no es de ninguna regla ni skill, te lo pregunta en ese mismo momento.
 
-**La primera vez que sincronizas algo que solo habías traído**, un archivo que sigue tal cual lo trajiste se toma como está: no se pregunta nada por él. Si algo se le suma, como una regla de Global que va al principio de tu `CLAUDE.md`, Tisty lo escribe encima, con su respaldo antes. Un archivo que cambió desde que lo trajiste, en cambio, no se pisa: aparece **Existe en los dos lados** y eliges.
+**La primera vez que sincronizas algo que solo habías traído**, un archivo que sigue tal cual lo trajiste se toma como está: no se pregunta nada por él. Un archivo que cambió desde que lo trajiste, en cambio, no se pisa: aparece **Existe en los dos lados** y eliges.
 
 **Un ejemplo.** Lucas quiere probar a mano unas reglas nuevas en su `CLAUDE.md` durante una semana, sin que Tisty las toque. Elige **Dejar de sincronizar**. Edita el archivo con su editor y, en paralelo, sigue ordenando sus documentos en Agentes. Al final de la semana pulsa **Sincronizar**: la ficha de **Cómo trabajo** dice **Cambiado por fuera**, y Lucas elige **Traer el cambio** para quedarse con lo que probó, o **Sobrescribir con Tisty** para volver a lo de sus documentos.
 
@@ -616,11 +603,12 @@ Cuando eliminas de Agentes una regla o una skill tuya, con **Eliminar** en su me
 
 **Un ejemplo.** Yisset escribió en Agentes la skill de Global **voz**, y Tisty la puso en `~/.claude/skills/voz/SKILL.md` y en `~/.agents/skills/voz/SKILL.md`, que leen Codex y Copilot. Ya no la quiere y elige **Eliminar**. El aviso dice «¿Borrar «voz»? El documento y su contenido se van para siempre. Esto no se puede deshacer.» y, en negrita, «¿Quitar también de Claude, Codex y Copilot?». Elige **Quitar también**: los dos archivos se van, cada uno con su respaldo, y ninguno de sus agentes vuelve a leer esa skill. Solo se van los archivos que el aviso nombró: lo que quedó suelto por otro camino mientras estaba abierto espera su propia pregunta.
 
+Un documento de otro equipo no se elimina desde este: aquí se lee, se mueve y se saca, y eliminarlo es cosa de ese equipo.
+
 Algunas copias el aviso las dice aparte, y nunca se van sin que las veas:
 
 - **Una copia que cambió fuera de Tisty**, por ejemplo una que editaste a mano: «Cambió fuera de Tisty en Codex y Copilot: esa copia se queda y la ves después, aparte.». Después de eliminar se abre por ella el aviso [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo), con su ruta y «Cambió después de la última vez que Tisty lo escribió.». Si cambia entre la pregunta y tu respuesta, también se queda. **Solo de Tisty** no la anota como dejada: queda para esa pregunta.
 - **Una copia que lee un agente en pausa**: «En pausa: Copilot. Su copia se queda y Tisty vuelve a preguntar cuando sincronice.». Vale para cualquier agente que la lea, también uno que solo comparte `~/.agents/skills` con otro, y para Gemini mientras falta la línea `@tisty-rules.md` en su `GEMINI.md`. Tisty no la toca. Cuando el agente vuelve a sincronizar, esa copia cuenta como archivo suelto: la tarjeta **Agentes** de Configuración lo dice con **Revisar**, y Tisty hace la pregunta de siempre la próxima vez que entras en Agentes.
-- **Un archivo que también arman otras reglas**, como un `CLAUDE.md` con una regla de Global: «Claude: ese archivo también lo arman otras reglas, así que se vuelve a escribir sin esto, con respaldo antes.». Ese archivo nunca se quita.
 
 Si todas las copias cambiaron o están en pausa, el aviso igual aparece, con **Solo de Tisty** y **Cancelar**. Si no queda suelto nada que Tisty escribió (el documento solo se trajo y nunca se sincronizó, Agentes nunca sincronizó en este equipo, o cada archivo también lo escribe otro documento), toda la pregunta es el «¿Borrar «voz»?» de siempre. Si dejaste de sincronizar, el aviso nombra en pausa a cada agente que lee una copia, con **Solo de Tisty** y **Cancelar**. Eliminar varios documentos a la vez hace un solo aviso para todos, con la misma lista que muestra la pregunta de siempre y todos los agentes nombrados juntos.
 
@@ -628,14 +616,17 @@ Si un documento no se puede eliminar, por ejemplo porque está bloqueado, ningun
 
 #### Archivos que dejaste en tus agentes
 
-Lo que dejas con **Solo de Tisty** sigue siendo tuyo: Tisty lo toma como archivo tuyo. La tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes** los lista aparte: «2 archivos que dejaste en tus agentes al eliminarlos de Agentes.», con **Revisar**, que pregunta por cada uno con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Tisty nunca pregunta por ellos solo y nunca escribe encima, y una carpeta de Agentes que vacías igual se va. Si más adelante escribes una regla o skill que cae otra vez en el mismo archivo, Tisty pregunta antes, como con [un cambio por fuera](#un-cambio-por-fuera-traer-o-sobrescribir), con **Conservar el de Tisty** (con respaldo antes), o **Conservar el archivo** cuando el archivo es de un solo documento de ese agente. Si traes ese mismo archivo con [Traer otro archivo](#traer-otro-archivo), vuelve a ser de Tisty y sale de esa lista. Si el documento que eliminaste era el último de Agentes, la carpeta se va, pero esta lista sigue en la tarjeta con **Revisar**, para que puedas cambiar de idea; nada más de lo que escribió Agentes se ofrece ahí. Esa lista es solo de este equipo: no viaja a tus otros equipos.
+Lo que dejas con **Solo de Tisty** sigue siendo tuyo: Tisty lo toma como archivo tuyo. La tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes** los lista aparte: «2 archivos que dejaste en tus agentes al eliminarlos de Agentes.», con **Revisar**, que pregunta por cada uno con [¿Quitar también el archivo?](#sacar-una-regla-y-su-archivo). Tisty nunca pregunta por ellos solo y nunca escribe encima, y una carpeta de Agentes que vacías igual se va. Si más adelante escribes una regla o skill que cae otra vez en el mismo archivo, Tisty pregunta antes, como con [un cambio por fuera](#un-cambio-por-fuera-traer-o-sobrescribir), con **Conservar el de Tisty** (con respaldo antes), o **Conservar el archivo** cuando el documento es de un agente de este equipo. Si traes ese mismo archivo con [Traer otro archivo](#traer-otro-archivo), vuelve a ser de Tisty y sale de esa lista. Si el documento que eliminaste era el último de Agentes, la carpeta se va, pero esta lista sigue en la tarjeta con **Revisar**, para que puedas cambiar de idea; nada más de lo que escribió Agentes se ofrece ahí. Esa lista es solo de este equipo: no viaja a tus otros equipos.
 
 ### Sacar una regla y su archivo
 
-Sincronizando, Tisty deja de escribir un documento cuando lo sacas de Agentes: cuando lo archivas o lo mueves fuera, cuando cambias su línea `agent:` por la de otro archivo, y cuando vuelves a una [versión anterior](Documentos#versiones-anteriores) que no tenía ficha, o tenía otra. Eliminarlo pregunta [en ese momento](#eliminar-una-regla-o-una-skill); esta pregunta es para todos los demás caminos, y para las copias que esa pregunta deja para después.
+Sincronizando, Tisty deja de escribir un documento cuando lo sacas de Agentes: cuando lo archivas o lo mueves fuera, cuando cambias su línea `agent:` por la de otro archivo, cuando vacías todas sus palabras, cuando lo mueves a la carpeta de otro equipo, y cuando vuelves a una [versión anterior](Documentos#versiones-anteriores) que no tenía ficha, o tenía otra. Eliminarlo pregunta [en ese momento](#eliminar-una-regla-o-una-skill); esta pregunta es para todos los demás caminos, y para las copias que esa pregunta deja para después.
 
-- **Si el archivo se armaba con varios documentos**, como `CLAUDE.md` con una regla de Global, Tisty lo vuelve a escribir sin esa parte, y guarda antes un respaldo.
-- **Si era el único**, ninguna regla ni skill escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
+Como un documento es un archivo entero, ninguna regla ni skill escribe ya ese archivo, pero sigue en el disco y tu agente lo sigue leyendo. Por eso, alrededor de un segundo después, Tisty te pregunta qué hacer con él.
+
+**Vaciar un documento.** Dejar sin ninguna palabra una regla es lo mismo que sacarla: Tisty nunca vacía el archivo de un agente, así que en vez de eso te pregunta por él con **¿Quitar también el archivo?**, como si lo hubieras sacado.
+
+**Moverlo a otro equipo.** Un documento que mueves a la carpeta de otro de tus equipos deja de aplicarse aquí, y Tisty te pregunta por su archivo de este equipo con la misma pregunta. Si tiene una propuesta de un agente esperando, no se deja mover: la ficha dice «Un agente propuso un cambio en este documento. Apruébalo o descártalo antes de moverlo a otro equipo». Lo que mueves a la carpeta de tu equipo, o a la raíz, cuenta como aplicarlo aquí; en los demás equipos queda esperando su **Aplicar aquí**.
 
 **Un ejemplo.** Tenías la regla **Pruebas**, de `~/.claude/rules/pruebas.md`, y la moviste fuera de Agentes, a **Notas**. Se abre **¿Quitar también el archivo?**: «Ninguna regla ni skill de Agentes escribe ya este archivo de Claude, pero sigue en el disco y Claude lo sigue leyendo.», con la ruta debajo y «Si lo quitas, queda un respaldo en este equipo.».
 
@@ -660,16 +651,15 @@ En tus otros equipos pasa lo mismo: cuando la regla borrada les llega con la sin
 
 ### Eliminar una subcarpeta
 
-Botón derecho sobre una subcarpeta de Agentes, como **Agentes › Claude › Pruebas**, y **Eliminar**. Tisty pregunta antes «¿Borrar «Pruebas»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.». Con tu sí:
+Botón derecho sobre una subcarpeta de Agentes, como **Agentes › Casa (este equipo) › Claude › Pruebas**, y **Eliminar**. Tisty pregunta antes «¿Borrar «Pruebas»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.». Con tu sí:
 
 1. Sus documentos pasan a **Sin carpeta**. Como salen de Agentes, Tisty deja de escribirlos.
 2. Alrededor de un segundo después, Tisty te pregunta por cada archivo que armaban, igual que en [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo): **Quitar el archivo** guarda un respaldo en este equipo y lo borra; **Dejarlo** lo deja donde está.
-3. Un archivo que también arma una regla de Global, como `CLAUDE.md`, no se pregunta: Tisty lo vuelve a escribir sin esa parte, con su respaldo antes.
-4. La carpeta no vuelve sola: Tisty no rehace una carpeta de Agentes que borraste.
+3. La carpeta no vuelve sola: Tisty no rehace una carpeta de Agentes que borraste.
 
 Como al sacar una regla, no pregunta por un agente en pausa ni mientras Agentes no sincroniza: entonces Tisty no escribía ningún archivo.
 
-**Un ejemplo.** Marisol guardaba sus reglas de pruebas en una carpeta suya, **Agentes › Claude › Pruebas**, y ya no las quiere. Botón derecho sobre **Pruebas** y **Eliminar**; un segundo después, Tisty le pregunta **¿Quitar también el archivo?** por `~/.claude/rules/pruebas.md`. Elige **Quitar el archivo**: el respaldo queda en este equipo, Claude deja de leer esas reglas y sus documentos siguen en **Sin carpeta**, por si un día los quiere de vuelta.
+**Un ejemplo.** Marisol guardaba sus reglas de pruebas en una carpeta suya, **Agentes › Casa (este equipo) › Claude › Pruebas**, y ya no las quiere. Botón derecho sobre **Pruebas** y **Eliminar**; un segundo después, Tisty le pregunta **¿Quitar también el archivo?** por `~/.claude/rules/pruebas.md`. Elige **Quitar el archivo**: el respaldo queda en este equipo, Claude deja de leer esas reglas y sus documentos siguen en **Sin carpeta**, por si un día los quiere de vuelta.
 
 ### Vaciar Agentes
 
@@ -696,7 +686,7 @@ Agentes sale de la barra lateral en este equipo sin dejar rastro, y queda en **C
 
 **Si en la versión anterior la habías ocultado mientras escribía los archivos de tus agentes**, ahora la encuentras otra vez en la barra, sincronizando. Desde ahí, si no la quieres ver, **Dejar de sincronizar** y **Ocultar de la barra**.
 
-**Las subcarpetas siguen la misma regla.** **Ocultar de la barra** está siempre en el botón derecho de **Global**, **Claude** o cualquier carpeta dentro de Agentes. Mientras Agentes sincroniza, pasa por el mismo aviso, y **Dejar de sincronizar y ocultar** deja de sincronizar Agentes entera antes de ocultar esa subcarpeta: lo que tiene no debe quedar escribiendo sin que lo veas. Y si una subcarpeta oculta vuelve a sincronizar, por ejemplo con **Sincronizar** en la tarjeta, vuelve sola a la barra.
+**Las subcarpetas siguen la misma regla.** **Ocultar de la barra** está siempre en el botón derecho de **Global**, de la carpeta de un equipo, de **Claude** o de cualquier carpeta dentro de Agentes; en la de otro equipo es lo único que ofrece. Mientras Agentes sincroniza, pasa por el mismo aviso, y **Dejar de sincronizar y ocultar** deja de sincronizar Agentes entera antes de ocultar esa subcarpeta: lo que tiene no debe quedar escribiendo sin que lo veas. Y si una subcarpeta oculta vuelve a sincronizar, por ejemplo con **Sincronizar** en la tarjeta, vuelve sola a la barra.
 
 ### Agentes se queda arriba
 
@@ -734,32 +724,92 @@ Desde ahora, el primer paso es **Traer** o **Traer y sincronizar**, también cua
 
 ## En varios equipos
 
-Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el del trabajo, tus documentos de Agentes viajan con tu sincronización como cualquier otro. Pero **cada equipo elige si sincroniza y qué aplica a sus agentes**: que la casa sincronice no hace que el trabajo sincronice, y un documento que llega de otro equipo no se escribe en ningún archivo hasta que tú lo dices, en ese equipo y desde la ventana de Tisty.
+Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el del trabajo, tus documentos de Agentes viajan con tu sincronización como cualquier otro. Pero **cada equipo tiene su propia carpeta y escribe solo la suya**: que la casa sincronice no hace que el trabajo sincronice, y lo que está en la carpeta de otro equipo lo lees aquí, pero no lo escribes aquí.
+
+### Cada equipo, su carpeta
+
+```text
+Agentes
+├── Global                      solo skills
+├── Codex                       solo si moviste o creaste algo aquí: es para todos tus equipos
+├── Casa (este equipo)
+│   ├── Claude
+│   └── Codex
+└── Trabajo                     otro equipo: en gris tenue
+    └── Claude
+```
+
+- **Tu carpeta** lleva el nombre que tu equipo tiene en la sincronización, con «(este equipo)» detrás. Tisty solo la lee y la sincroniza a ella: lo que traes, y cada agente que encuentra aquí, va a esa carpeta.
+- **Las de los demás equipos** van al final, en gris tenue, por su nombre. Si dos equipos se llaman igual, un código corto los distingue. Ahí lees, mueves, copias como texto y sacas; no editas, no aplicas, no eliminas ni pausas.
+- **La raíz es para todos los equipos.** Un documento queda ahí solo si lo mueves ahí o lo creas ahí, con botón derecho sobre el documento, **Mover a** y **Agentes** o la carpeta suelta, como **Codex**. Es para el caso en que quieres la misma regla en todos tus equipos. En cada equipo sigue esperando su **Aplicar aquí**, como cuenta el paso a paso.
+- **Mover aplica o deja de aplicar.** Mover algo a la carpeta de tu equipo o a la raíz cuenta como aplicarlo en este equipo; en los demás espera su **Aplicar aquí**. Mover un documento a la carpeta de otro equipo deja de aplicarlo aquí, y Tisty te pregunta por su archivo, como cuenta [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo). Un documento con una propuesta de un agente esperando no se deja mover a otro equipo hasta que la apruebes o la descartes, y tampoco una carpeta que tenga uno.
+- **Tisty pregunta antes de un movimiento que cambia de quién es.** Cuando mueves un documento o una carpeta entre la raíz, la carpeta de tu equipo y la de otro equipo, arrastrándolo o con **Mover a**, primero una pregunta dice qué cambia, y nada se mueve hasta que pulsas **Mover**. **Cancelar** deja todo como estaba. Un movimiento dentro de la misma carpeta, o que se queda en el mismo equipo, no pregunta nada.
+
+**Un ejemplo.** Yisset mueve **Ramas**, su regla de Claude en la raíz, a **Casa (este equipo) › Claude**, porque en el trabajo las ramas van de otra forma. Tisty pregunta:
+
+```text
+¿Mover «Ramas» a la carpeta de este equipo?
+
+En este equipo, se sigue escribiendo en CLAUDE.md.
+Tus otros equipos conservan su archivo como está, como un documento propio.
+```
+
+Cada línea dice una cosa que va a pasar:
+
+| La línea | Qué significa |
+| :-- | :-- |
+| **Tisty lo escribe en …** | Este equipo empieza a escribir ese archivo, con un respaldo antes |
+| **Se sigue escribiendo en …** | Ya se escribía aquí, y se sigue escribiendo |
+| **Otro documento también escribe …** | Algo en la raíz o en tu carpeta escribe el mismo archivo: Tisty pregunta cuál manda aquí, como cuenta [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo) |
+| **Tisty deja de escribir … y te pregunta** | Sale de este equipo, y Tisty te pregunta qué hacer con el archivo, con un respaldo |
+| **Su texto aún no está aprobado** | Ningún equipo lo escribe hasta que lo apruebes |
+| **Todavía ningún agente lo lee** | Su agente no está en este equipo, o su sincronización está en pausa aquí: no se escribe nada |
+| **En tus otros equipos, espera «Aplicar aquí»** | Va a la raíz: cada uno de tus otros equipos elige |
+| **En …, un Tisty anterior** | Ese equipo lo lee como un documento para todos tus equipos hasta que se actualice a 1.50.2 |
+
+Cuando mueves una carpeta, la pregunta cuenta sus documentos y da una línea por cada uno que cambia algo en este equipo.
 
 ### Un segundo equipo, paso a paso
 
-**Un ejemplo.** En el equipo de la casa elegiste **Traer y sincronizar**, trajiste tu `CLAUDE.md` y escribiste en **Agentes › Global** la regla «Para todos mis agentes». Ahí se aplicaron solas: las trajiste y las escribiste tú, en ese equipo. Ahora instalas Tisty en el equipo del trabajo y sincronizas:
+**Un ejemplo.** En el equipo de la casa, Mario eligió **Traer y sincronizar**: su `CLAUDE.md`, **Cómo trabajo**, quedó en **Agentes › Casa (este equipo) › Claude**, y escribió allí otra regla, **Estilo de código**. Ahora instala Tisty en el equipo del trabajo y sincroniza:
 
-1. En la barra, Agentes llega en el **estado 2**, traída sin sincronizar: el robot gris, el nombre como cualquier carpeta y sus documentos. Tus documentos ya viajaron, pero este equipo todavía no sincroniza ni leyó nada de sus agentes. Ábrela y léelos desde ya; arriba dice «No se sincroniza con tus agentes · Sincronizar».
-2. Pulsa **Sincronizar**, en esa línea, en el botón derecho o en la tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes**. Como este equipo nunca te dejó leer los archivos de sus agentes, primero se abre el aviso de la primera vez, con los archivos de este equipo. Los que ya tienen documento dicen **ya está en Agentes**, y si todo lo que encontró ya está, el aviso dice «Todo lo que encontré ya está en Agentes. Sincroniza este equipo para mantenerlo al día:».
-3. Marca lo que quieras traer de este equipo, como la memoria de sus proyectos, y pulsa **Traer y sincronizar**. Agentes pasa al estado 3, con su robot coral. Si en cambio eliges **Traer**, entra lo que marcaste y este equipo sigue sin sincronizar.
-4. Abre **Para todos mis agentes**. Su cuadro de datos todavía no tiene ninguna fila **Se escribe en**, y debajo, dentro de la ficha, un aviso ámbar dice «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?», con dos botones:
+1. En la barra, Agentes llega en el **estado 2**, traída sin sincronizar. Ve **Casa** en gris tenue, al final, con sus documentos: son los del otro equipo, y los puede leer desde ya. Arriba dice «No se sincroniza con tus agentes · Sincronizar». Ningún archivo de los agentes del trabajo cambió.
+2. Pulsa **Sincronizar**, en esa línea, en el botón derecho o en la tarjeta **Agentes** de **Configuración › Agentes › Carpeta Agentes**. Como este equipo nunca te dejó leer los archivos de sus agentes, primero se abre el aviso de la primera vez, con los archivos de este equipo. Los que ya tienen documento dicen **ya está en Agentes**.
+3. Marca lo que quieras traer de este equipo, como la memoria de sus proyectos, y pulsa **Traer y sincronizar**. Se crea **Trabajo (este equipo)**, con una carpeta por cada agente que encontró, y Agentes pasa al estado 3, con su robot coral. Si en cambio eliges **Traer**, entra lo que marcaste y este equipo sigue sin sincronizar.
+4. **Cómo trabajo** y **Estilo de código** se quedan en **Casa**: en el trabajo no se escriben en ningún archivo. Su ficha dice «Es de otro de tus equipos: en este solo se lee.», sin **Editar**, **Aplicar aquí** ni **Eliminar**.
+5. Si Mario quiere **Estilo de código** también en el trabajo, lo copia como texto a la carpeta de su agente del trabajo, o lo mueve a la raíz: botón derecho sobre el documento, **Mover a** y **Agentes**. Mover a la raíz cuenta como aplicarlo en el equipo donde lo hace; en el otro, la ficha muestra un aviso ámbar, «Este documento viene de otro equipo. ¿Lo aplicas a los agentes de este?», con dos botones:
    - **Aplicar aquí** lo escribe en los archivos de los agentes de este equipo, con su respaldo antes, como siempre. Si un archivo de este equipo ya decía otra cosa, Tisty no lo pisa: la ficha queda en **Cambiado en los dos lados** y eliges.
    - **No en este equipo** lo deja fuera aquí. La ficha dice «Elegiste no aplicarlo en este equipo.», y **Aplicar aquí** sigue a mano por si cambias de idea.
-5. Haz lo mismo con **Cómo trabajo**, tu `CLAUDE.md`. El cuadro de datos de cada uno dice, en **Sincroniza en este equipo**, «No: espera «Aplicar aquí»» mientras no eliges, y «Sí» después.
 
 Lo que eliges vale para ese documento en ese equipo, y queda:
 
-- **Un documento que ya aplicas se pone al día solo.** Si mañana cambias «Para todos mis agentes» en la casa, el trabajo lo escribe en cuanto llega, sin volver a preguntar.
-- **Lo que escribes o traes en un equipo se aplica en ese equipo sin ningún clic.** Solo lo que llega de otro espera.
+- **Un documento que ya aplicas se pone al día solo.** Si mañana cambias el documento de la raíz en la casa, el trabajo lo escribe en cuanto llega, sin volver a preguntar.
+- **Lo que escribes o traes en un equipo se aplica en ese equipo sin ningún clic.** Solo lo que llega a la raíz desde otro espera.
 - **Solo espera lo que este equipo leería.** Un documento de Codex no pregunta nada en un equipo sin Codex.
 - **Una vez aplicado, la ficha no ofrece deshacerlo.** Para que un agente de este equipo deje de recibirlo, pausa ese agente aquí, o deja de sincronizar Agentes en este equipo; para que ningún equipo lo reciba, sácalo de Agentes.
+
+### Si dos documentos van al mismo archivo
+
+Pasa cuando el documento de tu carpeta y uno de la raíz escriben el mismo archivo, o la misma skill. Mientras no elijas, en este equipo no cambia nada: ninguno de los dos se escribe. La ficha pregunta «En este equipo «X» ya va al mismo archivo. ¿Cuál manda aquí?» y ofrece dos botones, **Este** y **El otro**.
+
+**Un ejemplo.** Marisol tiene en **Casa (este equipo) › Claude** su `CLAUDE.md`, y desde la casa mueve a la raíz otro documento que también va a `CLAUDE.md`. Al llegar, el trabajo no sabe cuál debe mandar. Marisol abre cualquiera de los dos y pulsa **Este** en el que quiere: ese se escribe en `~/.claude/CLAUDE.md`, y el otro sigue en su carpeta, con la ficha «En este equipo manda …».
+
+- **Una skill se elige entera**, con todos sus archivos.
+- **Se elige por archivo.** Si eliges para Claude, una skill de Global sigue funcionando en los demás agentes.
+- **Puedes cambiar de idea**: el que no manda sigue en su carpeta, y **Este** en su ficha lo pone a mandar.
+- **Si el que mandaba se va**, Tisty no escribe el otro por su cuenta: vuelve a preguntar.
+
+### Documentos de otros equipos
+
+Los de la carpeta de otro equipo se leen, se mueven, se copian como texto y se sacan. No tienen **Editar**, **Aplicar aquí**, **Eliminar** ni pausa, y la ficha dice «Es de otro de tus equipos: en este solo se lee.». Un agente que intente escribir uno por MCP recibe un rechazo. Las palabras que otro equipo aprobó para este esperan aquí cada vez, hasta que pulses **Aplicar aquí**.
+
+La **memoria** es igual, y [más estricta todavía](#la-memoria-es-del-equipo-que-la-trajo).
 
 ### Aprobar en otro equipo no es aplicar
 
 Aprobar cambia el texto; **Aplicar aquí** decide si un equipo escribe el archivo. Son dos cosas aparte, y en un equipo donde un documento espera, solo la segunda lo escribe.
 
-**Un ejemplo.** En el trabajo, «Para todos mis agentes» todavía espera tu **Aplicar aquí**. Mientras tanto, Claude Code propone cambiarlo, y como estás en el trabajo, lo apruebas ahí mismo:
+**Un ejemplo.** Jaime tiene **Cómo trabajo** en la raíz. En el trabajo todavía espera su **Aplicar aquí**. Mientras tanto, Claude Code propone cambiarlo, y como Jaime está en el trabajo, lo aprueba ahí mismo:
 
 1. **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento, y llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.». Con tu sí, el documento dice lo nuevo en todos tus equipos.
 2. En la casa, que ya lo aplicaba, Tisty escribe el cambio en sus archivos como siempre, con su respaldo antes.
@@ -775,18 +825,27 @@ Si dos equipos crearon Agentes antes de sincronizarse entre sí, por ejemplo por
 Tisty las une solo, sin preguntar:
 
 - **Queda la más antigua.** La misma en todos tus equipos, aunque los dos unan a la vez.
-- **Las subcarpetas se juntan por nombre.** Lo que estaba en **Global** del otro equipo pasa a tu **Global**, lo de **Claude** a tu **Claude**, y así. Una subcarpeta que solo tenía el otro, como **Gemini**, pasa entera.
+- **Las subcarpetas se juntan por nombre.** Lo que estaba en **Global** del otro equipo pasa a tu **Global**, la carpeta de cada equipo a la suya, y así. Una subcarpeta que solo tenía el otro pasa entera.
 - **Los documentos pasan a la carpeta que queda,** con su texto, su aprobación y su historial: ninguna aprobación se pierde. La carpeta que quedó vacía se borra.
 - **Ningún archivo de tus agentes cambia** por la unión, y por ninguno te pregunta «¿Quitar también el archivo?». Lo que ya se aplicaba en un equipo sigue aplicándose ahí.
-- **Lo que llega del otro equipo espera** su **Aplicar aquí**, como cualquier documento de otro equipo. Si los dos trajeron su `CLAUDE.md`, ves los dos documentos en **Claude**: el tuyo se sigue escribiendo y el otro espera; elige con cuál te quedas y saca el otro.
 - **Una carpeta archivada pasa entera** y sigue archivada: lo que guardaba no vuelve a escribirse.
-- **Lo que llega tarde también entra.** Si en el otro equipo escribiste un documento en su **Global** justo antes de que se uniera, cuando ese documento llega Tisty lo pasa solo a tu **Global**, sin preguntar, y su archivo nunca se ofrece para quitar por esa causa.
 
 Un caso raro que queda como está: si en la carpeta que se iría hay algo que puso un agente, Tisty no las une, porque al moverlo parecería puesto por ti. Mueve tú ese documento a una carpeta tuya y la unión se hace sola en la siguiente vuelta. Mientras haya dos carpetas Agentes sin unir, las dos quedan protegidas: tu agente solo puede proponer en cualquiera de ellas.
 
 ### La memoria es del equipo que la trajo
 
 La memoria de un agente habla de lo que pasó en ese equipo, así que nunca se escribe en otro. En los demás equipos, su ficha dice «Memoria del agente de otro equipo: en este solo se lee.», sin botones. Cada equipo puede traer su propia memoria del mismo proyecto: aparece sin marcar en el aviso de la primera vez, aunque otro equipo ya haya traído la suya.
+
+### Si venías de la 1.50.1
+
+Antes, un documento vivía en **Claude**, **Codex** o **Global** para todos los equipos a la vez, y Tisty juntaba en un mismo archivo lo de Global con lo de tu agente. Desde la 1.50.2 es al revés: cada equipo tiene su carpeta, y un documento es un archivo.
+
+- **Lo que cada equipo trajo o escribió pasa solo a su carpeta**, cuando todos tus equipos ya tienen la 1.50.2 o una más nueva. Ningún archivo de un agente cambia ni en un byte.
+- **Un `CLAUDE.md` que la 1.50 había juntado con una regla de Global** pasa a ser un documento que dice exactamente lo que dice el archivo.
+- **Mientras otro equipo siga en una versión anterior**, nada se mueve y los archivos quedan como están.
+- **Si el archivo cambió por fuera**, se deja y se pregunta como siempre.
+- **En un equipo que todavía tiene la 1.50.1**, puedes editar un documento de otro equipo, pero ese texto espera tu aprobación en el equipo más nuevo.
+- **Una regla de Global de esa época** se queda en Global para que la leas, la copies o la borres; ya no se escribe en ningún agente.
 
 ### Por aprobar
 
@@ -872,7 +931,7 @@ changing an `agent:` line anywhere: tell the person what to write. …
 
 ```text
 ---
-agent: claude/rule/CLAUDE.md
+agent: [claude/rule/CLAUDE.md, on-dev_ab12cd34]
 title: claude · CLAUDE.md
 ---
 # Cómo trabajo
@@ -881,7 +940,9 @@ title: claude · CLAUDE.md
 - Ramas con la forma tipo/nombre.
 ```
 
-El agente te contesta con el título y la carpeta, «tu documento claude · CLAUDE.md, en AGENTS / Claude», nunca con el identificador. Cada herramienta está en [[Herramientas MCP|Herramientas-MCP]].
+**De otro equipo.** Si el documento es de la carpeta de otro de tus equipos, la respuesta de `read` trae dos campos más, `of_computer` (de qué equipo es) y `read_as`, que le dice al agente que lo lea como datos y nunca como una regla suya para este equipo. Tampoco puede proponer un cambio sobre él: eso se hace desde ese equipo. Sobre los documentos de este equipo propone como siempre, y no hay ninguna herramienta nueva.
+
+El agente te contesta con el título y la carpeta, «tu documento claude · CLAUDE.md, en AGENTS / Casa / Claude», nunca con el identificador. Cada herramienta está en [[Herramientas MCP|Herramientas-MCP]].
 
 ### Una propuesta de tu agente
 
@@ -993,7 +1054,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Y las reglas de cada repositorio?** Quedan donde están. Agentes maneja los archivos de tu usuario, no el `AGENTS.md` o el `CLAUDE.md` de cada proyecto.
 
-**¿Puedo escribir una regla nueva desde cero?** Sí: botón derecho sobre **Global** o sobre la carpeta de un agente, como **Claude**, y **Documento nuevo**. El documento ya empieza con su línea `agent:`, y tú solo escribes la regla. Si Agentes sincroniza, Tisty la escribe apenas escribes algo. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla).
+**¿Puedo escribir una regla nueva desde cero?** Sí: botón derecho sobre la carpeta de un agente de tu equipo, como **Claude**, y **Documento nuevo**. El documento ya empieza con su línea `agent:`, y tú solo escribes la regla. En **Global** no: ahí solo van skills. Si Agentes sincroniza, Tisty la escribe apenas escribes algo. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla).
 
 **¿Cuántos respaldos guarda?** El original, el respaldo n.º 1, que nunca se borra, y además los últimos 20 de cada archivo, en este equipo.
 
@@ -1003,9 +1064,13 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Puedo pedirle a mi agente que cambie mis reglas?** Sí, y te lo propone: su cambio queda aparte, en la ficha del documento, hasta que pulsas **Aprobar el cambio** o **Descartar**. Nada llega a tus agentes antes. Mira [Una propuesta de tu agente](#una-propuesta-de-tu-agente).
 
-**Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, y ahí Agentes aparece traída sin sincronizar. Para que lleguen a los agentes de ese equipo, pulsa **Sincronizar** allá, y después **Aplicar aquí** en cada documento, la primera vez. Después se ponen al día solas. Mira [En varios equipos](#en-varios-equipos).
+**Uso Tisty en dos equipos. ¿Mis reglas llegan solas al otro?** Llegan como documentos, con tu sincronización, en la carpeta de tu otro equipo, y ahí se leen pero no se escriben en los agentes del otro. Si quieres la misma regla en los dos, muévela a la raíz con **Mover a › Agentes** (o a la carpeta suelta del agente, como **Codex**), y en el otro equipo pulsa **Sincronizar** y después **Aplicar aquí** en el documento, la primera vez. Después se pone al día sola. Mira [En varios equipos](#en-varios-equipos).
 
-**¿Puedo tener una regla solo en un equipo?** Sí: en el equipo donde no la quieres, pulsa **No en este equipo** en su ficha. Lo que elige cada equipo es solo suyo.
+**¿Puedo tener una regla solo en un equipo?** Sí: déjala en la carpeta de ese equipo, y nadie más la escribe. Una de la raíz que no quieres en uno de ellos, ahí pulsa **No en este equipo** en su ficha.
+
+**¿Por qué me pregunta «¿Cuál manda aquí?»?** Porque en este equipo dos documentos, el de tu carpeta y uno de la raíz, van al mismo archivo o a la misma skill. Elige **Este** o **El otro**; mientras no lo hagas, no cambia nada. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
+
+**¿Puedo editar lo de mi otro equipo?** No desde este: lo lees, lo mueves, lo copias como texto y lo sacas. La ficha dice «Es de otro de tus equipos: en este solo se lee.». Mira [Documentos de otros equipos](#documentos-de-otros-equipos).
 
 **Borré una regla. ¿Qué pasa con su archivo?** Al eliminarla, Tisty te pregunta en ese mismo aviso «¿Quitar también de Claude, Codex y Copilot?», con los agentes que la tienen: **Quitar también** borra sus archivos y guarda un respaldo de cada uno, y **Solo de Tisty** los deja donde están, listados en Configuración por si después cambias de idea. Mira [Eliminar una regla o una skill](#eliminar-una-regla-o-una-skill). Si la sacaste de otra forma, por ejemplo moviéndola fuera de Agentes, Tisty pregunta «¿Quitar también el archivo?»: mira [Sacar una regla y su archivo](#sacar-una-regla-y-su-archivo).
 
@@ -1023,7 +1088,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Por qué la barra no me dice si algo espera?** Porque Agentes se ve como cualquier carpeta: solo su color dice si sincroniza. Lo que espera tu decisión está en la ficha de cada documento y en la tarjeta **Agentes** de Configuración › Agentes › Carpeta Agentes, y sincronizando, Tisty te pregunta por los archivos pendientes apenas entras en ella. Mira [Cómo queda la carpeta](#cómo-queda-la-carpeta).
 
-**¿Por qué Agentes no tiene documentos?** La creaste con **Traer y sincronizar** sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con **Documento nuevo** en **Global** o en la carpeta de un agente, o trae un archivo con **Buscar de nuevo** o **Traer otro archivo**.
+**¿Por qué Agentes no tiene documentos?** La creaste con **Traer y sincronizar** sin que Tisty encontrara archivos, o sus documentos salieron mientras Tisty estaba cerrado, por ejemplo al sincronizar con otro equipo. Escribe una regla con **Documento nuevo** en la carpeta de un agente de tu equipo, o trae un archivo con **Buscar de nuevo** o **Traer otro archivo**.
 
 ## Si algo no cuadra
 
@@ -1039,16 +1104,18 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 - **Cambiado por fuera** o **Cambiado en los dos lados**: Tisty espera tu decisión antes de escribir.
 - **Nada que escribir**, **El archivo es un enlace** o **El bloque de código está roto**: la tabla de [cada estado](#cada-estado) dice qué hacer.
 - **«Ningún agente de este equipo lee este documento todavía.»**: revisa la línea `agent:`. El nivel debe ser un agente que esté en este equipo, y el nombre, un archivo que ese agente lea.
-- **«Otro documento de Agentes ya escribe este archivo»**: dos documentos tienen la misma línea `agent:`. Deja uno.
-- **En espera**: otro documento del mismo archivo espera tu aprobación. La ficha lo nombra; [apruébalo](#por-aprobar).
+- **«En este equipo otro documento escribe este archivo.»** o **«¿Cuál manda aquí?»**: dos documentos van al mismo archivo. Elige con **Este** o **El otro**, o deja uno. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
+- **«Es de otro de tus equipos»**: ese documento se escribe en ese equipo, no en este.
+- **«Está en la carpeta de un equipo y su texto dice otro»**: pulsa **Según su carpeta**.
+- **En espera**: el texto del documento espera tu aprobación. La ficha lo nombra; [apruébalo](#por-aprobar).
 - **Escrito por un Tisty anterior**: mira el archivo y, si te quedas con el documento, **Sobrescribir con Tisty**.
 - **Un aviso ámbar sobre otro equipo o tu aprobación**: el documento todavía no se aplica en este equipo. Mira [En varios equipos](#en-varios-equipos).
 
-**Mi regla no llega a mi otro equipo.** En ese equipo, revisa que Agentes tenga su robot coral (si está gris, pulsa **Sincronizar**) y abre el documento: si dice «Este documento viene de otro equipo», pulsa **Aplicar aquí**; si dice «Elegiste no aplicarlo en este equipo.», también. Si la ficha dice «Ningún agente de este equipo lee este documento todavía.», ese equipo no tiene el agente de la regla.
+**Mi regla no llega a mi otro equipo.** Una regla de la carpeta de un equipo se escribe solo en ese equipo. Si la quieres en los dos, muévela a la raíz. En el otro equipo, revisa que Agentes tenga su robot coral (si está gris, pulsa **Sincronizar**) y abre el documento: si dice «Este documento viene de otro equipo», pulsa **Aplicar aquí**; si dice «Elegiste no aplicarlo en este equipo.», también. Si la ficha dice «Ningún agente de este equipo lee este documento todavía.», ese equipo no tiene el agente de la regla.
 
 **Una ficha dice «Su texto aún no tiene tu aprobación» y yo no cambié nada.** El texto de un documento cambió sin pasar por la ventana de Tisty, por ejemplo con un paquete importado o una edición directa en la carpeta de datos. El aviso te dice quién lo escribió y qué cambió desde lo último que aprobaste: léelo, y si está bien, **Aprobar este texto**. Mira [Por aprobar](#por-aprobar).
 
-**Escribí una regla de Global y un archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Agentes › Carpeta Agentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a Agentes**. El archivo queda con Global delante de lo tuyo, y el original, como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
+**Escribí una regla y su archivo quedó en Cambiado en los dos lados.** Ese archivo ya existía y no lo trajiste, así que Tisty no sabe qué parte es tuya. No lo sobrescribas: en **Configuración › Agentes › Carpeta Agentes**, pulsa **Revisar** y, en **Existe en los dos lados**, **Traer a Agentes**. El archivo entra como un documento con lo que dice, y el original queda como respaldo n.º 1. Mira [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste).
 
 **Me pregunta «¿Quitar también el archivo?» y no borré nada.** También cuenta como sacar una regla cambiar su línea `agent:` por la de otro archivo, o volver a una versión anterior que no tenía ficha. Si no quieres tocar nada, **Dejarlo** lo deja donde está.
 
@@ -1058,7 +1125,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Ocultar me pide dejar de sincronizar.** Agentes sincroniza, y nunca queda oculta y sincronizando, ni Agentes ni sus subcarpetas, como **Global**. **Dejar de sincronizar y ocultar** hace las dos cosas; tus archivos de agente no se tocan. Si prefieres que siga sincronizando, **Cancelar**.
 
-**Una subcarpeta de Agentes no tiene Cambiar nombre ni Diagrama nuevo.** Es a propósito: dentro de Agentes, cada carpeta es de un agente, y Tisty sabe a quién le escribe por su nombre. Su botón derecho ofrece solo **Documento nuevo**, **Traer otro archivo**, la pausa de su agente, **Ocultar de la barra** y **Eliminar**. Mira [El botón derecho de una subcarpeta](#el-botón-derecho-de-una-subcarpeta).
+**Una subcarpeta de Agentes no tiene Cambiar nombre ni Diagrama nuevo.** Es a propósito: dentro de Agentes, cada carpeta es de un agente, y Tisty sabe a quién le escribe por su nombre. Su botón derecho ofrece solo **Documento nuevo**, **Traer otro archivo**, la pausa de su agente, **Ocultar de la barra** y **Eliminar**; la carpeta de otro equipo, solo **Ocultar de la barra**. Mira [El botón derecho de una subcarpeta](#el-botón-derecho-de-una-subcarpeta).
 
 **El botón derecho de Agentes solo ofrece sincronizar, buscar de nuevo u ocultar.** Es a propósito. **Buscar de nuevo** trae lo nuevo de tus agentes; para elegir tú cada archivo, usa **Traer otro archivo** en el botón derecho de una subcarpeta, como Claude, o en Configuración › Agentes › Carpeta Agentes. Y no se mueve ni cambia de nombre porque por dentro se guarda como `AGENTS`, y con otro nombre o en otro lugar Tisty y tus agentes dejarían de encontrarla. Mira [Agentes se queda arriba](#agentes-se-queda-arriba).
 
@@ -1066,11 +1133,11 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **Toda la carpeta dejó de escribir.** Revisa que Agentes tenga su robot coral: si está gris, no sincroniza en este equipo, y **Sincronizar** la pone otra vez al día. Si un agente no recibe nada, mira su interruptor en Configuración › Agentes › Carpeta Agentes.
 
-**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo. Tus reglas de Global van ahí, pero un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro. Si creaste el override después de la primera vez, [tráelo a Agentes](#el-agentsoverridemd-de-codex).
+**Codex no lee mis reglas.** Si tienes `~/.codex/AGENTS.override.md`, Codex lee solo ese archivo, y un documento con `agent: codex/rule/AGENTS.md` se escribe en `AGENTS.md`, que Codex no lee mientras exista el otro. Si creaste el override después de la primera vez, [tráelo a Agentes](#el-agentsoverridemd-de-codex).
 
 **Gemini no lee mis reglas.** Si su ficha dice **En pausa**, falta en `~/.gemini/GEMINI.md` la línea `@tisty-rules.md` que Tisty había puesto: pulsa **Volver a ponerla**, en la ficha o en Configuración › Agentes › Carpeta Agentes. Tisty no la vuelve a poner por su cuenta, porque borrarla es tu decisión. Mira [Gemini en pausa](#gemini-en-pausa).
 
-**No aparece Traer el cambio.** El documento es de Global, el cambio cae en la parte de otro documento del mismo archivo, o lo estás editando: pulsa **Listo** y vuelve a mirar.
+**No aparece Traer el cambio.** El documento es de Global, o lo estás editando: pulsa **Listo** y vuelve a mirar.
 
 **«El archivo cambió mientras Tisty lo escribía, así que no lo tocó.»** Otro programa escribió el archivo al mismo tiempo. Tisty no pisa nada: vuelve a mirar la ficha y elige.
 

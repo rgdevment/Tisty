@@ -71,9 +71,18 @@ const skills = (more: Partial<TistySkills> = {}): TistySkills => ({
 });
 
 // Like the app, every read after the switch tells what the switch left.
+const STATE = {
+  folder: "a",
+  held: 1,
+  consented: true,
+  allOn: true,
+  assistants: [{ id: "claude", name: "Claude", on: true }],
+};
+
 const answering = (now: TistySkills, after?: TistySkills) => {
   let held = now;
   ipc.answer = (cmd) => {
+    if (cmd === "agents_state") return Promise.resolve(STATE);
     if (cmd === "agents_tisty_skills") return Promise.resolve(held);
     if (cmd === "agents_tisty_skills_take") {
       held = after ?? now;

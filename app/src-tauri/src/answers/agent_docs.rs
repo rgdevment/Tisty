@@ -386,7 +386,7 @@ pub(crate) fn agree(
     if tisty_core::docs::print_of_text(&body) != print {
         return Err(Refusal::of("agentDocChanged"));
     }
-    super::papers::read_here(session, file)?;
+    super::agents_homes::read_here(session, file)?;
     let hand = crate::signing(&session.state);
     session.retell_written(file, &body, hand);
     if let Some(homes) = homes {

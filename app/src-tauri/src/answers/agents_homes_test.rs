@@ -9,15 +9,15 @@ use tisty_core::agents::Kind;
 const MAIN: &str = "# Claude\nTests first.\n";
 const BOTH: &str = "Spanish.\n\n# Claude\nTests first.\n";
 
-fn me(room: &Room) -> DeviceId {
+pub(crate) fn me(room: &Room) -> DeviceId {
     room.session.store.device().clone()
 }
 
-fn laptop() -> DeviceId {
+pub(crate) fn laptop() -> DeviceId {
     DeviceId(tisty_core::config::new_device_id())
 }
 
-fn as_laptop(room: &mut Room, laptop: &DeviceId, ops: Vec<Op>) {
+pub(crate) fn as_laptop(room: &mut Room, laptop: &DeviceId, ops: Vec<Op>) {
     tisty_core::Store::open(room.session.paths.store(), laptop.clone())
         .unwrap()
         .append_batch(ops)
@@ -25,11 +25,11 @@ fn as_laptop(room: &mut Room, laptop: &DeviceId, ops: Vec<Op>) {
     room.session.reload().unwrap();
 }
 
-fn root(room: &Room) -> FolderId {
+pub(crate) fn root(room: &Room) -> FolderId {
     root_of(&room.session.state).unwrap()
 }
 
-fn my_folder(room: &Room) -> FolderId {
+pub(crate) fn my_folder(room: &Room) -> FolderId {
     let (root, me) = (root(room), me(room));
     room.session
         .state
@@ -40,7 +40,7 @@ fn my_folder(room: &Room) -> FolderId {
         .id
 }
 
-fn laptops_folder(room: &mut Room, laptop: &DeviceId) -> FolderId {
+pub(crate) fn laptops_folder(room: &mut Room, laptop: &DeviceId) -> FolderId {
     let id = ulid::Ulid::generate();
     let made = Op::FolderAdd {
         id,
@@ -57,7 +57,7 @@ fn laptops_folder(room: &mut Room, laptop: &DeviceId) -> FolderId {
     id
 }
 
-fn body_for(level: &str, name: &str, said: &str, computer: Option<&DeviceId>) -> String {
+pub(crate) fn body_for(level: &str, name: &str, said: &str, computer: Option<&DeviceId>) -> String {
     let body = agents::doc_of(level, Kind::Rule, name, said.as_bytes()).unwrap();
     agents::meant_for(&body, computer).unwrap()
 }
@@ -94,13 +94,18 @@ fn old_mine_in(room: &mut Room, folder: FolderId, body: &str) -> String {
     made.id
 }
 
-fn mine_in(room: &mut Room, folder: FolderId, body: &str) -> String {
+pub(crate) fn mine_in(room: &mut Room, folder: FolderId, body: &str) -> String {
     let made = tisty_core::docs::create(&room.session.paths.docs(), &me(room), body).unwrap();
     room.session.commit(added(&made.id, folder, body)).unwrap();
     made.id
 }
 
-fn laptops_in(room: &mut Room, laptop: &DeviceId, folder: FolderId, body: &str) -> String {
+pub(crate) fn laptops_in(
+    room: &mut Room,
+    laptop: &DeviceId,
+    folder: FolderId,
+    body: &str,
+) -> String {
     let made = tisty_core::docs::create(&room.session.paths.docs(), laptop, body).unwrap();
     as_laptop(room, laptop, vec![added(&made.id, folder, body)]);
     made.id
@@ -124,7 +129,7 @@ fn shown(room: &Room, file: &str) -> serde_json::Value {
     serde_json::to_value(card.unwrap().unwrap()).unwrap()
 }
 
-fn ledger(room: &Room) -> Ledger {
+pub(crate) fn ledger(room: &Room) -> Ledger {
     Ledger::open(room.session.paths.data(), HERE)
 }
 
@@ -674,7 +679,7 @@ fn homing_keeps_the_approval_leaves_global_at_the_root_and_runs_once() {
     assert_eq!(card_of(&room, &old.claude).computer, None);
 }
 
-fn runs(room: &mut Room, other: &DeviceId, release: &str) {
+pub(crate) fn runs(room: &mut Room, other: &DeviceId, release: &str) {
     let ops = vec![
         Op::DeviceJoin {
             d: other.clone(),
@@ -929,7 +934,7 @@ fn moving_an_unapproved_document_approves_nothing() {
 }
 
 // Made here and approved, but never written: moving it is the first word on it.
-fn made_for_me(room: &mut Room, name: &str, said: &str) -> String {
+pub(crate) fn made_for_me(room: &mut Room, name: &str, said: &str) -> String {
     let (folder, me) = (my_folder(room), me(room));
     mine_in(room, folder, &body_for("claude", name, said, Some(&me)))
 }
@@ -1663,4 +1668,132 @@ fn choosing_with_the_session_records_the_choice_per_place() {
     let recorded = ledger.chosen(&agents::path_key(Path::new(&place)));
     assert!(recorded.is_some(), "the choice is kept for the file");
     assert_eq!(stance_of(&room, &standing), places::Stance::Aside);
+}
+
+pub(crate) fn folder_named(room: &Room, name: &str, parent: FolderId) -> FolderId {
+    room.session
+        .state
+        .folders
+        .values()
+        .find(|one| one.name == name && one.parent == Some(parent))
+        .unwrap()
+        .id
+}
+
+fn folder_under(room: &mut Room, who: &DeviceId, name: &str, parent: Option<FolderId>) -> FolderId {
+    let id = ulid::Ulid::generate();
+    let made = Op::FolderAdd {
+        id,
+        d: tisty_core::event::FolderAdd {
+            name: name.to_string(),
+            order: "z".to_string(),
+            parent,
+            icon: None,
+            color: None,
+            computer: None,
+        },
+    };
+    as_laptop(room, who, vec![made]);
+    id
+}
+
+pub(crate) fn named(room: &mut Room, who: &DeviceId, name: &str) {
+    let said = Op::DeviceNamed {
+        d: who.clone(),
+        name: name.to_string(),
+        os: None,
+    };
+    as_laptop(room, who, vec![said]);
+}
+
+fn looked_at(room: &Room, folder: FolderId) -> Option<Shown> {
+    let state = &room.session.state;
+    super::shown(state, &me(room), state.folders.get(&folder).unwrap())
+}
+
+#[test]
+fn this_computers_folder_is_shown_as_mine_with_its_readable_name() {
+    let mut room = room();
+    room.bring(&[]);
+    let who = me(&room);
+    named(&mut room, &who, "Desk");
+
+    let at = looked_at(&room, my_folder(&room)).unwrap();
+
+    assert_eq!(at.computer.as_deref(), Some("Desk"));
+    assert!(at.mine);
+    assert!(!at.room);
+}
+
+#[test]
+fn an_assistants_folder_in_this_computers_folder_is_mine_and_a_room_without_a_name() {
+    let mut room = room();
+    room.bring(&[]);
+    let claude = folder_named(&room, "Claude", my_folder(&room));
+
+    let at = looked_at(&room, claude).unwrap();
+
+    assert_eq!((at.computer, at.mine, at.room), (None, true, true));
+}
+
+#[test]
+fn a_folder_deeper_than_the_assistants_is_mine_but_not_a_room() {
+    let mut room = room();
+    room.bring(&[]);
+    let claude = folder_named(&room, "Claude", my_folder(&room));
+    let who = me(&room);
+    let deeper = folder_under(&mut room, &who, "rules", Some(claude));
+
+    let at = looked_at(&room, deeper).unwrap();
+
+    assert_eq!((at.computer, at.mine, at.room), (None, true, false));
+}
+
+#[test]
+fn another_computers_folder_and_its_assistants_are_not_mine() {
+    let mut room = room();
+    room.bring(&[]);
+    let other = laptop();
+    let folder = laptops_folder(&mut room, &other);
+    named(&mut room, &other, "Laptop");
+    let claude = folder_under(&mut room, &other, "Claude", Some(folder));
+
+    let at = looked_at(&room, folder).unwrap();
+    assert_eq!(at.computer.as_deref(), Some("Laptop"));
+    assert!(!at.mine && !at.room);
+    let inside = looked_at(&room, claude).unwrap();
+    assert_eq!(
+        (inside.computer, inside.mine, inside.room),
+        (None, false, true)
+    );
+}
+
+#[test]
+fn two_computers_called_the_same_are_told_apart_by_the_stored_name() {
+    let mut room = room();
+    room.bring(&[]);
+    let (who, other) = (me(&room), laptop());
+    let folder = laptops_folder(&mut room, &other);
+    named(&mut room, &who, "Same");
+    named(&mut room, &other, "Same");
+
+    let theirs = looked_at(&room, folder).unwrap();
+    let mine = looked_at(&room, my_folder(&room)).unwrap();
+
+    assert_eq!(theirs.computer.as_deref(), Some("laptop"));
+    let stored = room.session.state.folders[&my_folder(&room)].name.clone();
+    assert_eq!(mine.computer, Some(stored));
+}
+
+#[test]
+fn folders_outside_a_computers_folder_say_nothing() {
+    let mut room = room();
+    room.bring(&[]);
+    let who = me(&room);
+    let plain = folder_under(&mut room, &who, "Trabajo", None);
+    let global = folder_named(&room, "Global", root(&room));
+
+    assert_eq!(looked_at(&room, plain), None);
+    assert_eq!(looked_at(&room, global), None);
+    assert_eq!(looked_at(&room, root(&room)), None);
 }
