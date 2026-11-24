@@ -578,6 +578,7 @@ const words = {
     "Escribir para el próximo agente. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella.",
   ],
   tistySkillsHow: ["How to use them", "Cómo se usan"],
+  tistySkillsMore: ["More about them", "Más sobre ellas"],
   tistySkillsHowLine: [
     "Write it to your agent in your own words; there is no need to call them by name.",
     "Escríbeselo a tu agente con tus palabras; no hay que llamarlas por su nombre.",

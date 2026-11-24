@@ -163,7 +163,7 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 ### Encenderlas
 
 1. Abre **Configuración › Agentes › Conectados**. Al final de la lista está la fila **Skills de Tisty**: «Tres skills que les enseñan a tus agentes a trabajar con Tisty. Tienen su propio sí, en este equipo.», con su estado, **Apagadas**, y **Ver**.
-2. **Ver** abre su ficha. Arriba, «Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.». Debajo, **Cómo se usan**, con lo que le escribes a tu agente y para qué sirve cada una, y **Dónde van en este equipo**, con una fila por carpeta.
+2. **Ver** abre su ficha. Arriba, «Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.». Debajo, **Dónde van en este equipo**, con una fila por carpeta, y plegados, **Cómo se usan**, con lo que le escribes a tu agente y para qué sirve cada una, y **Más sobre ellas**.
 3. Lee el sí, al pie: «Para encenderlas, Tisty escribe solo una carpeta por skill en las carpetas de arriba, y lee los archivos que ya hay en esas carpetas de skill para no escribir nunca sobre uno tuyo. En Claude Code lee además el registro de su plugin (installed_plugins.json y settings.json) para no copiarlas dos veces. No lee reglas, memoria ni otros archivos de tus agentes, y no necesita la carpeta Agentes.».
 4. Pulsa **Encender en este equipo**. Cada carpeta pasa a **Al día**, y la fila de Configuración dice **Encendidas**.
 

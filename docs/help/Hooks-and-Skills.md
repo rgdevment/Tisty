@@ -163,7 +163,7 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 ### Turning them on
 
 1. Open **Settings › Agents › Connected**. At the end of the list is the **Tisty's skills** row: «Three skills that teach your agents to work with Tisty. They have their own yes, on this computer.», with its standing, **Off**, and **See**.
-2. **See** opens their card. At the top, «Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.». Below, **How to use them**, with what you write to your agent and what each one is for, and **Where they go on this computer**, with one row per folder.
+2. **See** opens their card. At the top, «Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.». Below, **Where they go on this computer**, with one row per folder, and folded, **How to use them**, with what you write to your agent and what each one is for, and **More about them**.
 3. Read the yes, at the foot: «To turn them on, Tisty writes only one folder per skill in the folders above, and reads the files already in those skill folders so as never to write over one of yours. In Claude Code it also reads its plugin's records (installed_plugins.json and settings.json) so as not to copy them twice. It reads no rules, memory or other files of your agents, and needs no Agents folder.».
 4. Press **Turn on here**. Each folder turns **In sync**, and the row in Settings says **On**.
 

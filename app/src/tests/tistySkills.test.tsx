@@ -203,7 +203,7 @@ describe("Tisty's own skills", () => {
     expect(screen.getByText("“Leave this ready for the next agent”")).toBeTruthy();
     expect(screen.getByText("“Make this page clear for the next agent”")).toBeTruthy();
     expect(screen.queryByText("“Tidy up my Tisty”")).toBeNull();
-    expect(screen.getByRole("region", { name: "How to use them" })).toBeTruthy();
+    expect(screen.getByText("How to use them").closest("details")?.open).toBe(false);
   });
 
   it("says the lines in Spanish too", () => {

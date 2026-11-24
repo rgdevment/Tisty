@@ -32,7 +32,8 @@ export const useHeldFocus = (box: RefObject<HTMLElement | null>) => {
   const held = (event: React.FocusEvent) => {
     if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
     if (document.activeElement !== document.body) return;
-    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus();
+    // WebKit gives a pressed button no focus, so taking it back must not roll the button from under the pointer.
+    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus({ preventScroll: true });
   };
 
   return { wrapped, held };

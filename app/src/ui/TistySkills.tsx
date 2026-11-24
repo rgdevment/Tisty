@@ -120,11 +120,21 @@ function useTaking(onTaken: (now: TistySkills) => void) {
   return { busy, trouble, done };
 }
 
+function Folded({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+  return (
+    <details className="mt-3">
+      <summary className="cursor-pointer text-[12.5px] font-semibold text-accent hover:underline">
+        {title}
+      </summary>
+      <div className="mt-1.5">{children}</div>
+    </details>
+  );
+}
+
 function HowToUse({ skills }: Readonly<{ skills: TistySkills }>) {
   return (
-    <section aria-label={t("tistySkillsHow")}>
-      <p className="mt-4 text-[13px] font-semibold">{t("tistySkillsHow")}</p>
-      <p className="mt-0.5 text-[12.5px] text-soft">{t("tistySkillsHowLine")}</p>
+    <Folded title={t("tistySkillsHow")}>
+      <p className="text-[12.5px] text-soft">{t("tistySkillsHowLine")}</p>
       <ul className="mt-1.5 flex flex-col gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5">
         {skills.skills.map((one) => (
           <li key={one.name} className="text-[12.5px]">
@@ -144,7 +154,7 @@ function HowToUse({ skills }: Readonly<{ skills: TistySkills }>) {
           </li>
         ))}
       </ul>
-    </section>
+    </Folded>
   );
 }
 
@@ -203,26 +213,25 @@ export function TistySkillsCard({
   return (
     <Modal title={t("tistySkills")} wide closable onClose={onClose}>
       <p className="text-[13px] leading-relaxed text-soft">{t("tistySkillsLead")}</p>
-      {none ? (
-        <p className="mt-3 text-[12.5px] text-soft">{t("tistySkillsNone")}</p>
-      ) : (
-        <HowToUse skills={skills} />
-      )}
+      {none && <p className="mt-3 text-[12.5px] text-soft">{t("tistySkillsNone")}</p>}
       {!none && skills.landing.length > 0 && (
         <>
-          <p className="mt-4 text-[12.5px] font-semibold">{t("tistySkillsWhere")}</p>
+          <p className="mt-3 text-[12.5px] font-semibold">{t("tistySkillsWhere")}</p>
           <Where skills={skills} />
         </>
       )}
-      <ul className="mt-3 flex flex-col gap-1 text-[12.5px] text-soft">
-        <li>↻ {t("tistySkillsUpdate")}</li>
-        <li>🔒 {t("tistySkillsHere")}</li>
-        {skills.plugged.map((id) => (
-          <li key={id}>◇ {fill("tistySkillsPlugged", NAMES[id] ?? id)}</li>
-        ))}
-        <li>◇ {t("tistySkillsCursor")}</li>
-        {skills.on && <li>⧉ {t("tistySkillsRemoveSaid")}</li>}
-      </ul>
+      {!none && <HowToUse skills={skills} />}
+      <Folded title={t("tistySkillsMore")}>
+        <ul className="flex flex-col gap-1 text-[12.5px] text-soft">
+          <li>↻ {t("tistySkillsUpdate")}</li>
+          <li>🔒 {t("tistySkillsHere")}</li>
+          {skills.plugged.map((id) => (
+            <li key={id}>◇ {fill("tistySkillsPlugged", NAMES[id] ?? id)}</li>
+          ))}
+          <li>◇ {t("tistySkillsCursor")}</li>
+          {skills.on && <li>⧉ {t("tistySkillsRemoveSaid")}</li>}
+        </ul>
+      </Folded>
       {skills.leftover.length > 0 && (
         <>
           <p className="mt-4 text-[12.5px] font-semibold">{t("tistySkillsLeftover")}</p>
@@ -257,7 +266,7 @@ export function TistySkillsCard({
         <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("tistySkillsAsk")}</p>
       )}
       {trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{trouble}</p>}
-      <div className="mt-5 flex items-center gap-2 text-[12.5px]">
+      <div className="sticky -bottom-6 z-10 -mx-6 mt-4 -mb-6 flex items-center gap-2 border-t border-hair bg-bg px-6 py-3 text-[12.5px]">
         <span className="text-[11.5px] text-faint">
           {fill("tistySkillsVersion", skills.version)}
         </span>
