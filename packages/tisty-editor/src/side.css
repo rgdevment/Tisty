@@ -34,6 +34,13 @@
 .side-more {
   flex-shrink: 0;
 }
+/* A design of one's own takes more room than a short window has, so the whole column scrolls and nothing is cut. */
+.side:has(.side-own) {
+  overflow-y: auto;
+}
+.side-top:has(.side-own) {
+  flex-shrink: 0;
+}
 .side-title-row {
   display: flex;
   flex-direction: column;
@@ -86,6 +93,110 @@
 }
 .side-title-row:has(+ .side-paper) {
   padding-bottom: 8px;
+}
+.side-paper:has(> .side-design) {
+  flex-wrap: wrap;
+}
+.side-design {
+  flex: 1 0 100%;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+.side-look {
+  --look: var(--light);
+  position: relative;
+  display: grid;
+  align-items: center;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+[data-theme="dark"] .side-look {
+  --look: var(--dark);
+}
+.side-look::before {
+  content: "";
+  height: 2px;
+  border-radius: 999px;
+  background: var(--look);
+  opacity: 0.45;
+}
+.side-look:focus-visible::after {
+  content: attr(aria-label);
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 50%;
+  translate: -50% 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 6px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.side-look:is(:hover, :focus-visible, [aria-pressed="true"])::before {
+  opacity: 1;
+}
+.side-look[aria-pressed="true"]::before {
+  height: 4px;
+}
+.side-own {
+  flex: 1 0 100%;
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+.side-own .side-look::before {
+  height: 10px;
+  border-radius: 6px;
+  opacity: 1;
+  box-shadow: 0 0 0 1px var(--tisty-line);
+}
+.side-own .side-look[aria-pressed="true"]::before {
+  height: 10px;
+  outline: 1.5px solid var(--tisty-soft);
+  outline-offset: 2px;
+}
+.side-own-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--tisty-soft);
+}
+.side-own-head > :last-child {
+  color: var(--tisty-faint);
+}
+.side-letters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding-top: 4px;
+}
+.side-letter {
+  padding: 4px 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.side-letter:hover,
+.side-letter[aria-pressed="true"] {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
 }
 .side-leaves {
   flex: 1 1 auto;

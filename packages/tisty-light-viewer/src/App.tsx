@@ -94,6 +94,8 @@ export default function App(props: { readonly asked: string | null; readonly clo
     const now = await opened();
     if (now.kind === "drawn") {
       await styledFor([now.first]);
+      if (now.design)
+        await import("./wearing").then(({ worn }) => worn(page, now.design)).catch(fail);
       page.innerHTML = now.first;
       setFields(fieldsIn(page));
     }

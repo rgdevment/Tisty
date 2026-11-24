@@ -183,7 +183,7 @@ fn languages_sealed(
             ));
         }
         anchor.document.languages = Some(map);
-        // Paper, sheets and orientation are the group's, and each language says which anchor it belongs to.
+        // Paper, sheets, orientation and design are the group's, and each language says which anchor it belongs to.
         for tongue in &mut others {
             tongue.document.sheet.clone_from(&anchor.document.sheet);
             tongue.document.anchor = Some(anchor.sealing.id.clone());

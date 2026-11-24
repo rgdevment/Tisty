@@ -1,5 +1,6 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { cloneElement } from "react";
 import type { Head } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
@@ -61,6 +62,36 @@ const press = async (key: string) => {
 };
 
 describe("the document's column", () => {
+  it("hands over the design picked, by its name", async () => {
+    const onDesign = vi.fn();
+    render(cloneElement(beside([]), { design: "bosque", onDesign }));
+    const row = screen.getByRole("group", { name: t("designIs") });
+    const pick = (name: string) => within(row).getByRole("button", { name });
+    expect(pick(t("designBosque")).getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(pick(t("designFiordo")));
+    expect(onDesign).toHaveBeenCalledWith("fiordo");
+  });
+
+  it("offers back the design of its own a document had, and never another document's", async () => {
+    const onDesign = vi.fn();
+    const own = "own/arena/vino/cafe/lora" as const;
+    const shown = (paper: string, design: typeof own | "coral") =>
+      cloneElement(beside([]), { paper, design, onDesign });
+    const view = render(shown("a", own));
+    view.rerender(shown("a", "coral"));
+    const pick = () => screen.getByRole("button", { name: t("designOwn") });
+    await userEvent.click(pick());
+    expect(onDesign).toHaveBeenLastCalledWith(own);
+    view.rerender(shown("b", "coral"));
+    await userEvent.click(pick());
+    expect(onDesign).toHaveBeenLastCalledWith("own/papel/grafito/tinta/sans");
+  });
+
+  it("offers no design where the document cannot be written", () => {
+    panel([]);
+    expect(screen.queryByRole("group", { name: t("designIs") })).toBeNull();
+  });
+
   it("opens the details with a document whose outline is short", () => {
     panel(headed(2));
     expect(row("details").open).toBe(true);

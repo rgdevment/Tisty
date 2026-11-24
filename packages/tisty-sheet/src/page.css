@@ -1409,3 +1409,104 @@ html.agent:not(.untitled) .page > p.title {
   line-height: inherit;
   letter-spacing: 0;
 }
+/* The bars a page is written with hang on its body, so the font is the sheet's alone. */
+html[data-designed] .page {
+  font-family: var(--design-font);
+}
+html[data-designed] body {
+  font-size: var(--design-size);
+}
+/* Where a window is drawn around the sheet, the sheet alone wears the design. */
+.page[data-designed] {
+  font-family: var(--design-font);
+  font-size: var(--design-size);
+  color: var(--tisty-ink);
+}
+@media print {
+  .page[data-designed] {
+    background: none;
+  }
+}
+[data-designed]:is(html, .page) :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--tisty-heading);
+}
+html:not(.untitled) .page[data-designed]:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child,
+html:not(.untitled) .page[data-designed]:where(:not(.as-written)) > .title,
+html[data-designed]:not(.untitled) .page:where(:not(.as-written)) > :is(h1, h2, h3, p):first-child,
+html[data-designed]:not(.untitled) .page:where(:not(.as-written)) > .title {
+  color: var(--tisty-heading);
+  border-bottom: var(--design-edge);
+}
+html:not(.untitled)
+  .page[data-designed]:where(:not(.as-written))
+  > :is(h1, h2, h3, p):first-child:only-child,
+html[data-designed]:not(.untitled)
+  .page:where(:not(.as-written))
+  > :is(h1, h2, h3, p):first-child:only-child {
+  border-bottom: 0;
+}
+[data-designed]:is(html, .page) thead th,
+[data-designed]:is(html, .page) .table.dressed thead th {
+  background: var(--tisty-accent);
+  color: var(--tisty-sheet);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* What a head holds is drawn over the accent, so it is drawn in the letters of the head, but a name being written is not. */
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *, :has(> .table-input)) > * {
+  --tisty-ink: var(--tisty-sheet);
+  --tisty-accent: var(--tisty-sheet);
+}
+/* A pen lightens what is under it, and these letters need the opposite, so here it is a veil of ink with a line under it. */
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *) mark {
+  background: color-mix(in srgb, var(--design-ink) 30%, transparent);
+  box-shadow: inset 0 -2px color-mix(in srgb, var(--tisty-sheet) 60%, transparent);
+}
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *)::selection,
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *) ::selection {
+  background: color-mix(in srgb, var(--tisty-sheet) 35%, transparent);
+}
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *)::before,
+[data-designed]:is(html, .page) thead th:not(blockquote.callout *) > button[data-act="column"] {
+  color: inherit;
+  opacity: 0.8;
+  background: none;
+}
+[data-designed]:is(html, .page) .table.dressed thead th:has(> .table-input) {
+  background: var(--tisty-sheet);
+  color: transparent;
+}
+/* What has colors of its own looks the same on every design. */
+[data-designed]:is(html, .page)
+  :is(blockquote.callout, figure.code, figure.diagram, figure.widget) {
+  --tisty-sheet: var(--own-sheet);
+  --tisty-ink: var(--own-ink);
+  --tisty-soft: var(--own-soft);
+  --tisty-line: var(--own-line);
+  --tisty-accent: var(--own-accent);
+  --tisty-accent-soft: var(--own-accent-soft);
+}
+[data-designed]:is(html, .page)
+  :is(
+    blockquote.callout:not([data-callout="idea"]),
+    figure.code,
+    figure.diagram,
+    figure.widget,
+    .table-bar
+  ) {
+  font-family: var(--own-font);
+}
+[data-designed]:is(html, .page) blockquote.callout :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+}
+[data-designed]:is(html, .page) blockquote.callout thead th {
+  background: var(--tisty-hover);
+  color: inherit;
+}
+[data-designed]:is(html, .page) blockquote.callout:not([data-callout="idea"]) {
+  background: color-mix(in srgb, var(--said) 7%, var(--own-sheet));
+}
+[data-designed]:is(html, .page) figure.code {
+  background: linear-gradient(var(--tisty-hover), var(--tisty-hover)), var(--own-sheet);
+  color: var(--own-ink);
+}

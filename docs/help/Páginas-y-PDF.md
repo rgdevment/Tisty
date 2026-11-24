@@ -31,6 +31,32 @@ Enciende **Hojas** en el panel de un documento para elegir su papel (**A4**, **C
 
 Una raya sola en su línea (`---`) corta siempre la hoja, con hojas o sin ellas, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Con hojas encendidas, se marca como **Salto de página**. Cómo se escribe, y qué entra como uno desde LaTeX, Word o una página web, está en la [guía de Markdown](https://markdown.tisty.app/es/saltos-de-pagina).
 
+## Diseños de documento
+
+La receta que cocinas y el acta de una reunión no tienen por qué verse iguales. La fila de líneas de color del panel del documento, bajo el papel, cambia cómo se ve ese documento sin tocar ni una palabra. Cada línea es un diseño: deja el cursor sobre una, o llega con `Tab`, para leer su nombre, y la más gruesa es la que lleva.
+
+| Diseño | Cómo se ve |
+| --- | --- |
+| **Default** | El que trae todo documento al nacer |
+| **Bosque** | Verdes, con una línea bajo el título |
+| **Coral** | Cálido, con una barra bajo el título |
+| **Fiordo** | Azules y grises |
+| **Violeta** | Violetas, con una barra bajo el título |
+| **Propio** | Fondo, títulos, cuerpo y letra, a tu gusto |
+
+Cada uno tiene sus colores claros y los oscuros, y sigue a la ventana. Sirve con hojas o sin ellas, y cambia la letra, el título, los encabezados y la cabecera de las tablas. Los diagramas conservan sus colores.
+
+Por ejemplo, abre **Vacunas de Rina**, presiona la línea de **Bosque** y pon la ventana en oscuro: el papel queda verde oscuro y los títulos, verde claro. Presiona **Default**, la primera, y vuelve a como estaba.
+
+- **Propio** se arma en el panel: presiona su línea, la última, y elige un fondo, el color de los títulos, el del cuerpo y una de nueve letras. Por ejemplo, **Arena**, **Vino**, **Café** y **Lora** para un recetario. Cada color trae su claro y su oscuro, cualquiera de ellos se lee bien con los demás, y los tamaños no cambian. Las letras vienen con Tisty, así que no se descarga nada.
+- **Desde el texto:** un enlace a `tisty:design/coral`, o a cualquiera de los otros, le pone ese diseño al documento al presionarlo. La guía inicial los trae para probar; `tisty:design/tisty` vuelve.
+- **Las notas, el código, los diagramas y los widgets** conservan sus colores en todos los diseños.
+- **En papel y en el PDF** sale con los colores claros sobre papel blanco, también desde una ventana en oscuro.
+- **En el archivo** es una línea de sus [propiedades](https://markdown.tisty.app/es/propiedades), `design: bosque` o `design: own/arena/vino/cafe/lora`, y con la primera línea del panel, **Default**, no hay ninguna. Un nombre que Tisty no conoce queda escrito y el documento se ve como **Default**. Si un documento tuyo ya tenía una propiedad propia con uno de esos cuatro nombres, como `design: coral`, ahora surte efecto: presiona la primera línea del panel o ponle otro nombre a la propiedad. Una propiedad tuya con cualquier otro valor queda como está hasta que elijas otro diseño en ese documento.
+- **Con páginas**, un documento lleva un solo diseño y sus páginas también lo llevan, en pantalla, impresas y compartidas. Se elige en el documento; en una página no hay nada que elegir.
+- **En varios idiomas**, el diseño es el mismo en todos: elegir uno, o unir un idioma, se lo pone a los demás. Una propiedad tuya llamada `design` queda como la escribiste.
+- **En su propia ventana**, la que solo lee, la hoja también lleva el diseño; ahí no hay nada que elegir.
+
 ## El PDF propio de Tisty
 
 Tisty hace su propio PDF y te lo muestra antes de exportarlo:

@@ -25,7 +25,7 @@ import {
   type Widths,
   widened,
 } from "tisty-editor/edit";
-import type { Head, Sheet as SheetSize } from "tisty-editor/read";
+import type { Design, Head, Sheet as SheetSize } from "tisty-editor/read";
 import { BOXES, bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened } from "../core";
 import type { Signing } from "../crediting";
@@ -104,6 +104,7 @@ type Props = {
   readonly onNote?: (text: string) => void;
   readonly onDoc?: (file: string, heading?: string) => void;
   readonly onTag?: (tag: string) => void;
+  readonly onDesign?: (design: Design) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
   readonly cardsShown?: CardsShown;
@@ -127,6 +128,7 @@ type Props = {
   readonly view?: Viewing;
   readonly more?: ReactNode;
   readonly sheet?: SheetSize;
+  readonly design?: Design;
   /** The page as it is drawn, for whoever prints it the way it is seen. */
   readonly onPage?: (page: Window | null) => void;
   readonly lately?: readonly [number, number] | null;
@@ -1337,6 +1339,7 @@ export default function Sheet(props: Readonly<Props>) {
         <Page
           bar={BAR}
           sheet={props.sheet}
+          design={props.design}
           body={drawn}
           label={label}
           tall={!lively}
@@ -1346,6 +1349,7 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file, heading) => said.current.onDoc?.(file, heading)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
+          onDesign={(design) => said.current.onDesign?.(design)}
           draw={draw}
           already={alreadyShown.current}
           onDresser={(dress) => {

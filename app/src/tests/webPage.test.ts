@@ -82,6 +82,27 @@ describe("a document as a page on paper", () => {
     expect(sheet?.querySelectorAll(".wide")).toHaveLength(1);
   });
 
+  it("wears the design of its cover in its light colors, over white paper, even in a dark window", async () => {
+    document.documentElement.dataset.theme = "dark";
+    const cover = "---\ndesign: coral\n---\nPlan";
+    const made = await webPage([cover, "---\ndesign: fiordo\n---\nAnexo"], "Plan", { leaf: "a4" });
+    delete document.documentElement.dataset.theme;
+    expect(made).toContain("--tisty-heading: #b5391a");
+    expect(made).not.toContain("#2f5d62");
+    expect(made).toContain("--tisty-sheet: #fff7f1");
+    expect(made).toContain(
+      "html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}",
+    );
+    expect(await webPage(["Plan"], "Plan", { leaf: "a4" })).not.toContain("--tisty-heading:");
+  });
+
+  it("wears the design it is handed, as a page wears its document's", async () => {
+    const page = "---\ndesign: coral\n---\nEnero";
+    const made = await webPage([page], "Enero", { leaf: "a4", design: "fiordo" });
+    expect(made).toContain("--tisty-heading: #2f5d62");
+    expect(await webPage([page], "Enero", undefined, "tisty")).not.toContain("--tisty-heading:");
+  });
+
   it("leaves the card and the credit out unless asked for", async () => {
     const made = await webPage(["Plan"], "Plan", { leaf: "a4", stamp: { credited: false } });
 

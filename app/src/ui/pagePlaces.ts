@@ -1,5 +1,7 @@
 import { spanned } from "tisty-editor/read";
 
+export const TITLE_SLOT = ".page > h1[data-title]";
+
 export type Placed = "data-at" | "data-src" | "data-placed";
 export type Place = [number, number];
 

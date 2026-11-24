@@ -31,6 +31,7 @@ pub enum Reading {
         place: String,
         path: String,
         own: bool,
+        design: Option<String>,
         first: String,
         more: bool,
         heads: Vec<Heading>,
@@ -169,10 +170,30 @@ pub fn view_read(app: AppHandle, window: tauri::WebviewWindow) -> Answer<Reading
         place,
         path,
         own,
+        design: design_of(&app, &source, &body),
         first,
         more,
         heads,
     })
+}
+
+// A page wears the design of the document it belongs to, and a file from outside wears none.
+fn design_of(app: &AppHandle, source: &Source, body: &str) -> Option<String> {
+    let Source::Own(paper) = source else {
+        return None;
+    };
+    let above = {
+        let session = app.state::<Mutex<Session>>();
+        let session = crate::held(&session);
+        crate::viewing::cover_of(&session.state, &paper.file)
+    };
+    match above {
+        None => tisty_markdown::front::laid(body).design,
+        Some(cover) => {
+            let said = crate::viewing::body_or(app, &cover, "cannotRead").ok()?;
+            tisty_markdown::front::laid(&said).design
+        }
+    }
 }
 
 #[tauri::command(async)]

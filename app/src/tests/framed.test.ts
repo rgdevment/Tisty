@@ -34,6 +34,17 @@ describe("a page in the window", () => {
     dressedAsWindow(drawn);
     expect(drawn.documentElement.classList.contains("dark")).toBe(false);
   });
+
+  it("keeps its design as the window turns, in the colors of that theme", () => {
+    const drawn = page(framed("<p>x</p>"));
+    const sheet = () => drawn.documentElement.style.getPropertyValue("--tisty-sheet");
+    document.documentElement.dataset.theme = "light";
+    dressedAsWindow(drawn, "fiordo");
+    expect(sheet()).toBe("#f4f7fa");
+    document.documentElement.dataset.theme = "dark";
+    dressedAsWindow(drawn, "fiordo");
+    expect(sheet()).toBe("#2b303b");
+  });
 });
 
 describe("the mark an agent's words leave", () => {

@@ -101,11 +101,37 @@ fn the_paper_and_the_sheets_are_read_as_the_window_reads_them() {
             paper: Some("letter"),
             sheets: true,
             landscape: true,
+            design: None,
         }
     );
     // Lying across only means something while the sheets are laid, and a paper the window lacks is no paper.
     let loose = front::laid("---\npaper: A0\norientation: landscape\n---\n# a");
     assert_eq!(loose, front::Laid::default());
+}
+
+#[test]
+fn a_design_is_read_in_any_capitals_with_or_without_sheets_and_one_nobody_knows_is_none() {
+    for one in front::DESIGNS {
+        let said = format!("---\ndesign: {}\n---\n# a", one.to_uppercase());
+        assert_eq!(front::laid(&said).design.as_deref(), Some(one));
+    }
+    for own in ["own", "own/arena/vino/cafe/source_serif", "own/arena"] {
+        let said = format!("---\ndesign: {own}\n---\n# a");
+        assert_eq!(front::laid(&said).design.as_deref(), Some(own));
+    }
+    for none in [
+        "tisty",
+        "pergamino",
+        "3",
+        "own/#ff0000",
+        "own/a/b/c/d/e",
+        "ownx/arena",
+    ] {
+        assert_eq!(
+            front::laid(&format!("---\ndesign: {none}\n---\n# a")).design,
+            None
+        );
+    }
 }
 
 #[test]

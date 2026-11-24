@@ -4,6 +4,7 @@ import {
   type CardAsked,
   cardsPlaced,
   charsAt,
+  type Design,
   type DrawnCards,
   readAs,
   sourceOf,
@@ -22,7 +23,15 @@ import { type Attaching, attachedAs, pressed } from "./attached";
 import { boxKey, NOTE } from "./diaryPaging";
 import { glancing } from "./glancing";
 import { letterOf, modKey } from "./macKeys";
-import { placeCopied, placedAt, placeOf, placeSaid, placeWritten, samePlace } from "./pagePlaces";
+import {
+  placeCopied,
+  placedAt,
+  placeOf,
+  placeSaid,
+  placeWritten,
+  samePlace,
+  TITLE_SLOT,
+} from "./pagePlaces";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type Bar, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
@@ -62,6 +71,7 @@ export type Reaching = {
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
+  readonly onDesign?: (design: Design) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
   readonly onStick?: (note: [number, number], to: number) => void;
@@ -385,6 +395,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     if (at) at.scrollIntoView({ block: "start" });
     else reach.onHere?.(asked.id);
   }
+  if (asked.kind === "design") reach.onDesign?.(asked.name);
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
   if (asked.kind === "picture") {
@@ -411,11 +422,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     const near = add?.matches(".add-step") ? add : last;
     if (near) reach.onBegin(charsAt(reach.body, asked.at[1]), "", near);
   }
-  if (asked.kind === "title" && reach.onBegin) {
-    const slot = page.querySelector(".page > h1[data-title]");
-    if (slot) reach.onBegin(0, "# ", slot);
-  }
-  if (asked.kind === "end" && reach.onBegin) {
+  // A page with nothing written yet begins at its title, wherever it is pressed.
+  const slot =
+    asked.kind === "title" || asked.kind === "end" ? page.querySelector(TITLE_SLOT) : null;
+  if (slot) reach.onBegin?.(0, "# ", slot);
+  else if (asked.kind === "end" && reach.onBegin) {
     const last = Array.from(page.querySelectorAll(".page > [data-at]")).pop();
     reach.onBegin(reach.body.length, "", last ?? page.querySelector(".page") ?? page.body);
   }
@@ -530,11 +541,13 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     const link = target.closest("a");
     if (link) event.preventDefault();
+    // A link that only moves about this page or dresses it answers a plain press.
+    const ownLink = /^(#|tisty:design\/)/.test(link?.getAttribute("href") ?? "");
     // A link among words being written takes the caret like them, and opens with Ctrl or Cmd held, as in a terminal.
     const amongWords =
       link?.closest('[contenteditable="true"]') &&
       !link.closest('[contenteditable="false"]') &&
-      !link.getAttribute("href")?.startsWith("#");
+      !ownLink;
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
       amongWords && !modKey(event)

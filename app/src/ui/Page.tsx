@@ -5,6 +5,7 @@ import {
   cardsIn,
   cardsOn,
   cardsPlaced,
+  type Design,
   type DrawnCards,
   escaped,
   type Head,
@@ -33,6 +34,7 @@ type Props = Reaching & {
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null, body?: string, undrawn?: boolean) => void;
   readonly sheet?: Sheet;
+  readonly design?: Design;
   readonly again?: string;
   readonly cardsShown?: CardsShown;
   readonly draw?: (body: string) => Promise<string>;
@@ -227,6 +229,7 @@ function Drawing(props: Readonly<Props>) {
           hidden={!seen}
           wide={wide}
           sheet={props.sheet}
+          design={props.design}
           zoom={zoom}
           reach={() => ({
             ...reach.current,

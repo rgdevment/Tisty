@@ -1,5 +1,6 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef } from "react";
+import type { Design } from "tisty-editor/read";
 import { docWord, keepFile } from "../core";
 import { saidPlainly } from "../refusal";
 import { webPage } from "./webPage";
@@ -7,11 +8,12 @@ import { webPage } from "./webPage";
 type Leaving = {
   readonly book: () => Promise<string[] | null>;
   readonly called: string;
+  readonly design?: Design;
   readonly onError: (said: string) => void;
 };
 
-const leaveAsHtml = async (bodies: string[], called: string) => {
-  const made = await webPage(bodies, called);
+const leaveAsHtml = async (bodies: string[], called: string, design?: Design) => {
+  const made = await webPage(bodies, called, undefined, design);
   const where = await intoFile({
     defaultPath: `${called}.html`,
     filters: [{ name: "HTML", extensions: ["html"] }],
@@ -29,9 +31,9 @@ const leaveAsWord = async (bodies: string[], called: string) => {
 
 const read =
   (made: typeof leaveAsHtml) =>
-  async ({ book, called }: Leaving) => {
+  async ({ book, called, design }: Leaving) => {
     const bodies = await book();
-    if (bodies) await made(bodies, called);
+    if (bodies) await made(bodies, called, design);
   };
 
 // The menu asks from outside the document, so the book is read as it stands when the event lands.

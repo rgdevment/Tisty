@@ -114,6 +114,41 @@ describe("the panels beside a sheet", () => {
       expect(asked).toEqual(["letter"]);
     });
 
+    it("offers the designs only where they can be picked, and says which it is", () => {
+      const plain = host();
+      sided(plain, say, [{ kind: "paper", leaf: "a4", onLeaf: () => undefined }]);
+      expect(plain.querySelector(".side-design")).toBeNull();
+
+      const side = host();
+      const asked: string[] = [];
+      sided(side, say, [
+        {
+          kind: "paper",
+          leaf: "a4",
+          onLeaf: () => undefined,
+          design: {
+            label: "Design",
+            all: ["tisty", "coral"].map((key) => ({
+              key,
+              label: key,
+              on: key === "coral",
+              light: "#0060e3",
+              dark: "#439bff",
+            })),
+            onPick: (one) => asked.push(one),
+          },
+        },
+      ]);
+      const row = side.querySelector(".side-design") as HTMLElement;
+      expect(row.getAttribute("aria-label")).toBe("Design");
+      const picks = [...row.querySelectorAll("button")];
+      expect(picks.map((one) => one.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+      expect(picks.map((one) => one.getAttribute("aria-label"))).toEqual(["tisty", "coral"]);
+      expect(picks[0].style.getPropertyValue("--dark")).toBe("#439bff");
+      picks[0].click();
+      expect(asked).toEqual(["tisty"]);
+    });
+
     it("never locks the paper where sheets cannot be turned on", () => {
       const side = host();
       sided(side, say, [{ kind: "paper", leaf: "a4", onLeaf: () => undefined }]);

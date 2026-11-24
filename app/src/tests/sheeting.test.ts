@@ -1,5 +1,6 @@
+import { laidIn } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
-import { landscapeIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
+import { landscapeIn, sheetsIn, withDesign, withLandscape, withPaper, withSheets } from "../front";
 import { seenIn, seenNow } from "../ui/printing";
 
 describe("the paper a document asks for", () => {
@@ -26,6 +27,40 @@ describe("the paper a document asks for", () => {
     expect(sheetsIn(asked)).toBe(true);
     expect(landscapeIn(asked)).toBe(true);
     expect(withLandscape(withSheets(asked, false), false)).toBe("# Plan\n");
+  });
+});
+
+describe("the design a document asks for", () => {
+  it("is written by its name, and Tisty leaves nothing written", () => {
+    const asked = withDesign(withPaper("# Plan\n", "letter"), "coral");
+    expect(asked).toBe("---\npaper: letter\ndesign: coral\n---\n# Plan\n");
+    expect(laidIn(asked).design).toBe("coral");
+    expect(withDesign(asked, "tisty")).toBe("---\npaper: letter\n---\n# Plan\n");
+  });
+
+  it("is no business of a line of the same name inside another property", () => {
+    const nested =
+      "---\nproyecto:\n  design: Ana\n  code: Luis\nnotas: |\n  design: azul\n---\n# Plan\n";
+    const coral = withDesign(nested, "coral");
+    expect(coral).toBe(nested.replace("\n---\n# Plan", "\ndesign: coral\n---\n# Plan"));
+    expect(withDesign(coral, "tisty")).toBe(nested);
+    expect(withDesign(nested, "tisty")).toBe(nested);
+  });
+
+  it("takes its own indented values along when it goes", () => {
+    const listed = "---\ntitle: Plan\ndesign:\n  - coral\npaper: letter\n---\n# Plan\n";
+    expect(withDesign(listed, "tisty")).toBe("---\ntitle: Plan\npaper: letter\n---\n# Plan\n");
+  });
+
+  it("stays written when it is the person's own and Default is asked for again", () => {
+    const theirs = "---\ndesign: https://figma.com/x\n---\n# Plan\n";
+    expect(withDesign(theirs, "tisty")).toBe(theirs);
+  });
+
+  it("stays written when nobody knows it, and the page is Tisty", () => {
+    const unknown = "---\ndesign: pergamino\n---\n# Plan\n";
+    expect(laidIn(unknown).design).toBe("tisty");
+    expect(withPaper(unknown, "letter")).toContain("design: pergamino");
   });
 });
 

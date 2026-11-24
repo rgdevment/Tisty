@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
-    Attachment, Cited, Document, Editor, Orientation, Page, Paper, Review, Sealing, Sheet,
-    Translation,
+    Attachment, Cited, Document, Editor, Orientation, OwnDesign, Page, Paper, Review, Sealing,
+    Sheet, Translation,
 };
 use tisty_core::model::{DocId, Kept};
 use tisty_core::person::Persons;
@@ -241,6 +241,24 @@ fn unread(e: impl std::fmt::Display) -> Unshared {
     Unshared::Unread(e.to_string())
 }
 
+fn word<T: serde::de::DeserializeOwned>(said: &str) -> Option<T> {
+    serde_json::from_value(json!(said)).ok()
+}
+
+/// What a document picked travels by its names, and one the contract lacks is left out.
+fn own_of(design: &str) -> Option<OwnDesign> {
+    let mut parts = design.split('/');
+    if parts.next() != Some("own") {
+        return None;
+    }
+    Some(OwnDesign {
+        sheet: parts.next().and_then(word),
+        heading: parts.next().and_then(word),
+        ink: parts.next().and_then(word),
+        font: parts.next().and_then(word),
+    })
+}
+
 fn sheet_of(body: &str) -> Option<Sheet> {
     let laid = tisty_markdown::front::laid(body);
     let paper: Option<Paper> = laid
@@ -250,8 +268,22 @@ fn sheet_of(body: &str) -> Option<Sheet> {
         paper,
         on: laid.sheets.then_some(true),
         orientation: laid.landscape.then_some(Orientation::Landscape),
+        design: laid
+            .design
+            .as_deref()
+            .and_then(|one| one.split('/').next())
+            .and_then(word),
+        own: laid.design.as_deref().and_then(own_of),
+    };
+    (sheet.paper.is_some() || sheet.on.is_some() || sheet.design.is_some()).then_some(sheet)
+}
+
+/// A document wears one design with all its pages, so a page says none of its own.
+fn page_sheet(body: &str) -> Option<Sheet> {
+    let sheet = Sheet {
         design: None,
         own: None,
+        ..sheet_of(body)?
     };
     (sheet.paper.is_some() || sheet.on.is_some()).then_some(sheet)
 }
@@ -412,7 +444,7 @@ fn pages_going(pages: &[WrittenPage], id: &str, places: &Places) -> Vec<Page> {
                 title: title_of(&travelling),
                 tags: tags_of(&page.body),
                 lang: tisty_markdown::front::lang(&page.body),
-                sheet: sheet_of(&page.body),
+                sheet: page_sheet(&page.body),
                 made: None,
                 wrote: None,
                 body: travelling,

@@ -1,6 +1,6 @@
 import { glyph, type ReadWord, type Say } from "tisty-sheet";
 import { offered, type Paper } from "./paper";
-import type { About, Act, Book, Tongue } from "./side";
+import type { About, Act, Book, Choosing, Pick, Tone, Tongue } from "./side";
 import { listed, made, pressed, toggle, tooled } from "./sideParts";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
@@ -163,6 +163,65 @@ const titled = (page: Document, say: Say, panel: Of<"title">) => {
   return head;
 };
 
+const grouped = (page: Document, className: string, label: string) => {
+  const row = made(page, "div", className);
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", label);
+  return row;
+};
+
+const picked = (page: Document, className: string, one: Pick, onPick: (key: string) => void) => {
+  const pick = pressed(page, className, "", () => onPick(one.key));
+  pick.title = one.label;
+  pick.setAttribute("aria-label", one.label);
+  pick.setAttribute("aria-pressed", String(one.on));
+  return pick;
+};
+
+const toned = (
+  page: Document,
+  label: string,
+  all: readonly Tone[],
+  onPick: (key: string) => void,
+) => {
+  const row = grouped(page, "side-design", label);
+  for (const one of all) {
+    const pick = picked(page, "side-look", one, onPick);
+    pick.style.setProperty("--light", one.light);
+    pick.style.setProperty("--dark", one.dark);
+    row.append(pick);
+  }
+  return row;
+};
+
+const titledRow = (page: Document, label: string, all: readonly Pick[], row: HTMLElement) => {
+  const head = made(page, "p", "side-own-head");
+  head.append(
+    made(page, "span", "", label),
+    made(page, "span", "", all.find((one) => one.on)?.label ?? ""),
+  );
+  const held = made(page, "div", "side-own-row");
+  held.append(head, row);
+  return held;
+};
+
+const choosing = (page: Document, { label, all, own, onPick }: Choosing) => {
+  const row = toned(page, label, all, onPick);
+  if (!own) return [row];
+  const box = made(page, "div", "side-own");
+  for (const one of own.colors)
+    box.append(titledRow(page, one.label, one.all, toned(page, one.label, one.all, onPick)));
+  const letters = grouped(page, "side-letters", own.font.label);
+  for (const one of own.font.all) {
+    const pick = picked(page, "side-letter", one, onPick);
+    pick.textContent = one.label;
+    pick.style.fontFamily = one.face;
+    letters.append(pick);
+  }
+  box.append(titledRow(page, own.font.label, own.font.all, letters));
+  return [row, box];
+};
+
 const papered = (page: Document, say: Say, panel: Of<"paper">) => {
   const row = made(page, "div", "side-paper");
   const leaves = made(page, "div", "side-leaves");
@@ -191,6 +250,7 @@ const papered = (page: Document, say: Say, panel: Of<"paper">) => {
     out.setAttribute("aria-busy", String(Boolean(panel.exporting)));
     row.append(out);
   }
+  if (panel.design) row.append(...choosing(page, panel.design));
   return row;
 };
 

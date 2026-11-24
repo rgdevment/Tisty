@@ -65,6 +65,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
       );
       (moving ? heads[0] : one).before(turn);
       begins = bottomOf(turn, sheet) + y;
+      ended = moving ? bottomOf(heads[heads.length - 1], sheet) : begins;
       deepest = begins;
       fresh = true;
       if (!moving) heads = [];

@@ -91,6 +91,27 @@ export type Held = {
   readonly onCopy: () => void;
 };
 
+export type Pick = {
+  readonly key: string;
+  readonly label: string;
+  readonly on: boolean;
+};
+
+export type Tone = Pick & { readonly light: string; readonly dark: string };
+
+export type Letter = Pick & { readonly face: string };
+
+export type Choosing = {
+  readonly label: string;
+  readonly all: readonly Tone[];
+  /** What a design of its own is made of, shown only while one is worn. */
+  readonly own?: {
+    readonly colors: readonly { readonly label: string; readonly all: readonly Tone[] }[];
+    readonly font: { readonly label: string; readonly all: readonly Letter[] };
+  };
+  readonly onPick: (key: string) => void;
+};
+
 // Every panel a sheet can have beside it; each place shows the ones it needs, in its order, and the rest are left out.
 export type Panel =
   | {
@@ -109,6 +130,7 @@ export type Panel =
       readonly sheets?: Turn;
       readonly landscape?: Turn;
       readonly raw?: Turn;
+      readonly design?: Choosing;
       readonly onExport?: (at: HTMLElement) => void;
       readonly exporting?: boolean;
     }

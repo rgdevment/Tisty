@@ -327,3 +327,37 @@ describe("the light viewer", () => {
     expect((await screen.findByRole("status")).textContent).toBe("1 / 2");
   });
 });
+
+describe("the design a document wears", () => {
+  const sheet = () => document.querySelector(".page") as HTMLElement;
+  const color = () => sheet().style.getPropertyValue("--tisty-sheet");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    host.facts.mockResolvedValue({ wrote: 1_700_000_000, bytes: 2048 });
+    host.editAsked.mockResolvedValue(() => {});
+    host.themed.mockResolvedValue(undefined);
+    host.shown.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    document.documentElement.classList.remove("dark");
+  });
+
+  it("is worn by the sheet alone, and turns with the theme", async () => {
+    host.opened.mockResolvedValue({ ...drawn("<h1>Coral sheet</h1>"), design: "coral" });
+    open();
+    await waitFor(() => expect(color()).toBe("#fff7f1"));
+    expect(document.documentElement.style.getPropertyValue("--tisty-sheet")).toBe("");
+    document.documentElement.classList.add("dark");
+    await waitFor(() => expect(color()).toBe("#261a16"));
+  });
+
+  it("is none where the document says none", async () => {
+    host.opened.mockResolvedValue({ ...drawn("<h1>Coral sheet</h1>"), design: null });
+    open();
+    await screen.findByText("Coral sheet");
+    expect(sheet().hasAttribute("data-designed")).toBe(false);
+  });
+});

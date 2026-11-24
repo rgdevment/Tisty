@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { laidIn } from "tisty-editor/read";
 import type { Doc, Filed } from "./core";
 import { locale } from "./locales";
 
@@ -8,9 +9,26 @@ export const docTranslate = (id: string, lang: string, from?: string): Promise<D
 export const docTongue = (id: string, of?: string, lang?: string, ofLang?: string): Promise<void> =>
   invoke("doc_tongue", { id, of, lang, ofLang });
 
-/// The paper its other languages are laid on follows the one just changed.
-export const docDress = (id: string, paper: string, sheets: boolean, landscape: boolean) =>
-  invoke<void>("doc_dress", { id, paper, sheets, landscape });
+/// The paper of its other languages follows the one just changed, and the design when that is what changed.
+export const docDress = (
+  id: string,
+  paper: string,
+  sheets: boolean,
+  landscape: boolean,
+  design?: string,
+) => invoke<void>("doc_dress", { id, paper, sheets, landscape, design });
+
+export const dressAll = (
+  own: Filed | undefined,
+  tongues: number,
+  body: string,
+  failed: (problem: unknown) => void,
+  design?: string,
+): void => {
+  if (!own || own.pageOf || tongues < 2) return;
+  const laid = laidIn(body);
+  docDress(own.id, laid.paper ?? "a4", laid.sheets, laid.landscape, design).catch(failed);
+};
 
 const CHOSEN = "tisty.tongue.";
 

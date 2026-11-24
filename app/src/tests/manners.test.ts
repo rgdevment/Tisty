@@ -68,3 +68,34 @@ describe("the house keeps one scale", () => {
     ).toEqual([]);
   });
 });
+
+describe("a tinted head", () => {
+  const sheet = readFileSync("../packages/tisty-sheet/src/page.css", "utf8");
+
+  it("draws what it holds in its own letters, and a name being written apart", () => {
+    expect(sheet).toMatch(
+      /thead th:not\(blockquote\.callout \*, :has\(> \.table-input\)\) > \* \{\s*--tisty-ink: var\(--tisty-sheet\);\s*--tisty-accent: var\(--tisty-sheet\);/,
+    );
+    expect(sheet).toContain("background: color-mix(in srgb, var(--design-ink) 30%, transparent);");
+    expect(sheet).toContain("background: color-mix(in srgb, var(--tisty-sheet) 35%, transparent);");
+    expect(sheet).toMatch(/thead th:has\(> \.table-input\) \{\s*background: var\(--tisty-sheet\);/);
+  });
+});
+
+describe("a column with a design of one's own", () => {
+  it("scrolls whole where it does not fit, so its fonts are never cut", () => {
+    const sheet = readFileSync(SIDE, "utf8");
+    expect(sheet).toMatch(/\.side:has\(\.side-own\) \{\s*overflow-y: auto;/);
+    expect(sheet).toMatch(/\.side-top:has\(\.side-own\) \{\s*flex-shrink: 0;/);
+  });
+});
+
+describe("the font of a design", () => {
+  const sheet = readFileSync("../packages/tisty-sheet/src/page.css", "utf8");
+
+  it("is the sheet's alone, and what keeps its own keeps the code's too", () => {
+    expect(sheet).toMatch(/html\[data-designed\] \.page \{\s*font-family: var\(--design-font\);/);
+    expect(sheet).not.toMatch(/html\[data-designed\] body \{[^}]*font-family/);
+    expect(sheet).toMatch(/figure\.code,[^{]*\{\s*font-family: var\(--own-font\);/);
+  });
+});

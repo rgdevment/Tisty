@@ -18,15 +18,17 @@
     margin-inline: calc(50% - 50vw);
   }
   html.dark.lively:not(.tall):not(.sheeted) .page {
-    color: #d4d4da;
+    color: var(--design-ink, #d4d4da);
   }
-  html.dark.lively:not(.tall):not(.sheeted) .page > :is(h1, h2, h4, h5, h6),
+  html.dark.lively:not(.tall):not(.sheeted) .page > :is(h1, h2, h4, h5, h6) {
+    color: var(--tisty-heading, var(--tisty-ink));
+  }
   html.dark.lively:not(.tall):not(.sheeted) .page strong {
     color: var(--tisty-ink);
   }
   html.dark.lively:not(.tall):not(.sheeted) .page > h3,
   html.dark.lively:not(.tall):not(.sheeted) .page .cm-h3 {
-    color: #ececf1;
+    color: var(--tisty-heading, #ececf1);
   }
   html.dark.lively:not(.tall):not(.sheeted) .page blockquote[data-callout="idea"] strong {
     color: inherit;
@@ -40,7 +42,7 @@
     font-weight: 650;
     line-height: 1.2;
     letter-spacing: -0.018em;
-    color: var(--tisty-ink);
+    color: var(--tisty-heading, var(--tisty-ink));
   }
   html.lively:not(.tall):not(.sheeted)
     .page:where(:not(.as-written))

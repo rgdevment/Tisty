@@ -316,6 +316,25 @@ Turn on **Sheets** in the document's panel to see it on real sheets (A4, Letter 
 
 This paragraph starts on a new sheet, because of the rule above.
 
+### Document designs
+
+A recipe you cook from and the minutes of a meeting do not have to look alike. The colored lines in the panel on the right, under the paper, change how this document looks without touching a word of it; rest the pointer on one, or reach it with `Tab`, to read its name. Each has its light version and its dark one, and notes, code and diagrams keep their own colors.
+
+**Try it:** press a name and watch this very guide change, and the panel on the right with it.
+
+| Design | How it looks |
+| --- | --- |
+| [Forest](tisty:design/bosque) | Greens, with a line under the title |
+| [Coral](tisty:design/coral) | Warm, with a bar under the title |
+| [Fjord](tisty:design/fiordo) | Blues and grays |
+| [Violet](tisty:design/violeta) | Violets, with a bar under the title |
+| [Your own](tisty:design/own/arena/vino/cafe/lora) | You make it: background, headings, text and font |
+| [Default](tisty:design/tisty) | The one it always had: press it to go back |
+
+With **Your own**, the last line, the panel shows its colors and its fonts, and the sheet changes with each one you press. Each color brings its light one and its dark one, and all those offered read well together. Sizes do not change.
+
+In print and in the PDF it comes out in the light colors, over white paper.
+
 ### Diagrams by hand
 
 A diagram tells at a glance what a paragraph takes a while to explain, like the one in "How does it work?" at the start. You write it as text, in a code block with the language `mermaid`, and Tisty draws it. A click enlarges it; a double-click opens it in the diagram window, where you can also draw mind maps, schemas, freeform diagrams or class diagrams by hand.

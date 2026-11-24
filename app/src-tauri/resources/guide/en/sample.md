@@ -23,7 +23,15 @@ source: the Tisty guide
 ---
 ```
 
-`tags:` files the document under each tag, the same as one written with `#` in a sentence. `title:` gives it another title; `paper:`, `sheets:` and `orientation:` say which sheet it prints on, and `lang:`, which language it is written in. Any other, like `source:`, is kept as it is.
+`tags:` files the document under each tag, the same as one written with `#` in a sentence. `title:` gives it another title; `paper:`, `sheets:` and `orientation:` say which sheet it prints on; `design:`, which design it wears, and `lang:`, which language it is written in. Any other, like `source:`, is kept as it is.
+
+### The design of the sheet
+
+A design changes how a document looks, with all its pages, without touching a word. This sheet is a page of the guide, so it wears the guide's: press one of the colored lines in the panel of its cover, or press a name in its **Document designs** section, and look at this sheet again. In a document of yours, a link like this puts that design on it when it is pressed.
+
+```markdown title="A name you can press"
+[Coral](tisty:design/coral)
+```
 
 ### An agent document
 

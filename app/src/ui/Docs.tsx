@@ -2,6 +2,7 @@ import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
+import type { Design } from "tisty-editor/read";
 import { acrossOf, type Head, laidIn, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { agentsTree } from "../agentsSync";
 import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
@@ -34,7 +35,7 @@ import {
 } from "../core";
 import type { Today } from "../diary";
 import { viewDiagram } from "../drawing";
-import { brainstormIn, notedIn, withLandscape, withPaper, withSheets } from "../front";
+import { brainstormIn, notedIn, withDesign, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { setAside } from "../keptAside";
 import { DOC_ASIDE_FROM } from "../layout";
@@ -56,7 +57,7 @@ import {
   unansweredWords,
 } from "../saving";
 import { sure } from "../sure";
-import { chooseTongue, docDress, tonguesOf, twinOf } from "../tongues";
+import { chooseTongue, dressAll, tonguesOf, twinOf } from "../tongues";
 import { opening, type Read, remembered, savedOnce } from "../weaving";
 import AgentCard, { AgentButtons, AgentTrail } from "./AgentCard";
 import { changedIn, MARK_FADES } from "./anchoring";
@@ -775,7 +776,7 @@ export default function Docs({
     onError: (e) => onError(saidPlainly(e)),
   });
 
-  const aboveTold = useToldAbove(above?.file, fresh);
+  const { told: aboveTold, design: aboveWears } = useToldAbove(above?.file, fresh);
 
   const inOrder = aboveTold
     ? aboveTold
@@ -789,6 +790,7 @@ export default function Docs({
   const brainstorm = noted && brainstormIn(body);
   const onNotes = noted && (brainstorm || inEditor !== open?.file);
   const laid = useMemo(() => laidIn(body), [body]);
+  const design = above ? (aboveWears ?? "tisty") : laid.design;
   const leaf =
     (open && (laidHere ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
     "a4";
@@ -871,19 +873,21 @@ export default function Docs({
   useLeaving({
     book: () => book().then((read) => read && [body, ...read.written]),
     called: called || t("untitledDoc"),
+    design,
     onError,
   });
 
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
+    await drawn.current?.document.fonts?.ready;
     const seen = await seenNow(
       drawn.current?.document,
       body,
       docDrawn,
       writtenAcrossOf(leaf, landscape),
     );
-    return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
+    return pdfOf([body, ...read.written], { leaf, landscape, stamp, design, ...seen });
   };
 
   const see = async (chosen: Stamping) => {
@@ -974,20 +978,18 @@ export default function Docs({
   }, [nowAt]);
 
   // How a document is laid out is the same in all its languages, so a change goes to each.
-  const dressAlike = (now: string) => {
-    if (!own || own.pageOf || tongues.length < 2) return;
-    const laid = laidIn(now);
-    docDress(own.id, laid.paper ?? "a4", laid.sheets, laid.landscape).catch((e) =>
-      onError(saidPlainly(e)),
-    );
-  };
+  const dressAlike = (now: string, design?: Design) =>
+    dressAll(own, tongues.length, now, (e) => onError(saidPlainly(e)), design);
 
-  const reshape = (made: (now: string) => string) => {
+  const reshape = (made: (now: string) => string, design?: Design) => {
     if (!open || laidHere) return;
     const now = made(held.current?.id === open.file ? held.current.body : body);
     wrote(now);
-    dressAlike(now);
+    dressAlike(now, design);
   };
+
+  const dressIn =
+    laidHere || above ? undefined : (one: Design) => reshape((now) => withDesign(now, one), one);
 
   // Paper asked for from the column keeps the column, folding the sidebar when the paper needs its room.
   const keptBeside = (paper: Paper, turned: boolean) => {
@@ -1001,11 +1003,7 @@ export default function Docs({
     const { [open.file]: _, ...others } = sized;
     const now = laidHere ? { ...others, [open.file]: paper } : others;
     sizedPapers.put(now);
-    if (laidHere) return;
-    const latest = held.current?.id === open.file ? held.current.body : body;
-    const laid = withPaper(latest, paper);
-    wrote(laid);
-    dressAlike(laid);
+    reshape((latest) => withPaper(latest, paper));
   };
   const narrowest = sheets ? across + 48 : READABLE;
   const reserve = beside && spare - ASIDE >= narrowest ? ASIDE : 0;
@@ -1113,6 +1111,7 @@ export default function Docs({
               Sheet && (
                 <Sheet
                   sheet={sheetOf}
+                  design={design}
                   onPage={(page) => {
                     drawn.current = page;
                   }}
@@ -1148,6 +1147,7 @@ export default function Docs({
                   label={shownTitle || t("untitledDoc")}
                   onDoc={toDoc}
                   onTag={onTag}
+                  onDesign={dressIn}
                   agent={agentShown}
                   above={
                     agentCard ? (
@@ -1453,6 +1453,8 @@ export default function Docs({
                   reshape((now) => withLandscape(now, turned));
                 }
           }
+          design={design}
+          onDesign={dressIn}
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
           tongues={tongues}

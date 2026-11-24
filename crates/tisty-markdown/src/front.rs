@@ -112,12 +112,17 @@ pub fn tags(text: &str) -> Vec<String> {
 /// The papers a document may ask for, as the window lays them.
 pub const PAPERS: [&str; 4] = ["a4", "letter", "folio", "tabloid"];
 
+/// The designs a document may ask for, besides Tisty, which is never written.
+pub const DESIGNS: [&str; 4] = ["bosque", "coral", "fiordo", "violeta"];
+
 /// How a document asks to be laid: its paper, whether in sheets and whether lying across, as the window reads it.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Laid {
     pub paper: Option<&'static str>,
     pub sheets: bool,
     pub landscape: bool,
+    /// One of the designs by its name, or one of its own, as `own/sheet/heading/ink/font`.
+    pub design: Option<String>,
 }
 
 fn said_in(all: &[Field], key: &str) -> Option<String> {
@@ -189,6 +194,18 @@ pub fn diary(text: &str) -> bool {
     said_in(&fields(text), "diary").as_deref() == Some("on")
 }
 
+/// Whoever draws it reads each name alone, so here they only have to be words.
+fn design(asked: String) -> Option<String> {
+    if DESIGNS.contains(&asked.as_str()) {
+        return Some(asked);
+    }
+    let mut parts = asked.split('/');
+    let own = parts.next() == Some("own")
+        && parts.clone().count() <= 4
+        && parts.all(|one| one.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'));
+    own.then_some(asked)
+}
+
 pub fn laid(text: &str) -> Laid {
     let all = fields(text);
     let said = |key: &str| said_in(&all, key);
@@ -197,6 +214,7 @@ pub fn laid(text: &str) -> Laid {
         paper: said("paper").and_then(|asked| PAPERS.into_iter().find(|one| *one == asked)),
         sheets,
         landscape: sheets && said("orientation").as_deref() == Some("landscape"),
+        design: said("design").and_then(design),
     }
 }
 

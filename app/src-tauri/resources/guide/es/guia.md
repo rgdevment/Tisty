@@ -316,6 +316,25 @@ Enciende **Hojas** en el panel del documento para verlo en hojas de verdad (A4, 
 
 Este párrafo empieza en una hoja nueva, por la raya de arriba.
 
+### Diseños de documento
+
+La receta que cocinas y el acta de una reunión no tienen por qué verse iguales. Las líneas de color del panel de la derecha, bajo el papel, cambian cómo se ve este documento sin tocar ni una palabra; deja el cursor sobre una, o llega con `Tab`, para leer su nombre. Cada uno tiene su versión clara y su versión oscura, y las notas, el código y los diagramas conservan sus colores.
+
+**Pruébalo:** presiona un nombre y mira cambiar esta misma guía, y el panel de la derecha con ella.
+
+| Diseño | Cómo se ve |
+| --- | --- |
+| [Bosque](tisty:design/bosque) | Verdes, con una línea bajo el título |
+| [Coral](tisty:design/coral) | Cálido, con una barra bajo el título |
+| [Fiordo](tisty:design/fiordo) | Azules y grises |
+| [Violeta](tisty:design/violeta) | Violetas, con una barra bajo el título |
+| [Propio](tisty:design/own/arena/vino/cafe/lora) | Lo armas tú: fondo, títulos, cuerpo y letra |
+| [Default](tisty:design/tisty) | El de siempre: presiónalo para volver |
+
+Con **Propio**, la última línea, el panel muestra sus colores y sus letras, y la hoja cambia con cada una que presionas. Cada color trae su claro y su oscuro, y los que se ofrecen se leen bien juntos. Los tamaños no cambian.
+
+Al imprimir y en el PDF salen los colores claros sobre papel blanco.
+
 ### Diagramas a mano
 
 Un diagrama cuenta de un vistazo lo que un párrafo tarda en explicar, como el de «¿Cómo funciona?» al principio. Lo escribes como texto, en un bloque de código con el lenguaje `mermaid`, y Tisty lo dibuja. Un clic lo agranda; un doble clic lo abre en la ventana de diagramas, donde también puedes dibujar a mano mapas mentales, esquemas, diagramas libres o de clases.

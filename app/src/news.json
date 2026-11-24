@@ -1871,7 +1871,7 @@
       },
       {
         "title": "Documentos que se leen como una página",
-        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila. Una tabla, un diagrama o una fórmula dentro de una lista o de una cita se dibuja entero, y la tabla se escribe celda por celda."
+        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila. Una tabla, un diagrama o una fórmula dentro de una lista o de una cita se dibuja entero, y la tabla se escribe celda por celda. Y cada documento puede llevar su diseño: Default, Bosque, Coral, Fiordo, Violeta o uno propio, en claro y en oscuro."
       },
       {
         "title": "Lo que escribes no se pierde",
@@ -1937,7 +1937,7 @@
       },
       {
         "title": "Documents that read like a page",
-        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row. A table, a diagram or a formula inside a list or a quote is drawn whole, and the table is written cell by cell."
+        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row. A table, a diagram or a formula inside a list or a quote is drawn whole, and the table is written cell by cell. And each document can wear a design: Default, Forest, Coral, Fjord, Violet or your own, in light and in dark."
       },
       {
         "title": "What you write is not lost",

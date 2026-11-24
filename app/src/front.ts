@@ -1,4 +1,4 @@
-import { fields, frontLines, keyed, laidIn, type Paper } from "tisty-editor/read";
+import { type Design, fields, frontLines, keyed, laidIn, type Paper } from "tisty-editor/read";
 
 export const unfronted = (body: string): string => {
   const held = frontLines(body);
@@ -38,7 +38,13 @@ const withProperty = (body: string, key: string, value: string | null): string =
     made = added.length ? `---\n${added[0]}\n---\n${plain}` : plain;
   } else {
     const named = new RegExp(String.raw`^${key}\s*:`, "i");
-    const inside = held.slice(1, -1).filter((one) => !named.test(one.trim()));
+    let dropping = false;
+    const inside = held.slice(1, -1).filter((one) => {
+      // A key's indented lines are its values, so they go with it and no other key's do.
+      if (/^[ \t]+\S/.test(one)) return !dropping;
+      dropping = named.test(one);
+      return !dropping;
+    });
     const kept = [...inside, ...added];
     const rest = plain.split("\n").slice(held.length).join("\n");
     made = kept.some((one) => one.trim())
@@ -53,6 +59,11 @@ export const withPaper = (body: string, paper: Paper): string =>
 
 export const withLandscape = (body: string, landscape: boolean): string =>
   withProperty(body, "orientation", landscape ? "landscape" : null);
+
+export const withDesign = (body: string, design: Design): string =>
+  design === "tisty" && laidIn(body).design === "tisty"
+    ? body
+    : withProperty(body, "design", design === "tisty" ? null : design);
 
 export const withSheets = (body: string, on: boolean): string =>
   withProperty(body, "sheets", on ? "on" : null);

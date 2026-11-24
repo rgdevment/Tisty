@@ -2,6 +2,7 @@ export { keyOf, modKey, onMac, shortcut } from "tisty-diagrams/macKeys";
 export { type Attaching, attachedAs, pressed } from "./attaching";
 export { celled, celledBox, hueOf, sayingDays, today } from "./cells";
 export { colored, coloredAll } from "./coloring";
+export { DESIGNS, type Design, designNamed, glimpseOf, isOwn, wearDesign } from "./designs";
 export { diagramShot, diagrams, drawing, sourceOf } from "./diagrams";
 export {
   alone,
@@ -15,6 +16,7 @@ export {
   playedAs,
   SEEABLE,
 } from "./files";
+export { fontCarried, fontLaid, fontWorn } from "./fonts";
 export { type Head, heads } from "./heads";
 export { HUES, type Hue, isHue } from "./hues";
 export { iconed } from "./icons";
@@ -30,6 +32,7 @@ export {
   saysAny,
   shapeOf,
 } from "./ideas";
+export { FONTS, HEADINGS, INKS, OWN, type Own, ownIn, ownSaid, SHEETS, SYSTEM } from "./ownDesign";
 export { drawnGlyph, glyph, piece } from "./pieces";
 export {
   type CardAsked,

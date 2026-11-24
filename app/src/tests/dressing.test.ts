@@ -454,6 +454,19 @@ describe("a drawn page wired to the window", () => {
     expect(jumped).toHaveBeenCalled();
   });
 
+  it("puts a design on at a plain press, even among words being written, and never one it does not know", () => {
+    const drawn = page(
+      '<p data-at="0-9"><a href="tisty:design/coral">Coral</a> <a href="tisty:design/constructor">x</a> <a href="tisty:design/own/arena">y</a></p>',
+    );
+    const { reach } = reaching();
+    const onDesign = vi.fn();
+    wired(drawn, () => ({ ...reach, onDesign }));
+    (drawn.querySelector(".page") as HTMLElement).setAttribute("contenteditable", "true");
+    for (const link of drawn.querySelectorAll("a"))
+      link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    expect(onDesign.mock.calls).toEqual([["coral"], ["own/arena/grafito/tinta/sans"]]);
+  });
+
   it("ignores a click that is not the main button", () => {
     const drawn = page('<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>');
     const { heard, reach } = reaching();

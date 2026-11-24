@@ -1,11 +1,26 @@
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use tempfile::TempDir;
 
 mod person;
+
+/// A scanner may still hold a copy just made, and Windows moves no file that another process holds.
+const HELD_BY_ANOTHER: i32 = 32;
+
+fn moved(from: &Path, to: &Path) {
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        match std::fs::rename(from, to) {
+            Err(e) if e.raw_os_error() == Some(HELD_BY_ANOTHER) && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            done => return done.unwrap(),
+        }
+    }
+}
 
 struct Door {
     home: TempDir,
@@ -58,7 +73,7 @@ impl Door {
 
     /// What an installer does on Windows, where a running binary can be moved but not written.
     fn laid_anew(&self, with: &Path) {
-        std::fs::rename(&self.binary, self.binary.with_extension("old")).unwrap();
+        moved(&self.binary, &self.binary.with_extension("old"));
         // One handle writes, marks and dates it: a scanner opens a fresh .exe as soon as it is closed.
         let mut laid = std::fs::File::create(&self.binary).unwrap();
         std::io::copy(&mut std::fs::File::open(with).unwrap(), &mut laid).unwrap();

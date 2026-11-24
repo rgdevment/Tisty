@@ -13,6 +13,7 @@ export type Opened =
       readonly place: string;
       readonly path: string;
       readonly own: boolean;
+      readonly design?: string | null;
       readonly first: string;
       readonly more: boolean;
       readonly heads: readonly Head[];

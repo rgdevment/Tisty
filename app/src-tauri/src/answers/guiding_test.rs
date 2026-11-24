@@ -255,7 +255,9 @@ fn a_page_of_the_guide_names_the_guide_and_its_other_pages_as_the_documents_they
         let named = |prefix: &str| body.matches(&format!("]({prefix}")).count();
         assert_eq!(
             body.matches("](tisty:").count(),
-            named(tisty_core::refs::DOC) + named(tisty_markdown::refs::TASK),
+            named(tisty_core::refs::DOC)
+                + named(tisty_markdown::refs::TASK)
+                + named("tisty:design/"),
             "{file} still names a page by its marker"
         );
     }

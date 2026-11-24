@@ -1,12 +1,16 @@
 import {
   coloredAll,
+  type Design,
   diagrams,
   escaped,
+  fontCarried,
   iconed,
+  laidIn,
   PRINTED,
   saidKinds,
   shell,
   sizeOf,
+  wearDesign,
 } from "tisty-editor/read";
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
@@ -101,6 +105,7 @@ export type PaperSheet = {
   readonly turns?: readonly string[];
   readonly opened?: readonly string[];
   readonly wide?: readonly string[];
+  readonly design?: Design;
 };
 
 // Paper turns where the screen's sheets turn and folds what the screen folds, so what is read there is what is printed.
@@ -129,6 +134,7 @@ export const webPage = async (
   bodies: string[],
   title: string,
   sheet?: PaperSheet,
+  design = sheet?.design ?? laidIn(bodies[0] ?? "").design,
 ): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
   if (drawn.length && sheet) drawn[0] = asSeen(drawn[0], sheet);
@@ -136,6 +142,10 @@ export const webPage = async (
   const light = lit();
   const tokens = page.head.querySelector("style");
   if (light && tokens) tokens.textContent = `:root{${light}}`;
+  // Paper and a page on the web are always light, and the pages of a document wear its design.
+  wearDesign(page.documentElement, design, false);
+  const font = await fontCarried(design);
+  if (font) page.head.insertAdjacentHTML("beforeend", `<style>${font}</style>`);
   page.head.insertAdjacentHTML(
     "afterbegin",
     `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${escaped(title)}</title>`,

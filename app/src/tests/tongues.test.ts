@@ -82,10 +82,10 @@ describe("languages of a document", () => {
 
 describe("laying out every language alike", () => {
   it("hands the paper, the sheets and their turn to the core", async () => {
-    await docDress("es", "letter", true, false);
+    await docDress("es", "letter", true, false, "bosque");
     expect(invoked[invoked.length - 1]).toEqual([
       "doc_dress",
-      { id: "es", paper: "letter", sheets: true, landscape: false },
+      { id: "es", paper: "letter", sheets: true, landscape: false, design: "bosque" },
     ]);
   });
 });

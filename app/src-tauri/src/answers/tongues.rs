@@ -98,10 +98,19 @@ pub fn tongued(
     }
     let ops = session.state.joining(doc, of);
     session.commit_all(ops)?;
-    Ok(())
+    // The design is the group's, so whoever joins wears the one of its anchor.
+    let anchor = session.state.anchor_of(&up);
+    let Some(file) = session.state.docs.get(&anchor).map(|one| one.file.clone()) else {
+        return Ok(());
+    };
+    let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &file) else {
+        return Ok(());
+    };
+    let design = tisty_markdown::front::laid(&body).design;
+    laid_on_the_others(session, anchor, &[("design", design)])
 }
 
-/// Paper, sheets and their turn are how a document is laid out, so every language shares them.
+/// Paper, sheets, their turn and the design are how a document is laid out, so every language shares them.
 #[tauri::command]
 pub fn doc_dress(
     session: tauri::State<'_, Mutex<Session>>,
@@ -109,8 +118,9 @@ pub fn doc_dress(
     paper: Option<String>,
     sheets: bool,
     landscape: bool,
+    design: Option<String>,
 ) -> Answer<()> {
-    dressed(&mut held(&session), &id, paper, sheets, landscape)
+    dressed(&mut held(&session), &id, paper, sheets, landscape, design)
 }
 
 pub fn dressed(
@@ -119,6 +129,7 @@ pub fn dressed(
     paper: Option<String>,
     sheets: bool,
     landscape: bool,
+    design: Option<String>,
 ) -> Answer<()> {
     let doc: DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let laid = [
@@ -129,6 +140,26 @@ pub fn dressed(
             (sheets && landscape).then(|| "landscape".to_string()),
         ),
     ];
+    let mut laid = laid.to_vec();
+    if let Some(design) = design {
+        laid.push(("design", Some(design).filter(|one| one != "tisty")));
+    }
+    laid_on_the_others(session, doc, &laid)
+}
+
+// A design Tisty does not know is the person's own word, so it stays written.
+fn theirs(body: &str) -> bool {
+    tisty_markdown::front::laid(body).design.is_none()
+        && tisty_markdown::front::fields(body)
+            .iter()
+            .any(|one| one.key.eq_ignore_ascii_case("design"))
+}
+
+fn laid_on_the_others(
+    session: &mut Session,
+    doc: DocId,
+    laid: &[(&str, Option<String>)],
+) -> Answer<()> {
     let others: Vec<(DocId, String)> = session
         .state
         .tongues_of(doc)
@@ -145,6 +176,7 @@ pub fn dressed(
                 let now = laid
                     .iter()
                     .fold(was.to_string(), |body, (key, value)| match value {
+                        _ if *key == "design" && theirs(&body) => body,
                         Some(value) => tisty_markdown::front::with_field(&body, key, value),
                         None => tisty_markdown::front::without_field(&body, key),
                     });

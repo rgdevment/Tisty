@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { diagrams, type Sheet, sheeting } from "tisty-editor/read";
+import { type Design, diagrams, fontWorn, type Sheet, sheeting } from "tisty-editor/read";
 import { caught } from "../broke";
 import { unnavigated } from "../unnavigated";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
@@ -22,6 +22,7 @@ type Props = {
   readonly wide?: number;
   readonly zoom?: number;
   readonly sheet?: Sheet;
+  readonly design?: Design;
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
   /** Hands over how blocks drawn again in place are dressed, as the page they join was. */
@@ -109,7 +110,7 @@ export default function Frame(props: Readonly<Props>) {
     const retheme = () => {
       const page = held.contentDocument;
       if (!page) return;
-      dressedAsWindow(page);
+      dressedAsWindow(page, said.current.design);
       const mine = drawing;
       void diagrams(
         page,
@@ -139,7 +140,7 @@ export default function Frame(props: Readonly<Props>) {
       page.documentElement.classList.toggle("shaping", shaped.current);
       page.documentElement.classList.toggle("agent", carded.current);
       steady(() => wired(page, () => said.current.reach()));
-      steady(() => dressedAsWindow(page));
+      steady(() => dressedAsWindow(page, said.current.design));
       steady(() => fitted(page, said.current.wide, said.current.zoom));
       steady(() => dress(page));
       steady(() => {
@@ -159,6 +160,7 @@ export default function Frame(props: Readonly<Props>) {
         }),
       );
       steady(() => said.current.onReady(held));
+      void fontWorn(page, said.current.design ?? "tisty").then(() => live && laid.current());
     };
     swap.current = (next) => {
       const page = held.contentDocument;
@@ -167,7 +169,7 @@ export default function Frame(props: Readonly<Props>) {
       undressed();
       // The document is built once, so the language and look it was built with are brought up to date.
       page.documentElement.lang = document.documentElement.lang;
-      steady(() => dressedAsWindow(page));
+      steady(() => dressedAsWindow(page, said.current.design));
       freshen(sheet, next);
       steady(() => dress(page));
       steady(() => laid.current());
@@ -203,6 +205,21 @@ export default function Frame(props: Readonly<Props>) {
     const page = frame.current?.contentDocument;
     if (page?.querySelector(".page")) fitted(page, wide, zoom);
   }, [wide, zoom]);
+
+  const { design } = props;
+  useLayoutEffect(() => {
+    const page = frame.current?.contentDocument;
+    if (page?.documentElement.dataset.wired === undefined) return;
+    dressedAsWindow(page, design);
+    laid.current();
+    let gone = false;
+    void fontWorn(page, design ?? "tisty").then(() => {
+      if (!gone) laid.current();
+    });
+    return () => {
+      gone = true;
+    };
+  }, [design]);
 
   const { tall: sheetTall, x: sheetX, y: sheetY } = props.sheet ?? {};
   useEffect(() => laid.current(), [sheetTall, sheetX, sheetY]);

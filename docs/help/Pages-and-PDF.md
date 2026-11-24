@@ -31,6 +31,32 @@ Turn on **Sheets** in a document's panel to choose its paper — **A4**, **Lette
 
 A rule on its own line (`---`) always splits the sheet, sheets or not, and `Ctrl`/`⌘` + `Enter` writes one while you write. With sheets on, it is marked **Page break**. How one is written, and what comes in as one from LaTeX, Word or a web page, is in the [Markdown guide](https://markdown.tisty.app/page-breaks).
 
+## Document designs
+
+A recipe you cook from and the minutes of a meeting do not have to look alike. The row of colored lines in the document's panel, under the paper, changes how that document looks, without touching a word of it. Each line is a design: rest the pointer on one, or reach it with `Tab`, to read its name, and the thickest is the one it wears.
+
+| Design | How it looks |
+| --- | --- |
+| **Default** | The one every document is born with |
+| **Forest** | Greens, with a line under the title |
+| **Coral** | Warm, with a bar under the title |
+| **Fjord** | Blues and grays |
+| **Violet** | Violets, with a bar under the title |
+| **Your own** | Background, headings, text and font, picked by you |
+
+Each has its light colors and its dark ones, and follows the window. It works with sheets on or off, and changes the letters, the title, the headings and the head of every table. Diagrams keep their own colors.
+
+For example, open **Rina's vaccines**, press the line of **Forest** and turn the window dark: the paper goes dark green and the headings light green. Press **Default**, the first one, and it is as it was.
+
+- **Your own** is made in the panel: press its line, the last one, and pick a background, the color of the headings, the color of the text and one of nine fonts. For example, **Sand**, **Wine**, **Coffee** and **Lora** for a recipe book. Each color brings its light one and its dark one, any of them read well together, and sizes do not change. The fonts come with Tisty, so nothing is fetched.
+- **From the text:** a link to `tisty:design/coral`, or to any of the others, puts that design on the document when it is pressed. The starting guide has them to try; `tisty:design/tisty` goes back.
+- **Notes, code, diagrams and widgets** keep their own colors on every design.
+- **On paper and in the PDF** it wears its light colors over white paper, even from a dark window.
+- **In the file** it is one line of its [properties](https://markdown.tisty.app/properties), `design: bosque` or `design: own/arena/vino/cafe/lora`, and the first line of the panel, **Default**, leaves none. A name Tisty does not know stays written and the document looks as **Default**. If a document of yours already had a property of your own with one of those four names, like `design: coral`, it now takes effect: press the first line of the panel, or name the property something else. A property of your own with any other value stays as it is until you pick another design in that document.
+- **With pages**, a document wears one design, and its pages wear it too, on screen, in print and shared. You pick it in the document; a page has nothing to pick.
+- **In several languages**, the design is the same in all of them: picking one, or joining a language, puts it on the rest. A property of your own called `design` stays as you wrote it.
+- **In a window of its own**, the one that only reads, the sheet wears the design too; there is nothing to pick there.
+
 ## Tisty's own PDF
 
 Tisty makes its own PDF, and shows it to you before you export it:

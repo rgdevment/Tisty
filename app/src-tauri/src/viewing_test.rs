@@ -1,5 +1,5 @@
 use super::{
-    LinkQuestion, Paper, Shown, Views, asked, asked_for_task, asked_to_edit, docs_named,
+    LinkQuestion, Paper, Shown, Views, asked, asked_for_task, asked_to_edit, cover_of, docs_named,
     paper_asked, shows, task_link, wanted,
 };
 
@@ -502,4 +502,25 @@ fn a_task_s_page_and_a_document_of_another_machine_are_no_document_here() {
     for file in ["4nnctnme-0003", "4nnctnme-0004"] {
         assert_eq!(paper_asked(&state, file), None, "{file}");
     }
+}
+
+#[test]
+fn a_page_is_read_under_its_document_and_a_document_under_none() {
+    let mut state = tisty_core::State::default();
+    let book = kept(
+        &mut state,
+        "4nnctnme-0040",
+        serde_json::json!({ "title": "Paseos" }),
+    );
+    kept(
+        &mut state,
+        "4nnctnme-0041",
+        serde_json::json!({ "title": "Marzo", "page_of": book.to_string() }),
+    );
+    assert_eq!(
+        cover_of(&state, "4nnctnme-0041").as_deref(),
+        Some("4nnctnme-0040")
+    );
+    assert_eq!(cover_of(&state, "4nnctnme-0040"), None);
+    assert_eq!(cover_of(&state, "4nnctnme-0042"), None);
 }

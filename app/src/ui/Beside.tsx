@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
+import {
+  type Design,
+  type Facts,
+  FONTS,
+  fields,
+  fontLaid,
+  type Head,
+  isOwn,
+  type Leaf,
+  overgrown,
+  type Panel,
+} from "tisty-editor/read";
 import { folderShown } from "../agentsSync";
 import type { Citing } from "../citing";
 import { asLink } from "../copying";
@@ -10,6 +21,7 @@ import { brainstormIn } from "../front";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import { tongueName } from "../tongues";
+import { designing } from "./designing";
 import LanguageReview from "./LanguageReview";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
@@ -77,6 +89,8 @@ interface Props {
   landscape?: boolean;
   onSheets?: (on: boolean) => void;
   onLandscape?: (turned: boolean) => void;
+  design?: Design;
+  onDesign?: (design: Design) => void;
   making: boolean;
   onCopy: () => void;
   onTakeOut: () => void;
@@ -182,6 +196,18 @@ export default function Beside(props: Props) {
   latest.current = props;
   const canSheets = props.onSheets !== undefined;
   const canTurn = props.onLandscape !== undefined;
+  const canDesign = props.onDesign !== undefined;
+  const lastOwn = useRef<Design | null>(null);
+  const ofPaper = useRef(props.paper);
+  if (ofPaper.current !== props.paper) {
+    ofPaper.current = props.paper;
+    lastOwn.current = null;
+  }
+  const picksOwn = canDesign && props.design !== undefined && isOwn(props.design);
+  if (picksOwn && props.design) lastOwn.current = props.design;
+  useEffect(() => {
+    if (picksOwn) for (const font of Object.keys(FONTS)) void fontLaid(document, font);
+  }, [picksOwn]);
   const hasEarlier = props.onEarlier !== undefined;
   // Arrays a render makes anew are compared by what they say, or every key pressed would draw the column again.
   const trailSaid = trail.map((one) => `${one.id}:${one.name}`).join("|");
@@ -230,6 +256,11 @@ export default function Beside(props: Props) {
                 onTurn: (turned) => latest.current.onLandscape?.(turned),
               }
             : undefined,
+        design: canDesign
+          ? designing(props.design ?? "tisty", lastOwn.current, (one) =>
+              latest.current.onDesign?.(one),
+            )
+          : undefined,
         exporting: props.making,
         onExport: (at) => {
           if (performance.now() - shutAt.current < REOPENS) return;
@@ -260,6 +291,8 @@ export default function Beside(props: Props) {
     canTurn,
     sheets,
     props.landscape,
+    canDesign,
+    props.design,
     props.making,
     heads,
     up?.id,

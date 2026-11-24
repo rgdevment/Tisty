@@ -1,3 +1,4 @@
+import { type Design, designNamed } from "tisty-sheet";
 import { PAPERS, type Paper } from "./paper";
 
 export interface Field {
@@ -75,6 +76,7 @@ export type Laid = {
   readonly paper: Paper | null;
   readonly sheets: boolean;
   readonly landscape: boolean;
+  readonly design: Design;
 };
 
 export const keyed = (all: Field[], key: string): string[] | undefined =>
@@ -88,5 +90,6 @@ export const laidIn = (body: string): Laid => {
     paper: PAPERS.find((one) => one === said("paper")) ?? null,
     sheets,
     landscape: sheets && said("orientation") === "landscape",
+    design: designNamed(said("design")),
   };
 };

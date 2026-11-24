@@ -964,6 +964,12 @@ pub fn view_task(app: AppHandle, task: String) {
     to_task(&app, task);
 }
 
+/// The file of the document a page belongs to.
+pub fn cover_of(state: &tisty_core::state::State, file: &str) -> Option<String> {
+    let page = state.docs.values().find(|one| one.file == file)?;
+    Some(state.docs.get(&page.page_of?)?.file.clone())
+}
+
 #[cfg(test)]
 #[path = "viewing_test.rs"]
 mod tests;

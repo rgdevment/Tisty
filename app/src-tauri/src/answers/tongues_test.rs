@@ -217,11 +217,12 @@ fn the_paper_a_document_is_laid_on_is_the_same_in_its_other_languages() {
         Some("folio".into()),
         true,
         false,
+        Some("coral".into()),
     )
     .unwrap();
     assert_eq!(
         body_of(&session, en),
-        "---\nlang: en\npaper: folio\nsheets: on\n---\n# Paseos\n"
+        "---\nlang: en\npaper: folio\nsheets: on\ndesign: coral\n---\n# Paseos\n"
     );
 
     super::dressed(
@@ -230,9 +231,115 @@ fn the_paper_a_document_is_laid_on_is_the_same_in_its_other_languages() {
         Some("a4".into()),
         false,
         false,
+        Some("tisty".into()),
     )
     .unwrap();
     assert_eq!(body_of(&session, en), "---\nlang: en\n---\n# Paseos\n");
+}
+
+#[test]
+fn a_change_of_paper_leaves_the_design_of_another_language_as_it_is() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(&mut session, "---\nlang: es\n---\n# Paseos\n", None);
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let en = id_of(&session, &en.id);
+    let file = session.state.docs[&en].file.clone();
+    tisty_core::docs::amend(&session.paths.docs(), &session.writer(), &file, |was| {
+        Some(tisty_markdown::front::with_field(was, "design", "coral"))
+    })
+    .unwrap();
+    let paper = |session: &mut Session, design: Option<String>| {
+        super::dressed(
+            session,
+            &es.to_string(),
+            Some("letter".into()),
+            false,
+            false,
+            design,
+        )
+        .unwrap();
+    };
+    paper(&mut session, None);
+    let body = body_of(&session, en);
+    assert!(
+        body.contains("paper: letter") && body.contains("design: coral"),
+        "{body}"
+    );
+    paper(&mut session, Some("bosque".into()));
+    assert!(body_of(&session, en).contains("design: bosque"));
+}
+
+#[test]
+fn a_design_of_the_persons_own_is_not_replaced_in_another_language() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(
+        &mut session,
+        "---\nlang: es\ndesign: Ana Perez\n---\n# Paseos\n",
+        None,
+    );
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let en = id_of(&session, &en.id);
+    let was = body_of(&session, en);
+    super::dressed(
+        &mut session,
+        &es.to_string(),
+        Some("a4".into()),
+        false,
+        false,
+        Some("coral".into()),
+    )
+    .unwrap();
+    assert_eq!(body_of(&session, en), was);
+}
+
+#[test]
+fn a_language_that_joins_wears_the_design_of_its_anchor() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(
+        &mut session,
+        "---\nlang: es\ndesign: bosque\n---\n# Paseos\n",
+        None,
+    );
+    let en = wrote(
+        &mut session,
+        "---\nlang: en\ndesign: coral\n---\n# Walks\n",
+        None,
+    );
+    tongued(
+        &mut session,
+        &en.to_string(),
+        Some(es.to_string()),
+        None,
+        None,
+    )
+    .unwrap();
+    assert!(body_of(&session, es).contains("design: bosque"));
+    assert!(body_of(&session, en).contains("design: bosque"));
+}
+
+#[test]
+fn a_design_nobody_knows_stays_written_in_another_language() {
+    let Desk { _tmp, mut session } = desk();
+    let es = wrote(
+        &mut session,
+        "---\nlang: es\ndesign: pergamino\n---\n# Paseos\n",
+        None,
+    );
+    let en = translated(&mut session, &es.to_string(), "en", None).unwrap();
+    let en = id_of(&session, &en.id);
+    let was = body_of(&session, en);
+    assert!(was.contains("design: pergamino"), "{was}");
+
+    super::dressed(
+        &mut session,
+        &es.to_string(),
+        Some("a4".into()),
+        false,
+        false,
+        Some("tisty".into()),
+    )
+    .unwrap();
+    assert_eq!(body_of(&session, en), was);
 }
 
 #[test]

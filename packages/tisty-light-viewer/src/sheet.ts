@@ -74,6 +74,7 @@ const shaded = (dark: boolean): void => {
 
 // Paper is light, and a dark theme's near-white words would be printed on it.
 export const printed = async (): Promise<void> => {
+  await document.fonts?.ready;
   const dark = isDark();
   if (dark) {
     shaded(false);

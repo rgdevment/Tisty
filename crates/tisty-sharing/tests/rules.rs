@@ -240,7 +240,7 @@ fn a_person_can_say_a_title_nothing_is_left_of_and_it_still_seals() {
 fn its_properties_make_its_sheet_tags_and_language() {
     let (_tmp, mut home) = home();
     let doc = home.wrote(
-        "---\ntitle: Paseos\ntags: [Rina, camión]\npaper: letter\nsheets: on\norientation: landscape\nlang: pt_br\n---\n\n# Paseos\n",
+        "---\ntitle: Paseos\ntags: [Rina, camión]\npaper: letter\nsheets: on\norientation: landscape\ndesign: bosque\nlang: pt_br\n---\n\n# Paseos\n",
         None,
     );
     let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
@@ -248,7 +248,88 @@ fn its_properties_make_its_sheet_tags_and_language() {
     assert_eq!(read.held["sheet"]["paper"], "letter");
     assert_eq!(read.held["sheet"]["on"], true);
     assert_eq!(read.held["sheet"]["orientation"], "landscape");
+    assert_eq!(read.held["sheet"]["design"], "bosque");
     assert_eq!(read.held["tags"], serde_json::json!(["rina", "camion"]));
+}
+
+#[test]
+fn every_design_a_document_may_ask_for_is_one_the_contract_names() {
+    for one in tisty_markdown::front::DESIGNS {
+        let (_tmp, mut home) = home();
+        let doc = home.wrote(
+            &format!(
+                "---
+design: {one}
+---
+
+# Paseos
+"
+            ),
+            None,
+        );
+        let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
+        assert_eq!(read.held["sheet"]["design"], one);
+    }
+}
+
+#[test]
+fn a_design_of_its_own_travels_by_its_names_and_one_nobody_knows_stays() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote(
+        "---
+design: own/arena/nadie/cafe/lora
+---
+
+# Paseos
+",
+        None,
+    );
+    let sheet = &every_reader_opens(&sealed(&home, &asked(doc)))[0].held["sheet"];
+    assert_eq!(sheet["design"], "own");
+    assert_eq!(
+        sheet["own"],
+        serde_json::json!({ "sheet": "arena", "ink": "cafe", "font": "lora" })
+    );
+}
+
+#[test]
+fn a_page_says_no_design_and_wears_its_documents() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote("---\ndesign: coral\n---\n\n# Paseos\n", None);
+    home.wrote(
+        "---\ndesign: bosque\npaper: letter\n---\n\n# Enero\n",
+        Some(doc),
+    );
+    home.wrote("---\ndesign: bosque\n---\n\n# Febrero\n", Some(doc));
+    let held = &every_reader_opens(&sealed(&home, &asked(doc)))[0].held;
+    assert_eq!(held["sheet"]["design"], "coral");
+    let pages = held["pages"].as_array().unwrap();
+    assert_eq!(pages.len(), 2);
+    assert!(pages.iter().all(|one| one["sheet"]["design"].is_null()));
+    assert!(pages.iter().any(|one| one["sheet"]["paper"] == "letter"));
+}
+
+#[test]
+fn a_link_that_puts_a_design_on_travels_as_its_words() {
+    let (_tmp, mut home) = home();
+    let doc = home.wrote(
+        "# Paseos
+
+| Uno |
+| --- |
+| [Coral](tisty:design/coral) |
+
+Ve [Bosque](tisty:design/bosque).
+",
+        None,
+    );
+    let read = &every_reader_opens(&sealed(&home, &asked(doc)))[0];
+    let html = read.held["html"].as_str().unwrap();
+    assert!(
+        html.contains("Coral") && html.contains("Ve Bosque."),
+        "{html}"
+    );
+    assert!(!html.contains("tisty:design"), "{html}");
 }
 
 #[test]
@@ -568,10 +649,13 @@ fn pages_go_inside_by_their_place_and_are_reached_by_it() {
 }
 
 #[test]
-fn only_the_anchor_holds_the_map_of_its_languages_and_all_wear_its_paper() {
+fn only_the_anchor_holds_the_map_of_its_languages_and_all_wear_its_sheet() {
     let (_tmp, mut home) = home();
-    let es = home.wrote("---\nlang: es\npaper: letter\n---\n\n# Paseos\n", None);
-    let en = home.wrote("---\nlang: en\n---\n\n# Walks\n", None);
+    let es = home.wrote(
+        "---\nlang: es\npaper: letter\ndesign: bosque\n---\n\n# Paseos\n",
+        None,
+    );
+    let en = home.wrote("---\nlang: en\ndesign: coral\n---\n\n# Walks\n", None);
     home.joined(en, es);
 
     let out = sealed(&home, &asked(en));
@@ -586,6 +670,7 @@ fn only_the_anchor_holds_the_map_of_its_languages_and_all_wear_its_paper() {
     assert_eq!(map["key"].as_str(), key_of(&out, &other.id).as_deref());
     assert!(other.held.get("languages").is_none());
     assert_eq!(other.held["sheet"]["paper"], "letter");
+    assert_eq!(other.held["sheet"]["design"], "bosque");
     assert_ne!(key_of(&out, &anchor.id), key_of(&out, &other.id));
 }
 

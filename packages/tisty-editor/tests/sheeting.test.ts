@@ -53,6 +53,42 @@ describe("sheets laid on the page", () => {
     expect(sheet.style.getPropertyValue("--last")).toBe("53px");
   });
 
+  it("fills from the new sheet when a floated note is the first thing on it", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["p", 60, 40],
+      ["blockquote", 110, 60],
+      ["hr", 112, 2],
+    ]);
+    const note = sheet.children[2] as HTMLElement;
+    note.dataset.callout = "idea";
+    note.dataset.side = "right";
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const rule = sheet.querySelector("hr") as HTMLElement;
+    expect(sheet.querySelector(".sheet-turn")?.nextElementSibling).toBe(note);
+    expect(rule.style.getPropertyValue("--fill")).toBe("119px");
+  });
+
+  it("fills from a heading moved along when a floated note follows it", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["h2", 60, 30],
+      ["blockquote", 90, 60],
+      ["hr", 92, 2],
+    ]);
+    const note = sheet.children[2] as HTMLElement;
+    note.dataset.callout = "idea";
+    note.dataset.side = "right";
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const rule = sheet.querySelector("hr") as HTMLElement;
+    const turn = sheet.querySelector(".sheet-turn") as HTMLElement;
+    const begins = turn.offsetTop + turn.offsetHeight + 10;
+    const heading = sheet.querySelector("h2") as HTMLElement;
+    const foot = heading.offsetTop + heading.offsetHeight;
+    expect(turn.nextElementSibling).toBe(heading);
+    expect(rule.style.getPropertyValue("--fill")).toBe(`${Math.max(0, begins + 119 - foot)}px`);
+  });
+
   it("does not take the hidden properties for the block that stays, which would leave a blank sheet", () => {
     const sheet = laid([
       ["dl", 10, 0],

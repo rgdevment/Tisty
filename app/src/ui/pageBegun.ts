@@ -7,7 +7,7 @@ import type { Laying } from "./pageLaying";
 import { closing, joinedAt, opening } from "./pageLists";
 import { closeOf, joinedAcross, openOf } from "./pageMarks";
 import { caretLaidOn, inCode } from "./pageNodes";
-import { placeOf } from "./pagePlaces";
+import { placeOf, TITLE_SLOT } from "./pagePlaces";
 import { GHOST, titledAfterFront } from "./pageSpots";
 import { choiceKept, type Kept, type Writer } from "./pageWriter";
 
@@ -46,7 +46,10 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
 
   // A line begun and not written loses its stand-in on a press back, and the next key still begins it there.
   const dropBegun = () => {
-    for (const one of page.querySelectorAll(GHOST)) one.remove();
+    const ghosts = [...page.querySelectorAll(GHOST)];
+    // The title's slot is the page's own, so an empty page keeps it and waits there.
+    if (ghosts.some((one) => one.matches(TITLE_SLOT))) return;
+    for (const one of ghosts) one.remove();
     if (writer.kept) writer.kept = { ...writer.kept, node: page.body, offset: -1 };
   };
 
@@ -81,14 +84,15 @@ export const begunOn = (writer: Writer, caret: Caret, laying: Laying) => {
     above = false,
   ) => {
     for (const one of page.querySelectorAll(GHOST)) if (one !== near) one.remove();
-    const titled = near.matches(".page > h1[data-title]");
+    const titled = near.matches(TITLE_SLOT);
     const ghost = titled
       ? (near as HTMLElement)
       : page.createElement(above && near.matches("li") ? "li" : "p");
     ghost.dataset.ghost = "";
     if (!titled) {
       ghost.append(page.createElement("br"));
-      if (inside) near.append(ghost);
+      if (near.matches(".page")) near.prepend(ghost);
+      else if (inside) near.append(ghost);
       else if (above || near.matches(".add-step")) near.before(ghost);
       else near.after(ghost);
       titledAfterFront(ghost);

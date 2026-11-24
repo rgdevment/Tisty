@@ -23,7 +23,15 @@ fuente: la guía de Tisty
 ---
 ```
 
-`tags:` archiva el documento bajo cada etiqueta, igual que una escrita con `#` en una frase. `title:` le da otro título; `paper:`, `sheets:` y `orientation:` dicen en qué hoja se imprime, y `lang:`, en qué idioma está escrito. Cualquier otra, como `fuente:`, se guarda tal cual.
+`tags:` archiva el documento bajo cada etiqueta, igual que una escrita con `#` en una frase. `title:` le da otro título; `paper:`, `sheets:` y `orientation:` dicen en qué hoja se imprime; `design:`, con qué diseño se ve, y `lang:`, en qué idioma está escrito. Cualquier otra, como `fuente:`, se guarda tal cual.
+
+### El diseño de la hoja
+
+Un diseño cambia cómo se ve un documento, con todas sus páginas, sin tocar una palabra. Esta hoja es una página de la guía, así que lleva el de ella: presiona una de las líneas de color del panel de su portada, o presiona un nombre en su sección **Diseños de documento**, y vuelve a mirar esta hoja. En un documento tuyo, un enlace así le pone ese diseño al presionarlo.
+
+```markdown title="Un nombre que se presiona"
+[Coral](tisty:design/coral)
+```
 
 ### Un documento de agente
 
