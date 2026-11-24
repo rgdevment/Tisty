@@ -15,6 +15,7 @@ fn with_agents() -> (State, ulid::Ulid) {
                 parent: None,
                 icon: Some(tisty_core::agents::ICON.into()),
                 color: None,
+                computer: None,
             },
         },
     ));

@@ -59,6 +59,7 @@ impl Here {
                     parent,
                     icon: None,
                     color: None,
+                    computer: None,
                 },
             })
             .unwrap();

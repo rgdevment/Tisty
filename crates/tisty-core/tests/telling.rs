@@ -256,6 +256,7 @@ fn a_note_of_what_a_document_said_is_one_no_build_may_walk_past() {
     let op = tisty_core::Op::DocSaid {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -358,6 +359,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             file: "aaaa-0001".into(),
             order: "a0".into(),
             said: Some(tisty_core::event::Said {
+                knows_computers: false,
                 key: None,
                 brainstorm: false,
                 diary: false,
@@ -387,6 +389,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
     open.append(tisty_core::Op::DocSaid {
         id,
         d: tisty_core::event::Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -454,6 +457,7 @@ fn the_note_goes_out_unmarked_so_an_older_build_stops_rather_than_guesses() {
     open.append(tisty_core::Op::DocSaid {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -597,6 +601,7 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
         tisty_core::Op::DocSaid {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::Said {
+                knows_computers: false,
                 key: None,
                 brainstorm: false,
                 diary: false,

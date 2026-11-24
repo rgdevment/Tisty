@@ -242,3 +242,105 @@ fn two_spellings_are_one_file_only_where_the_file_system_folds_them() {
         cfg!(any(windows, target_os = "macos"))
     );
 }
+
+#[test]
+fn a_choice_is_kept_per_place_and_replaced_by_the_next() {
+    let mut ledger = Ledger::fresh("machine-a");
+    assert_eq!(ledger.chosen("/h/CLAUDE.md"), None);
+    ledger.choose("/h/CLAUDE.md", "doc-a");
+    assert_eq!(ledger.chosen("/h/CLAUDE.md"), Some("doc-a"));
+    ledger.choose("/h/CLAUDE.md", "doc-b");
+    assert_eq!(ledger.chosen("/h/CLAUDE.md"), Some("doc-b"));
+    assert_eq!(ledger.chosen("/h/other.md"), None);
+}
+
+#[test]
+fn a_choice_touches_neither_what_was_taken_nor_what_was_left() {
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.take("doc-a", true);
+    ledger.take("doc-b", false);
+    ledger.choose("/h/CLAUDE.md", "doc-a");
+    assert!(ledger.took("doc-a") && ledger.left("doc-b"));
+    assert!(!ledger.waits("doc-a"));
+}
+
+#[test]
+fn words_let_in_here_are_kept_by_document_and_say_whether_they_changed() {
+    let mut ledger = Ledger::fresh("machine-a");
+    assert_eq!(ledger.let_in_words("doc-a"), None);
+    assert!(ledger.let_in("doc-a", "p1"), "the first time is news");
+    assert!(
+        !ledger.let_in("doc-a", "p1"),
+        "the same words again are not"
+    );
+    assert!(ledger.let_in("doc-a", "p2"));
+    assert_eq!(ledger.let_in_words("doc-a"), Some("p2"));
+    assert_eq!(ledger.let_in_words("doc-b"), None);
+}
+
+#[test]
+fn a_file_of_several_documents_is_mixed_and_one_of_one_is_not() {
+    let mut ledger = Ledger::fresh("machine-a");
+    let at = Path::new("/home/rina/.claude/CLAUDE.md");
+    assert!(!ledger.mixed(at));
+    ledger.applied_to(at, ["doc-a".to_string()]);
+    assert!(!ledger.mixed(at));
+    ledger.applied_to(at, ["doc-a".to_string(), "doc-b".to_string()]);
+    assert!(ledger.mixed(at));
+}
+
+#[test]
+fn homing_is_kept_and_read_back_and_is_done_when_the_set_is_empty() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    assert!(!ledger.homed());
+    assert_eq!(ledger.homing(), None);
+    ledger.home_all(["doc-a".to_string(), "doc-b".to_string()].into());
+    assert!(!ledger.homed());
+    ledger.choose("/h/CLAUDE.md", "doc-a");
+    ledger.let_in("doc-a", "p1");
+    ledger.keep(data.path()).unwrap();
+
+    let mut again = Ledger::open(data.path(), "machine-a");
+    assert_eq!(again, ledger);
+    again.went_home("doc-a");
+    assert!(!again.homed());
+    assert_eq!(again.homing().map(BTreeSet::len), Some(1));
+    again.went_home("doc-b");
+    again.went_home("doc-b");
+    assert!(again.homed());
+}
+
+#[test]
+fn an_empty_set_to_home_is_homed_at_once() {
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.home_all(BTreeSet::new());
+    assert!(ledger.homed());
+}
+
+#[test]
+fn nothing_goes_home_before_the_set_is_known() {
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.went_home("doc-a");
+    assert_eq!(ledger.homing(), None);
+    assert!(!ledger.homed());
+}
+
+#[test]
+fn a_ledger_from_before_computers_reads_without_the_new_fields() {
+    let data = tempfile::tempdir().unwrap();
+    let folder = data.path().join("agents");
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(
+        folder.join("ledger.json"),
+        r#"{"machine":"machine-a","consented":true,"applied":{"/h/CLAUDE.md":["doc-a","doc-b"]},"left":["doc-c"]}"#,
+    )
+    .unwrap();
+    let ledger = Ledger::open(data.path(), "machine-a");
+    assert!(ledger.consented());
+    assert!(!ledger.homed());
+    assert!(ledger.left("doc-c"));
+    assert!(ledger.mixed(Path::new("/h/CLAUDE.md")));
+    assert_eq!(ledger.chosen("/h/CLAUDE.md"), None);
+    assert_eq!(ledger.let_in_words("doc-a"), None);
+}

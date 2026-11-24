@@ -219,6 +219,7 @@ pub fn folder_add(
             parent,
             icon: icon.filter(|key| tisty_core::model::icon::known(key)),
             color: painted,
+            computer: None,
         },
     })?;
     Ok(id.to_string())
@@ -338,7 +339,8 @@ pub fn folder_file(
     let ops = beside_folders(&session.state, id, parent, before);
     stays_hooked(&session.state, &ops)?;
     session.commit_all(ops)?;
-    Ok(())
+    let went = super::agents_homes::under(&session.state, id);
+    super::agents_homes::moved_here(&mut session, &went)
 }
 
 #[tauri::command]

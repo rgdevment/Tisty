@@ -1,6 +1,7 @@
-use super::gated::{consented, gated};
+use super::gated::{ME, consented, gated, gated_in};
 use super::*;
 use tisty_core::agents::{doc_of, found};
+use tisty_core::event::DeviceId;
 
 fn put(at: &Path, said: &str) {
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
@@ -129,7 +130,7 @@ fn doc(level: &str, kind: Kind, name: &str, said: &str) -> String {
 }
 
 #[test]
-fn global_rules_lead_each_main_file_and_global_skills_land_once_where_they_are_shared() {
+fn a_global_rule_lands_in_no_file_and_global_skills_land_once_where_they_are_shared() {
     let (_tmp, homes) = seeded();
     let docs = vec![
         (
@@ -156,19 +157,20 @@ fn global_rules_lead_each_main_file_and_global_skills_land_once_where_they_are_s
         .iter()
         .find(|one| one.target.at == homes.root("claude").unwrap().join("CLAUDE.md"))
         .unwrap();
-    assert_eq!(gated.named(&claude.files), ["b", "a"]);
-    let codex = placed
-        .iter()
-        .find(|one| one.target.at == homes.root("codex").unwrap().join("AGENTS.md"))
-        .unwrap();
-    assert_eq!(gated.named(&codex.files), ["b"]);
-    let gemini = placed
-        .iter()
-        .find(|one| one.target.assistant == "gemini" && one.target.at.ends_with(GEMINI_RULES))
-        .unwrap();
-    assert_eq!(
-        gemini.lead_in.as_ref().unwrap().at,
-        homes.root("gemini").unwrap().join(GEMINI_MEMORY)
+    assert_eq!(gated.named(&claude.files), ["a"]);
+    for (id, main) in [("codex", "AGENTS.md"), ("gemini", GEMINI_RULES)] {
+        let at = homes.root(id).unwrap().join(main);
+        assert!(
+            !placed.iter().any(|one| one.target.at == at),
+            "no Global rule is written in {at:?}"
+        );
+    }
+    assert!(placed.iter().all(|one| one.lead_in.is_none()));
+    assert!(
+        !placed
+            .iter()
+            .any(|one| gated.named(&one.files).contains(&"b")),
+        "a Global rule is written nowhere"
     );
     let skills: Vec<&Placed> = placed
         .iter()
@@ -195,34 +197,55 @@ fn a_document_without_a_card_is_never_placed() {
 }
 
 #[test]
-fn global_rules_go_to_the_codex_override_when_codex_reads_it() {
+fn a_global_rule_is_not_written_in_the_codex_override_either() {
     let (_tmp, homes) = seeded();
-    put(
-        &homes.root("codex").unwrap().join("AGENTS.override.md"),
-        "Override.\n",
-    );
-    let docs = vec![(
-        "g".to_string(),
-        doc(GLOBAL, Kind::Rule, "style.md", "Spanish.\n"),
-    )];
+    let override_md = homes.root("codex").unwrap().join(CODEX_OVERRIDE);
+    put(&override_md, "Override.\n");
+    let docs = vec![
+        (
+            "g".to_string(),
+            doc(GLOBAL, Kind::Rule, "style.md", "Spanish.\n"),
+        ),
+        (
+            "o".to_string(),
+            doc("codex", Kind::Rule, CODEX_OVERRIDE, "Mine.\n"),
+        ),
+    ];
     let ledger = consented();
-    let placed = targets(&homes, &gated(&ledger, &docs).gate, &ledger);
-    let codex: Vec<&PathBuf> = placed
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let codex: Vec<&Placed> = placed
         .iter()
         .filter(|one| one.target.assistant == "codex")
-        .map(|one| &one.target.at)
         .collect();
-    assert_eq!(
-        codex,
-        [&homes.root("codex").unwrap().join("AGENTS.override.md")]
-    );
+    let [only] = codex.as_slice() else {
+        panic!("{codex:?}");
+    };
+    assert_eq!(only.target.at, override_md);
+    assert_eq!(gated.named(&only.files), ["o"]);
+}
+
+fn twice() -> Vec<(String, String)> {
+    let body = doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n");
+    vec![("b".to_string(), body.clone()), ("a".to_string(), body)]
+}
+
+fn claude_main(homes: &Homes) -> PathBuf {
+    homes.root("claude").unwrap().join("CLAUDE.md")
+}
+
+fn written(ledger: &mut Ledger, homes: &Homes, docs: &[(String, String)], names: &[&str]) {
+    let ids: Vec<String> = names
+        .iter()
+        .map(|name| gated(ledger, docs).id(name).to_string())
+        .collect();
+    ledger.applied_to(&claude_main(homes), ids);
 }
 
 #[test]
-fn the_same_file_brought_on_two_computers_is_written_once() {
+fn two_documents_for_the_same_file_hold_the_place_and_nothing_is_written() {
     let (_tmp, homes) = seeded();
-    let twice = doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n");
-    let docs = vec![("b".to_string(), twice.clone()), ("a".to_string(), twice)];
+    let docs = twice();
     let ledger = consented();
     let gated = gated(&ledger, &docs);
     let placed = targets(&homes, &gated.gate, &ledger);
@@ -230,8 +253,269 @@ fn the_same_file_brought_on_two_computers_is_written_once() {
         .iter()
         .find(|one| one.target.assistant == "claude")
         .unwrap();
-    assert_eq!(gated.named(&claude.files), ["a"]);
-    assert_eq!(claude.target.pieces.len(), 1);
+    assert!(claude.target.held());
+    assert_eq!(gated.named(&claude.files), ["a", "b"]);
+}
+
+#[test]
+fn the_side_this_computer_already_wrote_goes_on_and_the_other_is_not_placed() {
+    let (_tmp, homes) = seeded();
+    let docs = twice();
+    let mut ledger = consented();
+    written(&mut ledger, &homes, &docs, &["b"]);
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let claude = placed
+        .iter()
+        .find(|one| one.target.at == claude_main(&homes))
+        .unwrap();
+    assert_eq!(gated.named(&claude.files), ["b"]);
+    assert!(!claude.target.held());
+}
+
+#[test]
+fn with_both_sides_already_written_the_place_is_held() {
+    let (_tmp, homes) = seeded();
+    let docs = twice();
+    let mut ledger = consented();
+    written(&mut ledger, &homes, &docs, &["a", "b"]);
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let claude = placed
+        .iter()
+        .find(|one| one.target.at == claude_main(&homes))
+        .unwrap();
+    assert!(claude.target.held());
+    assert_eq!(claude.files.len(), 2);
+}
+
+fn ids(gated: &super::gated::Gated, files: &BTreeSet<String>) -> Vec<String> {
+    gated
+        .named(&files.iter().cloned().collect::<Vec<_>>())
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn files_of_one_skill_stand_together_and_another_document_for_its_folder_is_a_rival() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        (
+            "a".to_string(),
+            doc("claude", Kind::Skill, "tidy/SKILL.md", "tidy\n"),
+        ),
+        (
+            "b".to_string(),
+            doc("claude", Kind::Skill, "tidy/notes.md", "notes\n"),
+        ),
+        (
+            "c".to_string(),
+            doc(GLOBAL, Kind::Skill, "tidy/SKILL.md", "other tidy\n"),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let sides = sides(&homes, &gated.gate, gated.id("a"));
+    assert_eq!(ids(&gated, &sides.mine), ["a", "b"]);
+    assert_eq!(ids(&gated, &sides.rival_files()), ["c"]);
+}
+
+#[test]
+fn documents_that_share_nothing_are_never_rivals() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        (
+            "a".to_string(),
+            doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+        ),
+        (
+            "b".to_string(),
+            doc("claude", Kind::Rule, "rules/tone.md", "Short.\n"),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let sides = sides(&homes, &gated.gate, gated.id("a"));
+    assert!(sides.rivals.is_empty());
+    assert_eq!(sides.mine.len(), 1);
+}
+
+#[test]
+fn a_document_still_waiting_here_awaits_the_files_it_would_write() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![(
+        "a".to_string(),
+        doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+    )];
+    let mut ledger = consented();
+    assert!(awaited(&homes, &gated(&ledger, &docs).gate).is_empty());
+    ledger.wait_all([gated(&ledger, &docs).id("a")]);
+    let gated = gated(&ledger, &docs);
+    assert_eq!(
+        gated.gate.seen(gated.id("a")),
+        Some(agents::Seen::WaitingHere)
+    );
+    assert_eq!(
+        awaited(&homes, &gated.gate),
+        BTreeSet::from([agents::path_key(&claude_main(&homes))])
+    );
+    assert!(targets(&homes, &gated.gate, &ledger).is_empty());
+}
+
+fn computers_doc(level: &str, kind: Kind, name: &str, device: &str) -> String {
+    let body = doc(level, kind, name, "Words.\n");
+    tisty_core::agents::meant_for(&body, Some(&DeviceId(device.into()))).unwrap()
+}
+
+#[test]
+fn two_computers_each_with_its_own_claude_file_never_write_each_others() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        (
+            "a".to_string(),
+            computers_doc("claude", Kind::Rule, "CLAUDE.md", ME),
+        ),
+        (
+            "b".to_string(),
+            computers_doc("claude", Kind::Rule, "CLAUDE.md", "dev_there"),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated_in(&ledger, &docs, &[("a", ME), ("b", "dev_there")]);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let [only] = placed.as_slice() else {
+        panic!("{placed:?}");
+    };
+    assert_eq!(gated.named(&only.files), ["a"]);
+    assert!(!only.target.held());
+    assert_eq!(
+        gated.gate.seen(gated.id("b")),
+        Some(agents::Seen::OtherComputer)
+    );
+    assert!(gated.gate.elsewhere(gated.id("b")));
+    assert!(sides(&homes, &gated.gate, gated.id("a")).rivals.is_empty());
+}
+
+#[test]
+fn a_document_in_another_computers_folder_is_never_a_rival_nor_awaited() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        (
+            "a".to_string(),
+            doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+        ),
+        (
+            "b".to_string(),
+            computers_doc("claude", Kind::Rule, "CLAUDE.md", "dev_there"),
+        ),
+    ];
+    let mut ledger = consented();
+    ledger.wait_all([gated(&ledger, &docs).id("b")]);
+    let gated = gated_in(&ledger, &docs, &[("b", "dev_there")]);
+    assert!(sides(&homes, &gated.gate, gated.id("a")).rivals.is_empty());
+    assert!(awaited(&homes, &gated.gate).is_empty());
+    let placed = targets(&homes, &gated.gate, &ledger);
+    assert_eq!(placed.len(), 1);
+    assert_eq!(gated.named(&placed[0].files), ["a"]);
+}
+
+#[test]
+fn a_folder_and_a_text_naming_different_computers_place_nothing() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        (
+            "a".to_string(),
+            computers_doc("claude", Kind::Rule, "CLAUDE.md", "dev_there"),
+        ),
+        (
+            "b".to_string(),
+            computers_doc("claude", Kind::Rule, "rules/tone.md", ME),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated_in(&ledger, &docs, &[("a", ME)]);
+    assert_eq!(gated.gate.seen(gated.id("a")), Some(agents::Seen::Apart));
+    assert_eq!(
+        gated.gate.seen(gated.id("b")),
+        Some(agents::Seen::Apart),
+        "in root with a computer's name"
+    );
+    assert!(targets(&homes, &gated.gate, &ledger).is_empty());
+}
+
+#[test]
+fn a_computer_without_the_assistant_writes_nothing_for_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    put(&tmp.path().join(".codex/AGENTS.md"), "Codex rules.\n");
+    let homes = Homes::with(tmp.path(), &[]);
+    let docs = vec![
+        (
+            "a".to_string(),
+            doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+        ),
+        (
+            "b".to_string(),
+            doc("codex", Kind::Rule, "AGENTS.md", "Codex.\n"),
+        ),
+        (
+            "c".to_string(),
+            doc(GLOBAL, Kind::Skill, "pr/SKILL.md", "pr\n"),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let claude = gated.gate.card_here(gated.id("a")).unwrap();
+    assert!(!lands_here(&homes, claude));
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let names: Vec<&str> = placed
+        .iter()
+        .flat_map(|one| gated.named(&one.files))
+        .collect();
+    assert_eq!(names.len(), 2);
+    assert!(names.contains(&"b") && names.contains(&"c"));
+}
+
+#[test]
+fn card_at_names_the_rule_or_skill_each_assistant_reads_at_a_path() {
+    let (tmp, homes) = seeded();
+    let override_md = homes.root("codex").unwrap().join(CODEX_OVERRIDE);
+    put(&override_md, "Override.\n");
+    let in_claude = |name: &str| homes.root("claude").unwrap().join(name);
+    assert_eq!(
+        card_at(&homes, &in_claude("CLAUDE.md")),
+        Some(("claude", Kind::Rule, "CLAUDE.md".to_string()))
+    );
+    assert_eq!(
+        card_at(&homes, &in_claude("rules/style/tone.md")),
+        Some(("claude", Kind::Rule, "rules/style/tone.md".to_string()))
+    );
+    assert_eq!(
+        card_at(&homes, &override_md),
+        Some(("codex", Kind::Rule, CODEX_OVERRIDE.to_string()))
+    );
+    assert_eq!(
+        card_at(&homes, &in_claude("skills/pr/SKILL.md")),
+        Some(("claude", Kind::Skill, "pr/SKILL.md".to_string()))
+    );
+    let shared = tmp.path().join(".agents/skills/lint/SKILL.md");
+    assert_eq!(
+        card_at(&homes, &shared),
+        Some(("codex", Kind::Skill, "lint/SKILL.md".to_string()))
+    );
+}
+
+#[test]
+fn card_at_names_nothing_for_what_no_assistant_reads_as_a_rule() {
+    let (_tmp, homes) = seeded();
+    let claude = homes.root("claude").unwrap();
+    for name in [
+        "settings.json",
+        "projects/repo/memory/MEMORY.md",
+        "notes.md",
+    ] {
+        assert_eq!(card_at(&homes, &claude.join(name)), None, "{name}");
+    }
 }
 
 #[test]
@@ -359,4 +643,206 @@ fn without_their_own_yes_no_target_carries_them_and_with_it_agents_yes_is_not_ne
         !reached.contains(&"claude".to_string()),
         "the plugin still counts"
     );
+}
+
+fn skill(level: &str) -> String {
+    doc(level, Kind::Skill, "pr/SKILL.md", "pr\n")
+}
+
+fn claude_skill(placed: &[Placed], homes: &Homes) -> Vec<Placed> {
+    let at = homes.root("claude").unwrap().join("skills/pr/SKILL.md");
+    placed
+        .iter()
+        .filter(|one| one.target.at == at)
+        .cloned()
+        .collect()
+}
+
+#[test]
+fn one_skill_brought_twice_in_the_same_place_is_written_once_from_the_smaller_id() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        ("b".to_string(), skill("claude")),
+        ("a".to_string(), skill("claude")),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+
+    let written = claude_skill(&targets(&homes, &gated.gate, &ledger), &homes);
+
+    let [one] = written.as_slice() else {
+        panic!("{written:?}");
+    };
+    assert_eq!(gated.named(&one.files), ["a"]);
+    assert!(!one.target.held());
+}
+
+#[test]
+fn a_skill_with_a_real_rival_is_still_held() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        ("a".to_string(), skill("claude")),
+        ("b".to_string(), skill(GLOBAL)),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+
+    let written = claude_skill(&targets(&homes, &gated.gate, &ledger), &homes);
+
+    let [one] = written.as_slice() else {
+        panic!("{written:?}");
+    };
+    assert!(one.target.held());
+    assert_eq!(one.files.len(), 2);
+}
+
+fn side_of(
+    homes: &Homes,
+    gated: &super::gated::Gated,
+    file: &str,
+    other: &str,
+) -> (Vec<String>, String) {
+    let sides = sides(homes, &gated.gate, gated.id(file));
+    let wanted = gated.id(other).to_string();
+    let side = sides
+        .rivals
+        .iter()
+        .find(|(_, files)| files.contains(&wanted))
+        .map(|(side, _)| side.clone())
+        .expect("the other document is a rival");
+    let places = sides
+        .places
+        .iter()
+        .map(|(place, _)| place.clone())
+        .collect();
+    (places, side)
+}
+
+fn choose_over(ledger: &mut Ledger, places: &[String], side: &str) {
+    for place in places {
+        ledger.choose(place, side);
+    }
+}
+
+#[test]
+fn a_recorded_choice_wins_over_what_was_written_and_puts_the_other_aside() {
+    let (_tmp, homes) = seeded();
+    let docs = twice();
+    let mut ledger = consented();
+    written(&mut ledger, &homes, &docs, &["a"]);
+    let (place, side) = side_of(&homes, &gated(&ledger, &docs), "a", "b");
+    choose_over(&mut ledger, &place, &side);
+    let gated = gated(&ledger, &docs);
+
+    let placed = targets(&homes, &gated.gate, &ledger);
+
+    let claude = placed
+        .iter()
+        .find(|one| one.target.at == claude_main(&homes))
+        .unwrap();
+    assert_eq!(gated.named(&claude.files), ["b"]);
+    assert!(!claude.target.held());
+    assert_eq!(
+        stance(&homes, &gated.gate, &ledger, gated.id("b")),
+        Stance::Goes
+    );
+    assert_eq!(
+        stance(&homes, &gated.gate, &ledger, gated.id("a")),
+        Stance::Aside
+    );
+}
+
+#[test]
+fn a_document_disjoint_from_what_was_written_never_takes_over_even_alone() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![(
+        "a".to_string(),
+        doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+    )];
+    let mut ledger = consented();
+    ledger.applied_to(&claude_main(&homes), ["gone-document".to_string()]);
+    let gated = gated(&ledger, &docs);
+
+    let placed = targets(&homes, &gated.gate, &ledger);
+
+    let claude = placed
+        .iter()
+        .find(|one| one.target.at == claude_main(&homes))
+        .unwrap();
+    assert!(claude.target.held());
+    assert_eq!(
+        stance(&homes, &gated.gate, &ledger, gated.id("a")),
+        Stance::Asks
+    );
+}
+
+#[test]
+fn with_nothing_written_one_side_goes_and_several_ask() {
+    let (_tmp, homes) = seeded();
+    let ledger = consented();
+    let alone = vec![(
+        "a".to_string(),
+        doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+    )];
+    let one = gated(&ledger, &alone);
+    assert_eq!(
+        stance(&homes, &one.gate, &ledger, one.id("a")),
+        Stance::Goes
+    );
+
+    let docs = twice();
+    let several = gated(&ledger, &docs);
+    assert_eq!(
+        stance(&homes, &several.gate, &ledger, several.id("a")),
+        Stance::Asks
+    );
+    assert_eq!(
+        stance(&homes, &several.gate, &ledger, several.id("b")),
+        Stance::Asks
+    );
+}
+
+#[test]
+fn a_written_side_that_is_still_credited_goes_and_the_other_is_put_aside() {
+    let (_tmp, homes) = seeded();
+    let docs = twice();
+    let mut ledger = consented();
+    written(&mut ledger, &homes, &docs, &["b"]);
+    let gated = gated(&ledger, &docs);
+
+    assert_eq!(
+        stance(&homes, &gated.gate, &ledger, gated.id("b")),
+        Stance::Goes
+    );
+    assert_eq!(
+        stance(&homes, &gated.gate, &ledger, gated.id("a")),
+        Stance::Aside
+    );
+}
+
+#[test]
+fn a_global_skill_put_aside_in_claude_keeps_writing_in_the_shared_folder() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![
+        ("a".to_string(), skill("claude")),
+        ("b".to_string(), skill(GLOBAL)),
+    ];
+    let mut ledger = consented();
+    let (place, side) = side_of(&homes, &gated(&ledger, &docs), "b", "a");
+    choose_over(&mut ledger, &place, &side);
+    let gated = gated(&ledger, &docs);
+
+    let placed = targets(&homes, &gated.gate, &ledger);
+
+    let in_claude = claude_skill(&placed, &homes);
+    assert_eq!(gated.named(&in_claude[0].files), ["a"]);
+    let shared = homes
+        .root("codex")
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(".agents/skills/pr/SKILL.md");
+    let in_shared = placed.iter().find(|one| one.target.at == shared).unwrap();
+    assert_eq!(gated.named(&in_shared.files), ["b"]);
+    assert!(!in_shared.target.held());
 }

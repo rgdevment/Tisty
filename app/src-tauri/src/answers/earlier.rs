@@ -136,6 +136,7 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
         None => None,
     };
     writable(&session.state, id)?;
+    super::papers::read_here(session, id)?;
     let root = session.paths.docs();
     let now = tisty_core::docs::read(&root, id)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
@@ -197,6 +198,7 @@ pub fn put_back(session: &mut Session, id: &str, was: &str) -> Answer<tisty_core
 
 pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
     writable(&session.state, id)?;
+    super::papers::read_here(session, id)?;
     let Some(was) = one_step_back(session, id) else {
         return Err(Refusal::of("nothingKeptBeside"));
     };

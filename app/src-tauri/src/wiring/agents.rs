@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use tisty_core::agents::{self, Admitted, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
+use tisty_core::agents::{self, Card, GLOBAL, Gate, Kind, Ledger, Place as Spot, Target};
 
 pub const ICON: &str = tisty_core::agents::ICON;
 pub const HUE: &str = "purple";
@@ -91,9 +91,6 @@ pub fn fresh_rule(level: &str, taken: impl Fn(&str) -> bool) -> Option<String> {
             })
             .find(|name| !taken(name))
     };
-    if level == GLOBAL {
-        return numbered("rule", ".md");
-    }
     let one = assistant(level)?;
     if let Some(main) = one.main.filter(|main| !taken(main)) {
         return Some(main.to_string());
@@ -205,18 +202,6 @@ impl Homes {
             _ => self.root(id)?,
         };
         Some((root.clone(), root.join("skills")))
-    }
-
-    // Codex reads the override instead of AGENTS.md whenever it is there, so Global rules must go where it reads.
-    fn main_of(&self, one: &Assistant) -> Option<&'static str> {
-        let overridden = one.id == "codex"
-            && self
-                .root(one.id)
-                .is_some_and(|root| root.join(CODEX_OVERRIDE).is_file());
-        match overridden {
-            true => Some(CODEX_OVERRIDE),
-            false => one.main,
-        }
     }
 }
 
@@ -338,13 +323,58 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
 
 /// Whether some assistant on this computer would read the document at all.
 pub fn lands_here(homes: &Homes, card: &Card) -> bool {
-    match card.level == GLOBAL {
-        true => card.kind != Kind::Memory && !homes.detected().is_empty(),
-        false => {
-            homes.detected().iter().any(|one| one.id == card.level)
-                && target_of(homes, card).is_some()
-        }
-    }
+    !landings(homes, card).is_empty()
+}
+
+/// One file a document is written into on this computer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Landing {
+    assistant: &'static str,
+    root: PathBuf,
+    at: PathBuf,
+}
+
+// A Global rule has no file of its own in any agent, so only a skill lands everywhere.
+fn landings(homes: &Homes, card: &Card) -> Vec<Landing> {
+    let detected = homes.detected();
+    let Some(one) = assistant(&card.level) else {
+        return match card.level == GLOBAL && card.kind == Kind::Skill {
+            true => everywhere(homes, &detected, card),
+            false => Vec::new(),
+        };
+    };
+    let here = detected.iter().any(|known| known.id == one.id);
+    target_of(homes, card)
+        .filter(|_| here)
+        .map(|(root, at)| Landing {
+            assistant: one.id,
+            root,
+            at,
+        })
+        .into_iter()
+        .collect()
+}
+
+fn everywhere(homes: &Homes, detected: &[&'static Assistant], card: &Card) -> Vec<Landing> {
+    let owner = homes.shared_owner(detected);
+    detected
+        .iter()
+        .filter_map(|one| {
+            let shared = SHARED_SKILLS_OWNERS.contains(&one.id);
+            if shared && owner != Some(one.id) {
+                return None;
+            }
+            let (root, skills) = homes.skills_of(match shared {
+                true => "codex",
+                false => one.id,
+            })?;
+            Some(Landing {
+                assistant: one.id,
+                root,
+                at: under(&skills, &card.name),
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -354,8 +384,7 @@ pub struct Placed {
     pub lead_in: Option<Target>,
 }
 
-// A Global rule with no words, just made or emptied, would only add a blank line to every file.
-pub fn wordless(piece: &Admitted) -> bool {
+pub fn wordless(piece: &agents::Admitted) -> bool {
     agents::rendered(piece.body())
         .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).trim().is_empty())
 }
@@ -373,93 +402,294 @@ pub fn targets(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Vec<Placed> {
     placed(homes, gate, ledger, &plugged)
 }
 
+/// What one choice covers: a rule or memory is its file, a skill is its whole folder.
+fn unit_of(card: &Card, at: &Path) -> String {
+    let steps = match card.kind {
+        Kind::Skill => card.name.split('/').count().saturating_sub(1),
+        _ => 0,
+    };
+    agents::path_key(at.ancestors().nth(steps).unwrap_or(at))
+}
+
+/// Whose file it is: the files of one skill stand together, any other document stands alone.
+fn source_of(file: &str, card: &Card) -> String {
+    match card.kind {
+        Kind::Skill => format!(
+            "{}/{}/{}",
+            card.level,
+            card.computer.as_ref().map_or("", |one| one.0.as_str()),
+            agents::skill_of(&card.name).to_lowercase()
+        ),
+        _ => file.to_string(),
+    }
+}
+
+type Sources = BTreeMap<String, BTreeSet<String>>;
+
+fn claims<'a>(
+    homes: &Homes,
+    docs: impl Iterator<Item = (&'a str, &'a Card)>,
+) -> BTreeMap<String, Sources> {
+    let mut units: BTreeMap<String, Sources> = BTreeMap::new();
+    for (file, card) in docs.filter(|(file, _)| !agents::builtin(file)) {
+        for one in landings(homes, card) {
+            units
+                .entry(unit_of(card, &one.at))
+                .or_default()
+                .entry(source_of(file, card))
+                .or_default()
+                .insert(file.to_string());
+        }
+    }
+    units
+}
+
+/// The places this document would write, the files that go with it, and those that would write the same places.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Sides {
+    pub places: Vec<(String, String)>,
+    pub mine: BTreeSet<String>,
+    pub rivals: BTreeMap<String, BTreeSet<String>>,
+}
+
+impl Sides {
+    pub fn rival_files(&self) -> BTreeSet<String> {
+        self.rivals.values().flatten().cloned().collect()
+    }
+}
+
+// One left out on this computer is nobody's rival.
+pub fn sides(homes: &Homes, gate: &Gate, file: &str) -> Sides {
+    let standing = gate
+        .for_here()
+        .filter(|(one, _)| *one == file || gate.seen(one) != Some(agents::Seen::DeclinedHere));
+    let mut out = Sides {
+        mine: BTreeSet::from([file.to_string()]),
+        ..Sides::default()
+    };
+    for (place, sources) in claims(homes, standing) {
+        let Some(source) = sources
+            .iter()
+            .find(|(_, files)| files.contains(file))
+            .map(|(source, _)| source.clone())
+        else {
+            continue;
+        };
+        for (other, files) in sources {
+            match other == source {
+                true => out.mine.extend(files),
+                false => out.rivals.entry(other).or_default().extend(files),
+            }
+        }
+        out.places.push((place, source));
+    }
+    out
+}
+
+/// Files where a document that still waits for the person would be written.
+pub fn awaited(homes: &Homes, gate: &Gate) -> BTreeSet<String> {
+    gate.for_here()
+        .filter(|(file, _)| gate.seen(file) == Some(agents::Seen::WaitingHere))
+        .flat_map(|(_, card)| landings(homes, card))
+        .map(|one| agents::path_key(&one.at))
+        .collect()
+}
+
+/// Who writes a place: one side, or nobody until the person chooses.
+#[derive(Debug, PartialEq, Eq)]
+enum Stand {
+    Goes(String),
+    Asks,
+}
+
+type Written<'a> = Vec<(String, &'a BTreeSet<String>)>;
+
+// What this computer last wrote and is still there: another document never takes it over without the person's choice.
+fn written(ledger: &Ledger) -> Written<'_> {
+    ledger
+        .written_files()
+        .filter(|(at, _)| !ledger.stays(at) && std::fs::symlink_metadata(at).is_ok())
+        .map(|(at, files)| (agents::path_key(at), files))
+        .collect()
+}
+
+fn within(at: &str, place: &str) -> bool {
+    at.strip_prefix(place)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\']))
+}
+
+fn stand(ledger: &Ledger, written: &Written, place: &str, sources: &Sources) -> Stand {
+    if let Some(chosen) = ledger.chosen(place).filter(|it| sources.contains_key(*it)) {
+        return Stand::Goes(chosen.to_string());
+    }
+    let credited: BTreeSet<&String> = written
+        .iter()
+        .filter(|(at, _)| within(at, place))
+        .flat_map(|(_, files)| files.iter())
+        .filter(|file| !agents::builtin(file))
+        .collect();
+    let mut able = sources.iter().filter(|(_, files)| {
+        credited.is_empty() || files.iter().any(|file| credited.contains(file))
+    });
+    match (able.next(), able.next()) {
+        (Some((source, _)), None) => Stand::Goes(source.clone()),
+        _ => Stand::Asks,
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Stands(BTreeMap<String, Stand>);
+
+pub fn stands(homes: &Homes, gate: &Gate, ledger: &Ledger) -> Stands {
+    let admitted = gate
+        .admitted()
+        .iter()
+        .filter(|one| one.card().kind != Kind::Memory)
+        .map(|one| (one.file(), one.card()));
+    let written = written(ledger);
+    let all = claims(homes, admitted)
+        .into_iter()
+        .map(|(place, sources)| {
+            let stand = stand(ledger, &written, &place, &sources);
+            (place, stand)
+        })
+        .collect();
+    Stands(all)
+}
+
+/// How a document let in here stands in the places it would write.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stance {
+    Goes,
+    Asks,
+    Aside,
+}
+
+pub fn stance(homes: &Homes, gate: &Gate, ledger: &Ledger, file: &str) -> Stance {
+    let Some(card) = gate.card_here(file) else {
+        return Stance::Goes;
+    };
+    let source = source_of(file, card);
+    let stands = stands(homes, gate, ledger);
+    let here: Vec<&Stand> = landings(homes, card)
+        .iter()
+        .filter_map(|one| stands.0.get(&unit_of(card, &one.at)))
+        .collect();
+    let aside = |one: &&Stand| matches!(one, Stand::Goes(it) if *it != source);
+    if here.contains(&&Stand::Asks) {
+        return Stance::Asks;
+    }
+    match !here.is_empty() && here.iter().all(aside) {
+        true => Stance::Aside,
+        false => Stance::Goes,
+    }
+}
+
+impl Stands {
+    /// Whether another document was chosen over this one for what it once wrote at this path.
+    pub fn aside_at(&self, homes: &Homes, card: &Card, file: &str, at: &Path) -> bool {
+        let source = source_of(file, card);
+        landings(homes, card)
+            .iter()
+            .filter(|one| agents::same_file(&one.at, at))
+            .any(|one| {
+                let stand = self.0.get(&unit_of(card, &one.at));
+                matches!(stand, Some(Stand::Goes(it)) if *it != source)
+            })
+    }
+}
+
 pub fn placed(
     homes: &Homes,
     gate: &Gate,
     ledger: &Ledger,
     plugged: &BTreeSet<&'static str>,
 ) -> Vec<Placed> {
-    let detected = homes.detected();
-    let mut pieces: Vec<&Admitted> = gate.admitted().iter().collect();
-    pieces.sort_by(|a, b| {
-        let key = |one: &&Admitted| {
-            (
-                one.card().level != GLOBAL,
-                one.card().name.clone(),
-                one.file().to_string(),
-            )
-        };
-        key(a).cmp(&key(b))
-    });
-    // The same file brought on two computers before they synced is one file, never written twice.
+    let applied = ledger.applied();
+    let mut pieces: Vec<&agents::Admitted> = gate.admitted().iter().collect();
+    pieces.sort_by_key(|one| (!applied.contains(one.file()), one.file()));
+    let stands = stands(homes, gate, ledger);
+    let mut out: BTreeMap<String, (Placed, bool)> = BTreeMap::new();
+    // The same skill brought twice is one skill, never written twice.
     let mut seen = BTreeSet::new();
-    pieces.retain(|one| seen.insert(one.card().address()));
-    let mut out: BTreeMap<PathBuf, Placed> = BTreeMap::new();
-    let mut put = |assistant: &str, (root, at): (PathBuf, PathBuf), piece: &Admitted| {
-        let placed = out.entry(at.clone()).or_insert_with(|| Placed {
-            target: gate.target(ledger, root, at, assistant),
-            files: Vec::new(),
-            lead_in: None,
-        });
-        placed.target.put(piece);
-        placed.files.push(piece.file().to_string());
-    };
     for piece in pieces {
         let card = piece.card();
-        if card.level != GLOBAL {
-            if detected.iter().any(|one| one.id == card.level)
-                && let Some(spot) = target_of(homes, card)
-            {
-                put(&card.level, spot, piece);
+        let shipped = agents::builtin(piece.file());
+        for one in landings(homes, card) {
+            if shipped && plugged.contains(one.assistant) {
+                continue;
             }
-            continue;
-        }
-        if wordless(piece) {
-            continue;
-        }
-        for one in &detected {
-            let spot = match card.kind {
-                Kind::Rule => homes.main_of(one).and_then(|main| {
-                    let card = Card {
-                        level: one.id.to_string(),
-                        name: main.to_string(),
-                        ..card.clone()
-                    };
-                    target_of(homes, &card)
-                }),
-                Kind::Skill if agents::builtin(piece.file()) && plugged.contains(one.id) => None,
-                Kind::Skill => {
-                    let shared = SHARED_SKILLS_OWNERS.contains(&one.id);
-                    if shared && homes.shared_owner(&detected) != Some(one.id) {
-                        continue;
-                    }
-                    let (root, skills) = match shared {
-                        true => homes.skills_of("codex"),
-                        false => homes.skills_of(one.id),
-                    }
-                    .unzip();
-                    root.zip(skills.map(|at| under(&at, &card.name)))
-                }
-                Kind::Memory => None,
-            };
-            if let Some(spot) = spot {
-                put(one.id, spot, piece);
+            let source = source_of(piece.file(), card);
+            let stand = stands
+                .0
+                .get(&unit_of(card, &one.at))
+                .filter(|_| !shipped && card.kind != Kind::Memory);
+            if matches!(stand, Some(Stand::Goes(it)) if *it != source) {
+                continue;
             }
+            let asks = stand == Some(&Stand::Asks);
+            let key = agents::path_key(&one.at);
+            if !seen.insert((key.clone(), source)) {
+                continue;
+            }
+            let (placed, held) = out.entry(key).or_insert_with(|| {
+                let target = gate.target(ledger, one.root, one.at, one.assistant);
+                let placed = Placed {
+                    target,
+                    files: Vec::new(),
+                    lead_in: None,
+                };
+                (placed, false)
+            });
+            placed.target.put(piece);
+            placed.files.push(piece.file().to_string());
+            *held |= asks;
         }
     }
-    let mut all: Vec<Placed> = out.into_values().collect();
-    for placed in &mut all {
-        if placed.target.assistant == "gemini" && placed.target.at.ends_with(GEMINI_RULES) {
-            let at = placed.target.root.join(GEMINI_MEMORY);
-            placed.lead_in = Some(gate.target(
-                ledger,
-                placed.target.root.clone(),
-                at,
-                &placed.target.assistant,
-            ));
-        }
-    }
-    all
+    out.into_values()
+        .map(|(mut placed, held)| {
+            if held {
+                placed.target.hold();
+            }
+            if placed.target.assistant == "gemini" && placed.target.at.ends_with(GEMINI_RULES) {
+                let at = placed.target.root.join(GEMINI_MEMORY);
+                let root = placed.target.root.clone();
+                placed.lead_in = Some(gate.target(ledger, root, at, "gemini"));
+            }
+            placed
+        })
+        .collect()
+}
+
+/// The card of the file an assistant reads at this path, when it is one of its rules or skills.
+pub fn card_at(homes: &Homes, at: &Path) -> Option<(&'static str, Kind, String)> {
+    let named = |at: &Path, root: &Path| {
+        at.strip_prefix(root).ok().map(|rest| {
+            rest.components()
+                .map(|step| step.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join("/")
+        })
+    };
+    homes.detected().into_iter().find_map(|one| {
+        let root = homes.root(one.id)?;
+        let (_, skills) = homes.skills_of(one.id)?;
+        let (kind, name) = match named(at, &skills) {
+            Some(name) => (Kind::Skill, name),
+            None => (Kind::Rule, named(at, &root)?),
+        };
+        let card = Card {
+            level: one.id.to_string(),
+            kind,
+            name: name.clone(),
+            endings: agents::Endings::Lf,
+            bom: false,
+            open_end: false,
+            computer: None,
+        };
+        let (_, there) = target_of(homes, &card)?;
+        agents::same_file(&there, at).then_some((one.id, kind, name))
+    })
 }
 
 pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {

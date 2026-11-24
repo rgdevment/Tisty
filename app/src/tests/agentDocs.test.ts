@@ -9,7 +9,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
   label: "AGENTS.md",
   code: false,
   folderOff: false,
-  twin: false,
+  rivals: [],
   here: "applied",
   print: "p1",
   proposal: null,

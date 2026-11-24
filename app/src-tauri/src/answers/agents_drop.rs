@@ -143,7 +143,7 @@ impl<'a> Foreseen<'a> {
     fn rewritten(&self) -> BTreeSet<&'static str> {
         self.placed
             .iter()
-            .filter(|one| wrote_any(self.ledger, &one.target.at, self.going))
+            .filter(|one| !one.target.held() && wrote_any(self.ledger, &one.target.at, self.going))
             .flat_map(|one| reader_ids(self.homes, &one.target))
             .filter(|id| self.ledger.syncs(id))
             .collect()

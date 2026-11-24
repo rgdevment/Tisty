@@ -7,6 +7,7 @@ import {
   agentDiscard,
   agentHeld,
   agentRestore,
+  agentSettle,
   agentTake,
   type Place,
   type Proposal,
@@ -152,6 +153,12 @@ export function useAgentCard(props: CardProps, shelf: AgentShelf) {
         }),
       ),
     take: (here: boolean) => agentTake(file, here).then(done).catch(failed),
+    settle: () =>
+      settled()
+        .then(() => agentSettle(file))
+        .then(reread)
+        .catch(failed)
+        .finally(done),
     agree: () =>
       asked(t("agentAgreeSure"), () =>
         settled()

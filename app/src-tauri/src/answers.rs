@@ -3,6 +3,7 @@ pub mod agent_proposals;
 pub mod agent_rows;
 pub mod agents;
 pub mod agents_drop;
+pub(crate) mod agents_homes;
 pub mod agents_sync;
 pub mod attaching;
 pub mod born;

@@ -58,6 +58,10 @@ const HERE_SAID = {
   notAgreed: "agentHereNotAgreed",
   placedByAgent: "agentHerePlacedByAgent",
   otherMemory: "agentHereOtherMemory",
+  otherComputer: "agentHereOtherComputer",
+  apart: "agentHereApart",
+  contested: "agentHereContested",
+  aside: "agentHereAside",
 } as const;
 
 // What keeps this computer from writing the document, and what the person can do about it here.
@@ -89,19 +93,33 @@ function Unagreed({ agreeing }: { agreeing: Agreeing }) {
   );
 }
 
+const hereSaid = (here: Exclude<Here, "applied" | "away">, rivals: readonly string[]): string => {
+  if (rivals.length === 0) return t(HERE_SAID[here]);
+  const named = rivals.map((one) => `«${one}»`).join(", ");
+  if (here === "aside") return fill("agentHereOtherRules", named);
+  if (here === "waiting" || here === "approvedWaiting" || here === "contested")
+    return fill("agentHereChoose", named);
+  return t(HERE_SAID[here]);
+};
+
 export function HereNote({
   here,
+  rivals,
   agreeing,
   onTake,
   onAgree,
+  onSettle,
 }: {
   here: Here;
+  rivals: readonly string[];
   agreeing?: Agreeing | null;
   onTake: (here: boolean) => void;
   onAgree: () => void;
+  onSettle: () => void;
 }) {
   if (here === "applied" || here === "away") return null;
-  const waits = here === "waiting" || here === "approvedWaiting";
+  const waits = here === "waiting" || here === "approvedWaiting" || here === "contested";
+  const choice = rivals.length > 0;
   return (
     <div
       role="status"
@@ -109,15 +127,24 @@ export function HereNote({
     >
       <Glyph name="alert" className="mt-0.5 h-[15px] w-[15px] shrink-0" />
       <div className="min-w-0">
-        <p className="font-medium">{t(HERE_SAID[here])}</p>
+        <p className="font-medium">{hereSaid(here, rivals)}</p>
         {here === "notAgreed" && agreeing && <Unagreed agreeing={agreeing} />}
         <div className="mt-2 flex flex-wrap gap-2">
-          {(waits || here === "declined") && (
-            <Action glyph="done" label={t("agentApplyHere")} onClick={() => onTake(true)} />
+          {(waits || here === "declined" || here === "aside") && (
+            <Action
+              glyph="done"
+              label={t(choice && here !== "declined" ? "agentThisRules" : "agentApplyHere")}
+              onClick={() => onTake(true)}
+            />
           )}
-          {waits && (
-            <Action glyph="close" label={t("agentNotHere")} onClick={() => onTake(false)} />
+          {waits && (here !== "contested" || choice) && (
+            <Action
+              glyph="close"
+              label={t(choice ? "agentOtherRules" : "agentNotHere")}
+              onClick={() => onTake(false)}
+            />
           )}
+          {here === "apart" && <Action glyph="done" label={t("agentSettle")} onClick={onSettle} />}
           {here === "notAgreed" && (
             <Action glyph="done" label={t("agentAgree")} onClick={onAgree} />
           )}

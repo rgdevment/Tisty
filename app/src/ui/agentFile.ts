@@ -39,6 +39,10 @@ const NOT_HERE = {
   notAgreed: "agentFileSyncsNotAgreed",
   placedByAgent: "agentFileSyncsPlacedByAgent",
   otherMemory: "agentFileSyncsOtherMemory",
+  otherComputer: "agentFileSyncsOtherComputer",
+  apart: "agentFileSyncsApart",
+  contested: "agentFileSyncsContested",
+  aside: "agentFileSyncsAside",
 } as const;
 
 const syncsOf = (doc: AgentDoc): string => {

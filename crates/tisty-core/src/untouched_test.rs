@@ -52,6 +52,7 @@ impl Here {
                         parent: None,
                         icon: None,
                         color: None,
+                        computer: None,
                     },
                 },
             ])
@@ -85,6 +86,7 @@ const SHIPPED_PAGE: &str = include_str!("../../../fixtures/guide-1.24.4/pagina.m
 
 fn as_in_1_24_4(body: &str) -> Said {
     Said {
+        knows_computers: false,
         key: None,
         brainstorm: false,
         diary: false,
@@ -337,6 +339,7 @@ fn a_guide_an_agent_filed_is_not_a_sown_one() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     );

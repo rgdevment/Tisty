@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use crate::State;
-use crate::event::Op;
-use crate::model::{FolderId, Kept};
+use crate::event::{DeviceId, Op};
+use crate::model::{Folder, FolderId, Kept};
 
 pub const FOLDER: &str = "AGENTS";
 pub const ICON: &str = "robot";
@@ -30,6 +30,25 @@ pub fn root_of(state: &State) -> Option<FolderId> {
 
 pub fn tree(state: &State, root: FolderId) -> BTreeSet<FolderId> {
     grown(state, BTreeSet::from([root]))
+}
+
+/// The computer whose own files this folder holds: the one named by the folder right under AGENTS it sits in.
+pub fn computer_of(state: &State, folder: Option<FolderId>) -> Option<DeviceId> {
+    let roots = roots(state);
+    let mut at = folder;
+    for _ in 0..=crate::model::DEEPEST {
+        let one = state.folders.get(&at?)?;
+        if one.parent.is_some_and(|up| roots.contains(&up)) {
+            return one.computer.clone();
+        }
+        at = one.parent;
+    }
+    None
+}
+
+/// Whether a folder right under AGENTS is this computer's, whatever it is called.
+pub fn of_computer(one: &Folder, root: FolderId, computer: &DeviceId) -> bool {
+    one.parent == Some(root) && !one.archived && one.computer.as_ref() == Some(computer)
 }
 
 // An AGENTS not yet joined still guards what it holds.

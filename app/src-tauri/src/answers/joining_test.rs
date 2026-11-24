@@ -20,6 +20,7 @@ fn opened_once() -> (tempfile::TempDir, Paths, Store) {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

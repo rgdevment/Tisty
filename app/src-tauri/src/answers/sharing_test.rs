@@ -186,6 +186,7 @@ fn a_document_signed_as_tisty_put_in_the_guide_and_copied_is_never_the_makers_to
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

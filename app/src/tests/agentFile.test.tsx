@@ -43,7 +43,7 @@ const agent = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   label: "Horario laboral",
   code: false,
   folderOff: false,
-  twin: false,
+  rivals: [],
   here: "applied",
   print: "p1",
   proposal: null,
@@ -156,6 +156,10 @@ describe("what the agent file panel says", () => {
     expect(syncs({ here: "notAgreed" })).toBe("No: its text waits for your approval");
     expect(syncs({ here: "placedByAgent" })).toBe("No: an agent put it here");
     expect(syncs({ here: "otherMemory" })).toBe("No: another computer's memory");
+    expect(syncs({ here: "otherComputer" })).toBe("No: another computer's");
+    expect(syncs({ here: "apart" })).toBe("No: its folder and its text say different computers");
+    expect(syncs({ here: "contested" })).toBe("Waits for you to choose");
+    expect(syncs({ here: "aside" })).toBe("No: another one rules here");
     expect(syncs({ here: "away" })).toBe("No");
   });
 

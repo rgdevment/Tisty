@@ -82,6 +82,7 @@ fn folder_add(store: &mut Store, name: &str, parent: Option<FolderId>) -> Folder
                 parent,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

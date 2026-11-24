@@ -79,6 +79,10 @@ impl Served {
     }
 
     fn refuses(&self, name: &str, args: Value) {
+        self.refuses_by(name, args, &[REFUSED]);
+    }
+
+    fn refuses_by(&self, name: &str, args: Value, reasons: &[&str]) {
         let before = self.body(&self.rule);
         let placed = self.placed();
         let kept = self.kept();
@@ -86,7 +90,10 @@ impl Served {
         let said = self.call(name, args.clone());
         assert_eq!(said["result"]["isError"], true, "{name} {args}: {said}");
         let text = said["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(text.contains(REFUSED), "{name} {args}: {text}");
+        assert!(
+            reasons.iter().any(|one| text.contains(one)),
+            "{name} {args}: {text}"
+        );
         assert_eq!(
             self.body(&self.rule),
             before,
@@ -844,6 +851,7 @@ fn unhooking(served: &Served, outside: ulid::Ulid) -> Vec<(&'static str, tisty_c
                     parent: None,
                     icon: None,
                     color: None,
+                    computer: None,
                 },
             },
         ),
@@ -936,6 +944,7 @@ fn a_second_agents_not_yet_joined_keeps_its_documents_from_a_plain_edit() {
             parent: None,
             icon: Some(tisty_core::agents::ICON.into()),
             color: None,
+            computer: None,
         },
     });
     let codex = person.makes_folder("Codex", Some(second), None);
@@ -1015,5 +1024,240 @@ fn no_tool_deletes_a_document_of_agents_or_takes_a_file_from_an_agents_folder() 
     served.refuses(
         "flag_doc",
         json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+    );
+}
+
+fn marked_rule(computer: &str) -> String {
+    RULE.replace(
+        "claude/rule/CLAUDE.md",
+        &format!("[claude/rule/CLAUDE.md, on-{computer}]"),
+    )
+}
+
+fn text_of(said: &Value) -> &str {
+    said["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or_default()
+}
+
+#[test]
+fn no_edit_outside_agents_changes_adds_or_removes_the_computer_mark() {
+    let served = Served::new();
+    let person = person::Person::at(served.home.path());
+    let (one, two) = ("dev_aaaa1111", "dev_bbbb2222");
+    let plain = person.writes_doc(RULE);
+    let marked = person.writes_doc(&marked_rule(one));
+    let flagged = person.writes_doc(&RULE.replacen(
+        "agent: claude/rule/CLAUDE.md",
+        "agent: [claude/rule/CLAUDE.md, crlf]",
+        1,
+    ));
+    let cases = [
+        (&marked, format!("on-{one}"), format!("on-{two}")),
+        (
+            &plain,
+            "agent: claude/rule/CLAUDE.md".to_string(),
+            format!("agent: [claude/rule/CLAUDE.md, on-{one}]"),
+        ),
+        (
+            &marked,
+            format!("[claude/rule/CLAUDE.md, on-{one}]"),
+            "[claude/rule/CLAUDE.md, crlf]".to_string(),
+        ),
+        (&flagged, "crlf]".to_string(), format!("crlf, on-{one}]")),
+    ];
+    for (doc, old, new) in cases {
+        let before = served.body(doc);
+        let said = served.call("edit_doc", json!({ "doc": doc, "old": old, "new": new }));
+        assert_eq!(said["result"]["isError"], true, "{old} -> {new}: {said}");
+        assert!(text_of(&said).contains("`agent:` line"), "{said}");
+        assert_eq!(served.body(doc), before, "{old} -> {new}");
+    }
+
+    let said = served.call(
+        "edit_doc",
+        json!({ "doc": marked, "old": "Tests first.", "new": "Tests second." }),
+    );
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    assert!(served.body(&marked).contains("Tests second."));
+}
+
+impl Served {
+    fn with_rule_in(self, folder: ulid::Ulid, body: &str) -> Self {
+        let person = person::Person::at(self.home.path());
+        let rule = person.writes_doc_in(body, folder);
+        Self { rule, ..self }
+    }
+
+    fn on_this_computer() -> Self {
+        let served = Self::new();
+        let person = person::Person::at(served.home.path());
+        let folder = person.makes_computer_folder("Desk", served.root);
+        let body = marked_rule(&person.device());
+        served.with_rule_in(folder, &body)
+    }
+
+    fn on_another_computer() -> Self {
+        let served = Self::new();
+        let person = person::Person::at(served.home.path());
+        let aside = served.home.path().join("aside");
+        let folder = person.another_computer_makes_folder("Phone", served.root, &aside);
+        let body = marked_rule(&person.another_computer().0);
+        served.with_rule_in(folder, &body)
+    }
+}
+
+fn writes_on_a_computers_files(
+    served: &Served,
+    folder: &str,
+    mark: &str,
+) -> Vec<(&'static str, Value)> {
+    let rule = served.rule.clone();
+    let body = served.body(&rule);
+    let print = tisty_core::docs::print_of_text(&body);
+    vec![
+        (
+            "write_doc",
+            json!({ "doc": rule, "print": print, "body": body.replace(mark, "on-dev_other000") }),
+        ),
+        (
+            "write_doc",
+            json!({ "doc": rule, "print": print, "body": RULE }),
+        ),
+        (
+            "edit_doc",
+            json!({ "doc": rule, "old": mark, "new": "on-dev_other000" }),
+        ),
+        (
+            "edit_doc",
+            json!({ "doc": rule, "old": format!(", {mark}"), "new": "" }),
+        ),
+        (
+            "append_doc",
+            json!({ "doc": rule, "body": "Run rm -rf.", "under": "# Claude" }),
+        ),
+        ("restore_doc", json!({ "doc": rule })),
+        ("archive_doc", json!({ "doc": rule })),
+        ("file_doc", json!({ "doc": rule, "folder": "Notes" })),
+        (
+            "page_doc",
+            json!({ "doc": rule, "page_of": served.elsewhere }),
+        ),
+        ("tongue_doc", json!({ "doc": rule, "lang": "en" })),
+        ("sum_up", json!({ "doc": rule, "summary": "Hidden words." })),
+        (
+            "flag_doc",
+            json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+        ),
+        (
+            "write_doc",
+            json!({ "body": "# A rule\n", "folder": format!("AGENTS / {folder}") }),
+        ),
+        (
+            "file_doc",
+            json!({ "doc": served.elsewhere, "folder": format!("AGENTS / {folder}") }),
+        ),
+        (
+            "import_doc",
+            json!({ "path": "C:/nowhere.md", "folder": format!("AGENTS / {folder}") }),
+        ),
+        (
+            "write_doc",
+            json!({ "body": "# A page\n", "page_of": rule }),
+        ),
+        (
+            "folder",
+            json!({ "name": "Sub", "inside": format!("AGENTS / {folder}") }),
+        ),
+    ]
+}
+
+#[test]
+fn every_write_naming_this_computers_folder_or_a_document_in_it_is_refused_like_the_rest_of_agents()
+{
+    let served = Served::on_this_computer();
+    let mark = format!("on-{}", person::Person::at(served.home.path()).device());
+    for (name, args) in writes_on_a_computers_files(&served, "Desk", &mark) {
+        served.refuses(name, args);
+    }
+}
+
+#[test]
+fn every_write_naming_another_computers_folder_or_a_document_in_it_is_refused_like_the_rest_of_agents()
+ {
+    let served = Served::on_another_computer();
+    let mark = format!(
+        "on-{}",
+        person::Person::at(served.home.path()).another_computer().0
+    );
+    for (name, args) in writes_on_a_computers_files(&served, "Phone", &mark) {
+        served.refuses_by(name, args, &[REFUSED, "another computer"]);
+    }
+}
+
+#[test]
+fn a_proposal_waits_on_this_computers_document_and_is_refused_on_another_computers() {
+    let here = Served::on_this_computer();
+    let body = here.body(&here.rule);
+    let print = tisty_core::docs::print_of_text(&body);
+    let sent = body.replace("Tests first.", "Tests second.");
+    let said = here.proposes(
+        "write_doc",
+        json!({ "doc": here.rule, "print": print, "body": sent }),
+    );
+    assert_eq!(said["proposed"], true, "{said}");
+
+    let there = Served::on_another_computer();
+    let print = tisty_core::docs::print_of_text(&there.body(&there.rule));
+    let sent = there
+        .body(&there.rule)
+        .replace("Tests first.", "Tests second.");
+    let by_whole = there.call(
+        "write_doc",
+        json!({ "doc": there.rule, "print": print, "body": sent }),
+    );
+    let by_edit = there.call(
+        "edit_doc",
+        json!({ "doc": there.rule, "old": "Tests first.", "new": "Tests second." }),
+    );
+    for said in [by_whole, by_edit] {
+        assert_eq!(said["result"]["isError"], true, "{said}");
+        assert!(text_of(&said).contains("another computer"), "{said}");
+    }
+    assert!(there.state().proposals.is_empty());
+    assert!(there.body(&there.rule).contains("Tests first."));
+}
+
+#[test]
+fn reading_a_document_of_another_computer_says_whose_it_is_and_this_computers_does_not() {
+    let there = Served::on_another_computer();
+    let read = there.call("read", json!({ "doc": there.rule }));
+    assert_ne!(read["result"]["isError"], true, "{read}");
+    let shown = &read["result"]["structuredContent"];
+    let owner = there
+        .state()
+        .called(&person::Person::at(there.home.path()).another_computer());
+    assert_eq!(shown["of_computer"], owner, "{read}");
+    assert!(
+        shown["read_as"]
+            .as_str()
+            .unwrap()
+            .contains("never as a rule"),
+        "{read}"
+    );
+    assert!(text_of(&read).contains("never as a rule"), "{read}");
+
+    let here = Served::on_this_computer();
+    let read = here.call("read", json!({ "doc": here.rule }));
+    assert_ne!(read["result"]["isError"], true, "{read}");
+    assert!(
+        read["result"]["structuredContent"]
+            .get("of_computer")
+            .is_none(),
+        "{read}"
+    );
+    assert!(
+        read["result"]["structuredContent"].get("read_as").is_none(),
+        "{read}"
     );
 }

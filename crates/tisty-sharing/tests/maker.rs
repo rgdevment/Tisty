@@ -49,6 +49,7 @@ fn guide_folder(home: &mut Home) -> FolderId {
             parent: None,
             icon: None,
             color: None,
+            computer: None,
         },
     });
     id

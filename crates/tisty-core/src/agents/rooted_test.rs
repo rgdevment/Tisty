@@ -28,6 +28,7 @@ impl World {
                 parent: None,
                 icon: icon.map(str::to_string),
                 color: None,
+                computer: None,
             },
         });
         id
@@ -155,6 +156,7 @@ fn an_agents_not_yet_joined_still_holds_its_documents_and_their_pages() {
             parent: None,
             icon: Some(ICON.into()),
             color: None,
+            computer: None,
         },
     });
     assert_eq!(roots(&world.state), vec![world.root, second]);
@@ -167,6 +169,7 @@ fn an_agents_not_yet_joined_still_holds_its_documents_and_their_pages() {
             parent: Some(second),
             icon: None,
             color: None,
+            computer: None,
         },
     });
     let rule = Ulid::generate();
@@ -195,4 +198,27 @@ fn an_agents_not_yet_joined_still_holds_its_documents_and_their_pages() {
     assert!(holds(state, &state.docs[&page]));
     let held = holding(state);
     assert!(held(&state.docs[&rule]) && held(&state.docs[&page]));
+}
+
+#[test]
+fn a_folder_nested_beyond_any_sane_depth_belongs_to_no_computer() {
+    let mut world = world();
+    let mut parent = world.root;
+    for n in 0..=crate::model::DEEPEST + 1 {
+        let id = Ulid::generate();
+        world.apply(Op::FolderAdd {
+            id,
+            d: FolderAdd {
+                name: format!("deep {n}"),
+                order: "a0".into(),
+                parent: Some(parent),
+                icon: None,
+                color: None,
+                computer: None,
+            },
+        });
+        parent = id;
+    }
+    assert_eq!(computer_of(&world.state, Some(parent)), None);
+    assert_eq!(computer_of(&world.state, None), None);
 }

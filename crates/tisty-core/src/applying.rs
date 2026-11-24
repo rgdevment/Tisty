@@ -33,9 +33,19 @@ impl State {
         self.tasks.insert(id, task);
     }
 
-    pub(crate) fn folder_added(&mut self, id: &FolderId, d: &crate::event::FolderAdd) {
+    pub(crate) fn folder_added(
+        &mut self,
+        event: &Event,
+        id: &FolderId,
+        d: &crate::event::FolderAdd,
+    ) {
         // Naming a folder that is already here does not bring it out of the archive.
         let away = self.folders.get(id).is_some_and(|one| one.archived);
+        // A computer's folder is its own word, so nobody makes one in another's name.
+        let computer = match self.folders.get(id) {
+            Some(was) => was.computer.clone(),
+            None => d.computer.clone().filter(|one| *one == event.device),
+        };
         self.folders.insert(
             *id,
             Folder {
@@ -50,6 +60,7 @@ impl State {
                     .filter(|key| crate::model::hue::kept(key).is_some()),
                 archived: away,
                 placed_by: None,
+                computer,
             },
         );
     }
@@ -494,6 +505,7 @@ impl State {
             if let Some(print) = agreed {
                 kept.agreed = Some(print);
                 kept.agreed_by = Some(event.device.clone());
+                kept.agreed_knowing = d.knows_computers;
             }
             kept.title = Some(d.title.clone());
             kept.bytes = d.bytes;
@@ -644,6 +656,8 @@ impl State {
                 key: d.said.as_ref().and_then(|one| one.key.clone()).flatten(),
                 edited: d.edited.clone(),
                 agreed_by: agreed.is_some().then(|| event.device.clone()),
+                agreed_knowing: agreed.is_some()
+                    && d.said.as_ref().is_some_and(|one| one.knows_computers),
                 agreed,
                 placed_by: None,
             },

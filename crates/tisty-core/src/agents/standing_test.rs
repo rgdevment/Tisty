@@ -71,7 +71,7 @@ fn a_first_round_writes_what_the_documents_say() {
 }
 
 #[test]
-fn global_and_the_assistants_own_are_composed_where_one_file_is_all_it_reads() {
+fn a_target_of_two_documents_is_never_written_nor_brought_and_reads_as_broken() {
     let mut room = room();
     let target = room.target(
         ".codex/AGENTS.md",
@@ -80,32 +80,40 @@ fn global_and_the_assistants_own_are_composed_where_one_file_is_all_it_reads() {
             rule("codex", "AGENTS.md", "# Codex\n"),
         ],
     );
-    room.round(std::slice::from_ref(&target));
-    assert_eq!(read(&target), "Write in Spanish.\n\n# Codex\n");
+    assert_eq!(wanted(&target), Err((0, Refused::Held)));
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::Broken {
+            piece: 0,
+            why: Refused::Held
+        }]
+    );
+    assert!(!target.at.exists());
+    assert_eq!(
+        overwrite(room.data.path(), &mut room.ledger, &target),
+        Err(Refused::Held)
+    );
+
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Changed by hand.\n").unwrap();
+    assert_eq!(bring(&room.ledger, &target, 0), Err(Refused::Unattributed));
+    assert_eq!(bring(&room.ledger, &target, 1), Err(Refused::Unattributed));
+    assert_eq!(read(&target), "Changed by hand.\n");
 }
 
 #[test]
-fn removing_one_rule_rewrites_the_file_but_emptying_the_folder_touches_nothing() {
+fn emptying_the_folder_touches_nothing() {
     let mut room = room();
-    let both = room.target(
+    let one = room.target(
         ".codex/AGENTS.md",
-        vec![
-            rule(GLOBAL, "style.md", "Write in Spanish.\n"),
-            rule("codex", "AGENTS.md", "Tests first.\n"),
-        ],
+        vec![rule("codex", "AGENTS.md", "Tests first.\n")],
     );
-    room.round(std::slice::from_ref(&both));
-
-    let one = Target {
-        pieces: vec![both.pieces[1].clone()],
-        ..both.clone()
-    };
     assert_eq!(room.round(std::slice::from_ref(&one)), [Standing::Wrote]);
     assert_eq!(read(&one), "Tests first.\n");
 
     let none = Target {
         pieces: vec![],
-        ..both.clone()
+        ..one.clone()
     };
     assert_eq!(room.round(std::slice::from_ref(&none)), [Standing::Empty]);
     assert_eq!(read(&none), "Tests first.\n");
@@ -284,47 +292,6 @@ fn bringing_a_change_in_gives_the_document_and_leaves_the_file_alone() {
         [Standing::UpToDate]
     );
     assert_eq!(read(&after), "Tests first, always.\n");
-}
-
-#[test]
-fn a_change_in_a_composed_file_is_traced_to_the_one_document_it_touched() {
-    let mut room = room();
-    let target = room.target(
-        ".codex/AGENTS.md",
-        vec![
-            rule(GLOBAL, "style.md", "Write in Spanish.\n"),
-            rule("codex", "AGENTS.md", "Tests first.\n"),
-        ],
-    );
-    room.round(std::slice::from_ref(&target));
-    std::fs::write(&target.at, "Write in Spanish.\n\nTests first, always.\n").unwrap();
-
-    assert!(matches!(
-        room.round(std::slice::from_ref(&target))[0],
-        Standing::Outside { piece: Some(1), .. }
-    ));
-    let body = bring(&room.ledger, &target, 1).unwrap();
-    assert!(body.ends_with("\n---\nTests first, always.\n"));
-    assert_eq!(bring(&room.ledger, &target, 0), Err(Refused::Unattributed));
-}
-
-#[test]
-fn a_change_across_two_composed_documents_is_left_for_the_person_to_place() {
-    let mut room = room();
-    let target = room.target(
-        ".codex/AGENTS.md",
-        vec![
-            rule(GLOBAL, "style.md", "A.\n"),
-            rule("codex", "AGENTS.md", "B.\n"),
-        ],
-    );
-    room.round(std::slice::from_ref(&target));
-    std::fs::write(&target.at, "A, changed.\n\nB, changed.\n").unwrap();
-    assert!(matches!(
-        room.round(std::slice::from_ref(&target))[0],
-        Standing::Outside { piece: None, .. }
-    ));
-    assert_eq!(bring(&room.ledger, &target, 0), Err(Refused::Unattributed));
 }
 
 #[test]
@@ -714,10 +681,7 @@ fn the_persons_first_file_outlives_every_backup_cap_through_real_rounds() {
     for n in 0..edits {
         let target = room.target(
             at,
-            vec![
-                rule(GLOBAL, "common.md", &format!("Edit {n}.\n")),
-                rule("claude", "CLAUDE.md", original),
-            ],
+            vec![rule("claude", "CLAUDE.md", &format!("Edit {n}.\n"))],
         );
         assert_eq!(room.round(&[target]), [Standing::Wrote], "edit {n}");
     }
@@ -733,29 +697,26 @@ fn the_persons_first_file_outlives_every_backup_cap_through_real_rounds() {
 }
 
 #[test]
-fn a_file_brought_after_a_global_rule_takes_the_rule_with_a_backup_of_itself() {
+fn a_file_brought_in_takes_a_later_body_of_its_document_with_a_backup_of_itself() {
     let mut room = room();
     let theirs = "# Codex\n\nTheirs.\n";
-    let mut target = room.target(
-        ".codex/AGENTS.override.md",
-        vec![rule(GLOBAL, "common.md", "Common.\n")],
-    );
+    let brought = piece(&rule("codex", "AGENTS.override.md", theirs));
+    let mut target = room.target(".codex/AGENTS.override.md", vec![]);
+    target.put(&brought);
     std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
     std::fs::write(&target.at, theirs).unwrap();
-    assert!(matches!(
-        room.round(std::slice::from_ref(&target))[0],
-        Standing::Both { .. }
-    ));
 
-    let brought = piece(&rule("codex", "AGENTS.override.md", theirs));
-    target.put(&brought);
     assert!(adopted(&mut room.ledger, &target, brought.file()));
-    assert_eq!(standing(&room.ledger, &target), Standing::Write);
-    assert_eq!(room.round(std::slice::from_ref(&target)), [Standing::Wrote]);
-    assert_eq!(read(&target), "Common.\n\n# Codex\n\nTheirs.\n");
-    let kept = backups(room.data.path(), &target.at);
+    let later = room.target(
+        ".codex/AGENTS.override.md",
+        vec![rule("codex", "AGENTS.override.md", "# Codex\n\nRevised.\n")],
+    );
+    assert_eq!(standing(&room.ledger, &later), Standing::Write);
+    assert_eq!(room.round(std::slice::from_ref(&later)), [Standing::Wrote]);
+    assert_eq!(read(&later), "# Codex\n\nRevised.\n");
+    let kept = backups(room.data.path(), &later.at);
     assert_eq!(
-        read_kept(room.data.path(), &target.at, kept[0].n).unwrap(),
+        read_kept(room.data.path(), &later.at, kept[0].n).unwrap(),
         theirs.as_bytes()
     );
 }
@@ -1715,4 +1676,74 @@ fn taken_away_unseen_keeps_every_refusal_of_taking_away() {
     );
     assert_eq!(read(&placed), "Rules.\n");
     assert!(backups(room.data.path(), &placed.at).is_empty());
+}
+
+fn mixed_file(room: &mut Room, recorded: &str, wanted: &str) -> Target {
+    let mut target = room.target(".codex/AGENTS.md", vec![rule("codex", "AGENTS.md", wanted)]);
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, recorded).unwrap();
+    room.ledger.settle(&target.at, recorded.as_bytes());
+    room.ledger
+        .applied_to(&target.at, ["doc-a".to_string(), "doc-b".to_string()]);
+    target.unproven = room.ledger.mixed(&target.at);
+    target
+}
+
+#[test]
+fn a_mixed_file_whose_wanted_bytes_differ_from_the_record_is_unproven_and_left_as_it_is() {
+    let mut room = room();
+    let target = mixed_file(&mut room, "Global.\n\nCodex.\n", "Codex alone.\n");
+
+    assert_eq!(standing(&room.ledger, &target), Standing::Unproven);
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::Unproven]
+    );
+    assert_eq!(read(&target), "Global.\n\nCodex.\n");
+    assert_eq!(
+        room.ledger.applied_at(&target.at).count(),
+        2,
+        "nothing was learned about the file"
+    );
+}
+
+#[test]
+fn a_mixed_file_whose_wanted_bytes_are_the_record_learns_its_one_document() {
+    let mut room = room();
+    let target = mixed_file(&mut room, "Codex.\n", "Codex.\n");
+
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::UpToDate]
+    );
+    assert_eq!(read(&target), "Codex.\n");
+    assert!(!room.ledger.mixed(&target.at));
+}
+
+#[test]
+fn a_target_is_held_only_once_it_is_told_to_and_a_blank_document_alone_is_wordless() {
+    let room = room();
+    let mut target = room.target(
+        ".claude/CLAUDE.md",
+        vec![rule("claude-code", "CLAUDE.md", "Rules.\n")],
+    );
+    assert!(!target.held());
+    assert!(!target.wordless());
+    target.hold();
+    assert!(target.held());
+
+    let blank = room.target(
+        ".claude/CLAUDE.md",
+        vec![rule("claude-code", "CLAUDE.md", "\n\n")],
+    );
+    assert!(blank.wordless());
+    let two = room.target(
+        ".claude/CLAUDE.md",
+        vec![
+            rule("claude-code", "CLAUDE.md", "\n\n"),
+            rule("claude-code", "CLAUDE.md", "\n"),
+        ],
+    );
+    assert!(!two.wordless(), "only one document alone has no words left");
+    assert!(!room.target(".claude/CLAUDE.md", Vec::new()).wordless());
 }

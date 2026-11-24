@@ -100,6 +100,7 @@ fn lived_in(session: &mut Session) -> ulid::Ulid {
                     parent: None,
                     icon: None,
                     color: None,
+                    computer: None,
                 },
             },
             tisty_core::Op::ListAdd {

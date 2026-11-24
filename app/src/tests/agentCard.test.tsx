@@ -75,7 +75,7 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   here: "applied",
   print: "p1",
   proposal: null,
-  twin: false,
+  rivals: [],
   places,
   own: { about: null, fields: [], raw: null },
   ...more,
@@ -376,9 +376,10 @@ describe("an agent document's card", () => {
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
   });
 
-  it("says why a document is written nowhere", () => {
-    shown(card([], { twin: true }));
-    expect(screen.getByText(/Another document in Agents already writes this file/)).toBeTruthy();
+  it("says nothing of a twin once documents that write one file are asked as rivals", () => {
+    shown(card([], { rivals: ["Style"] }));
+    expect(screen.queryByText(/already writes this file/)).toBeNull();
+    expect(screen.getByText(/No agent on this computer reads this document yet/)).toBeTruthy();
   });
 
   it("says when no assistant reads it yet, and draws code as is", () => {
@@ -462,6 +463,106 @@ describe("an agent document's card", () => {
     shown(card([], { here: "declined" }));
     expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+  });
+
+  it("names the rival documents and asks which one rules here", async () => {
+    shown(card([], { here: "waiting", rivals: ["Style", "Tone"] }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /On this computer «Style», «Tone» already goes to the same file\. Which one rules here\?/,
+    );
+    expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "The other" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
+    expect(sent("agent_doc")[0].args.asked).toEqual({ do: "take", here: false });
+    await userEvent.click(screen.getByRole("button", { name: "This one" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(2));
+    expect(sent("agent_doc")[1].args.asked).toEqual({ do: "take", here: true });
+  });
+
+  it("asks which rules when words approved here collide with another document", () => {
+    shown(card([], { here: "approvedWaiting", rivals: ["Style"] }));
+    expect(screen.getByRole("status").textContent).toMatch(/Which one rules here\?/);
+    expect(screen.getByRole("button", { name: "This one" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "The other" })).toBeTruthy();
+  });
+
+  it("asks a contested document to take its place, and only offers the choice when a rival is named", () => {
+    shown(card([], { here: "contested" }));
+    expect(screen.getByRole("status").textContent).toMatch(/Does this one write it\?/);
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+    cleanup();
+    shown(card([], { here: "contested", rivals: ["Style"] }));
+    expect(screen.getByRole("status").textContent).toMatch(/«Style»/);
+    expect(screen.getByRole("button", { name: "This one" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "The other" })).toBeTruthy();
+  });
+
+  it("says who rules on a document put aside and offers to make this one rule", async () => {
+    shown(card([], { here: "aside", rivals: ["Style"] }));
+    expect(screen.getByRole("status").textContent).toMatch(/On this computer «Style» rules\./);
+    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "This one" }));
+    await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
+    expect(sent("agent_doc")[0].args.asked).toEqual({ do: "take", here: true });
+  });
+
+  it("says a document is put aside even when no rival is named, and offers to apply it", () => {
+    shown(card([], { here: "aside" }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /On this computer another document writes this file\./,
+    );
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+  });
+
+  it("keeps a declined document plain: it can only be applied, rivals or not", () => {
+    shown(card([], { here: "declined", rivals: ["Style"] }));
+    expect(screen.getByRole("status").textContent).toMatch(/You chose not to apply it/);
+    expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+  });
+
+  it("shows a document of another computer as only read, with no button to take it", () => {
+    shown(card([], { here: "otherComputer" }));
+    expect(screen.getByRole("status").textContent).toMatch(/belongs to another of your computers/);
+    expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Go by its folder" })).toBeNull();
+  });
+
+  it("settles a document whose folder and text name different computers by its folder", async () => {
+    const changed = vi.fn();
+    window.addEventListener(AGENTS_CHANGED, changed);
+    const on = shown(card([], { here: "apart" }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /no computer writes it until you settle it/,
+    );
+    expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Go by its folder" }));
+    await waitFor(() => expect(changed).toHaveBeenCalled());
+    expect(sent("agent_doc")[0].args).toEqual({ file: "claude-rule.md", asked: { do: "settle" } });
+    expect(on.onSettle).toHaveBeenCalled();
+    expect(on.onTaken).toHaveBeenCalled();
+    window.removeEventListener(AGENTS_CHANGED, changed);
+  });
+
+  it("keeps the plain wording of a state that is no choice even with rivals named", () => {
+    shown(card([], { here: "otherComputer", rivals: ["Style"] }));
+    expect(screen.getByRole("status").textContent).toMatch(/belongs to another of your computers/);
+    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+  });
+
+  it("keeps the plain wording of each state when no rival is named", () => {
+    shown(card([], { here: "declined" }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /You chose not to apply it on this computer/,
+    );
+    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
   });
 
   it("approves a text changed without the person only after saving the page and a yes", async () => {

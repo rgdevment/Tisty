@@ -141,6 +141,7 @@ fn shelving_a_folder_needs_no_rebuild_because_no_documents_row_changes() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();
@@ -240,6 +241,7 @@ fn a_second_launch_still_has_its_folders_and_documents() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

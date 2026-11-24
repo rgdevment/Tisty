@@ -192,6 +192,7 @@ fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
                 edited: None,
                 agreed: None,
                 agreed_by: None,
+                agreed_knowing: false,
                 placed_by: None,
             },
         );

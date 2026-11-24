@@ -1,6 +1,7 @@
 use tisty_markdown::front;
 
 use super::Refused;
+use crate::event::DeviceId;
 
 pub const KEY: &str = front::AGENT;
 pub const GLOBAL: &str = "global";
@@ -46,6 +47,8 @@ pub struct Card {
     pub endings: Endings,
     pub bom: bool,
     pub open_end: bool,
+    /// The one computer it is for; without it, the card is for every computer.
+    pub computer: Option<DeviceId>,
 }
 
 impl Card {
@@ -62,6 +65,7 @@ impl Card {
             endings: Endings::Lf,
             bom: false,
             open_end: false,
+            computer: None,
         };
         for flag in flags {
             match flag.as_str() {
@@ -69,6 +73,9 @@ impl Card {
                 "as-is" => card.endings = Endings::AsIs,
                 "bom" => card.bom = true,
                 "open-end" => card.open_end = true,
+                one if card.computer.is_none() && front::agent_computer(one).is_some() => {
+                    card.computer = front::agent_computer(one).map(|id| DeviceId(id.to_string()));
+                }
                 // A flag this Tisty does not know would be bytes it cannot promise.
                 _ => return None,
             }
@@ -85,11 +92,16 @@ impl Card {
     }
 
     fn line(&self) -> String {
+        let on = self
+            .computer
+            .as_ref()
+            .map(|one| format!("{}{}", front::AGENT_ON, one.0));
         let flags: Vec<&str> = [
             (self.endings == Endings::Crlf).then_some("crlf"),
             (self.endings == Endings::AsIs).then_some("as-is"),
             self.bom.then_some("bom"),
             self.open_end.then_some("open-end"),
+            on.as_deref(),
         ]
         .into_iter()
         .flatten()
@@ -125,6 +137,7 @@ pub fn doc_of(level: &str, kind: Kind, name: &str, file: &[u8]) -> Result<String
         endings: endings_of(text),
         bom,
         open_end: !text.is_empty() && !text.ends_with('\n'),
+        computer: None,
     };
     let title = format!("title: {level} · {name}");
     Ok(format!(
@@ -138,36 +151,40 @@ pub fn brought(body: &str, file: &[u8]) -> Result<String, Refused> {
     let was = Card::of(body).ok_or(Refused::NoCard)?;
     let span = front::span(body).ok_or(Refused::NoCard)?;
     let fresh = doc_of(&was.level, was.kind, &was.name, file)?;
-    let card = Card::of(&fresh).ok_or(Refused::NoCard)?;
-    let block: String = body[span]
+    let card = Card {
+        computer: was.computer,
+        ..Card::of(&fresh).ok_or(Refused::NoCard)?
+    };
+    let fresh_span = front::span(&fresh).ok_or(Refused::NoCard)?;
+    Ok(format!(
+        "{}{}",
+        lined(&body[span], &card),
+        &fresh[fresh_span.end..]
+    ))
+}
+
+fn lined(block: &str, card: &Card) -> String {
+    block
         .split_inclusive('\n')
         .map(|line| match keyed(line) {
             true => format!("{}\n", card.line()),
             false => line.to_string(),
         })
-        .collect();
-    let fresh_span = front::span(&fresh).ok_or(Refused::NoCard)?;
-    Ok(format!("{block}{}", &fresh[fresh_span.end..]))
+        .collect()
 }
 
-/// The same document under another name: its `agent:` line, and a title Tisty gave it, say the new one.
-pub(super) fn named_anew(body: &str, name: &str) -> Option<String> {
-    let was = Card::of(body)?;
-    let span = front::span(body)?;
+/// The same document for one computer, or for every one: only its `agent:` line changes.
+pub fn meant_for(body: &str, computer: Option<&DeviceId>) -> Option<String> {
     let card = Card {
-        name: name.to_string(),
-        ..was.clone()
+        computer: computer.cloned(),
+        ..Card::of(body)?
     };
-    let titled = format!("title: {} · {}", was.level, was.name);
-    let block: String = body[span.clone()]
-        .split_inclusive('\n')
-        .map(|line| match (keyed(line), line.trim_end() == titled) {
-            (true, _) => format!("{}\n", card.line()),
-            (false, true) => format!("title: {} · {}\n", card.level, card.name),
-            (false, false) => line.to_string(),
-        })
-        .collect();
-    Some(format!("{block}{}", &body[span.end..]))
+    let span = front::span(body)?;
+    Some(format!(
+        "{}{}",
+        lined(&body[span.clone()], &card),
+        &body[span.end..]
+    ))
 }
 
 fn keyed(line: &str) -> bool {

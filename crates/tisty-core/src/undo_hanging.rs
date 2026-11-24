@@ -58,6 +58,7 @@ fn folder(events: &mut Vec<Event>, ms: i64) -> crate::model::FolderId {
                 order: crate::order::first(),
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));

@@ -49,6 +49,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         edited: None,
         agreed: None,
         agreed_by: None,
+        agreed_knowing: false,
         placed_by: None,
     };
     let json = serde_json::to_string(&kept).unwrap();

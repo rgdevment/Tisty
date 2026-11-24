@@ -57,6 +57,7 @@ pub fn sown(
             parent: None,
             icon: Some(GUIDE_ICON.to_string()),
             color: Some(GUIDE_HUE.to_string()),
+            computer: None,
         },
     });
     session.commit_all(told_of)?;

@@ -212,6 +212,7 @@ fn the_translator_and_the_engine_agree_on_what_a_card_is() {
         "Global/rule/x.md",
         "global/rule/",
         "[global/rule/x.md, odd]",
+        "[global/rule/x.md, on-dev_aaaa1111, on-dev_bbbb2222]",
         "claude/rule/notes#1.md",
         "claude/rule/../CLAUDE.md",
         "claude/rule/a//b.md",
@@ -222,4 +223,59 @@ fn the_translator_and_the_engine_agree_on_what_a_card_is() {
         let carded = tisty_markdown::front::carded(&body);
         assert_eq!(Card::of(&body).is_some(), carded, "{address}");
     }
+}
+
+const ON: &str = "dev_ab12cd34";
+
+fn marked(flags: &str) -> String {
+    format!("---\nagent: [claude/rule/CLAUDE.md{flags}]\ntitle: claude · CLAUDE.md\n---\nx\n")
+}
+
+fn device(id: &str) -> crate::event::DeviceId {
+    crate::event::DeviceId(id.into())
+}
+
+#[test]
+fn a_computer_mark_round_trips_byte_for_byte_with_the_other_flags() {
+    let body = marked(&format!(", crlf, bom, open-end, on-{ON}"));
+    let card = Card::of(&body).unwrap();
+    assert_eq!(card.computer, Some(device(ON)));
+    assert!(card.bom && card.open_end && card.endings == Endings::Crlf);
+    assert_eq!(
+        meant_for(&body, Some(&device(ON))).as_deref(),
+        Some(body.as_str())
+    );
+}
+
+#[test]
+fn two_computer_marks_or_a_bad_one_make_a_card_unread() {
+    assert!(Card::of(&marked(&format!(", on-{ON}, on-dev_other"))).is_none());
+    assert!(Card::of(&marked(", on-")).is_none());
+    assert!(Card::of(&marked(", on-DEV_AB")).is_none());
+    assert!(Card::of(&marked(", on-dev ab")).is_none());
+}
+
+#[test]
+fn meant_for_adds_and_removes_only_the_mark() {
+    let plain = marked(", crlf");
+    let on = meant_for(&plain, Some(&device(ON))).unwrap();
+    assert_eq!(on, marked(&format!(", crlf, on-{ON}")));
+    assert_eq!(meant_for(&on, None).unwrap(), plain);
+    assert_eq!(meant_for(&plain, None).unwrap(), plain);
+    let other = meant_for(&on, Some(&device("dev_other"))).unwrap();
+    assert_eq!(other, marked(", crlf, on-dev_other"));
+}
+
+#[test]
+fn bringing_a_change_in_keeps_the_computer_mark() {
+    let body = marked(&format!(", on-{ON}"));
+    let back = brought(&body, b"Changed outside.\n").unwrap();
+    assert_eq!(Card::of(&back).unwrap().computer, Some(device(ON)));
+    assert!(back.contains(&format!("on-{ON}")));
+    assert_eq!(rendered(&back).unwrap(), b"Changed outside.\n");
+}
+
+#[test]
+fn a_card_with_an_unknown_flag_beside_a_computer_mark_is_still_not_read() {
+    assert!(Card::of(&marked(&format!(", on-{ON}, utf16"))).is_none());
 }

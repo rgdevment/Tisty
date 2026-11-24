@@ -356,6 +356,30 @@ const words = {
     "Another computer's agent memory: on this one it is only read.",
     "Memoria del agente de otro equipo: en este solo se lee.",
   ],
+  agentHereOtherComputer: [
+    "It belongs to another of your computers: on this one it is only read.",
+    "Es de otro de tus equipos: en este solo se lee.",
+  ],
+  agentHereApart: [
+    "It sits in one computer's folder and its text says another's, so no computer writes it until you settle it.",
+    "Está en la carpeta de un equipo y su texto dice otro, así que ningún equipo lo escribe hasta que lo resuelvas.",
+  ],
+  agentSettle: ["Go by its folder", "Según su carpeta"],
+  agentHereContested: [
+    "What wrote this file on this computer is gone or is another document. Does this one write it?",
+    "Lo que escribía este archivo en este equipo ya no está o es otro documento. ¿Lo escribe este?",
+  ],
+  agentHereAside: [
+    "On this computer another document writes this file.",
+    "En este equipo otro documento escribe este archivo.",
+  ],
+  agentHereChoose: [
+    "On this computer {name} already goes to the same file. Which one rules here?",
+    "En este equipo {name} ya va al mismo archivo. ¿Cuál manda aquí?",
+  ],
+  agentHereOtherRules: ["On this computer {name} rules.", "En este equipo manda {name}."],
+  agentThisRules: ["This one", "Este"],
+  agentOtherRules: ["The other", "El otro"],
   agentProposalLabel: ["An agent's proposal", "Propuesta de un agente"],
   agentProposalBy: ["An agent ({name}) proposes a change", "Un agente ({name}) propone un cambio"],
   agentProposalSomeone: ["An agent proposes a change", "Un agente propone un cambio"],
@@ -395,10 +419,6 @@ const words = {
   agentNowhere: [
     "No agent on this computer reads this document yet.",
     "Ningún agente de este equipo lee este documento todavía.",
-  ],
-  agentTwin: [
-    "Another document in Agents already writes this file, so this one is left out.",
-    "Otro documento de Agentes ya escribe este archivo, así que este queda fuera.",
   ],
   agentComposed: ["together with {name} other documents", "junto con otros {name} documentos"],
   agentComposedOne: ["together with one other document", "junto con otro documento"],
@@ -514,6 +534,13 @@ const words = {
   ],
   agentFileSyncsPlacedByAgent: ["No: an agent put it here", "No: lo puso aquí un agente"],
   agentFileSyncsOtherMemory: ["No: another computer's memory", "No: memoria de otro equipo"],
+  agentFileSyncsOtherComputer: ["No: another computer's", "No: es de otro equipo"],
+  agentFileSyncsApart: [
+    "No: its folder and its text say different computers",
+    "No: su carpeta y su texto dicen equipos distintos",
+  ],
+  agentFileSyncsAside: ["No: another one rules here", "No: aquí manda otro"],
+  agentFileSyncsContested: ["Waits for you to choose", "Espera que elijas"],
   agentFileSyncsProposal: [
     "{name} · an agent's change waits for your approval",
     "{name} · un cambio propuesto por un agente espera tu aprobación",

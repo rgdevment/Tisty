@@ -88,6 +88,7 @@ impl Room {
                 parent,
                 icon: Some(icon.into()),
                 color: Some("teal".into()),
+                computer: None,
             },
         });
         id
@@ -119,6 +120,7 @@ impl Room {
                 file: made.id.clone(),
                 order,
                 said: Some(Said {
+                    knows_computers: false,
                     key: None,
                     brainstorm: false,
                     diary: false,
@@ -748,6 +750,7 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
     there.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -1509,6 +1512,7 @@ lo suyo",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -1562,6 +1566,7 @@ lo mio",
     here.tell(Op::DocSaid {
         id: acta,
         d: Said {
+            knows_computers: false,
             key: None,
             brainstorm: false,
             diary: false,
@@ -1946,6 +1951,7 @@ soy el largo",
                 file: file.into(),
                 order: order::last_of(here.state.docs.values().map(|one| one.order.as_str())),
                 said: Some(Said {
+                    knows_computers: false,
                     key: None,
                     brainstorm: false,
                     diary: false,

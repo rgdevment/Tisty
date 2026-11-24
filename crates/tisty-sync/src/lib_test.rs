@@ -3805,6 +3805,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
         Op::DocSaid {
             id,
             d: tisty_core::event::Said {
+                knows_computers: false,
                 key: None,
                 brainstorm: false,
                 diary: false,
@@ -4116,6 +4117,7 @@ fn a_history_handed_on_reaches_the_folder_byte_for_byte() {
         Op::DocSaid {
             id,
             d: tisty_core::event::Said {
+                knows_computers: false,
                 key: None,
                 brainstorm: false,
                 diary: false,

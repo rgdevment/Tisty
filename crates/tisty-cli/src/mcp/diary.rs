@@ -27,7 +27,8 @@ pub(super) fn body_kept(before: &str, after: &str) -> Result<(), Refused> {
 
 // An `agent:` line added or changed anywhere would make an assistant's file, which only the person makes in AGENTS.
 fn agent_line_kept(before: &str, after: &str) -> Result<(), Refused> {
-    let address = |body: &str| tisty_core::agents::Card::of(body).map(|card| card.address());
+    let address =
+        |body: &str| tisty_core::agents::Card::of(body).map(|card| (card.address(), card.computer));
     let after_card = address(after);
     match after_card.is_some() && after_card != address(before) {
         true => Err(Refused::Tool(

@@ -2258,6 +2258,7 @@ fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
                     file: "dev0-0001".into(),
                     order: "a0".into(),
                     said: Some(crate::event::Said {
+                        knows_computers: false,
                         key: None,
                         brainstorm: false,
                         diary: false,
@@ -2868,6 +2869,7 @@ fn folder(state: &mut State, name: &str, parent: Option<FolderId>) -> FolderId {
                 parent,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -3024,6 +3026,7 @@ fn a_folder_that_was_deleted_never_comes_back() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -3112,6 +3115,7 @@ fn making_a_folder_again_after_undoing_it_takes_a_fresh_id() {
             parent: None,
             icon: None,
             color: None,
+            computer: None,
         },
     }]);
 
@@ -3160,6 +3164,7 @@ fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
             Op::DocSaid {
                 id: one,
                 d: crate::event::Said {
+                    knows_computers: false,
                     key: None,
                     brainstorm: false,
                     diary: false,
@@ -3260,6 +3265,7 @@ fn two_machines_shelving_and_deleting_at_once_land_on_the_same_answer() {
                     parent: None,
                     icon: None,
                     color: None,
+                    computer: None,
                 },
             },
         ),
@@ -3382,6 +3388,7 @@ fn a_name_that_arrives_from_another_machine_is_cleaned_too() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -3427,6 +3434,7 @@ fn a_document_filed_before_its_folder_arrives_stays_inside_it() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -3455,6 +3463,7 @@ fn a_folder_born_before_its_parent_arrives_ends_up_inside_it() {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -4056,6 +4065,7 @@ fn a_way_down_with_a_missing_ancestor_keeps_what_is_left_of_it() {
                 parent: Some(lost),
                 icon: None,
                 color: None,
+                computer: None,
             },
         },
     ));
@@ -4968,6 +4978,7 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
         Op::DocSaid {
             id: owned,
             d: crate::event::Said {
+                knows_computers: false,
                 key: None,
                 brainstorm: false,
                 diary: false,
@@ -5178,4 +5189,75 @@ fn someone_else_s_writing_hangs_only_under_the_same_hand() {
     assert!(!State::may_hang_under(doc(1), doc(3)));
     assert!(State::may_hang_under(doc(1), doc(4)));
     assert!(State::may_hang_under(doc(5), doc(1)));
+}
+
+fn computer_folder_event(ms: i64, by: &str, id: ulid::Ulid, computer: Option<&str>) -> Event {
+    ev(
+        ms,
+        by,
+        Op::FolderAdd {
+            id,
+            d: crate::event::FolderAdd {
+                name: "Desk".into(),
+                order: "a0".into(),
+                parent: None,
+                icon: None,
+                color: None,
+                computer: computer.map(|one| DeviceId(one.into())),
+            },
+        },
+    )
+}
+
+#[test]
+fn a_folder_names_another_computer_only_when_that_computer_said_it() {
+    let (own, other) = (ulid::Ulid::generate(), ulid::Ulid::generate());
+    let mut state = State::default();
+    state.apply(&computer_folder_event(1, "dev_a", own, Some("dev_a")));
+    state.apply(&computer_folder_event(2, "dev_a", other, Some("dev_b")));
+
+    assert_eq!(state.folders[&own].computer, Some(DeviceId("dev_a".into())));
+    assert_eq!(state.folders[&other].computer, None);
+}
+
+#[test]
+fn naming_a_folder_again_without_its_computer_keeps_the_one_it_had() {
+    let id = ulid::Ulid::generate();
+    let mut state = State::default();
+    state.apply(&computer_folder_event(1, "dev_a", id, Some("dev_a")));
+    state.apply(&computer_folder_event(2, "dev_b", id, None));
+
+    assert_eq!(state.folders[&id].computer, Some(DeviceId("dev_a".into())));
+}
+
+#[test]
+fn another_device_re_adding_an_existing_folder_never_takes_it() {
+    let (taken, plain) = (ulid::Ulid::generate(), ulid::Ulid::generate());
+    let mut state = State::default();
+    state.apply(&computer_folder_event(1, "dev_a", taken, Some("dev_a")));
+    state.apply(&computer_folder_event(2, "dev_a", plain, None));
+    state.apply(&computer_folder_event(3, "dev_b", taken, Some("dev_b")));
+    state.apply(&computer_folder_event(4, "dev_b", plain, Some("dev_b")));
+
+    assert_eq!(
+        state.folders[&taken].computer,
+        Some(DeviceId("dev_a".into()))
+    );
+    assert_eq!(state.folders[&plain].computer, None);
+}
+
+#[test]
+fn a_deleted_computer_folder_is_made_anew_with_a_fresh_id_and_its_own_computer() {
+    let id = ulid::Ulid::generate();
+    let mut state = State::default();
+    state.apply(&computer_folder_event(1, "dev_a", id, None));
+    state.apply(&ev(2, "dev_a", Op::FolderDelete { id }));
+    let anew = ulid::Ulid::generate();
+    state.apply(&computer_folder_event(3, "dev_a", anew, Some("dev_a")));
+
+    assert!(!state.folders.contains_key(&id));
+    assert_eq!(
+        state.folders[&anew].computer,
+        Some(DeviceId("dev_a".into()))
+    );
 }

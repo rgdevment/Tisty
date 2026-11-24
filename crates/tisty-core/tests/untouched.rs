@@ -32,6 +32,7 @@ fn opened_once(paths: &Paths) -> Store {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

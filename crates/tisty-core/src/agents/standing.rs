@@ -52,6 +52,16 @@ impl Target {
         self.pieces.iter().map(Admitted::file)
     }
 
+    /// Left as it is until the person chooses: no round writes over it.
+    pub fn hold(&mut self) {
+        self.held = true;
+    }
+
+    /// Its document has no words left, so the file it once wrote is no longer its own.
+    pub fn wordless(&self) -> bool {
+        alone(self).is_some() && wanted(self).is_ok_and(|bytes| blank(&bytes))
+    }
+
     pub fn held(&self) -> bool {
         self.held
     }
@@ -79,15 +89,6 @@ impl Target {
     }
 }
 
-fn rendered_pieces(target: &Target) -> Result<Vec<Vec<u8>>, (usize, Refused)> {
-    target
-        .pieces
-        .iter()
-        .enumerate()
-        .map(|(n, one)| rendered(one.body()).map_err(|why| (n, why)))
-        .collect()
-}
-
 fn separator(first: &[u8]) -> &'static [u8] {
     match first.windows(2).any(|pair| pair == b"\r\n") {
         true => b"\r\n",
@@ -95,25 +96,20 @@ fn separator(first: &[u8]) -> &'static [u8] {
     }
 }
 
-fn ended(piece: &[u8], newline: &[u8]) -> Vec<u8> {
-    let mut piece = piece.to_vec();
-    if !piece.is_empty() && !piece.ends_with(b"\n") {
-        piece.extend_from_slice(newline);
+// One document is one file: two for it are the person's to choose between, never joined.
+fn alone(target: &Target) -> Option<&Admitted> {
+    match target.pieces.as_slice() {
+        [one] => Some(one),
+        _ => None,
     }
-    piece
-}
-
-fn composed(pieces: &[Vec<u8>]) -> Vec<u8> {
-    let [one] = pieces else {
-        let newline = separator(pieces.first().map_or(&[][..], Vec::as_slice));
-        let ended: Vec<Vec<u8>> = pieces.iter().map(|one| ended(one, newline)).collect();
-        return ended.join(newline);
-    };
-    one.clone()
 }
 
 pub fn wanted(target: &Target) -> Result<Vec<u8>, (usize, Refused)> {
-    Ok(composed(&rendered_pieces(target)?))
+    match (alone(target), target.pieces.is_empty()) {
+        (Some(one), _) => rendered(one.body()).map_err(|why| (0, why)),
+        (None, true) => Ok(Vec::new()),
+        (None, false) => Err((0, Refused::Held)),
+    }
 }
 
 fn blank(bytes: &[u8]) -> bool {
@@ -251,17 +247,10 @@ fn weighed(ledger: &Ledger, target: &Target, wanted: &[u8], now: Option<Vec<u8>>
         Move::Nothing if base == Some(here.as_str()) => Standing::UpToDate,
         Move::Nothing => Standing::Agreed,
         Move::Send => Standing::Write,
-        Move::Bring => {
-            let now = now.unwrap_or_default();
-            let piece = rendered_pieces(target)
-                .ok()
-                .and_then(|pieces| attributed(&pieces, &now))
-                .map(|(piece, _)| piece);
-            Standing::Outside {
-                now: Some(now),
-                piece,
-            }
-        }
+        Move::Bring => Standing::Outside {
+            now: Some(now.unwrap_or_default()),
+            piece: alone(target).map(|_| 0),
+        },
         Move::TheyDecide => Standing::Both {
             now: now.unwrap_or_default(),
         },
@@ -353,41 +342,6 @@ fn skill_folder(target: &Target) -> Option<PathBuf> {
         .is_some_and(|it| it.to_string_lossy().eq_ignore_ascii_case(skill));
     (steps > 1 && named && folder.starts_with(&target.root) && folder != target.root)
         .then(|| folder.to_path_buf())
-}
-
-fn attributed(pieces: &[Vec<u8>], now: &[u8]) -> Option<(usize, Vec<u8>)> {
-    if let [_] = pieces {
-        return Some((0, now.to_vec()));
-    }
-    let newline = separator(pieces.first()?);
-    let ended: Vec<Vec<u8>> = pieces.iter().map(|one| ended(one, newline)).collect();
-    let mut found = None;
-    for n in 0..ended.len() {
-        let mut before = ended[..n].join(newline);
-        if n > 0 {
-            before.extend_from_slice(newline);
-        }
-        let mut after = Vec::new();
-        if n + 1 < ended.len() {
-            after.extend_from_slice(newline);
-            after.extend(ended[n + 1..].join(newline));
-        }
-        if now.len() < before.len() + after.len()
-            || !now.starts_with(&before)
-            || !now.ends_with(&after)
-        {
-            continue;
-        }
-        let middle = now[before.len()..now.len() - after.len()].to_vec();
-        if middle == ended[n] {
-            continue;
-        }
-        if found.is_some() {
-            return None;
-        }
-        found = Some((n, middle));
-    }
-    found
 }
 
 fn writable(ledger: &Ledger, target: &Target) -> Result<Vec<u8>, Refused> {
@@ -666,19 +620,16 @@ pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, R
         return Err(Refused::Linked);
     }
     let now = on_disk(&target.at)?.ok_or(Refused::Unattributed)?;
-    let body = target.pieces.get(piece).ok_or(Refused::Unattributed)?;
-    let pieces = rendered_pieces(target).map_err(|(_, why)| why)?;
-    let middle = match attributed(&pieces, &now) {
-        Some((n, middle)) if n == piece => middle,
-        _ => return Err(Refused::Unattributed),
-    };
-    if middle.len() as u64 > crate::docs::BODY_AT_MOST {
+    let one = alone(target)
+        .filter(|_| piece == 0)
+        .ok_or(Refused::Unattributed)?;
+    if now.len() as u64 > crate::docs::BODY_AT_MOST {
         return Err(Refused::TooBig);
     }
-    if let Some(told) = crate::agent::secret_in(&middle) {
+    if let Some(told) = crate::agent::secret_in(&now) {
         return Err(Refused::Secret(told.said()));
     }
-    super::brought(body.body(), &middle)
+    super::brought(one.body(), &now)
 }
 
 pub fn restore(data: &Path, ledger: &Ledger, target: &Target, n: u64) -> Result<(), Refused> {

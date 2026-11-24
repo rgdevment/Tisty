@@ -24,7 +24,7 @@ const rule: AgentDoc = {
   here: "applied",
   print: "p1",
   proposal: null,
-  twin: false,
+  rivals: [],
   places: [],
   own: { about: null, fields: [], raw: null },
 };

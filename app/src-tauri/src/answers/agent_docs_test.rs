@@ -59,27 +59,22 @@ impl Room {
 #[test]
 fn a_document_is_shown_in_every_file_it_is_written_into_with_its_place_there() {
     let room = room();
-    let global = ("global.md", rule("global", "AGENTS.md", "Be brief.\n"));
-    let own = ("codex.md", rule("codex", "AGENTS.md", "Use Rust.\n"));
-    let claude = room.placed("claude/CLAUDE.md", std::slice::from_ref(&global));
-    let codex = room.placed("codex/AGENTS.md", &[global.clone(), own]);
-    let found = placed_for(&id_of("global.md"), vec![claude, codex.clone()]);
+    let skill = (
+        "skill.md",
+        doc_of("global", Kind::Skill, "pr/SKILL.md", b"Be brief.\n").unwrap(),
+    );
+    let claude = room.placed("claude/skills/pr/SKILL.md", std::slice::from_ref(&skill));
+    let codex = room.placed("codex/skills/pr/SKILL.md", std::slice::from_ref(&skill));
+    let found = placed_for(&id_of("skill.md"), vec![claude, codex.clone()]);
     assert_eq!(found.len(), 2);
     assert_eq!(found[1], (codex.target, 0));
-    assert_eq!(
-        placed_for(&id_of("codex.md"), vec![codex_of(&room)])[0].1,
-        1
-    );
     assert!(placed_for(&id_of("elsewhere.md"), vec![codex_of(&room)]).is_empty());
 }
 
 fn codex_of(room: &Room) -> Placed {
     room.placed(
         "codex/AGENTS.md",
-        &[
-            ("global.md", rule("global", "AGENTS.md", "Be brief.\n")),
-            ("codex.md", rule("codex", "AGENTS.md", "Use Rust.\n")),
-        ],
+        &[("codex.md", rule("codex", "AGENTS.md", "Use Rust.\n"))],
     )
 }
 
@@ -90,18 +85,11 @@ fn the_card_says_in_sync_then_changed_outside_and_whose_change_it_is() {
     room.written(std::slice::from_ref(&codex));
     assert_eq!(room.place(&codex, 0).said, Said::Synced);
     assert!(room.place(&codex, 0).changed.is_some());
-    std::fs::write(&codex.target.at, "Be brief.\n\nUse Go.\n").unwrap();
-    assert_eq!(
-        room.place(&codex, 1).said,
-        Said::Outside {
-            mine: true,
-            gone: false
-        }
-    );
+    std::fs::write(&codex.target.at, "Use Go.\n").unwrap();
     assert_eq!(
         room.place(&codex, 0).said,
         Said::Outside {
-            mine: false,
+            mine: true,
             gone: false
         }
     );
@@ -120,7 +108,7 @@ fn overwriting_leaves_a_backup_the_card_counts() {
     room.ledger = ledger;
     let shown = room.place(&codex, 0);
     assert_eq!(shown.said, Said::Synced);
-    assert_eq!(shown.shared, 2);
+    assert_eq!(shown.shared, 1);
     assert_eq!(
         shown.kept,
         vec![Backup {
@@ -256,13 +244,12 @@ fn a_computer_that_has_not_said_yes_never_shows_the_file() {
 }
 
 #[test]
-fn the_card_weighs_the_whole_file_the_assistant_reads_not_one_piece_of_it() {
+fn the_card_weighs_the_whole_file_the_assistant_reads() {
     let mut room = room();
     let codex = codex_of(&room);
     assert_eq!(room.place(&codex, 0).bytes, None);
     room.written(std::slice::from_ref(&codex));
     let whole = std::fs::metadata(&codex.target.at).unwrap().len();
-    assert!(whole > "Be brief.\n".len() as u64);
+    assert_eq!(whole, "Use Rust.\n".len() as u64);
     assert_eq!(room.place(&codex, 0).bytes, Some(whole));
-    assert_eq!(room.place(&codex, 1).bytes, Some(whole));
 }

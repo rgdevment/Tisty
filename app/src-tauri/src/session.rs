@@ -462,6 +462,7 @@ impl Session {
             .docs
             .values()
             .find(|one| one.file == file)
+            .filter(|one| one.agreed_knowing || !marked(body))
             .and_then(|one| one.agreed.as_deref());
         match over.is_some() && approved == over {
             true => self.retell_written(file, body, hand),
@@ -1159,6 +1160,10 @@ impl log::Log for Relayed {
     }
 
     fn flush(&self) {}
+}
+
+fn marked(body: &str) -> bool {
+    tisty_core::agents::Card::of(body).is_some_and(|card| card.computer.is_some())
 }
 
 #[cfg(test)]

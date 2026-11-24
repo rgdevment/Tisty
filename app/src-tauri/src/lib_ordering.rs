@@ -26,6 +26,7 @@ fn folder(session: &mut Session, name: &str, order: &str) -> tisty_core::model::
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();
@@ -130,6 +131,7 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
                     by: None,
                     print: None,
                     agreed: false,
+                    knows_computers: false,
                 }),
                 folder: None,
                 page_of: None,
@@ -181,6 +183,7 @@ fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
                     by: None,
                     print: None,
                     agreed: false,
+                    knows_computers: false,
                 }),
                 folder: None,
                 page_of: None,

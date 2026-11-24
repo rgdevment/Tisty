@@ -195,3 +195,33 @@ fn a_value_is_read_up_to_the_characters_the_contract_gives_it() {
     );
     assert_eq!(title(&said(at_most + 1)), None);
 }
+
+#[test]
+fn the_flag_naming_a_computer_reads_only_when_it_is_a_plain_device_id() {
+    assert_eq!(
+        front::agent_computer("on-dev_ab12cd34"),
+        Some("dev_ab12cd34")
+    );
+    for flag in [
+        "on-",
+        "on-Dev_AB",
+        "on-dev ab",
+        "on-dev/ab",
+        "dev_ab12cd34",
+        "crlf",
+    ] {
+        assert_eq!(front::agent_computer(flag), None, "{flag}");
+    }
+    assert_eq!(
+        front::agent_computer(&format!("on-{}", "a".repeat(49))),
+        None
+    );
+}
+
+#[test]
+fn a_card_marked_for_a_computer_is_still_a_card() {
+    let marked = "---\nagent: [claude/rule/CLAUDE.md, crlf, on-dev_ab12cd34]\n---\nx\n";
+    assert!(front::carded(marked));
+    let odd = "---\nagent: [claude/rule/CLAUDE.md, on-Dev]\n---\nx\n";
+    assert!(!front::carded(odd));
+}

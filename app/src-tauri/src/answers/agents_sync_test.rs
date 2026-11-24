@@ -83,7 +83,10 @@ impl Room {
             .state
             .folders
             .values()
-            .map(|one| one.name.clone())
+            .map(|one| match one.computer {
+                Some(_) => "<computer>".to_string(),
+                None => one.name.clone(),
+            })
             .collect();
         all.sort();
         all
@@ -132,7 +135,14 @@ fn bringing_files_only_the_chosen_ones_and_the_next_round_writes_nothing() {
     assert!(brought.refused.is_empty(), "{:?}", brought.refused);
     assert_eq!(
         room.folders(),
-        ["AGENTS", "Claude", "Codex", "Copilot", "Global"],
+        [
+            "<computer>",
+            "AGENTS",
+            "Claude",
+            "Codex",
+            "Copilot",
+            "Global"
+        ],
         "every assistant found has its folder, brought from or not"
     );
     let root = root_of(&room.session.state).unwrap();
@@ -175,7 +185,14 @@ fn saying_yes_with_nothing_found_still_makes_agents_and_asks_no_more() {
     let mut room = room();
     let brought = room.bring(&[]);
     assert_eq!(brought.made, 0);
-    let every = ["AGENTS", "Claude", "Codex", "Copilot", "Global"];
+    let every = [
+        "<computer>",
+        "AGENTS",
+        "Claude",
+        "Codex",
+        "Copilot",
+        "Global",
+    ];
     assert_eq!(room.folders(), every);
     let look = room.look();
     assert!(look.consented);
@@ -328,11 +345,11 @@ pub(crate) fn moved_out(room: &mut Room, file: &str) {
     room.session.commit_all(ops).unwrap();
 }
 
-fn loose(room: &Room) -> Vec<String> {
+pub(crate) fn loose(room: &Room) -> Vec<String> {
     room.look().loose.into_iter().map(|one| one.at).collect()
 }
 
-fn answered(room: &mut Room, name: &str, away: bool) -> Rounded {
+pub(crate) fn answered(room: &mut Room, name: &str, away: bool) -> Rounded {
     let at = room.at(name);
     loosened(&room.session, &room.homes, HERE, &at, away).unwrap()
 }
@@ -564,8 +581,12 @@ fn the_comparison_keeps_the_order_of_both_sides() {
     );
 }
 
-pub(crate) fn global_doc(room: &mut Room, said: &str) {
-    doc_here(room, agents::GLOBAL, agents::Kind::Rule, "style.md", said);
+pub(crate) fn style_rule(room: &mut Room, said: &str) -> String {
+    doc_here(room, "claude", agents::Kind::Rule, "rules/style.md", said)
+}
+
+pub(crate) fn gemini_rule(room: &mut Room, said: &str) -> String {
+    doc_here(room, "gemini", agents::Kind::Rule, "tisty-rules.md", said)
 }
 
 pub(crate) fn doc_here(
@@ -595,38 +616,11 @@ pub(crate) fn doc_here(
 }
 
 #[test]
-fn a_file_made_only_of_a_global_rule_never_rewrites_that_rule_from_one_assistant() {
-    let mut room = room();
-    room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Codex rules.\nSpanish.\n");
-    std::fs::remove_dir_all(agents::folder(room.session.paths.data())).unwrap();
-    let brought = room.bring(&[]);
-    let both = brought
-        .round
-        .both
-        .iter()
-        .find(|one| one.at.ends_with("AGENTS.md"))
-        .unwrap_or_else(|| panic!("{:?}", brought.round));
-    assert!(both.composed, "a Global rule belongs to every assistant");
-    let at = room.at(".codex/AGENTS.md");
-    let refusal = kept_side(&mut room.session, &room.homes, HERE, &at, false).unwrap_err();
-    assert_eq!(
-        refusal.code, "agentUnattributed",
-        "said in the person's language, not as raw text"
-    );
-    let global = bodies(&room.session)
-        .into_iter()
-        .find(|(_, body)| body.contains("global/rule"))
-        .unwrap();
-    assert!(global.1.contains("Spanish."), "{}", global.1);
-}
-
-#[test]
 fn tistys_own_line_in_geminis_file_is_not_taken_for_a_change_outside() {
     let mut room = room();
     put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
     room.bring(&[".gemini/GEMINI.md"]);
-    global_doc(&mut room, "Spanish.\n");
+    gemini_rule(&mut room, "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(
@@ -696,12 +690,13 @@ fn bringing_a_file_in_rewrites_the_document_and_a_second_bring_is_refused() {
     assert_eq!(bring(&mut room.session).unwrap_err().code, "agentBringSame");
 }
 
-fn from_another_computer(room: &mut Room, kind: agents::Kind, name: &str, said: &str) -> String {
-    let level = match kind {
-        agents::Kind::Memory => "claude",
-        _ => agents::GLOBAL,
-    };
-    from_another_computer_for(room, level, kind, name, said)
+pub(crate) fn from_another_computer(
+    room: &mut Room,
+    kind: agents::Kind,
+    name: &str,
+    said: &str,
+) -> String {
+    from_another_computer_for(room, "claude", kind, name, said)
 }
 
 pub(crate) fn from_another_computer_for(
@@ -736,7 +731,12 @@ pub(crate) fn from_another_computer_for(
 fn a_rule_from_another_computer_waits_until_this_one_takes_it() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    let file = from_another_computer(&mut room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let file = from_another_computer(
+        &mut room,
+        agents::Kind::Rule,
+        "rules/style.md",
+        "Spanish.\n",
+    );
     let data = room.session.paths.data().to_path_buf();
     let mut ledger = Ledger::open(&data, HERE);
 
@@ -755,17 +755,17 @@ fn a_rule_from_another_computer_waits_until_this_one_takes_it() {
         "a rule for an assistant this computer lacks waits for nothing here"
     );
 
+    assert!(!Path::new(&room.at(".claude/rules/style.md")).exists());
+
     ledger.take(&file, true);
     ledger.keep(&data).unwrap();
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish.\n\n# Claude\nTests first.\n"
-    );
+    assert_eq!(room.read(".claude/rules/style.md"), "Spanish.\n");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert_eq!(room.look().waiting, 0);
     assert!(
         !std::path::Path::new(&room.at(".copilot/instructions")).exists(),
-        "a Global rule makes no folder an assistant does not read"
+        "a rule makes no folder an assistant does not read"
     );
 }
 
@@ -842,17 +842,20 @@ fn applying_here_and_not_here_are_kept_for_this_computer_and_rounded_at_once() {
     use crate::answers::agent_docs::take_here;
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    let file = from_another_computer(&mut room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let file = from_another_computer(
+        &mut room,
+        agents::Kind::Rule,
+        "rules/style.md",
+        "Spanish.\n",
+    );
 
     take_here(&room.session, Some(&room.homes), HERE, &file, false).unwrap();
-    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert!(!Path::new(&room.at(".claude/rules/style.md")).exists());
     assert!(Ledger::open(room.session.paths.data(), HERE).left(&file));
 
     take_here(&room.session, Some(&room.homes), HERE, &file, true).unwrap();
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish.\n\n# Claude\nTests first.\n"
-    );
+    assert_eq!(room.read(".claude/rules/style.md"), "Spanish.\n");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
 
 #[test]
@@ -919,22 +922,21 @@ fn a_held_file_names_on_the_card_the_document_that_holds_it() {
     use crate::answers::agent_docs::card_of;
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.");
+    let holder = file_brought_from(&room, "CLAUDE.md");
+    let other = doc_here(
+        &mut room,
+        "claude",
+        agents::Kind::Rule,
+        "CLAUDE.md",
+        "Spanish.",
+    );
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    let all = bodies(&room.session);
-    let (global, body) = all
-        .iter()
-        .find(|(_, one)| one.contains("global/rule"))
-        .unwrap();
-    let claude = all
-        .iter()
-        .find(|(_, one)| one.contains("claude/rule"))
-        .unwrap();
-    let around = body.replace("Spanish.", "English.");
-    tisty_core::docs::write(&room.session.paths.docs(), global, &around).unwrap();
+    let body = tisty_core::docs::read(&room.session.paths.docs(), &holder).unwrap();
+    let around = body.replace("Tests first.", "Tests later.");
+    tisty_core::docs::write(&room.session.paths.docs(), &holder, &around).unwrap();
 
-    let card = card_of(&room.session, Some(&room.homes), HERE, &claude.0).unwrap();
+    let card = card_of(&room.session, Some(&room.homes), HERE, &other).unwrap();
     let card = serde_json::to_value(card.unwrap()).unwrap();
     let place = card["places"]
         .as_array()
@@ -943,17 +945,21 @@ fn a_held_file_names_on_the_card_the_document_that_holds_it() {
         .find(|one| one["at"].as_str().unwrap().ends_with("CLAUDE.md"))
         .unwrap();
     assert_eq!(place["said"]["state"], "held");
-    assert_eq!(place["heldBy"][0], "global · style.md");
-    assert_eq!(card["here"], "applied");
-    let global_card = card_of(&room.session, Some(&room.homes), HERE, global).unwrap();
+    assert!(place["heldBy"][0].as_str().unwrap().contains("CLAUDE.md"));
+    let held = card_of(&room.session, Some(&room.homes), HERE, &holder).unwrap();
     assert_eq!(
-        serde_json::to_value(global_card.unwrap()).unwrap()["here"],
+        serde_json::to_value(held.unwrap()).unwrap()["here"],
         "notAgreed"
     );
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
 
 fn made_in_the_window(room: &mut Room) -> String {
     let root = root_of(&room.session.state).unwrap();
+    made_in(room, root)
+}
+
+pub(crate) fn made_in(room: &mut Room, folder: tisty_core::model::FolderId) -> String {
     let device = room.session.store.device().clone();
     let made = tisty_core::docs::create(&room.session.paths.docs(), &device, "").unwrap();
     room.session
@@ -961,7 +967,7 @@ fn made_in_the_window(room: &mut Room) -> String {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
                 file: made.id.clone(),
-                folder: Some(root),
+                folder: Some(folder),
                 order: "z".to_string(),
                 said: Some(tisty_core::event::Said::of("").agreed()),
                 ..Default::default()
@@ -978,9 +984,9 @@ fn a_rule_the_person_makes_in_the_window_is_written_with_no_extra_click() {
     room.bring(&[".claude/CLAUDE.md"]);
     let file = made_in_the_window(&mut room);
     let body = agents::doc_of(
-        agents::GLOBAL,
+        "claude",
         agents::Kind::Rule,
-        "style.md",
+        "rules/style.md",
         b"Spanish.\n",
     )
     .unwrap();
@@ -988,10 +994,8 @@ fn a_rule_the_person_makes_in_the_window_is_written_with_no_extra_click() {
     written_by_hand(&mut room.session, file, body, None, None).unwrap();
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish.\n\n# Claude\nTests first.\n"
-    );
+    assert_eq!(room.read(".claude/rules/style.md"), "Spanish.\n");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
 
 #[test]
@@ -1085,7 +1089,7 @@ fn bringing_the_file_in_never_takes_away_words_written_after_the_card_was_drawn(
 }
 
 #[test]
-fn what_the_person_let_in_here_stays_applied_after_another_computer_approves_a_change() {
+fn words_another_computer_approved_for_a_document_of_this_one_wait_each_time() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
@@ -1116,8 +1120,24 @@ fn what_the_person_let_in_here_stays_applied_after_another_computer_approves_a_c
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(
         room.read(".claude/CLAUDE.md"),
+        "# Claude\nTests first.\n",
+        "words another computer approved wait here each time"
+    );
+    let card = crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, &file);
+    assert_eq!(
+        serde_json::to_value(card.unwrap().unwrap()).unwrap()["here"],
+        "waiting"
+    );
+    assert_eq!(room.look().waiting, 1);
+
+    crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, &file, true)
+        .unwrap();
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
         "# Claude\nTests from the laptop.\n"
     );
+    assert_eq!(room.kept(".claude/CLAUDE.md"), 1);
+    assert_eq!(room.look().waiting, 0);
 }
 
 #[test]
@@ -1141,7 +1161,7 @@ fn a_document_an_import_left_here_unapproved_waits_and_is_never_taken() {
     assert!(!Ledger::open(room.session.paths.data(), HERE).took(&file));
 }
 
-fn proposed(room: &mut Room, file: &str, body: &str) -> String {
+pub(crate) fn proposed(room: &mut Room, file: &str, body: &str) -> String {
     let id = room
         .session
         .state
@@ -1261,14 +1281,10 @@ fn an_old_proposal_never_takes_back_the_agent_line_the_person_changed_since() {
     use crate::answers::agent_proposals::approve;
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(
-        &mut room,
-        "Spanish.
-",
-    );
+    style_rule(&mut room, "Spanish.\n");
     let (file, body) = bodies(&room.session)
         .into_iter()
-        .find(|(_, body)| body.contains("global/rule/style.md"))
+        .find(|(_, body)| body.contains("claude/rule/rules/style.md"))
         .unwrap();
     let print = proposed(
         &mut room,
@@ -1279,15 +1295,11 @@ fn an_old_proposal_never_takes_back_the_agent_line_the_person_changed_since() {
     // Without its agent: line the document draws no card, so only approving is left to refuse.
     for (typed, drawn) in [
         (
-            body.replace("global/rule/style.md", "claude/rule/style.md"),
+            body.replace("claude/rule/rules/style.md", "claude/rule/rules/other.md"),
             true,
         ),
         (
-            body.replace(
-                "agent: global/rule/style.md
-",
-                "",
-            ),
+            body.replace("agent: claude/rule/rules/style.md\n", ""),
             false,
         ),
     ] {
@@ -1449,18 +1461,13 @@ fn a_proposal_another_process_wrote_survives_a_window_write_made_before_it_read_
 }
 
 #[test]
-fn a_main_file_never_brought_can_be_brought_later_and_takes_the_global_rule() {
+fn a_main_file_never_brought_can_be_brought_later_and_is_left_as_it_stands() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
+    style_rule(&mut room, "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     let told = round_now(&room.session, &room.homes, &mut ledger);
-    assert!(
-        told.both
-            .iter()
-            .any(|one| one.at == room.at(".codex/AGENTS.md")),
-        "{told:?}"
-    );
+    assert!(told.both.is_empty() && told.loose.is_empty(), "{told:?}");
     let codex = room
         .look()
         .assistants
@@ -1478,8 +1485,8 @@ fn a_main_file_never_brought_can_be_brought_later_and_takes_the_global_rule() {
             .iter()
             .all(|one| !one.at.ends_with("AGENTS.md"))
     );
-    assert_eq!(room.read(".codex/AGENTS.md"), "Spanish.\n\nCodex rules.\n");
-    assert_eq!(room.kept(".codex/AGENTS.md"), 1);
+    assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
+    assert_eq!(room.kept(".codex/AGENTS.md"), 0);
     assert!(room.look().loose.is_empty());
 }
 
@@ -1488,7 +1495,13 @@ fn a_file_tisty_writes_is_shown_as_in_agents_and_never_brought_back_in() {
     let mut room = room();
     std::fs::remove_file(room.at(".copilot/copilot-instructions.md")).unwrap();
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
+    doc_here(
+        &mut room,
+        "copilot",
+        agents::Kind::Rule,
+        "copilot-instructions.md",
+        "Spanish.\n",
+    );
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.read(".copilot/copilot-instructions.md"), "Spanish.\n");
@@ -1508,13 +1521,12 @@ fn a_file_tisty_writes_is_shown_as_in_agents_and_never_brought_back_in() {
 }
 
 #[test]
-fn a_codex_override_that_appears_later_can_be_brought_and_takes_the_global_rule() {
+fn a_codex_override_that_appears_later_can_be_brought_and_leaves_the_main_file_alone() {
     let mut room = room();
     room.bring(&[".codex/AGENTS.md"]);
-    global_doc(&mut room, "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(room.read(".codex/AGENTS.md"), "Spanish.\n\nCodex rules.\n");
+    assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
 
     put(
         Path::new(&room.at(".codex/AGENTS.override.md")),
@@ -1522,21 +1534,13 @@ fn a_codex_override_that_appears_later_can_be_brought_and_takes_the_global_rule(
     );
     let told = round_now(&room.session, &room.homes, &mut ledger);
     assert!(
-        told.both
-            .iter()
-            .any(|one| one.at == room.at(".codex/AGENTS.override.md")),
-        "{told:?}"
-    );
-    assert!(
         told.loose.is_empty(),
-        "AGENTS.md still holds the person's rule"
+        "AGENTS.md still holds the person's rule: {told:?}"
     );
 
-    room.bring(&[".codex/AGENTS.override.md"]);
-    assert_eq!(
-        room.read(".codex/AGENTS.override.md"),
-        "Spanish.\n\nOverride.\n"
-    );
+    let brought = room.bring(&[".codex/AGENTS.override.md"]);
+    assert_eq!(brought.made, 1);
+    assert_eq!(room.read(".codex/AGENTS.override.md"), "Override.\n");
     assert_eq!(room.read(".codex/AGENTS.md"), "Codex rules.\n");
     let look = room.look();
     assert!(
@@ -1545,28 +1549,11 @@ fn a_codex_override_that_appears_later_can_be_brought_and_takes_the_global_rule(
     );
 }
 
-#[test]
-fn a_global_rule_moving_to_codexs_override_leaves_no_file_to_take_away() {
-    let mut room = room();
-    std::fs::remove_file(room.at(".codex/AGENTS.md")).unwrap();
-    room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
-    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
-    round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(room.read(".codex/AGENTS.md"), "Spanish.\n");
-    put(
-        Path::new(&room.at(".codex/AGENTS.override.md")),
-        "Override.\n",
-    );
-    let told = round_now(&room.session, &room.homes, &mut ledger);
-    assert!(told.loose.is_empty(), "{told:?}");
-}
-
 fn gemini_room() -> (Room, Ledger) {
     let mut room = room();
     put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
+    gemini_rule(&mut room, "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(
@@ -1580,7 +1567,7 @@ fn gemini_room() -> (Room, Ledger) {
 fn geminis_line_taken_out_by_the_person_is_never_put_back_alone() {
     let (mut room, mut ledger) = gemini_room();
     put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
-    let global = file_brought_from(&room, "style.md");
+    let global = file_brought_from(&room, "tisty-rules.md");
     let body = bodies(&room.session)
         .into_iter()
         .find(|(file, _)| *file == global)
@@ -1594,10 +1581,7 @@ fn geminis_line_taken_out_by_the_person_is_never_put_back_alone() {
     assert!(told.told.iter().any(|one| one.standing == "unled"));
     assert_eq!(room.read(".gemini/GEMINI.md"), "- remembered\n");
     assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n", "paused");
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish always.\n\n# Claude\nTests first.\n"
-    );
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     let look = room.look();
     assert_eq!(look.unled, ["gemini"]);
     assert!(look.asks);
@@ -1640,7 +1624,7 @@ fn a_ledger_from_an_earlier_build_marks_geminis_line_without_writing() {
 #[test]
 fn taking_away_geminis_file_of_rules_takes_its_line_too() {
     let (mut room, mut ledger) = gemini_room();
-    let global = file_brought_from(&room, "style.md");
+    let global = file_brought_from(&room, "tisty-rules.md");
     room.session
         .drop_doc(&doc_of_file(&room, &global).to_string())
         .unwrap();
@@ -1770,7 +1754,7 @@ fn another_computer_has_not_said_yes_for_this_one() {
     assert_eq!(there.held, 1, "brought there, so brought here too");
 }
 
-fn snapshot(at: &Path, into: &mut BTreeMap<PathBuf, Vec<u8>>) {
+pub(crate) fn snapshot(at: &Path, into: &mut BTreeMap<PathBuf, Vec<u8>>) {
     for one in std::fs::read_dir(at).unwrap().flatten() {
         let path = one.path();
         if path.is_dir() {
@@ -1781,7 +1765,7 @@ fn snapshot(at: &Path, into: &mut BTreeMap<PathBuf, Vec<u8>>) {
     }
 }
 
-fn every_agent_file(room: &Room) -> BTreeMap<PathBuf, Vec<u8>> {
+pub(crate) fn every_agent_file(room: &Room) -> BTreeMap<PathBuf, Vec<u8>> {
     let mut all = BTreeMap::new();
     snapshot(&room.home, &mut all);
     all
@@ -1804,8 +1788,8 @@ fn bringing_alone_writes_no_agent_file_and_leaves_nothing_that_writes_later() {
     assert_eq!(brought.made, 2);
     assert!(!brought.syncs);
     assert!(brought.round.both.is_empty() && brought.round.loose.is_empty());
-    // A Global rule is what would reach every assistant at once if the folder synced.
-    global_doc(&mut room, "Spanish.\n");
+    // Gemini's rules file is what would be written, with its line, if the folder synced.
+    gemini_rule(&mut room, "Spanish.\n");
 
     let data = room.session.paths.data().to_path_buf();
     let mut ledger = Ledger::open(&data, HERE);
@@ -1934,7 +1918,7 @@ fn a_document_put_away_does_not_count_as_brought() {
 // A Global rule from the laptop, seen once by a round here, so this computer is asked about it.
 fn waiting_from_the_laptop(room: &mut Room) -> (String, String) {
     room.bring(&[".claude/CLAUDE.md"]);
-    let file = from_another_computer(room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let file = from_another_computer(room, agents::Kind::Rule, "rules/style.md", "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
     assert_eq!(room.look().waiting, 1);
@@ -1945,7 +1929,7 @@ fn waiting_from_the_laptop(room: &mut Room) -> (String, String) {
 fn still_waits_then_applies(room: &mut Room, file: &str, said: &str) {
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert!(!Path::new(&room.at(".claude/rules/style.md")).exists());
     assert_eq!(room.look().waiting, 1, "the card still offers «apply here»");
     let card = crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, file)
         .unwrap()
@@ -1957,10 +1941,8 @@ fn still_waits_then_applies(room: &mut Room, file: &str, said: &str) {
 
     crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, file, true)
         .unwrap();
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        format!("{said}\n# Claude\nTests first.\n")
-    );
+    assert_eq!(room.read(".claude/rules/style.md"), said);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 }
 
 #[test]
@@ -2014,7 +1996,12 @@ fn restoring_a_version_on_a_second_computer_never_applies_it_there() {
 fn a_document_is_marked_to_wait_before_its_words_are_approved_even_with_no_round_yet() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    let file = from_another_computer(&mut room, agents::Kind::Rule, "style.md", "Spanish.\n");
+    let file = from_another_computer(
+        &mut room,
+        agents::Kind::Rule,
+        "rules/style.md",
+        "Spanish.\n",
+    );
     let data = room.session.paths.data().to_path_buf();
 
     waits_marked(&room.session, "another-computer", &file);
@@ -2056,6 +2043,7 @@ fn laptops_own_agents(room: &mut Room) -> String {
             parent,
             icon: parent.is_none().then(|| places::ICON.to_string()),
             color: None,
+            computer: None,
         },
     };
     tisty_core::Store::open(room.session.paths.store(), laptop)
@@ -2122,9 +2110,17 @@ fn two_agents_join_without_touching_a_file_offering_one_loose_or_losing_an_appro
         Some(Seen::WaitingHere),
         "the laptop's twin of CLAUDE.md waits here like any rule from elsewhere"
     );
-    let mut names: Vec<String> = room.folders();
-    names.dedup();
-    assert_eq!(names, room.folders(), "no folder is there twice");
+    let mut places: Vec<(Option<tisty_core::model::FolderId>, String)> = room
+        .session
+        .state
+        .folders
+        .values()
+        .map(|one| (one.parent, one.name.clone()))
+        .collect();
+    let all = places.len();
+    places.sort();
+    places.dedup();
+    assert_eq!(places.len(), all, "no folder is there twice in one place");
 }
 
 #[test]
@@ -2215,7 +2211,7 @@ fn geminis_memory_taken_out_never_reads_as_a_line_the_person_took_away() {
     room.bring(&[".claude/CLAUDE.md", ".gemini/GEMINI.md"]);
     let memory = file_brought_from(&room, "GEMINI.md");
     moved_out(&mut room, &memory);
-    global_doc(&mut room, "Spanish.\n");
+    gemini_rule(&mut room, "Spanish.\n");
 
     let round = round_here(&mut room.session, &room.homes, HERE).unwrap();
 
@@ -2229,7 +2225,7 @@ fn geminis_memory_taken_out_never_reads_as_a_line_the_person_took_away() {
 fn a_file_brought_alone_is_taken_as_it_stands_once_the_folder_syncs() {
     let mut room = room();
     room.bring_as(&[".claude/CLAUDE.md"], Some(false));
-    global_doc(&mut room, "Spanish.\n");
+    style_rule(&mut room, "Spanish.\n");
 
     let round = turned(&room.session, &room.homes, HERE, None, true).unwrap();
 
@@ -2237,11 +2233,9 @@ fn a_file_brought_alone_is_taken_as_it_stands_once_the_folder_syncs() {
         round.both.iter().all(|one| one.assistant != "claude"),
         "the file brought stands for itself: {round:?}"
     );
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish.\n\n# Claude\nTests first.\n"
-    );
-    assert_eq!(room.kept(".claude/CLAUDE.md"), 1);
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.kept(".claude/CLAUDE.md"), 0);
+    assert_eq!(room.read(".claude/rules/style.md"), "Spanish.\n");
 }
 
 #[test]
@@ -2313,13 +2307,21 @@ fn words_an_agent_on_another_computer_wrote_are_named_as_an_agents_before_approv
     assert_eq!(shown["agreeing"]["hand"], "agent");
 }
 
-fn sub_of(room: &Room, name: &str) -> tisty_core::model::FolderId {
+pub(crate) fn sub_of(room: &Room, name: &str) -> tisty_core::model::FolderId {
     let root = root_of(&room.session.state).unwrap();
-    room.session
-        .state
+    let state = &room.session.state;
+    let own = state
         .folders
         .values()
-        .find(|one| one.parent == Some(root) && one.name == name)
+        .find(|one| {
+            one.parent == Some(root) && one.computer.as_ref() == Some(room.session.store.device())
+        })
+        .map(|one| one.id);
+    let parent = if name == "Global" { Some(root) } else { own };
+    state
+        .folders
+        .values()
+        .find(|one| one.parent == parent && one.name == name)
         .unwrap_or_else(|| panic!("no folder {name}"))
         .id
 }
@@ -2342,7 +2344,9 @@ fn every_assistant_found_has_its_folder_and_a_rule_written_there_reaches_it() {
         Card::of(&seed).unwrap().address(),
         "gemini/rule/tisty-rules.md"
     );
-    let file = made_in_the_window(&mut room);
+    let file = crate::answers::papers::doc_made(&mut room.session, Some(gemini), None, true)
+        .unwrap()
+        .id;
     crate::answers::papers::written_by_hand(
         &mut room.session,
         file,
@@ -2352,32 +2356,61 @@ fn every_assistant_found_has_its_folder_and_a_rule_written_there_reaches_it() {
     )
     .unwrap();
     round_here(&mut room.session, &room.homes, HERE).unwrap();
-    assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+    assert_eq!(
+        room.read(".gemini/tisty-rules.md"),
+        "Spanish.
+"
+    );
+}
+
+pub(crate) fn root_folder(room: &mut Room, name: &str) -> tisty_core::model::FolderId {
+    let root = root_of(&room.session.state).unwrap();
+    let id = ulid::Ulid::generate();
+    room.session
+        .commit(Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.to_string(),
+                order: "z".to_string(),
+                parent: Some(root),
+                icon: None,
+                color: None,
+                computer: None,
+            },
+        })
+        .unwrap();
+    id
 }
 
 #[test]
-fn a_new_document_starts_as_a_rule_of_the_folder_it_is_made_in() {
+fn a_new_document_starts_as_a_rule_of_the_computer_folder_it_is_made_in() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    let address = |room: &Room, name: &str| {
-        Card::of(&seeded(&room.session, Some(sub_of(room, name)))).map(|card| card.address())
-    };
+    let me = room.session.store.device().clone();
+    let card_in = |room: &Room, folder| Card::of(&seeded(&room.session, Some(folder)));
+    let own = |room: &Room, name: &str| card_in(room, sub_of(room, name)).unwrap();
+    for (name, address) in [
+        ("Claude", "claude/rule/rules/rule.md"),
+        ("Codex", "codex/rule/AGENTS.md"),
+        ("Copilot", "copilot/rule/copilot-instructions.md"),
+    ] {
+        let card = own(&room, name);
+        assert_eq!(card.address(), address);
+        assert_eq!(card.computer.as_ref(), Some(&me), "{name} of this computer");
+    }
     assert_eq!(
-        address(&room, "Global").as_deref(),
-        Some("global/rule/rule.md")
+        card_in(&room, sub_of(&room, "Global")),
+        None,
+        "Global rules are written nowhere"
     );
+    let root_claude = root_folder(&mut room, "Claude");
+    let for_all = card_in(&room, root_claude).unwrap();
     assert_eq!(
-        address(&room, "Claude").as_deref(),
-        Some("claude/rule/rules/rule.md")
+        for_all.address(),
+        "claude/rule/CLAUDE.md",
+        "the root counts only what is at the root"
     );
-    assert_eq!(
-        address(&room, "Codex").as_deref(),
-        Some("codex/rule/AGENTS.md")
-    );
-    assert_eq!(
-        address(&room, "Copilot").as_deref(),
-        Some("copilot/rule/copilot-instructions.md")
-    );
+    assert_eq!(for_all.computer, None, "a rule of every computer");
     assert_eq!(seeded(&room.session, None), "");
     let root = root_of(&room.session.state).unwrap();
     assert_eq!(seeded(&room.session, Some(root)), "");
@@ -2457,35 +2490,78 @@ fn a_new_global_rule_still_empty_touches_no_agent_file() {
     assert_eq!(room.kept(".claude/CLAUDE.md"), backups);
 }
 
-#[test]
-fn a_global_rule_emptied_leaves_every_file_and_asks_about_one_it_alone_wrote() {
-    let mut room = room();
+fn emptied_gemini_rule(room: &mut Room) -> (String, String) {
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
-    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
-    round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(
-        room.read(".claude/CLAUDE.md"),
-        "Spanish.\n\n# Claude\nTests first.\n"
-    );
-    let gemini = room.home.join(".gemini");
-    std::fs::create_dir_all(&gemini).unwrap();
+    std::fs::create_dir_all(room.home.join(".gemini")).unwrap();
+    put(Path::new(&room.at(".gemini/GEMINI.md")), "- remembered\n");
+    gemini_rule(room, "Spanish.\n");
     round_here(&mut room.session, &room.homes, HERE).unwrap();
     assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
 
     let (file, body) = bodies(&room.session)
         .into_iter()
         .find(|(_, body)| body.contains("Spanish."))
         .unwrap();
     let emptied = body.replace("Spanish.\n", "");
-    crate::answers::papers::written_by_hand(&mut room.session, file, emptied, None, None).unwrap();
+    crate::answers::papers::written_by_hand(
+        &mut room.session,
+        file.clone(),
+        emptied.clone(),
+        None,
+        None,
+    )
+    .unwrap();
+    (file, emptied)
+}
+
+#[test]
+fn a_rule_emptied_asks_about_the_file_it_wrote_and_never_touches_another() {
+    let mut room = room();
+    let (file, emptied) = emptied_gemini_rule(&mut room);
+    let rules = room.at(".gemini/tisty-rules.md");
     round_here(&mut room.session, &room.homes, HERE).unwrap();
 
     assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
     assert!(
-        loose(&room).contains(&room.at(".gemini/tisty-rules.md")),
-        "the file the rule alone made is asked about, never left saying the old words in silence"
+        loose(&room).contains(&rules),
+        "asked, never left in silence"
     );
+    assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
+
+    let after = loosened(&room.session, &room.homes, HERE, &rules, true).unwrap();
+    assert!(after.loose.is_empty());
+    assert!(!Path::new(&rules).exists());
+    assert_eq!(room.kept(".gemini/tisty-rules.md"), 1);
+    assert_eq!(room.read(".gemini/GEMINI.md"), "- remembered\n");
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert!(
+        !Path::new(&rules).exists(),
+        "an empty rule is not written again"
+    );
+    assert!(room.look().loose.is_empty());
+
+    let words = emptied.trim_end().to_string() + "\nBack again.\n";
+    crate::answers::papers::written_by_hand(&mut room.session, file, words, None, None).unwrap();
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(room.read(".gemini/tisty-rules.md"), "Back again.\n");
+}
+
+#[test]
+fn a_new_empty_rule_never_written_offers_nothing() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let before = every_agent_file(&room);
+    let claude = sub_of(&room, "Claude");
+    let seed = seeded(&room.session, Some(claude));
+    let file = made_in(&mut room, claude);
+    crate::answers::papers::written_by_hand(&mut room.session, file, seed, None, None).unwrap();
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert!(loose(&room).is_empty());
+    assert_eq!(every_agent_file(&room), before);
 }
 
 #[test]
@@ -2525,41 +2601,43 @@ fn a_new_document_in_codex_or_gemini_opens_its_one_rules_file_once_there_is_one(
 }
 
 #[test]
-fn two_global_rules_named_alike_on_two_computers_both_reach_the_agents() {
+fn two_rules_for_one_file_on_two_computers_wait_for_the_person_and_write_nothing() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(&mut room, "Spanish.\n");
-    let theirs = from_another_computer_for(
+    style_rule(&mut room, "Spanish.\n");
+    let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    assert_eq!(room.read(".claude/rules/style.md"), "Spanish.\n");
+    let theirs = from_another_computer(
         &mut room,
-        agents::GLOBAL,
         agents::Kind::Rule,
-        "style.md",
+        "rules/style.md",
         "Short answers.\n",
     );
 
     round_here(&mut room.session, &room.homes, HERE).unwrap();
 
-    let addresses: BTreeSet<String> = bodies(&room.session)
-        .iter()
-        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
-        .filter(|address| address.starts_with("global/"))
-        .collect();
     assert_eq!(
-        addresses,
-        ["global/rule/style-2.md", "global/rule/style.md"]
-            .map(String::from)
-            .into()
+        room.read(".claude/rules/style.md"),
+        "Spanish.\n",
+        "the side this computer wrote goes on, the other one waits"
     );
-    assert_eq!(
-        room.look().waiting,
-        1,
-        "renaming the other computer's rule never applies it here"
-    );
+    assert_eq!(room.look().waiting, 1);
+    let card = |room: &Room, file: &str| {
+        let card =
+            crate::answers::agent_docs::card_of(&room.session, Some(&room.homes), HERE, file);
+        serde_json::to_value(card.unwrap().unwrap()).unwrap()
+    };
+    let shown = card(&room, &theirs);
+    assert_eq!(shown["here"], "waiting");
+    assert_eq!(shown["rivals"].as_array().unwrap().len(), 1, "{shown}");
+
     crate::answers::agent_docs::take_here(&room.session, Some(&room.homes), HERE, &theirs, true)
         .unwrap();
-    let claude = room.read(".claude/CLAUDE.md");
-    assert!(
-        claude.contains("Spanish.") && claude.contains("Short answers."),
-        "{claude}"
+    assert_eq!(room.read(".claude/rules/style.md"), "Short answers.\n");
+    assert_eq!(
+        room.kept(".claude/rules/style.md"),
+        1,
+        "a backup of the other"
     );
 }

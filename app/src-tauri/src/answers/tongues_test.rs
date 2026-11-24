@@ -114,6 +114,7 @@ fn joining_moves_it_to_the_folder_of_its_languages_and_parting_leaves_it_where_i
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

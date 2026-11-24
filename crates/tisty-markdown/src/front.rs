@@ -137,6 +137,9 @@ pub const AGENT: &str = "agent";
 
 pub const AGENT_KINDS: [&str; 3] = ["rule", "skill", "memory"];
 pub const AGENT_FLAGS: [&str; 4] = ["crlf", "as-is", "bom", "open-end"];
+/// Opens the flag naming the one computer a card is for: `on-dev_ab12cd34`.
+pub const AGENT_ON: &str = "on-";
+const AGENT_COMPUTER_AT_MOST: usize = 48;
 const AGENT_LEVEL_AT_MOST: usize = 40;
 const AGENT_NAME_AT_MOST: usize = 400;
 
@@ -160,6 +163,16 @@ pub fn agent_name(name: &str) -> bool {
         && name.trim() == name
 }
 
+pub fn agent_computer(flag: &str) -> Option<&str> {
+    flag.strip_prefix(AGENT_ON).filter(|one| {
+        !one.is_empty()
+            && one.len() <= AGENT_COMPUTER_AT_MOST
+            && one
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+    })
+}
+
 /// The level, kind and name an agent card's address holds, when the engine could write each.
 pub fn agent_address(address: &str) -> Option<(&str, &str, &str)> {
     let mut parts = address.splitn(3, '/');
@@ -176,9 +189,14 @@ pub fn carded(text: &str) -> bool {
         .and_then(|one| one.values.split_first())
         .is_some_and(|(address, flags)| {
             agent_address(address).is_some()
+                && flags.iter().all(|flag| {
+                    AGENT_FLAGS.contains(&flag.as_str()) || agent_computer(flag).is_some()
+                })
                 && flags
                     .iter()
-                    .all(|flag| AGENT_FLAGS.contains(&flag.as_str()))
+                    .filter(|flag| agent_computer(flag).is_some())
+                    .count()
+                    <= 1
         })
 }
 

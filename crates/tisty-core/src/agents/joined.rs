@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use super::rooted::{roots, tree};
 use crate::State;
 use crate::event::{DeviceId, Filed, Op};
-use crate::model::FolderId;
+use crate::model::{Folder, FolderId};
 
 type Landed = BTreeMap<(FolderId, String), FolderId>;
 
@@ -169,7 +169,7 @@ fn folded(state: &State, from: FolderId, into: FolderId, landed: &mut Landed, op
         // An archived folder never joins a live one, or what it holds away would come back.
         let twin = match child.archived {
             true => None,
-            false => twin(state, into, &child.name, landed),
+            false => twin(state, into, child, landed),
         };
         match twin {
             Some(twin) => {
@@ -177,7 +177,7 @@ fn folded(state: &State, from: FolderId, into: FolderId, landed: &mut Landed, op
                 ops.push(Op::FolderDelete { id: child.id });
             }
             None => {
-                if !child.archived {
+                if !child.archived && child.computer.is_none() {
                     landed.insert((into, child.name.clone()), child.id);
                 }
                 ops.push(Op::FolderMove {
@@ -189,14 +189,23 @@ fn folded(state: &State, from: FolderId, into: FolderId, landed: &mut Landed, op
     }
 }
 
-fn twin(state: &State, under: FolderId, name: &str, landed: &Landed) -> Option<FolderId> {
+// A computer's folder joins only its own other one, whatever either is called.
+fn twin(state: &State, under: FolderId, child: &Folder, landed: &Landed) -> Option<FolderId> {
+    let name = &child.name;
     state
         .folders
         .values()
-        .filter(|one| one.parent == Some(under) && !one.archived && one.name == name)
+        .filter(|one| one.parent == Some(under) && !one.archived)
+        .filter(|one| match &child.computer {
+            Some(_) => one.computer == child.computer,
+            None => one.computer.is_none() && one.name == *name,
+        })
         .map(|one| one.id)
         .min()
-        .or_else(|| landed.get(&(under, name.to_string())).copied())
+        .or_else(|| match &child.computer {
+            Some(_) => None,
+            None => landed.get(&(under, name.clone())).copied(),
+        })
 }
 
 #[cfg(test)]

@@ -98,8 +98,47 @@ impl Person {
                 parent,
                 icon: icon.map(str::to_string),
                 color: None,
+                computer: None,
             },
         }]);
+        id
+    }
+
+    pub fn makes_computer_folder(&self, name: &str, root: Ulid) -> Ulid {
+        let id = Ulid::generate();
+        let computer = self.device();
+        self.wrote(vec![Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.into(),
+                order: "a0".into(),
+                parent: Some(root),
+                icon: None,
+                color: None,
+                computer: Some(tisty_core::DeviceId(computer)),
+            },
+        }]);
+        id
+    }
+
+    pub fn another_computer(&self) -> tisty_core::DeviceId {
+        tisty_core::DeviceId(PHONE.into())
+    }
+
+    pub fn another_computer_makes_folder(&self, name: &str, root: Ulid, aside: &Path) -> Ulid {
+        let id = Ulid::generate();
+        let op = Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.into(),
+                order: "a0".into(),
+                parent: Some(root),
+                icon: None,
+                color: None,
+                computer: Some(self.another_computer()),
+            },
+        };
+        self.another_machine_does(op, aside);
         id
     }
 

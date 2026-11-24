@@ -288,6 +288,8 @@ const KNOWN = [
   "documentAway",
   "folderAway",
   "folderAwayHolds",
+  "agentOfAnother",
+  "agentProposalFirst",
   "agentsRootStays",
   "folderIsAway",
   "pageIsAway",

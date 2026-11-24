@@ -27,6 +27,8 @@ pub struct Folder {
     /// Whoever last made, named, moved or archived it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub placed_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub computer: Option<crate::event::DeviceId>,
 }
 
 impl Folder {
@@ -40,6 +42,7 @@ impl Folder {
             color: None,
             archived: false,
             placed_by: None,
+            computer: None,
         }
     }
 }
@@ -208,6 +211,8 @@ pub struct Kept {
     pub agreed: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agreed_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub agreed_knowing: bool,
     /// Whoever last put it where it is: made, moved, archived or brought back.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub placed_by: Option<crate::event::DeviceId>,

@@ -624,6 +624,14 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         }
         None => warned,
     };
+    let warned = match super::super::proposing::other_computer(paths, &state, kept)? {
+        Some(computer) => {
+            kept_of.insert("of_computer".into(), json!(computer));
+            kept_of.insert("read_as".into(), json!(super::super::proposing::ELSEWHERE));
+            format!("{warned}({})\n\n", super::super::proposing::ELSEWHERE)
+        }
+        None => warned,
+    };
     let warned = match super::super::ideas::is_sheet(&body) {
         true => format!(
             "{warned}{}\n\n",

@@ -39,6 +39,7 @@ fn task_facts(card: &Card) -> &TaskFacts {
 
 fn folder(id: Ulid, name: &str, parent: Option<Ulid>) -> Folder {
     Folder {
+        computer: None,
         id,
         name: name.into(),
         order: "a0".into(),

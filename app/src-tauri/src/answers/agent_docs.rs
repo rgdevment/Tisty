@@ -1,10 +1,11 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use tisty_core::agents::{self, Card, Ledger, Refused, Seen, Standing, Target};
 
 use super::agents_sync::{refused, unled};
-use crate::wiring::agents::{Homes, Placed, assistant, lead_of, targets};
+use crate::wiring::agents::{Homes, Placed, Stance, assistant, lead_of, sides, stance, targets};
 use crate::{Answer, Refusal, Session, held};
 
 #[derive(serde::Serialize, Debug, PartialEq, Eq)]
@@ -60,8 +61,8 @@ pub struct AgentDoc {
     code: bool,
     /// Sync is off for the whole AGENTS folder, so no single assistant can be turned back on here.
     folder_off: bool,
-    /// Another document in AGENTS carries the same card, so this one is never written.
-    twin: bool,
+    /// Documents that would write the same file here, by title: the person chooses which one does.
+    rivals: Vec<String>,
     /// Whether this computer writes it, and if not, why: the person's choice or approval waits.
     here: &'static str,
     /// The words the card was drawn from, so an approval names the text the person saw.
@@ -189,14 +190,17 @@ struct Opened {
     label: String,
     data: PathBuf,
     ledger: Ledger,
-    twin: bool,
+    rivals: BTreeSet<String>,
+    stance: Stance,
     here: Seen,
     places: Vec<(Target, usize)>,
 }
 
 // Words approved here that still wait say so, or approving would read as applying.
-fn here_word(seen: Seen, agreed_here: bool) -> &'static str {
+fn here_word(seen: Seen, agreed_here: bool, stance: Stance) -> &'static str {
     match seen {
+        Seen::Admitted if stance == Stance::Asks => "contested",
+        Seen::Admitted if stance == Stance::Aside => "aside",
         Seen::Admitted => "applied",
         Seen::WaitingHere if agreed_here => "approvedWaiting",
         Seen::WaitingHere => "waiting",
@@ -204,6 +208,8 @@ fn here_word(seen: Seen, agreed_here: bool) -> &'static str {
         Seen::NotAgreed => "notAgreed",
         Seen::PlacedByAgent => "placedByAgent",
         Seen::OtherComputersMemory => "otherMemory",
+        Seen::OtherComputer => "otherComputer",
+        Seen::Apart => "apart",
         Seen::Away | Seen::Plain | Seen::Unread => "away",
     }
 }
@@ -232,14 +238,6 @@ fn opened(
     else {
         return Ok(None);
     };
-    let address = card.address();
-    let twins: Vec<&String> = bodies
-        .iter()
-        .filter(|(one, body)| {
-            one != file && Card::of(body).is_some_and(|other| other.address() == address)
-        })
-        .map(|(one, _)| one)
-        .collect();
     let data = session.paths.data().to_path_buf();
     let ledger = Ledger::open(&data, machine);
     let gate = super::agents_sync::gated(session, &ledger);
@@ -248,8 +246,10 @@ fn opened(
         Some(homes) => targets(homes, &gate, &ledger),
         None => Vec::new(),
     };
-    let written = |one: &Placed| one.files.iter().any(|named| twins.contains(&named));
-    let twin = all.iter().any(written);
+    let rivals = homes
+        .map(|homes| sides(homes, &gate, file).rival_files())
+        .unwrap_or_default();
+    let stance = homes.map_or(Stance::Goes, |homes| stance(homes, &gate, &ledger, file));
     let places = placed_for(file, all);
     Ok(Some(Opened {
         card,
@@ -259,7 +259,8 @@ fn opened(
         data,
         ledger,
         gate,
-        twin: twin && places.is_empty() && here == Seen::Admitted,
+        rivals,
+        stance,
         here,
         places,
     }))
@@ -302,6 +303,9 @@ pub fn agent_doc(
         (_, Some(Asked::Agree { print })) => agreed(&session, &file, &print).map(carded),
         (_, Some(Asked::Approve { print, over })) => settled(&session, &file, |one| {
             super::agent_proposals::approve(one, &file, &print, &over)
+        }),
+        (_, Some(Asked::Settle)) => settled(&session, &file, |one| {
+            super::agents_homes::moved_here(one, std::slice::from_ref(&file))
         }),
         (_, Some(Asked::Discard { print })) => settled(&session, &file, |one| {
             super::agent_proposals::discard(one, &file, &print)
@@ -355,7 +359,13 @@ pub(crate) fn take_here(
 ) -> Answer<()> {
     let data = session.paths.data();
     let mut ledger = Ledger::open(data, machine);
-    ledger.take(file, here);
+    match homes {
+        Some(homes) => {
+            let gate = super::agents_sync::gated(session, &ledger);
+            super::agents_homes::chosen(session, &mut ledger, &gate, homes, file, here);
+        }
+        None => ledger.take(file, here),
+    }
     ledger.keep(data).map_err(refused)?;
     if let Some(homes) = homes {
         super::agents_sync::round_now(session, homes, &mut ledger);
@@ -376,6 +386,7 @@ pub(crate) fn agree(
     if tisty_core::docs::print_of_text(&body) != print {
         return Err(Refusal::of("agentDocChanged"));
     }
+    super::papers::read_here(session, file)?;
     let hand = crate::signing(&session.state);
     session.retell_written(file, &body, hand);
     if let Some(homes) = homes {
@@ -394,15 +405,17 @@ fn held_by(
     ledger
         .applied_at(&target.at)
         .filter(|file| gate.held(file))
-        .map(|file| {
-            state
-                .docs
-                .values()
-                .find(|one| one.file == file)
-                .and_then(|one| one.title.clone())
-                .unwrap_or_else(|| file.to_string())
-        })
+        .map(|file| titled(state, file))
         .collect()
+}
+
+fn titled(state: &tisty_core::State, file: &str) -> String {
+    state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .and_then(|one| one.title.clone())
+        .unwrap_or_else(|| file.to_string())
 }
 
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
@@ -425,7 +438,9 @@ pub(crate) fn card_of(
     let ledger = &opened.ledger;
     let card = opened.card;
     Ok(Some(AgentDoc {
-        proposal: super::agent_proposals::proposal_of(session, file, &opened.body).map(Box::new),
+        proposal: super::agent_proposals::proposal_of(session, file, &opened.body)
+            .filter(|_| opened.here != Seen::OtherComputer)
+            .map(Box::new),
         agreeing: (opened.here == Seen::NotAgreed)
             .then(|| agreeing_of(session, file, &opened.body))
             .flatten(),
@@ -434,8 +449,12 @@ pub(crate) fn card_of(
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),
         code: card.code(),
         folder_off: ledger.consented() && !ledger.syncs(""),
-        twin: opened.twin,
-        here: here_word(opened.here, agreed_here(session, file)),
+        rivals: opened
+            .rivals
+            .iter()
+            .map(|one| titled(&session.state, one))
+            .collect(),
+        here: here_word(opened.here, agreed_here(session, file), opened.stance),
         print: opened.print,
         places: opened
             .places
@@ -481,6 +500,8 @@ pub enum Asked {
     Discard {
         print: String,
     },
+    /// For the computer of the folder it sits in, when its `agent:` line says another.
+    Settle,
 }
 
 pub(crate) fn done(
@@ -501,7 +522,8 @@ pub(crate) fn done(
         Asked::Take { .. }
         | Asked::Agree { .. }
         | Asked::Approve { .. }
-        | Asked::Discard { .. } => Ok(None),
+        | Asked::Discard { .. }
+        | Asked::Settle => Ok(None),
     }
     .map_err(refused)
 }

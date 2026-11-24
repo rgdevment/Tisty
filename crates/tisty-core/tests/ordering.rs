@@ -19,6 +19,7 @@ fn folder(store: &mut Store, name: &str, order: &str) -> FolderId {
                 parent: None,
                 icon: None,
                 color: None,
+                computer: None,
             },
         })
         .unwrap();

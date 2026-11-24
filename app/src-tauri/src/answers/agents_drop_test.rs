@@ -1,6 +1,6 @@
 use super::{Answered, Dropped, Ledger, Path, Reach, dropped, reach, root_of, round_now};
 use crate::answers::agents_sync::tests::{
-    HERE, Room, doc_here, doc_of_file, file_brought_from, global_doc, moved_out, put, room,
+    HERE, Room, doc_here, doc_of_file, file_brought_from, gemini_rule, moved_out, put, room,
 };
 use crate::answers::agents_sync::{bodies, emptied, loosened, turned};
 use linked_test::linked_folder;
@@ -12,7 +12,7 @@ mod linked_test;
 const CLAUDE_SKILL: &str = ".claude/skills/voice/SKILL.md";
 const SHARED_SKILL: &str = ".agents/skills/voice/SKILL.md";
 const SAID: &str = "Speak plainly.\n";
-const WITH_GLOBAL: &str = "Spanish.\n\n# Claude\nTests first.\n";
+const MAIN: &str = "# Claude\nTests first.\n";
 
 fn skill_everywhere(room: &mut Room) -> String {
     room.bring(&[".claude/CLAUDE.md", ".claude/rules/tone.md"]);
@@ -187,48 +187,48 @@ fn a_paused_agent_is_named_apart_keeps_its_copy_and_is_asked_once_it_syncs_again
     assert!(!look.loose[0].stayed && look.asks);
 }
 
-fn global_beside_claude(room: &mut Room) -> String {
+// Another document for CLAUDE.md of the same computer: the brought one stands, this one yields.
+fn rival_beside_claude(room: &mut Room) -> (String, String) {
     room.bring(&[".claude/CLAUDE.md"]);
-    global_doc(room, "Spanish.\n");
+    let standing = file_brought_from(room, "CLAUDE.md");
+    let rival = doc_here(room, "claude", Kind::Rule, "CLAUDE.md", "Spanish.\n");
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(room.read(".claude/CLAUDE.md"), WITH_GLOBAL);
-    let global = bodies(&room.session)
-        .into_iter()
-        .find(|(_, body)| body.contains("Spanish."))
-        .unwrap()
-        .0;
-    doc_of_file(room, &global).to_string()
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
+    let id = |file: &str| doc_of_file(room, file).to_string();
+    (id(&standing), id(&rival))
 }
 
 #[test]
-fn a_file_another_document_still_places_is_never_asked_about_and_only_rewritten() {
+fn a_file_another_document_still_places_is_never_asked_about_nor_rewritten() {
     let mut room = room();
-    let id = global_beside_claude(&mut room);
-    let shown = reached(&room, std::slice::from_ref(&id));
+    let (_, rival) = rival_beside_claude(&mut room);
+    let shown = reached(&room, std::slice::from_ref(&rival));
     assert!(shown.at.is_empty() && shown.agents.is_empty());
-    assert_eq!(shown.rewritten, names(&["Claude"]));
-    let done = deleted(&mut room, &[id], true);
+    let done = deleted(&mut room, &[rival], true);
     assert!(done.untaken.is_empty());
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
     round_now(&room.session, &room.homes, &mut ledger);
-    assert_eq!(room.read(".claude/CLAUDE.md"), "# Claude\nTests first.\n");
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
     assert!(room.look().loose.is_empty());
 }
 
 #[test]
 fn a_file_a_document_holds_is_never_asked_about_nor_taken() {
     let mut room = room();
-    let id = global_beside_claude(&mut room);
+    let (_, rival) = rival_beside_claude(&mut room);
     let claude = file_brought_from(&room, "CLAUDE.md");
     let words = tisty_core::docs::read(&room.session.paths.docs(), &claude).unwrap();
     let unapproved = words.replace("Tests first.", "Tests later.");
     tisty_core::docs::write(&room.session.paths.docs(), &claude, &unapproved).unwrap();
     room.session.reload().unwrap();
-    assert_eq!(reached(&room, std::slice::from_ref(&id)), Reach::default());
+    assert_eq!(
+        reached(&room, std::slice::from_ref(&rival)),
+        Reach::default()
+    );
     let backups = room.kept(".claude/CLAUDE.md");
-    deleted(&mut room, &[id], true);
-    assert_eq!(room.read(".claude/CLAUDE.md"), WITH_GLOBAL);
+    deleted(&mut room, &[rival], true);
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
     assert_eq!(room.kept(".claude/CLAUDE.md"), backups);
 }
 
@@ -391,17 +391,14 @@ fn only_from_tisty_never_marks_a_copy_changed_outside_so_its_question_still_come
 }
 
 #[test]
-fn a_file_another_rule_still_makes_up_is_named_as_written_again() {
+fn a_file_a_rival_would_not_write_by_itself_is_neither_asked_about_nor_named_as_written_again() {
     let mut room = room();
-    let id = global_beside_claude(&mut room);
-    let shown = reached(&room, std::slice::from_ref(&id));
-    assert!(shown.rewritten.contains(&"Claude".to_string()), "{shown:?}");
-    assert!(
-        shown
-            .at
-            .iter()
-            .all(|at| *at != room.at(".claude/CLAUDE.md"))
-    );
+    let (standing, _) = rival_beside_claude(&mut room);
+    let shown = reached(&room, std::slice::from_ref(&standing));
+    assert_eq!(shown, Reach::default());
+    deleted(&mut room, &[standing], true);
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
+    assert!(room.look().loose.is_empty());
 }
 
 #[test]
@@ -434,7 +431,7 @@ fn geminis_rules_while_the_person_took_its_line_out_count_as_paused_and_stay() {
     room.bring(&[".claude/CLAUDE.md"]);
     std::fs::create_dir_all(room.home.join(".gemini")).unwrap();
     put(Path::new(&room.at(".gemini/GEMINI.md")), "- likes tea\n");
-    global_doc(&mut room, "Spanish.\n");
+    gemini_rule(&mut room, "Spanish.\n");
     crate::answers::agents_sync::round_here(&mut room.session, &room.homes, HERE).unwrap();
     assert_eq!(room.read(".gemini/tisty-rules.md"), "Spanish.\n");
     let gemini = room.at(".gemini/GEMINI.md");
@@ -476,8 +473,9 @@ fn a_skill_named_in_other_capitals_keeps_the_one_file_both_place() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);
     let upper = doc_here(&mut room, GLOBAL, Kind::Skill, "Voice/SKILL.md", SAID);
-    let lower = doc_here(&mut room, GLOBAL, Kind::Skill, "voice/SKILL.md", SAID);
     let mut ledger = Ledger::open(room.session.paths.data(), HERE);
+    round_now(&room.session, &room.homes, &mut ledger);
+    let lower = doc_here(&mut room, GLOBAL, Kind::Skill, "voice/SKILL.md", SAID);
     round_now(&room.session, &room.homes, &mut ledger);
     assert!(there(&room, CLAUDE_SKILL));
     let id = doc_of_file(&room, &lower).to_string();

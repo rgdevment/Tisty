@@ -67,6 +67,7 @@ impl World {
     }
 
     fn folder(&mut self, who: &str, id: FolderId, name: &str, parent: Option<FolderId>) {
+        let icon = parent.is_none().then(|| crate::agents::ICON.to_string());
         self.apply(
             who,
             Op::FolderAdd {
@@ -75,8 +76,9 @@ impl World {
                     name: name.into(),
                     order: "a0".into(),
                     parent,
-                    icon: None,
+                    icon,
                     color: None,
+                    computer: None,
                 },
             },
         );
@@ -329,9 +331,7 @@ fn a_document_never_written_here_that_fails_is_left_out_without_holding_the_rest
 #[test]
 fn a_document_an_agent_archived_holds_the_file_and_one_the_person_archived_leaves_it() {
     let mut world = world();
-    let (keep, _) = world.made(HERE, &rule("Keep.\n"), true);
     let (drop, dropped) = world.made(HERE, &rule("Drop.\n"), true);
-    let _ = keep;
     world.round();
     world.apply(AGENT, Op::DocArchive { id: drop });
 
@@ -341,8 +341,8 @@ fn a_document_an_agent_archived_holds_the_file_and_one_the_person_archived_leave
     world.apply(HERE, Op::DocUnarchive { id: drop });
     world.apply(HERE, Op::DocArchive { id: drop });
     assert!(!world.gate().held(&dropped));
-    assert_eq!(world.round().1, Standing::Wrote);
-    assert_eq!(world.on_disk().as_deref(), Some("Keep.\n"));
+    assert_eq!(world.round().1, Standing::Empty);
+    assert_eq!(world.on_disk().as_deref(), Some("Drop.\n"));
 }
 
 #[test]
@@ -513,17 +513,16 @@ fn a_pending_proposal_changes_no_target_even_with_the_gate_taken_away() {
 #[test]
 fn a_proposal_on_one_rule_freezes_nothing_the_person_approves_beside_it() {
     let mut world = world();
-    let (first, _) = world.made(HERE, &rule("One.\n"), true);
-    world.made(HERE, &rule("Two.\n"), true);
+    let (first, one) = world.made(HERE, &rule("One.\n"), true);
     world.round();
 
     world.proposed(first, &rule("One, by an agent.\n"));
-    let (_, file) = world.made(HERE, &rule("Three.\n"), true);
+    let (_, other) = world.made(HERE, &rule("Two.\n"), true);
 
-    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
-    assert_eq!(world.round().1, Standing::Wrote);
-    assert!(world.on_disk().unwrap().contains("Three."));
-    assert!(!world.on_disk().unwrap().contains("by an agent"));
+    assert_eq!(world.gate().seen(&other), Some(Seen::Admitted));
+    assert_eq!(world.gate().seen(&one), Some(Seen::Admitted));
+    assert!(!world.gate().held(&one));
+    assert_eq!(world.on_disk().as_deref(), Some("One.\n"));
 }
 
 #[test]
@@ -836,4 +835,287 @@ fn a_skill_of_the_persons_about_to_be_deleted_lets_tistys_own_of_that_name_back_
     assert!(!gate.skill_named("tisty"));
     gate.admit_builtins(&world.ledger, &tistys_own());
     assert!(admitted_files(&gate).contains(&"tisty:skill/tisty/SKILL.md".to_string()));
+}
+
+impl World {
+    fn computer_folder(&mut self, by: &str, computer: &str) -> FolderId {
+        let id = Ulid::generate();
+        let root = self.root;
+        self.apply(
+            by,
+            Op::FolderAdd {
+                id,
+                d: FolderAdd {
+                    name: format!("Home of {computer}"),
+                    order: "a0".into(),
+                    parent: Some(root),
+                    icon: None,
+                    color: None,
+                    computer: Some(DeviceId(computer.into())),
+                },
+            },
+        );
+        id
+    }
+
+    fn approved_without_the_mark(&mut self, id: Ulid, body: &str) {
+        let said = Said {
+            knows_computers: false,
+            ..Said::of(body).agreed()
+        };
+        self.apply(HERE, Op::DocSaid { id, d: said });
+    }
+}
+
+fn marked(knows_computers: Option<&str>) -> String {
+    let plain = rule("Mine.\n");
+    match knows_computers {
+        Some(one) => crate::agents::meant_for(&plain, Some(&DeviceId(one.into()))).unwrap(),
+        None => plain,
+    }
+}
+
+fn seen_in(world: &mut World, folder: FolderId, line: Option<&str>) -> (String, Seen) {
+    let (_, file) = world.made_in(HERE, &marked(line), true, Some(folder));
+    let seen = world.gate().seen(&file).unwrap();
+    (file, seen)
+}
+
+#[test]
+fn a_line_and_a_folder_that_agree_are_admitted_and_those_that_differ_are_apart() {
+    let mut world = world();
+    let (root, claude) = (world.root, world.claude);
+    let mine = world.computer_folder(HERE, HERE);
+
+    assert_eq!(seen_in(&mut world, root, None).1, Seen::Admitted);
+    assert_eq!(seen_in(&mut world, claude, None).1, Seen::Admitted);
+    assert_eq!(seen_in(&mut world, mine, Some(HERE)).1, Seen::Admitted);
+    assert_eq!(seen_in(&mut world, root, Some(HERE)).1, Seen::Apart);
+    assert_eq!(seen_in(&mut world, claude, Some(HERE)).1, Seen::Apart);
+    assert_eq!(seen_in(&mut world, mine, None).1, Seen::Apart);
+    assert_eq!(seen_in(&mut world, mine, Some(THERE)).1, Seen::Apart);
+}
+
+#[test]
+fn a_document_apart_holds_the_file_it_was_applied_to() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let (file, seen) = seen_in(&mut world, mine, None);
+    assert_eq!(seen, Seen::Apart);
+
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    world.ledger.applied_to(&at, [file.clone()]);
+    let gate = world.gate();
+    assert!(gate.held(&file));
+    assert!(world.target(&gate).held());
+}
+
+#[test]
+fn a_document_for_another_computer_in_my_folder_that_was_applied_is_apart_and_held() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let (file, seen) = seen_in(&mut world, mine, Some(THERE));
+    assert_eq!(seen, Seen::Apart);
+
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    world.ledger.applied_to(&at, [file.clone()]);
+    let gate = world.gate();
+    assert!(gate.held(&file));
+    assert!(world.target(&gate).held());
+}
+
+#[test]
+fn anything_in_another_computers_folder_is_that_computers_and_holds_nothing() {
+    let mut world = world();
+    let theirs = world.computer_folder(THERE, THERE);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+
+    for line in [None, Some(THERE), Some(HERE)] {
+        for agreed in [true, false] {
+            let (_, file) = world.made_in(THERE, &marked(line), agreed, Some(theirs));
+            world.ledger.applied_to(&at, [file.clone()]);
+            let gate = world.gate();
+            assert_eq!(
+                gate.seen(&file),
+                Some(Seen::OtherComputer),
+                "{line:?} {agreed}"
+            );
+            assert!(gate.elsewhere(&file));
+            assert!(!gate.held(&file));
+            assert!(gate.admitted().is_empty());
+            assert!(gate.for_here().all(|(one, _)| one != file));
+        }
+    }
+}
+
+#[test]
+fn what_an_assistant_placed_in_a_computers_folder_is_never_that_computers() {
+    let mut world = world();
+    let theirs = world.computer_folder(AGENT, AGENT);
+    let (_, by_agent) = world.made_in(AGENT, &marked(Some(AGENT)), true, Some(theirs));
+    let (_, by_person) = world.made_in(THERE, &marked(Some(AGENT)), true, Some(theirs));
+
+    let gate = world.gate();
+    assert_eq!(gate.seen(&by_agent), Some(Seen::NotAgreed));
+    assert_eq!(gate.seen(&by_person), Some(Seen::PlacedByAgent));
+    assert!(gate.admitted().is_empty());
+}
+
+#[test]
+fn a_marked_body_approved_by_a_build_that_did_not_know_the_mark_is_not_agreed() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let body = marked(Some(HERE));
+    let (id, file) = world.made_in(HERE, &marked(None), true, Some(mine));
+    world.written(HERE, id, &file, &body, false);
+    world.approved_without_the_mark(id, &body);
+    assert_eq!(world.gate().seen(&file), Some(Seen::NotAgreed));
+
+    world.written(HERE, id, &file, &body, true);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+}
+
+#[test]
+fn another_computers_documents_are_left_out_of_names_unagreed_and_unclaimed() {
+    let mut world = world();
+    let (claude, root) = (world.claude, world.root);
+    let theirs = world.computer_folder(AGENT, AGENT);
+    let skill = doc_of("claude", Kind::Skill, "Tisty/SKILL.md", b"Theirs.\n").unwrap();
+    let away = [
+        world.made_in(AGENT, &skill, true, Some(theirs)).1,
+        world
+            .made_in(THERE, &rule("Theirs.\n"), true, Some(theirs))
+            .1,
+        world
+            .made_in(AGENT, &rule("Unagreed there.\n"), false, Some(theirs))
+            .1,
+    ];
+
+    let gate = world.gate();
+    assert!(!gate.skill_named("tisty"));
+    assert_eq!(gate.unagreed(), 0);
+    assert!(
+        away.iter()
+            .all(|file| gate.unclaimed().all(|one| one != file))
+    );
+
+    world.made_in(AGENT, &skill, true, Some(claude));
+    let (_, laptop) = world.made_in(THERE, &rule("From the laptop.\n"), true, Some(root));
+    world.made_in(AGENT, &rule("Unagreed here.\n"), false, Some(claude));
+    let gate = world.gate();
+    assert!(gate.skill_named("tisty"));
+    assert_eq!(gate.unagreed(), 2);
+    let unclaimed: Vec<&str> = gate.unclaimed().collect();
+    assert!(unclaimed.contains(&laptop.as_str()));
+    assert!(away.iter().all(|file| !unclaimed.contains(&file.as_str())));
+}
+
+#[test]
+fn words_another_computer_approved_for_a_document_in_my_folder_wait_unless_let_in_here() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let body = marked(Some(HERE));
+    let (id, file) = world.made_in(THERE, &body, true, Some(mine));
+    assert_eq!(world.gate().seen(&file), Some(Seen::WaitingHere));
+
+    let print = crate::docs::print_of_text(&body);
+    world.ledger.take(&file, true);
+    world.ledger.let_in(&file, &print);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+
+    let changed = body.replace("Mine.", "Mine, again.");
+    world.written(THERE, id, &file, &changed, true);
+    assert_eq!(
+        world.gate().seen(&file),
+        Some(Seen::WaitingHere),
+        "other words wait again, whatever was let in before"
+    );
+    world
+        .ledger
+        .let_in(&file, &crate::docs::print_of_text(&changed));
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+}
+
+#[test]
+fn a_file_written_from_words_another_computer_changed_is_held_until_they_are_let_in() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let body = marked(Some(HERE));
+    let (id, file) = world.made_in(HERE, &body, true, Some(mine));
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    world.ledger.applied_to(&at, [file.clone()]);
+    world
+        .ledger
+        .let_in(&file, &crate::docs::print_of_text(&body));
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+
+    let changed = body.replace("Mine.", "Theirs.");
+    world.written(THERE, id, &file, &changed, true);
+
+    let gate = world.gate();
+    assert_eq!(gate.seen(&file), Some(Seen::WaitingHere));
+    assert!(gate.held(&file));
+    assert!(world.target(&gate).held());
+}
+
+#[test]
+fn words_this_computer_approved_for_its_own_folder_never_wait() {
+    let mut world = world();
+    let mine = world.computer_folder(HERE, HERE);
+    let (_, file) = world.made_in(HERE, &marked(Some(HERE)), true, Some(mine));
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+    assert_eq!(world.ledger.let_in_words(&file), None);
+}
+
+#[test]
+fn an_approval_by_this_build_knows_computers_for_every_agent_document_marked_or_not() {
+    assert!(Said::of(&rule("Plain rule.\n")).knows_computers);
+    assert!(Said::of(&marked(Some(HERE))).knows_computers);
+    assert!(!Said::of("# Just notes\n").knows_computers);
+
+    let mut world = world();
+    let body = rule("Plain rule.\n");
+    let (id, file) = world.made_in(HERE, &body, true, Some(world.claude));
+    let knows = |world: &World| {
+        world
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .map(|one| one.agreed_knowing)
+    };
+    assert_eq!(knows(&world), Some(true));
+
+    world.approved_without_the_mark(id, &body);
+    assert_eq!(
+        knows(&world),
+        Some(false),
+        "an approval that did not say it knows"
+    );
+    let said = Said::of(&body).agreed();
+    let kept = world
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .unwrap();
+    assert!(
+        said.news_for(kept),
+        "knowing is news over an approval without it"
+    );
+}
+
+#[test]
+fn the_card_of_a_document_let_in_here_is_told_and_one_left_out_has_none() {
+    let mut world = world();
+    let (_, mine) = world.made(HERE, &rule("Mine.\n"), true);
+    let (_, unagreed) = world.made(HERE, &rule("Not yet.\n"), false);
+    let gate = world.gate();
+
+    assert_eq!(
+        gate.card_here(&mine).map(|card| card.name.as_str()),
+        Some("CLAUDE.md")
+    );
+    assert!(gate.card_here(&unagreed).is_none());
+    assert!(gate.for_here().any(|(file, _)| file == mine));
 }

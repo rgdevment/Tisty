@@ -34,6 +34,12 @@ pub struct Ledger {
     tisty_skills: bool,
     #[serde(default)]
     stayed: BTreeSet<String>,
+    #[serde(default)]
+    chosen: BTreeMap<String, String>,
+    #[serde(default)]
+    words: BTreeMap<String, String>,
+    #[serde(default)]
+    homing: Option<BTreeSet<String>>,
 }
 
 impl Ledger {
@@ -155,6 +161,46 @@ impl Ledger {
         self.waits.remove(file);
     }
 
+    /// Of those that would write one place, the person's choice on this computer.
+    pub fn choose(&mut self, place: &str, side: &str) {
+        self.chosen.insert(place.to_string(), side.to_string());
+    }
+
+    pub fn chosen(&self, place: &str) -> Option<&str> {
+        self.chosen.get(place).map(String::as_str)
+    }
+
+    /// The words of a document of this computer's own that were let in here, whoever approved them.
+    pub fn let_in(&mut self, file: &str, print: &str) -> bool {
+        self.words
+            .insert(file.to_string(), print.to_string())
+            .as_deref()
+            != Some(print)
+    }
+
+    pub fn let_in_words(&self, file: &str) -> Option<&str> {
+        self.words.get(file).map(String::as_str)
+    }
+
+    /// What an earlier Tisty left at the root and goes to this computer's folder, once known; none left means it went.
+    pub fn homing(&self) -> Option<&BTreeSet<String>> {
+        self.homing.as_ref()
+    }
+
+    pub fn home_all(&mut self, files: BTreeSet<String>) {
+        self.homing = Some(files);
+    }
+
+    pub fn went_home(&mut self, file: &str) {
+        if let Some(left) = &mut self.homing {
+            left.remove(file);
+        }
+    }
+
+    pub fn homed(&self) -> bool {
+        self.homing.as_ref().is_some_and(BTreeSet::is_empty)
+    }
+
     // Once a document waited here, approving its words here still leaves the choice to «apply here».
     pub fn wait_all<'a>(&mut self, files: impl IntoIterator<Item = &'a str>) -> bool {
         let before = self.waits.len();
@@ -201,6 +247,11 @@ impl Ledger {
     pub fn unproven(&self, at: &Path) -> bool {
         let key = keyed(at);
         self.wrote.contains_key(&key) && !self.applied.contains_key(&key)
+    }
+
+    /// A file an earlier build made of several documents.
+    pub fn mixed(&self, at: &Path) -> bool {
+        self.applied_at(at).nth(1).is_some()
     }
 
     pub fn written_files(&self) -> impl Iterator<Item = (&Path, &BTreeSet<String>)> {

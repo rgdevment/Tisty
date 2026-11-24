@@ -6,6 +6,7 @@ use tisty_core::agents::{self, Card, Found, GLOBAL, Gate, Kind, Ledger, Seen, St
 use tisty_core::model::{FolderId, Kept};
 use tisty_core::{Op, State};
 
+use super::agents_homes::{self, Rooms, subfolders_made};
 use crate::wiring::agents::{self as places, ASSISTANTS, GLOBAL_FOLDER, Homes, Placed};
 use crate::{Answer, Refusal, Session, held, signing};
 
@@ -123,69 +124,47 @@ pub(crate) fn joined_here(session: &mut Session) -> Answer<()> {
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
-// Each assistant found here has its folder in AGENTS, empty or not; only a computer that said yes adds them.
-pub(crate) fn subfolders_made(session: &mut Session, homes: &Homes, ledger: &Ledger) -> Answer<()> {
-    let Some(root) = root_of(&session.state).filter(|_| ledger.consented()) else {
-        return Ok(());
-    };
-    let names: Vec<&str> = [GLOBAL_FOLDER]
-        .into_iter()
-        .chain(homes.detected().into_iter().map(|one| one.name))
-        .collect();
-    let ops = agents::sub_folders(&session.state, root, &names);
-    if ops.is_empty() {
-        return Ok(());
-    }
-    session
-        .commit_all(ops)
-        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))
-}
-
 // Codex and Gemini read one rules file: a new document in their folder opens the one that holds it.
 pub(crate) fn one_rules_file(
     session: &Session,
     folder: Option<FolderId>,
 ) -> Option<tisty_core::docs::Doc> {
-    let root = root_of(&session.state)?;
-    let at = session.state.folders.get(&folder?)?;
-    let known = ASSISTANTS.iter().find(|known| known.name == at.name);
-    let main = known
-        .filter(|_| at.parent == Some(root))
-        .and_then(|one| places::single_rule(one.id))?;
-    let address = format!("{}/{}/{main}", known?.id, Kind::Rule.word());
-    let (file, body) = bodies(session)
-        .into_iter()
-        .find(|(_, body)| Card::of(body).is_some_and(|card| card.address() == address))?;
+    let spot = agents_homes::spot(&session.state, folder)?;
+    let known = ASSISTANTS.iter().find(|known| known.name == spot.name)?;
+    let main = places::single_rule(known.id)?;
+    let address = format!("{}/{}/{main}", known.id, Kind::Rule.word());
+    let (file, body) = bodies(session).into_iter().find(|(_, body)| {
+        Card::of(body)
+            .is_some_and(|card| card.address() == address && card.computer == spot.computer)
+    })?;
     Some(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
         id: file,
     })
 }
 
-/// What a new document made in Global or in an assistant's folder of AGENTS starts with, so its words reach that assistant.
+/// What a new document made in an assistant's folder of AGENTS starts with, so its words reach that assistant.
 pub(crate) fn seeded(session: &Session, folder: Option<FolderId>) -> String {
-    let Some(root) = root_of(&session.state) else {
-        return String::new();
-    };
-    let at = folder.and_then(|id| session.state.folders.get(&id));
-    let level = match at {
-        Some(one) if one.parent == Some(root) && one.name == GLOBAL_FOLDER => GLOBAL,
-        Some(one) if one.parent == Some(root) => {
-            match ASSISTANTS.iter().find(|known| known.name == one.name) {
-                Some(known) => known.id,
-                None => return String::new(),
-            }
-        }
-        _ => return String::new(),
-    };
+    rule_for(session, folder).unwrap_or_default()
+}
+
+fn rule_for(session: &Session, folder: Option<FolderId>) -> Option<String> {
+    let me = session.store.device();
+    let spot = agents_homes::spot(&session.state, folder)
+        .filter(|spot| spot.computer.as_ref().is_none_or(|one| one == me))?;
+    let level = ASSISTANTS.iter().find(|known| known.name == spot.name)?.id;
+    // With one rules file, the folder's own is made and the two are the person's to choose between.
+    let apart = spot.computer.is_none() || places::single_rule(level).is_some();
     let taken: BTreeSet<String> = bodies(session)
         .iter()
-        .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
+        .filter_map(|(_, body)| Card::of(body))
+        .filter(|card| card.computer == spot.computer || (!apart && card.computer.is_none()))
+        .map(|card| card.address())
         .collect();
     let address = |name: &str| format!("{level}/{}/{name}", Kind::Rule.word());
-    places::fresh_rule(level, |name| taken.contains(&address(name)))
-        .and_then(|name| agents::doc_of(level, Kind::Rule, &name, b"").ok())
-        .unwrap_or_default()
+    let name = places::fresh_rule(level, |name| taken.contains(&address(name)))?;
+    let body = agents::doc_of(level, Kind::Rule, &name, b"").ok()?;
+    agents::meant_for(&body, spot.computer.as_ref())
 }
 
 /// A document that waits here keeps waiting once its words are approved here: only «apply here» takes it.
@@ -205,11 +184,23 @@ pub(crate) fn waits_marked(session: &Session, here: &str, file: &str) {
     }
 }
 
-// Another computer's memory never stands for this one's, so its file here can still be brought.
+// Another computer's document never stands for this one's, nor one this computer has not taken: its file here can still be brought.
 fn addresses(bodies: &[(String, String)], gate: &Gate) -> BTreeSet<String> {
+    let stands = |file: &str| {
+        !gate.elsewhere(file)
+            && !matches!(
+                gate.seen(file),
+                Some(
+                    Seen::OtherComputersMemory
+                        | Seen::OtherComputer
+                        | Seen::WaitingHere
+                        | Seen::DeclinedHere
+                )
+            )
+    };
     bodies
         .iter()
-        .filter(|(file, _)| gate.seen(file) != Some(Seen::OtherComputersMemory))
+        .filter(|(file, _)| stands(file))
         .filter_map(|(_, body)| Card::of(body).map(|card| card.address()))
         .collect()
 }
@@ -301,26 +292,8 @@ fn proposed_in(state: &tisty_core::State, gate: &Gate) -> usize {
         .proposals
         .keys()
         .filter_map(|id| state.docs.get(id))
-        .filter(|kept| held(kept) && gate.carded(&kept.file))
+        .filter(|kept| held(kept) && gate.carded(&kept.file) && !gate.elsewhere(&kept.file))
         .count()
-}
-
-// Global rules that took one name on two computers before they synced each get one, so both reach the agents.
-fn twins_named(session: &mut Session, here: &str) -> Answer<()> {
-    let docs: Vec<(tisty_core::model::DocId, String, String, bool)> = bodies(session)
-        .into_iter()
-        .filter_map(|(file, body)| {
-            let kept = session.state.docs.values().find(|one| one.file == file)?;
-            let agreed =
-                kept.agreed.as_deref() == Some(tisty_core::docs::print_of_text(&body).as_str());
-            Some((kept.id, file, body, agreed))
-        })
-        .collect();
-    for (file, body) in agents::renamed_twins(&docs) {
-        waits_marked(session, here, &file);
-        rewritten(session, &file, &body)?;
-    }
-    Ok(())
 }
 
 // Only the body the log names, read without its card, lets a proposal go: one behind the log may still get it back.
@@ -461,15 +434,21 @@ pub struct Loose {
 }
 
 // A document gone, uncarded, declined here or sent elsewhere frees its file; a Global rule only follows where the assistant reads.
-fn frees(homes: &Homes, gate: &Gate, at: &Path, file: &str) -> Option<bool> {
+fn frees(
+    homes: &Homes,
+    gate: &Gate,
+    stands: &places::Stands,
+    at: &Path,
+    file: &str,
+) -> Option<bool> {
     match gate.seen(file) {
-        None | Some(Seen::Plain | Seen::DeclinedHere) => Some(true),
+        None | Some(Seen::Plain | Seen::DeclinedHere | Seen::OtherComputer) => Some(true),
         Some(Seen::Admitted) => {
             let piece = gate.admitted().iter().find(|one| one.file() == file)?;
             let card = piece.card();
             let elsewhere = card.level != GLOBAL
                 && places::target_of(homes, card).map(|(_, there)| there) != Some(at.to_path_buf());
-            Some(elsewhere || (card.level == GLOBAL && places::wordless(piece)))
+            Some(elsewhere || places::wordless(piece) || stands.aside_at(homes, card, file, at))
         }
         Some(_) => None,
     }
@@ -488,18 +467,21 @@ pub(crate) fn loose_in(
     }
     let placing = |at: &Path| {
         placed.iter().any(|one| {
-            agents::same_file(&one.target.at, at)
+            (agents::same_file(&one.target.at, at) && !one.target.wordless())
                 || one
                     .lead_in
                     .as_ref()
                     .is_some_and(|lead| agents::same_file(&lead.at, at))
         })
     };
+    let awaited = places::awaited(homes, gate);
+    let stands = places::stands(homes, gate, ledger);
     let mut out = Vec::new();
     for (at, files) in ledger.written_files() {
         // Tisty's own copies are offered in their card, never here.
         if (!rooted && !ledger.stays(at))
             || placing(at)
+            || awaited.contains(&agents::path_key(at))
             || places::agents_own(homes, at)
             || files.is_empty()
             || agents::shipped_copy(ledger, at)
@@ -520,7 +502,7 @@ pub(crate) fn loose_in(
         }
         let freed: Option<Vec<bool>> = files
             .iter()
-            .map(|file| frees(homes, gate, at, file))
+            .map(|file| frees(homes, gate, &stands, at, file))
             .collect();
         if !freed.is_some_and(|all| all.contains(&true)) {
             continue;
@@ -787,7 +769,8 @@ fn round_after(
 ) -> Rounded {
     let data = session.paths.data();
     let taken = ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file));
-    if ledger.wait_all(gate.unclaimed()) | taken {
+    let let_in = agents_homes::let_in(&gate, ledger);
+    if ledger.wait_all(gate.unclaimed()) | taken | let_in {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
@@ -917,10 +900,6 @@ pub fn read_chosen(
     (bodies, refused)
 }
 
-fn sub_name(level: &str) -> &'static str {
-    places::assistant(level).map_or(GLOBAL_FOLDER, |one| one.name)
-}
-
 pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(String, PathBuf)>> {
     if bodies.is_empty() && root_of(&session.state).is_some() {
         return Ok(Vec::new());
@@ -955,6 +934,7 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(S
                 parent,
                 icon: mark.then(|| places::ICON.to_string()),
                 color: mark.then(|| places::HUE.to_string()),
+                computer: None,
             },
         });
         id
@@ -967,56 +947,39 @@ pub fn filed(session: &mut Session, bodies: &[(Found, String)]) -> Answer<Vec<(S
             root
         }
     };
-    let mut subs: BTreeMap<&'static str, FolderId> = session
-        .state
-        .folders
-        .values()
-        .filter(|one| one.parent == Some(root))
-        .filter_map(|one| {
-            ASSISTANTS
-                .iter()
-                .map(|known| known.name)
-                .chain([GLOBAL_FOLDER])
-                .find(|name| *name == one.name)
-                .map(|name| (name, one.id))
-        })
-        .collect();
     let device = session.store.device().clone();
+    let mut rooms = Rooms::of(&session.state, root, &device);
     let docs = session.paths.docs();
     let signed = signing(&session.state);
     let mut made = Vec::new();
+    let mut added = Vec::new();
     for (one, body) in bodies {
-        let name = sub_name(&one.assistant);
-        let sub = match subs.get(name) {
-            Some(sub) => *sub,
-            None => {
-                let sub = folder(&mut ops, name, Some(root), false);
-                subs.insert(name, sub);
-                sub
-            }
-        };
-        let kept = match tisty_core::docs::create(&docs, &device, body) {
+        let sub = rooms.of_assistant(&session.state, &one.assistant);
+        let body = agents::meant_for(body, Some(&device)).unwrap_or_else(|| body.clone());
+        let kept = match tisty_core::docs::create(&docs, &device, &body) {
             Ok(kept) => kept,
             Err(e) => return Err(undone(&docs, &made, e)),
         };
         made.push((kept.id.clone(), one.at.clone()));
-        ops.push(Op::DocAdd {
+        added.push(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
                 file: kept.id,
                 folder: Some(sub),
                 order: next(&session.state, Some(sub), true),
-                said: Some(tisty_core::event::Said::of(body).agreed()),
+                said: Some(tisty_core::event::Said::of(&body).agreed()),
                 by: signed.clone(),
                 ..Default::default()
             },
         });
     }
+    ops.extend(rooms.ops);
     for op in &mut ops {
         if let Op::FolderAdd { d, .. } = op {
             d.order = next(&session.state, d.parent, false);
         }
     }
+    ops.extend(added);
     match session.commit_all(ops) {
         Ok(()) => Ok(made),
         Err(e) => Err(undone(&docs, &made, e)),
@@ -1101,7 +1064,7 @@ pub fn kept_side(
 }
 
 // The document's former words stay in its history, which is Tisty's side of the backup.
-fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
+pub(crate) fn rewritten(session: &mut Session, file: &str, body: &str) -> Answer<()> {
     rewritten_by(session, file, body, None)
 }
 
@@ -1386,8 +1349,8 @@ pub(crate) fn round_here(session: &mut Session, homes: &Homes, here: &str) -> An
     joined_here(session)?;
     untagged(session);
     uncarded_let_go(session)?;
-    twins_named(session, here)?;
     let mut ledger = Ledger::open(session.paths.data(), here);
+    agents_homes::settled_in(session, homes, &mut ledger);
     subfolders_made(session, homes, &ledger)?;
     Ok(round_now(session, homes, &mut ledger))
 }

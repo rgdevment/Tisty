@@ -51,3 +51,16 @@ fn a_script_whose_block_breaks_is_refused() {
     assert_eq!(proposable(&script, &script), Ok(()));
     assert_eq!(proposable(&script, &broken), Err(Unfit::NotWritable));
 }
+
+#[test]
+fn a_proposal_that_changes_the_computer_mark_is_retargeted() {
+    let marked = RULE.replace(
+        "claude/rule/CLAUDE.md",
+        "[claude/rule/CLAUDE.md, on-dev_ab12cd34]",
+    );
+    let other = marked.replace("dev_ab12cd34", "dev_ef56ab78");
+    assert_eq!(proposable(&marked, &marked), Ok(()));
+    assert_eq!(proposable(&marked, RULE), Err(Unfit::Retargeted));
+    assert_eq!(proposable(RULE, &marked), Err(Unfit::Retargeted));
+    assert_eq!(proposable(&marked, &other), Err(Unfit::Retargeted));
+}

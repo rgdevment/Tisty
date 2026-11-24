@@ -40,10 +40,16 @@ pub fn doc_file(
     if before.is_some_and(|at| at == id) {
         return Err(Refusal::of("intoItself"));
     }
+    super::agents_homes::resolved(&session.state, id, folder)?;
     let mut ops = beside_docs(&session.state, id, folder, before);
     ops.extend(super::tongues::following(&session.state, id, folder));
     session.commit_all(ops)?;
-    Ok(())
+    let went: Vec<String> = std::iter::once(id)
+        .chain(session.state.kin(id))
+        .filter_map(|one| session.state.docs.get(&one))
+        .map(|one| one.file.clone())
+        .collect();
+    super::agents_homes::moved_here(&mut session, &went)
 }
 
 pub fn beside_docs(
@@ -1057,6 +1063,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         brainstorm: false,
                         diary: false,
                         agreed: false,
+                        knows_computers: false,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -1214,6 +1221,14 @@ pub fn doc_write(
     })?
 }
 
+// Another computer's own agent files are only read and moved from this one.
+pub(crate) fn read_here(session: &Session, file: &str) -> Answer<()> {
+    match super::agents_homes::of_another(session, file) {
+        true => Err(Refusal::of("agentOfAnother")),
+        false => Ok(()),
+    }
+}
+
 pub(crate) fn written_by_hand(
     session: &mut Session,
     id: String,
@@ -1222,6 +1237,7 @@ pub(crate) fn written_by_hand(
     since: Option<String>,
 ) -> Answer<Kept> {
     writable(&session.state, &id)?;
+    read_here(session, &id)?;
     // Written anyway, the words came from what the page was opened on, not from what the disk holds now.
     let built_on = since.clone();
     let since = since.filter(|_| !anyway.unwrap_or(false));

@@ -1080,6 +1080,9 @@ pub struct FolderAdd {
     pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    /// The computer whose own agent files this folder of AGENTS holds; only that computer may say so.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub computer: Option<DeviceId>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -1110,11 +1113,15 @@ pub struct Said {
     // Only the person's hand says it, never a body read back from disk; an assistant saying it is not believed.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub agreed: bool,
+    // Said of an agent's document by a build that reads which computer it is for: an older one rewrites such words as a plain page.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub knows_computers: bool,
 }
 
 impl Said {
     pub fn of(body: &str) -> Self {
         let settled = crate::docs::settled(body);
+        let card = crate::agents::Card::of(body);
         Self {
             title: crate::docs::titled(body),
             print: Some(crate::attach::printed(settled.as_bytes())),
@@ -1123,7 +1130,7 @@ impl Said {
             // like news and write another note.
             bytes: Some(settled.len() as u64),
             // An assistant's file keeps its #words as written: they are its text, never Tisty tags.
-            tags: Some(match crate::agents::Card::of(body) {
+            tags: Some(match &card {
                 Some(_) => Vec::new(),
                 None => crate::tagging::tags_in(body),
             }),
@@ -1133,6 +1140,7 @@ impl Said {
             brainstorm: tisty_markdown::front::brainstorm(body),
             diary: tisty_markdown::front::diary(body),
             agreed: false,
+            knows_computers: card.is_some(),
         }
     }
 
@@ -1156,6 +1164,7 @@ impl Said {
             || (self.brainstorm && !kept.brainstorm)
             || (self.diary && !kept.diary)
             || (self.agreed && self.print.is_some() && self.print != kept.agreed)
+            || (self.agreed && self.knows_computers && !kept.agreed_knowing)
     }
 }
 

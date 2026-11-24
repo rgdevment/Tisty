@@ -426,6 +426,7 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             edited: None,
             agreed: None,
             agreed_by: None,
+            agreed_knowing: false,
             placed_by: None,
         }),
         "opening it again is news, so it writes another note"

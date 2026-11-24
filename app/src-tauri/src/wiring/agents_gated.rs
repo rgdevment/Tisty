@@ -42,44 +42,83 @@ pub(crate) fn consented() -> Ledger {
 }
 
 pub(crate) fn gated(ledger: &Ledger, docs: &[(String, String)]) -> Gated {
+    gated_in(ledger, docs, &[])
+}
+
+/// `rooms` names the documents that sit in a computer's folder under AGENTS, by the computer.
+pub(crate) fn gated_in(
+    ledger: &Ledger,
+    docs: &[(String, String)],
+    rooms: &[(&str, &str)],
+) -> Gated {
     let dir = tempfile::tempdir().unwrap();
     let me = DeviceId(ME.into());
     let mut state = State::default();
     let mut ms = 0;
-    let mut apply = |state: &mut State, op: Op| {
+    let mut apply_by = |state: &mut State, who: &DeviceId, op: Op| {
         ms += 1;
         let at = jiff::Timestamp::from_millisecond(ms).unwrap();
-        state.apply(&Event::new(me.clone(), at, op));
+        state.apply(&Event::new(who.clone(), at, op));
     };
     let root = ulid::Ulid::generate();
-    apply(
+    apply_by(
         &mut state,
+        &me,
         Op::FolderAdd {
             id: root,
             d: FolderAdd {
                 name: "AGENTS".into(),
                 order: "a0".into(),
                 parent: None,
-                icon: None,
+                icon: Some(tisty_core::agents::ICON.into()),
                 color: None,
+                computer: None,
             },
         },
     );
+    let mut computers: BTreeMap<&str, ulid::Ulid> = BTreeMap::new();
+    for (_, device) in rooms {
+        computers.entry(device).or_insert_with(|| {
+            let id = ulid::Ulid::generate();
+            let owner = DeviceId((*device).into());
+            apply_by(
+                &mut state,
+                &owner,
+                Op::FolderAdd {
+                    id,
+                    d: FolderAdd {
+                        name: format!("computer {device}"),
+                        order: "a1".into(),
+                        parent: Some(root),
+                        icon: None,
+                        color: None,
+                        computer: Some(owner.clone()),
+                    },
+                },
+            );
+            id
+        });
+    }
+    let room_of = |name: &str| {
+        let device = rooms.iter().find(|(doc, _)| *doc == name)?.1;
+        computers.get(device).copied()
+    };
     let mut sorted: Vec<&(String, String)> = docs.iter().collect();
     sorted.sort_by(|a, b| a.0.cmp(&b.0));
     let mut names = BTreeMap::new();
     for (name, body) in sorted {
         let file = id_of(name);
         tisty_core::docs::create_named(dir.path(), &file, body).unwrap();
-        apply(
+        apply_by(
             &mut state,
+            &me,
             Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: DocAdd {
                     file: file.clone(),
                     order: "a0".into(),
                     said: Some(Said::of(body).agreed()),
-                    folder: Some(root),
+                    folder: Some(room_of(name).unwrap_or(root)),
                     ..Default::default()
                 },
             },

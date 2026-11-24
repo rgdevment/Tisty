@@ -446,6 +446,7 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
                 parent,
                 icon,
                 color,
+                computer: None,
             },
         })
         .map_err(hitch)?;

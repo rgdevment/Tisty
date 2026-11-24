@@ -444,7 +444,7 @@ impl State {
                     list.name = crate::text::plainly(&d.name);
                 }
             }
-            Op::FolderAdd { id, d } => self.folder_added(id, d),
+            Op::FolderAdd { id, d } => self.folder_added(event, id, d),
             Op::FolderRename { id, d } => {
                 if let Some(folder) = self.folders.get_mut(id) {
                     folder.name = crate::text::plainly(&d.name);

@@ -255,6 +255,7 @@ fn home() -> Home {
             parent,
             icon: icon.map(str::to_string),
             color: None,
+            computer: None,
         },
     };
     persons(

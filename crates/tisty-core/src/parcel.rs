@@ -1215,6 +1215,7 @@ fn shelved(
                     .as_ref()
                     .and_then(|one| crate::model::hue::kept(one))
                     .map(str::to_string),
+                computer: None,
             },
         });
         // A folder a parcel brings closed comes in closed. One that was already here decides for

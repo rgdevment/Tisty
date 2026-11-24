@@ -56,6 +56,7 @@ impl Log {
                     parent,
                     icon: robot.then(|| ICON.to_string()),
                     color: None,
+                    computer: None,
                 },
             },
         );
@@ -75,6 +76,26 @@ impl Log {
                     parent: Some(root),
                     icon: None,
                     color: None,
+                    computer: None,
+                },
+            },
+        );
+        id
+    }
+
+    fn computer_folder(&mut self, who: &str, name: &str, parent: FolderId) -> FolderId {
+        let id = Ulid::generate();
+        self.push(
+            who,
+            Op::FolderAdd {
+                id,
+                d: FolderAdd {
+                    name: name.into(),
+                    order: "a0".into(),
+                    parent: Some(parent),
+                    icon: None,
+                    color: None,
+                    computer: Some(DeviceId(who.into())),
                 },
             },
         );
@@ -422,4 +443,77 @@ fn an_older_agents_an_agent_made_never_takes_in_the_persons() {
     log.doc(DESK, "mine", Some(mine));
     assert!(made_by_agent < mine);
     assert!(joined(&log.state()).is_empty());
+}
+
+#[test]
+fn two_computers_folders_with_the_same_name_stay_two_when_the_agents_join() {
+    let mut two = two();
+    let desk = two.log.computer_folder(DESK, "Home", two.desk);
+    let laptop = two.log.computer_folder(LAPTOP, "Home", two.laptop);
+    two.log.doc(DESK, "desk-own", Some(desk));
+    two.log.doc(LAPTOP, "laptop-own", Some(laptop));
+
+    two.log.pushed(DESK, joined(&two.log.state()));
+    let after = two.log.state();
+
+    assert_eq!(roots(&after), [two.desk]);
+    assert_eq!(named(&after, two.desk), ["Global", "Home", "Home"]);
+    assert_eq!(folder_of(&after, "desk-own"), Some(desk));
+    assert_eq!(folder_of(&after, "laptop-own"), Some(laptop));
+    assert_eq!(
+        after.folders[&laptop].computer,
+        Some(DeviceId(LAPTOP.into()))
+    );
+    assert_eq!(after.folders[&desk].computer, Some(DeviceId(DESK.into())));
+}
+
+#[test]
+fn two_folders_of_the_same_computer_join_whatever_they_are_called() {
+    let mut two = two();
+    let first = two.log.computer_folder(LAPTOP, "Laptop", two.desk);
+    let second = two.log.computer_folder(LAPTOP, "Renamed", two.laptop);
+    two.log.doc(LAPTOP, "first-own", Some(first));
+    two.log.doc(LAPTOP, "second-own", Some(second));
+
+    two.log.pushed(LAPTOP, joined(&two.log.state()));
+    let after = two.log.state();
+
+    assert_eq!(folder_of(&after, "first-own"), Some(first));
+    assert_eq!(folder_of(&after, "second-own"), Some(first));
+    assert!(!after.folders.contains_key(&second));
+    assert_eq!(named(&after, two.desk), ["Global", "Laptop"]);
+}
+
+#[test]
+fn a_computers_folder_never_joins_a_plain_folder_of_its_name() {
+    let mut two = two();
+    let plain = two.log.folder(DESK, "Home", Some(two.desk));
+    let own = two.log.computer_folder(LAPTOP, "Home", two.laptop);
+    two.log.doc(DESK, "plain-doc", Some(plain));
+    two.log.doc(LAPTOP, "own-doc", Some(own));
+
+    two.log.pushed(DESK, joined(&two.log.state()));
+    let after = two.log.state();
+
+    assert_eq!(folder_of(&after, "plain-doc"), Some(plain));
+    assert_eq!(folder_of(&after, "own-doc"), Some(own));
+    assert_eq!(named(&after, two.desk), ["Global", "Home", "Home"]);
+}
+
+#[test]
+fn a_computers_folder_never_joins_a_plain_folder_of_its_name_that_landed_from_another_agents() {
+    let mut two = two();
+    let plain = two.log.folder(LAPTOP, "Home", Some(two.laptop));
+    let own = two.log.computer_folder(LAPTOP, "Home", two.laptop);
+    two.log.doc(LAPTOP, "plain-doc", Some(plain));
+    two.log.doc(LAPTOP, "own-doc", Some(own));
+
+    two.log.pushed(LAPTOP, joined(&two.log.state()));
+    let after = two.log.state();
+
+    assert_eq!(folder_of(&after, "plain-doc"), Some(plain));
+    assert_eq!(folder_of(&after, "own-doc"), Some(own));
+    assert_eq!(named(&after, two.desk), ["Global", "Home", "Home"]);
+    assert_eq!(after.folders[&own].computer, Some(DeviceId(LAPTOP.into())));
+    assert_eq!(after.folders[&plain].computer, None);
 }

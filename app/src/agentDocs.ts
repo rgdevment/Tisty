@@ -45,6 +45,10 @@ export type Here =
   | "notAgreed"
   | "placedByAgent"
   | "otherMemory"
+  | "otherComputer"
+  | "apart"
+  | "contested"
+  | "aside"
   | "away";
 
 export interface Proposal {
@@ -78,7 +82,7 @@ export interface AgentDoc {
   readonly label: string;
   readonly code: boolean;
   readonly folderOff: boolean;
-  readonly twin: boolean;
+  readonly rivals: readonly string[];
   readonly here: Here;
   readonly print: string;
   readonly places: readonly Place[];
@@ -127,6 +131,8 @@ export const agentHeld = (file: string, at: string, backup: number | null): Prom
   agentDo(file, at, { do: "held", backup }).then((text) => text ?? "");
 export const agentRestore = (file: string, at: string, backup: number): Promise<void> =>
   agentDo(file, at, { do: "restore", backup }).then(() => undefined);
+export const agentSettle = (file: string): Promise<AgentDoc | null> =>
+  invoke("agent_doc", { file, asked: { do: "settle" } });
 export const agentTake = (file: string, here: boolean): Promise<AgentDoc | null> =>
   invoke("agent_doc", { file, asked: { do: "take", here } });
 export const agentAgree = (file: string, print: string): Promise<AgentDoc | null> =>
