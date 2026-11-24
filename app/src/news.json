@@ -1850,6 +1850,10 @@
         "said": "dile «Retoma donde quedamos», «Deja esto listo para el próximo agente» u «Ordena mi Tisty». Dónde quedó el trabajo, lo descartado y el siguiente paso quedan escritos en la tarea, para otro agente o para ti."
       },
       {
+        "title": "Diseños para tus documentos",
+        "said": "Default, Bosque, Coral, Fiordo, Violeta o uno propio, con sus colores y su letra, en claro y en oscuro. Se imprime con los claros, y viaja si compartes el documento."
+      },
+      {
         "title": "Quitar también de tus agentes",
         "said": "al eliminar de Agentes una regla o una skill, el mismo aviso te pregunta si la quitas también de los agentes que la tienen, con respaldo. Solo de Tisty deja sus archivos, y Configuración › Agentes los sigue listando por si cambias de idea."
       },
@@ -1871,7 +1875,7 @@
       },
       {
         "title": "Documentos que se leen como una página",
-        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila. Una tabla, un diagrama o una fórmula dentro de una lista o de una cita se dibuja entero, y la tabla se escribe celda por celda. Y cada documento puede llevar su diseño: Default, Bosque, Coral, Fiordo, Violeta o uno propio, en claro y en oscuro."
+        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila. Una tabla, un diagrama o una fórmula dentro de una lista o de una cita se dibuja entero, y la tabla se escribe celda por celda."
       },
       {
         "title": "Lo que escribes no se pierde",
@@ -1916,6 +1920,10 @@
         "said": "tell it “Pick up where we left off”, “Leave this ready for the next agent” or “Tidy up my Tisty”. Where the work stands, what was ruled out and the next step stay written in the task, for another agent or for you."
       },
       {
+        "title": "Designs for your documents",
+        "said": "Default, Forest, Coral, Fjord, Violet or one of your own, with its colors and its font, in light and in dark. It prints in the light ones, and travels when you share the document."
+      },
+      {
         "title": "Take it away from your agents too",
         "said": "when you delete a rule or a skill from Agents, the same box asks whether to take it away from the agents that have it too, with a backup. Only from Tisty leaves their files, and Settings › Agents keeps listing them in case you change your mind."
       },
@@ -1937,7 +1945,7 @@
       },
       {
         "title": "Documents that read like a page",
-        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row. A table, a diagram or a formula inside a list or a quote is drawn whole, and the table is written cell by cell. And each document can wear a design: Default, Forest, Coral, Fjord, Violet or your own, in light and in dark."
+        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row. A table, a diagram or a formula inside a list or a quote is drawn whole, and the table is written cell by cell."
       },
       {
         "title": "What you write is not lost",
