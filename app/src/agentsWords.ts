@@ -626,7 +626,6 @@ const words = {
     "Este documento ya dice lo mismo que el archivo; solo cambia cómo termina el archivo. Sobrescríbelo con Tisty para que coincidan.",
   ],
   tistySkills: ["Tisty's skills", "Skills de Tisty"],
-  tistySkillsWhole: ["on this whole computer", "en todo este equipo"],
   tistySkillsOff: ["Off", "Apagadas"],
   tistySkillsRowBehind: ["To bring up to date", "Por poner al día"],
   tistySkillsRowNone: ["Not here", "Aquí no"],
@@ -675,8 +674,8 @@ const words = {
   ],
   tistySkillsWhere: ["Where they go on this computer", "Dónde van en este equipo"],
   tistySkillsShared: [
-    "Codex, Copilot and Gemini share this folder: turning them on or off here does it for the three.",
-    "Codex, Copilot y Gemini comparten esta carpeta: encenderlas o apagarlas aquí vale para los tres.",
+    "Codex, Copilot, Gemini and DeepSeek Harness share this folder: turning them on or off here does it for the four.",
+    "Codex, Copilot, Gemini y DeepSeek Harness comparten esta carpeta: encenderlos o apagarlos aquí vale para los cuatro.",
   ],
   tistySkillsUpdate: [
     "They update when you update Tisty, and never write over a skill of yours with the same name.",

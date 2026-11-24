@@ -22,7 +22,7 @@ pub fn fields(shape: Shape, command: &str) -> Vec<(&'static str, String, bool)> 
             ("command", format!("[{}, \"mcp\"]", quoted(command)), true),
             ("enabled", "true".to_string(), false),
         ],
-        Shape::Toml | Shape::Manual => Vec::new(),
+        Shape::Toml | Shape::Manual | Shape::Patch => Vec::new(),
     }
 }
 
@@ -34,24 +34,25 @@ pub fn toml_entry(command: &str) -> String {
 }
 
 /// What a person pastes by hand: the entry in the shape the assistant reads, under its key.
-pub fn snippet(shape: Shape, key: &str, command: &str) -> String {
+pub fn snippet(shape: Shape, key: &str, name: &str, command: &str) -> String {
     match shape {
-        Shape::Toml => format!("[{key}.tisty]\n{}", toml_entry(command)),
+        Shape::Toml => format!("[{key}.{name}]\n{}", toml_entry(command)),
         Shape::Manual if key == "extensions" => format!(
-            "extensions:\n  tisty:\n    type: stdio\n    name: tisty\n    enabled: true\n    cmd: {}\n    args: [mcp]",
+            "extensions:\n  {name}:\n    type: stdio\n    name: {name}\n    enabled: true\n    cmd: {}\n    args: [mcp]",
             quoted(command)
         ),
         Shape::Manual => format!(
-            "mcpServers:\n  - name: tisty\n    type: stdio\n    command: {}\n    args: [mcp]",
+            "mcpServers:\n  - name: {name}\n    type: stdio\n    command: {}\n    args: [mcp]",
             quoted(command)
         ),
+        Shape::Patch => super::patch::pasted(key, name, command),
         _ => {
             let inner: Vec<String> = fields(shape, command)
                 .into_iter()
                 .map(|(field, value, _)| format!("    \"{field}\": {value}"))
                 .collect();
             format!(
-                "\"{key}\": {{\n  \"tisty\": {{\n{}\n  }}\n}}",
+                "\"{key}\": {{\n  \"{name}\": {{\n{}\n  }}\n}}",
                 inner.join(",\n")
             )
         }

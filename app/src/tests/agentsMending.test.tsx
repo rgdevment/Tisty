@@ -459,7 +459,7 @@ describe("the agents' page", () => {
   it("names the agents the skills reach, and every file and folder, tied to its own tick", async () => {
     const offer = await ask();
     const skills = offer.getByRole("checkbox", {
-      name: "Tisty's skills on this whole computer: Claude Code, Codex · Copilot · Gemini",
+      name: "Tisty's skills on this whole computer: Claude Code, Codex · Copilot · Gemini · DeepSeek Harness",
     });
     const about = document.getElementById(skills.getAttribute("aria-describedby") ?? "");
     expect(about?.textContent).toContain("/home/someone/.agents/skills");

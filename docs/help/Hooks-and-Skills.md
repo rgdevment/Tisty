@@ -12,7 +12,7 @@ How to connect an agent is in [[Agents and MCP|Agents-and-MCP]]; a session call 
 | :-- | :-- | :-- |
 | **What they are** | Commands your agent runs by itself when a session starts, before and after some tools and when a turn ends | Three folders with a `SKILL.md` that your agent reads when what you ask fits them |
 | **What they do** | Bring the agent its open tasks when it starts, and hand the turn back once if it edited files without writing anything in Tisty, and ask it once before it leaves a text file outside a repository | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
-| **Which agents** | Claude Code, Cursor, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot and Gemini CLI |
+| **Which agents** | Claude Code, Cursor, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI and DeepSeek Harness |
 | **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or on the **Tisty's skills** row, at the end |
 | **Both at once** | **Hooks and skills for your agents**, above the tabs | The same box |
 | **The yes** | One per agent, when you connect it or on its switch, naming the file that will be written | One for the whole computer, when you connect or on its switch, naming the folders that will be written |
@@ -156,9 +156,9 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 | :-- | :-- |
 | **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/writing-for-the-next-agent/` |
 | **Cursor** | `~/.cursor/skills/…`, with the same three folders |
-| **Codex**, **GitHub Copilot** and **Gemini CLI** | `~/.agents/skills/…`, a single copy the three of them read |
+| **Codex**, **GitHub Copilot**, **Gemini CLI** and **DeepSeek Harness** | `~/.agents/skills/…`, a single copy the four of them read |
 
-`~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. The card shows only the folders of the agents you have on this computer. The shared one says «Codex · Copilot · Gemini» and warns about it: «Codex, Copilot and Gemini share this folder: turning them on or off here does it for the three.».
+`~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. The card shows only the folders of the agents you have on this computer. The shared one says «Codex · Copilot · Gemini · DeepSeek Harness» and warns about it: «Codex, Copilot, Gemini and DeepSeek Harness share this folder: turning them on or off here does it for the four.».
 
 ### Turning them on
 
@@ -223,7 +223,7 @@ If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fi
 
 ### With the Tisty plugin
 
-- **Claude Code.** The Tisty plugin brings the same three skills. When it is installed for your user and you did not turn it off, Tisty does not copy them to `~/.claude/skills`, and the card says so: «Claude Code already has them through the Tisty plugin, so Tisty does not copy them there.». Codex, Copilot, Gemini and Cursor keep getting them.
+- **Claude Code.** The Tisty plugin brings the same three skills. When it is installed for your user and you did not turn it off, Tisty does not copy them to `~/.claude/skills`, and the card says so: «Claude Code already has them through the Tisty plugin, so Tisty does not copy them there.». Codex, Copilot, Gemini, Cursor and DeepSeek Harness keep getting them.
 - **The plugin comes later.** The copies Tisty had left in `~/.claude/skills` show up on the card under «Copies left over: Tisty no longer writes them there. Removing one keeps a backup.», each path with **Take the file away**. They are never taken away on their own.
 - **Cursor.** Its plugin leaves no record Tisty can read, so the card always warns: «If you installed the Tisty plugin in Cursor, Cursor will list each skill twice: Tisty cannot tell.». If it happens to you, keep only one of the two: the plugin in Cursor or Tisty's skills.
 
@@ -236,7 +236,7 @@ If you already have connected agents and one of them lacks the hooks or the skil
 > Optional. With hooks, an agent starts each session knowing what it left open. With Tisty's skills, it learns to work with Tisty.
 >
 > Hooks for Claude Code, Cursor
-> Tisty's skills on this whole computer: Claude Code, Cursor, Codex · Copilot · Gemini
+> Tisty's skills on this whole computer: Claude Code, Cursor, Codex · Copilot · Gemini · DeepSeek Harness
 >
 > **Add hooks and turn on skills** · **Not now**
 

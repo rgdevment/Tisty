@@ -117,6 +117,32 @@ fn only_assistants_with_a_folder_here_are_detected() {
 }
 
 #[test]
+fn the_harness_alone_owns_the_shared_skills_folder() {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join("home/.dsh")).unwrap();
+    let homes = Homes::with(&tmp.path().join("home"), &[]);
+    let ids: Vec<&str> = homes.detected().iter().map(|one| one.id).collect();
+    assert_eq!(ids, ["dsh"]);
+
+    let ledger = consented();
+    let docs = vec![(
+        "a".to_string(),
+        doc(GLOBAL, Kind::Skill, "pr/SKILL.md", "pr\n"),
+    )];
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    let skills: Vec<&Placed> = placed
+        .iter()
+        .filter(|one| one.target.assistant == "dsh")
+        .collect();
+    assert_eq!(skills.len(), 1);
+    assert_eq!(
+        skills[0].target.at,
+        tmp.path().join("home/.agents/skills/pr/SKILL.md")
+    );
+}
+
+#[test]
 fn a_rule_outside_what_the_assistant_reads_has_no_target() {
     let (_tmp, homes) = seeded();
     assert!(target_of(&homes, &card("claude", Kind::Rule, "notes.md")).is_none());

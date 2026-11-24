@@ -197,8 +197,10 @@ describe("Tisty's own skills", () => {
     expect(screen.getByText("Where they go on this computer")).toBeTruthy();
     expect(screen.getByText("/h/.cursor/skills")).toBeTruthy();
     expect(screen.getByText("/h/.agents/skills")).toBeTruthy();
-    expect(screen.getByText("Codex · Copilot · Gemini")).toBeTruthy();
-    expect(screen.getByText(/Codex, Copilot and Gemini share this folder/)).toBeTruthy();
+    expect(screen.getByText("Codex · Copilot · Gemini · DeepSeek Harness")).toBeTruthy();
+    expect(
+      screen.getByText(/Codex, Copilot, Gemini and DeepSeek Harness share this folder/),
+    ).toBeTruthy();
     expect(screen.getByText(/Claude Code already has them through the Tisty plugin/)).toBeTruthy();
     expect(screen.getByText(/installed the Tisty plugin in Cursor/)).toBeTruthy();
     expect(screen.getByText("From Tisty 1.50.0")).toBeTruthy();

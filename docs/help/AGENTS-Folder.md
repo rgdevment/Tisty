@@ -14,7 +14,7 @@ I use more than one AI agent, and each one reads its rules from a different file
 It helps when:
 
 - **You want to read and arrange the rules you already have.** With **Bring**, your `CLAUDE.md`, your skills and your Copilot rules come in as documents, with headings and search, instead of flat files in hidden folders. Your agents keep reading their files as they were.
-- **You use several agents and want the same skill in all of them.** With **Sync**, you write the skill once in **Global**, and it reaches Claude Code, Cursor and the folder Codex, Copilot and Gemini share. Rules, on the other hand, belong to each agent: each one reads its own file, and what that file says is what your document says.
+- **You use several agents and want the same skill in all of them.** With **Sync**, you write the skill once in **Global**, and it reaches Claude Code, Cursor and the folder Codex, Copilot, Gemini and DeepSeek Harness share. Rules, on the other hand, belong to each agent: each one reads its own file, and what that file says is what your document says.
 - **You work on more than one computer.** Each computer has its own folder inside Agents and writes only its own: what is in the work one does not write over the home one, and what is in another computer's folder you read from here but do not change from here.
 - **You have skills with scripts.** Each file of the skill is a document, and a script is kept in a code block that is written as is.
 - **You want to be able to go back.** While syncing, Tisty keeps the original file before it first writes over it, and the last 20 before each overwrite.
@@ -87,7 +87,8 @@ The list brings only what your agent really reads. The rest does not show, not e
 | Agent | Skills folder | Where a skill can be |
 | :-- | :-- | :-- |
 | Claude Code | `~/.claude/skills` | right inside, such as `skills/pr/` |
-| Codex | `~/.agents/skills`, which it shares with Copilot and Gemini | up to six folders down, such as `skills/work/pr/` |
+| Codex | `~/.agents/skills`, which it shares with Copilot, Gemini and DeepSeek Harness | up to six folders down, such as `skills/work/pr/` |
+| DeepSeek Harness | `~/.agents/skills`, which it shares with Codex, Copilot and Gemini | up to six folders down, such as `skills/work/pr/` |
 | GitHub Copilot CLI | `~/.copilot/skills` | right inside |
 | Gemini CLI | `~/.gemini/skills` | right inside |
 | Cursor | `~/.cursor/skills` | in any category folder |
@@ -409,7 +410,7 @@ A Global skill is written once where several read it at a time:
 
 - in `~/.claude/skills/pdf/`, for Claude Code;
 - in `~/.cursor/skills/pdf/`, for Cursor;
-- in `~/.agents/skills/pdf/`, one copy that Codex, Copilot and Gemini all read.
+- in `~/.agents/skills/pdf/`, one copy that Codex, Copilot, Gemini and DeepSeek Harness all read.
 
 The `SKILL.md`'s own properties stay out of the text: its `name` is the card's name, its `description` sits under it in a quiet line, and the rest, such as `disable-model-invocation: true`, go in small rows of the facts box. The script is kept in a code block and written as is, without the block: the card's **Format** row names the script's kind, such as SH · LF, and a Markdown document says Markdown · LF.
 

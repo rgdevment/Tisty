@@ -24,9 +24,12 @@ const NAMES: Record<string, string> = {
   copilot: "Copilot",
   gemini: "Gemini",
   cursor: "Cursor",
+  dsh: "DeepSeek Harness",
 };
 
-const SHARED = new Set(["codex", "copilot", "gemini"]);
+const SHARED = new Set(["codex", "copilot", "gemini", "dsh"]);
+
+const sharedName = [...SHARED].map((id) => NAMES[id] ?? id).join(" · ");
 
 const skillSaid = (name: string, about: string | null): string => {
   const key = `tistySkill_${name}` as Word;
@@ -75,9 +78,7 @@ export const teaches = (all: readonly Wired[], skills: TistySkills | null | unde
 export const agentsTaught = (skills: TistySkills): string[] => [
   ...new Set(
     skills.landing.map((one) =>
-      SHARED.has(one.assistant)
-        ? "Codex · Copilot · Gemini"
-        : (NAMES[one.assistant] ?? one.assistant),
+      SHARED.has(one.assistant) ? sharedName : (NAMES[one.assistant] ?? one.assistant),
     ),
   ),
 ];
@@ -172,7 +173,7 @@ function Where({ skills }: Readonly<{ skills: TistySkills }>) {
         .sort(([a], [b]) => Number(SHARED.has(a)) - Number(SHARED.has(b)))
         .map(([id, seen]) => {
           const worst = seen.standing.find((one) => one !== "upToDate" && one !== "wrote");
-          const named = SHARED.has(id) ? "Codex · Copilot · Gemini" : NAMES[id];
+          const named = SHARED.has(id) ? sharedName : NAMES[id];
           return (
             <li key={id} className="text-[12.5px]">
               <div className="flex items-center gap-2">
@@ -345,10 +346,7 @@ export function TistySkillsAgentLine({
   const pill = said && LINE[said];
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
-      <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">
-        {t("tistySkills")}
-        <span className="text-faint"> · {t("tistySkillsWhole")}</span>
-      </span>
+      <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">{t("tistySkills")}</span>
       {pill && (
         <span
           className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] whitespace-nowrap ${pill}`}

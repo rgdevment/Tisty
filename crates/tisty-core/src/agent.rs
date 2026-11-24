@@ -166,6 +166,11 @@ const CLIENTS: &[(&str, &str, &[&str])] = &[
     ("cursor", "Cursor", &["cursor-agent"]),
     ("windsurf", "Windsurf", &[]),
     ("zed", "Zed", &[]),
+    (
+        "deepseek-harness",
+        "DeepSeek Harness",
+        &["dsh-mcp-client", "dsh"],
+    ),
 ];
 
 /// The id a known client is wired under, whatever it called itself: `codex-mcp-client` is

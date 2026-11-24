@@ -8,6 +8,7 @@ const MARKS: Record<string, string> = {
   copilot: "braces",
   gemini: "compass",
   cursor: "pointer-arrow",
+  dsh: "orbit",
 };
 
 const GLOBAL = "global";
@@ -20,6 +21,7 @@ const HUES: Record<string, { readonly ink: string; readonly pill: string }> = {
   copilot: { ink: "text-hue-indigo", pill: "text-hue-indigo bg-hue-indigo/10" },
   gemini: { ink: "text-hue-green", pill: "text-hue-green bg-hue-green/10" },
   cursor: { ink: "text-hue-brown", pill: "text-hue-brown bg-hue-brown/10" },
+  dsh: { ink: "text-hue-gray", pill: "text-hue-gray bg-hue-gray/10" },
 };
 
 const UNKNOWN = { ink: "text-soft", pill: "text-soft bg-hover" };
@@ -32,6 +34,7 @@ const LEVELS: Record<string, string> = {
   Copilot: "copilot",
   Gemini: "gemini",
   Cursor: "cursor",
+  "DeepSeek Harness": "dsh",
 };
 
 type Drawn = Pick<Folded, "parent" | "name" | "icon"> & Partial<Pick<Folded, "agents">>;

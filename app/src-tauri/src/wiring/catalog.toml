@@ -1,7 +1,6 @@
-# Where each assistant keeps its MCP servers and how it wants Tisty written.
-# Paths start with a root: ~ (home), appdata: and localappdata: (Windows), support: (macOS
-# Application Support), config: (~/.config, or $XDG_CONFIG_HOME), store:<prefix>: (a Windows Store
-# package's private roaming folder). Read with the docs of each assistant, October 2026.
+# Where each assistant keeps its MCP servers and how it wants Tisty written. Paths start with a
+# root: ~ home, appdata: and localappdata: Windows, support: macOS Application Support, config:
+# ~/.config or $XDG_CONFIG_HOME, dshhome: $DSH_HOME or ~/.dsh, store:<prefix>: a Store's roaming folder.
 
 [[client]]
 id = "claude-code"
@@ -275,3 +274,12 @@ shape = "manual"
 key = "mcpServers"
 everywhere = ["~/.continue/config.yaml"]
 dirs = ["~/.continue"]
+
+[[client]]
+id = "deepseek-harness"
+name = "DeepSeek Harness"
+shape = "patch"
+key = "@deepseek-ai/dsh-mcp-client"
+everywhere = ["dshhome:cordis.patch.yml"]
+bins = ["dsh"]
+dirs = ["dshhome:"]

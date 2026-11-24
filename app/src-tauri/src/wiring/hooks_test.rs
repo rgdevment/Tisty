@@ -8,6 +8,7 @@ fn place(home: &Path, os: Os, command: &str) -> Place {
         os,
         home: home.to_path_buf(),
         config: home.join(".config"),
+        dsh: home.join(".dsh"),
         appdata: None,
         local: None,
         bins: Vec::new(),

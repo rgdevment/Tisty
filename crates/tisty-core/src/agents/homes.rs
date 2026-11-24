@@ -1,14 +1,16 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-pub const MOVED_BY: [&str; 4] = [
+pub const MOVED_BY: [&str; 6] = [
     "CLAUDE_CONFIG_DIR",
     "CODEX_HOME",
     "COPILOT_HOME",
+    "DSH_AGENTS_HOME",
+    "DSH_HOME",
     "GEMINI_CLI_HOME",
 ];
 
-pub const KNOWN: [&str; 5] = ["claude", "codex", "copilot", "gemini", "cursor"];
+pub const KNOWN: [&str; 6] = ["claude", "codex", "copilot", "gemini", "cursor", "dsh"];
 
 pub type Told = BTreeMap<&'static str, PathBuf>;
 
@@ -25,6 +27,7 @@ pub fn assistant_root(home: &Path, told: &Told, id: &str) -> Option<PathBuf> {
             .map_or(home, PathBuf::as_path)
             .join(".gemini"),
         "cursor" => home.join(".cursor"),
+        "dsh" => moved("DSH_HOME", ".dsh"),
         _ => return None,
     })
 }
@@ -33,7 +36,10 @@ pub fn assistant_folders(home: &Path, told: &Told) -> Vec<PathBuf> {
     KNOWN
         .iter()
         .filter_map(|id| assistant_root(home, told, id))
-        .chain([home.join(".agents")])
+        .chain([told
+            .get("DSH_AGENTS_HOME")
+            .cloned()
+            .unwrap_or_else(|| home.join(".agents"))])
         .collect()
 }
 

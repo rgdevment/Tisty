@@ -8,7 +8,7 @@ pub const HUE: &str = "purple";
 pub const FOLDER: &str = tisty_core::agents::FOLDER;
 pub const GLOBAL_FOLDER: &str = "Global";
 
-const SHARED_SKILLS_OWNERS: [&str; 3] = ["codex", "copilot", "gemini"];
+const SHARED_SKILLS_OWNERS: [&str; 4] = ["codex", "copilot", "gemini", "dsh"];
 const GEMINI_RULES: &str = "tisty-rules.md";
 const GEMINI_MEMORY: &str = "GEMINI.md";
 const CODEX_OVERRIDE: &str = "AGENTS.override.md";
@@ -39,7 +39,7 @@ pub struct Assistant {
     rule_dir: Option<&'static str>,
 }
 
-pub const ASSISTANTS: [Assistant; 5] = [
+pub const ASSISTANTS: [Assistant; 6] = [
     Assistant {
         id: "claude",
         name: "Claude",
@@ -68,6 +68,12 @@ pub const ASSISTANTS: [Assistant; 5] = [
         id: "cursor",
         name: "Cursor",
         main: None,
+        rule_dir: None,
+    },
+    Assistant {
+        id: "dsh",
+        name: "DeepSeek Harness",
+        main: Some("AGENTS.md"),
         rule_dir: None,
     },
 ];
@@ -116,7 +122,6 @@ impl Homes {
         )
     }
 
-    // A relative folder would land wherever Tisty happens to run, so it counts as never said.
     fn told(
         home: PathBuf,
         told: impl IntoIterator<Item = (&'static str, PathBuf)>,
@@ -144,7 +149,10 @@ impl Homes {
     }
 
     fn shared(&self) -> PathBuf {
-        self.home.join(".agents")
+        self.told
+            .get("DSH_AGENTS_HOME")
+            .cloned()
+            .unwrap_or_else(|| self.home.join(".agents"))
     }
 
     pub fn detected(&self) -> Vec<&'static Assistant> {
@@ -154,7 +162,8 @@ impl Homes {
             .collect()
     }
 
-    // Codex, Copilot and Gemini all read `~/.agents/skills`; the first one here owns it, so it is written once.
+    // Codex, Copilot, Gemini and the DeepSeek Harness all read `~/.agents/skills`; the first
+    // one here owns it, so it is written once.
     fn shared_owner(&self, detected: &[&Assistant]) -> Option<&'static str> {
         SHARED_SKILLS_OWNERS
             .into_iter()
@@ -198,7 +207,7 @@ impl Homes {
 
     fn skills_of(&self, id: &str) -> Option<(PathBuf, PathBuf)> {
         let root = match id {
-            "codex" => self.shared(),
+            "codex" | "dsh" => self.shared(),
             _ => self.root(id)?,
         };
         Some((root.clone(), root.join("skills")))

@@ -7,6 +7,7 @@ export const SKILLED: Record<string, string> = {
   codex: "codex",
   "gemini-cli": "gemini",
   copilot: "copilot",
+  "deepseek-harness": "dsh",
 };
 
 export const SKILLS_DECLINED = "tisty-skills";

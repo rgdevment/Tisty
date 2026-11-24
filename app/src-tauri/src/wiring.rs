@@ -4,6 +4,7 @@ mod files;
 pub(crate) mod hooks;
 mod json;
 mod leads;
+mod patch;
 mod places;
 mod running;
 mod shape;
@@ -170,7 +171,7 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
         by_hand: client.shape == Shape::Manual,
         manual: Manual {
             file: at.display().to_string(),
-            snippet: shape::snippet(client.shape, &client.key, &place.command),
+            snippet: shape::snippet(client.shape, &client.key, NAME, &place.command),
             cli: client
                 .cli
                 .as_ref()
@@ -210,6 +211,7 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
     let now = match client.shape {
         Shape::Manual => return Err(Stuck::NoSuch),
         Shape::Toml => toml::set(&was, &client.key, NAME, &place.command),
+        Shape::Patch => patch::set(&was, &client.key, NAME, &place.command),
         _ => json::set_fields(
             &was,
             &client.key,
@@ -263,6 +265,7 @@ fn disconnected(client: &Client, was: &str) -> Option<String> {
     match client.shape {
         Shape::Manual => None,
         Shape::Toml => toml::unset(was, &client.key, NAME),
+        Shape::Patch => patch::unset(was, &client.key, NAME),
         _ => json::unset(was, &client.key, NAME).filter(|now| client.sound(was, now)),
     }
 }
@@ -446,6 +449,7 @@ fn repointed(
     let now = match client.shape {
         Shape::Manual => None,
         Shape::Toml => toml::repoint(&was, &client.key, NAME, &place.command),
+        Shape::Patch => patch::repoint(&was, &client.key, NAME, &place.command),
         _ => json::repoint(&was, &client.key, NAME, &place.command)
             .filter(|now| client.sound(&was, now)),
     }

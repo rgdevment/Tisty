@@ -9,7 +9,7 @@ const folder = (name: string, parent: string | null, icon: string | null = null)
   icon,
 });
 
-const ASSISTANTS = ["claude", "codex", "copilot", "gemini", "cursor"];
+const ASSISTANTS = ["claude", "codex", "copilot", "gemini", "cursor", "dsh"];
 
 const glyphOf = (name: string) => {
   const { container, unmount } = render(<Glyph name={name} />);
@@ -33,6 +33,7 @@ describe("which assistant a folder in Agents stands for", () => {
     expect(levelOf(folder("Copilot", "agents"), "agents")).toBe("copilot");
     expect(levelOf(folder("Gemini", "agents"), "agents")).toBe("gemini");
     expect(levelOf(folder("Cursor", "agents"), "agents")).toBe("cursor");
+    expect(levelOf(folder("DeepSeek Harness", "agents"), "agents")).toBe("dsh");
   });
 
   it("leaves every other folder alone, and one the person gave an icon of their own", () => {
@@ -75,6 +76,7 @@ describe("an assistant's mark", () => {
       "text-hue-indigo",
       "text-hue-green",
       "text-hue-brown",
+      "text-hue-gray",
       "text-hue-blue",
     ]);
     const { container } = render(<AssistantMark id="global" />);

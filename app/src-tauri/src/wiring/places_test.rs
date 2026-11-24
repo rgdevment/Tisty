@@ -49,6 +49,7 @@ fn roots_resolve_only_where_they_exist() {
         os: Os::Linux,
         home: PathBuf::from("/home/mario"),
         config: PathBuf::from("/home/mario/.config"),
+        dsh: PathBuf::from("/home/mario/.dsh"),
         appdata: None,
         local: None,
         bins: Vec::new(),
@@ -69,8 +70,28 @@ fn roots_resolve_only_where_they_exist() {
                 .join("settings.json")
         )
     );
+    assert_eq!(
+        place.resolve("dshhome:cordis.patch.yml"),
+        Some(PathBuf::from("/home/mario/.dsh/cordis.patch.yml"))
+    );
     assert_eq!(place.resolve("appdata:Claude/x.json"), None);
     assert_eq!(place.resolve("/Applications/Claude.app"), None);
+}
+
+#[test]
+fn the_deepseek_harness_home_is_the_variable_or_dot_dsh() {
+    let home = Path::new("/home/mario");
+    assert_eq!(dsh_home_of(home, None), home.join(".dsh"));
+    let elsewhere = match cfg!(windows) {
+        true => PathBuf::from(r"C:\srv\dsh"),
+        false => PathBuf::from("/srv/dsh"),
+    };
+    assert_eq!(dsh_home_of(home, Some(&elsewhere)), elsewhere);
+    assert_eq!(
+        dsh_home_of(home, Some(Path::new("dsh"))),
+        home.join(".dsh"),
+        "a relative folder counts as never said"
+    );
 }
 
 #[test]
@@ -80,6 +101,7 @@ fn a_command_in_a_distro_is_reached_where_windows_keeps_it() {
         os: Os::Linux,
         home: PathBuf::from("/home/mario"),
         config: PathBuf::from("/home/mario/.config"),
+        dsh: PathBuf::from("/home/mario/.dsh"),
         appdata: None,
         local: None,
         bins: Vec::new(),

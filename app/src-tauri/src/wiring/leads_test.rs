@@ -8,6 +8,7 @@ fn place(os: Os, command: &str) -> Place {
         os,
         home: PathBuf::from("/home/someone"),
         config: PathBuf::from("/home/someone/.config"),
+        dsh: PathBuf::from("/home/someone/.dsh"),
         appdata: None,
         local: None,
         bins: Vec::new(),

@@ -10,6 +10,7 @@ fn place(home: &Path, command: &str) -> Place {
         os: places::Os::Linux,
         home: home.to_path_buf(),
         config: home.join(".config"),
+        dsh: home.join(".dsh"),
         appdata: None,
         local: None,
         bins: Vec::new(),
@@ -172,6 +173,43 @@ fn a_toml_table_keeps_what_the_person_put_in_it() {
 
     unwire_at(&client("codex"), &place(tmp.path(), "/opt/tisty"), &at).unwrap();
     assert!(!std::fs::read_to_string(&at).unwrap().contains("tisty"));
+}
+
+#[test]
+fn deepseek_harness_gets_tistys_row_in_its_patch_layer() {
+    let tmp = tempfile::tempdir().unwrap();
+
+    let (seen, at) = wired_here("deepseek-harness", tmp.path(), "/opt/tisty");
+
+    let said = std::fs::read_to_string(&at).unwrap();
+    assert!(seen.wired && !seen.astray);
+    assert!(said.contains("name: '@deepseek-ai/dsh-mcp-client'"));
+    assert!(said.contains("serverName: tisty"));
+    assert!(said.contains("command: /opt/tisty"));
+
+    unwire_at(
+        &client("deepseek-harness"),
+        &place(tmp.path(), "/opt/tisty"),
+        &at,
+    )
+    .unwrap();
+    assert_eq!(std::fs::read_to_string(&at).unwrap(), "[]\n");
+}
+
+#[test]
+fn a_patch_row_pointing_at_another_tisty_is_told_apart() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("deepseek-harness", tmp.path(), "/old/tisty");
+
+    let seen = told(
+        &client("deepseek-harness"),
+        &place(tmp.path(), "/opt/tisty"),
+        None,
+    )
+    .unwrap();
+
+    assert!(seen.astray && !seen.wired);
+    assert_eq!(seen.points.as_deref(), Some("/old/tisty"));
 }
 
 #[test]

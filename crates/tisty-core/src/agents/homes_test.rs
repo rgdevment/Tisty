@@ -12,7 +12,12 @@ fn each_assistant_reads_from_its_usual_folder_or_the_one_its_variable_names() {
     let home = Path::new("/home/rina");
     let moved = Path::new("/home/rina/Documents/claude");
     let gemini = Path::new("/srv/gemini-home");
-    let told = told(&[("CLAUDE_CONFIG_DIR", moved), ("GEMINI_CLI_HOME", gemini)]);
+    let dsh = Path::new("/srv/dsh-home");
+    let told = told(&[
+        ("CLAUDE_CONFIG_DIR", moved),
+        ("GEMINI_CLI_HOME", gemini),
+        ("DSH_HOME", dsh),
+    ]);
 
     assert_eq!(
         assistant_root(home, &told, "claude"),
@@ -30,9 +35,10 @@ fn each_assistant_reads_from_its_usual_folder_or_the_one_its_variable_names() {
         assistant_root(home, &told, "cursor"),
         Some(home.join(".cursor"))
     );
+    assert_eq!(assistant_root(home, &told, "dsh"), Some(dsh.to_path_buf()));
     assert_eq!(assistant_root(home, &told, "notepad"), None);
     assert!(assistant_folders(home, &told).contains(&home.join(".agents")));
-    assert_eq!(assistant_folders(home, &told).len(), 6);
+    assert_eq!(assistant_folders(home, &told).len(), 7);
 }
 
 #[test]

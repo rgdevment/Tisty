@@ -9,6 +9,8 @@ pub enum Shape {
     Stdio,
     Copilot,
     Opencode,
+    /// Any harness whose settings are a YAML file of loader entries; `key` names its MCP client plugin.
+    Patch,
     Toml,
     Manual,
 }
@@ -78,6 +80,7 @@ impl Client {
         match self.shape {
             Shape::Toml => super::toml::reads(text, &self.key, super::NAME),
             Shape::Manual => None,
+            Shape::Patch => super::patch::reads(text, &self.key, super::NAME),
             _ => super::json::reads(text, &self.key, super::NAME),
         }
     }
@@ -86,20 +89,24 @@ impl Client {
         match self.shape {
             Shape::Toml => super::toml::holds(text, &self.key, super::NAME),
             Shape::Manual => false,
+            Shape::Patch => super::patch::holds(text, &self.key, super::NAME),
             _ => super::json::holds(text, &self.key, super::NAME),
         }
     }
 
     pub fn sound(&self, was: &str, now: &str) -> bool {
-        super::json::same_but(was, now, |doc| {
-            let under = doc.get_mut(&self.key).and_then(|it| it.as_object_mut());
-            if under.is_some_and(|it| {
-                it.remove(super::NAME);
-                it.is_empty()
-            }) {
-                doc.remove(&self.key);
-            }
-        })
+        match self.shape {
+            Shape::Patch => super::patch::same_but(was, now, &self.key, super::NAME),
+            _ => super::json::same_but(was, now, |doc| {
+                let under = doc.get_mut(&self.key).and_then(|it| it.as_object_mut());
+                if under.is_some_and(|it| {
+                    it.remove(super::NAME);
+                    it.is_empty()
+                }) {
+                    doc.remove(&self.key);
+                }
+            }),
+        }
     }
 
     /// The file to write: the first one there, else the first one this place has a way to.

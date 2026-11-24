@@ -14,7 +14,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 Te sirve cuando:
 
 - **Quieres leer y ordenar las reglas que ya tienes.** Con **Traer**, tu `CLAUDE.md`, tus skills y tus reglas de Copilot entran como documentos, con títulos y búsqueda, en vez de archivos planos en carpetas ocultas. Tus agentes siguen leyendo sus archivos como estaban.
-- **Usas varios agentes y quieres la misma skill en todos.** Con **Sincronizar**, escribes la skill una vez en **Global**, y llega a Claude Code, a Cursor y a la carpeta que comparten Codex, Copilot y Gemini. Las reglas, en cambio, son de cada agente: cada uno lee su propio archivo, y lo que dice ese archivo es lo que dice tu documento.
+- **Usas varios agentes y quieres la misma skill en todos.** Con **Sincronizar**, escribes la skill una vez en **Global**, y llega a Claude Code, a Cursor y a la carpeta que comparten Codex, Copilot, Gemini y DeepSeek Harness. Las reglas, en cambio, son de cada agente: cada uno lee su propio archivo, y lo que dice ese archivo es lo que dice tu documento.
 - **Trabajas en más de un equipo.** Cada equipo tiene su propia carpeta dentro de Agentes y escribe solo la suya: lo del trabajo no pisa lo de la casa, y lo de otro equipo lo lees, pero no lo cambias desde este.
 - **Tienes skills con scripts.** Cada archivo de la skill es un documento, y un script se guarda en un bloque de código que se escribe tal cual.
 - **Quieres poder volver atrás.** Sincronizando, Tisty guarda el archivo original antes de tocarlo por primera vez, y los últimos 20 antes de cada sobrescritura.
@@ -87,7 +87,8 @@ La lista trae solo lo que tu agente lee de verdad. Lo demás no aparece, ni aten
 | Agente | Carpeta de skills | Dónde puede estar una skill |
 | :-- | :-- | :-- |
 | Claude Code | `~/.claude/skills` | justo adentro, como `skills/pr/` |
-| Codex | `~/.agents/skills`, que comparte con Copilot y Gemini | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| Codex | `~/.agents/skills`, que comparte con Copilot, Gemini y DeepSeek Harness | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| DeepSeek Harness | `~/.agents/skills`, que comparte con Codex, Copilot y Gemini | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
 | GitHub Copilot CLI | `~/.copilot/skills` | justo adentro |
 | Gemini CLI | `~/.gemini/skills` | justo adentro |
 | Cursor | `~/.cursor/skills` | en cualquier carpeta de categoría |
@@ -409,7 +410,7 @@ Una skill de Global se escribe una sola vez donde la leen varios a la vez:
 
 - en `~/.claude/skills/pdf/`, para Claude Code;
 - en `~/.cursor/skills/pdf/`, para Cursor;
-- en `~/.agents/skills/pdf/`, una sola copia que leen Codex, Copilot y Gemini.
+- en `~/.agents/skills/pdf/`, una sola copia que leen Codex, Copilot, Gemini y DeepSeek Harness.
 
 Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombre de la ficha, su `description` va debajo en una línea discreta, y el resto, como `disable-model-invocation: true`, va en filas chicas del cuadro de datos. El script se guarda en un bloque de código y se escribe tal cual, sin el bloque: la fila **Formato** del cuadro de datos dice el tipo del script, como SH · LF, y en un documento Markdown, Markdown · LF.
 

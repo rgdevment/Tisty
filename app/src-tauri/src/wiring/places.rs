@@ -14,6 +14,7 @@ pub struct Place {
     pub os: Os,
     pub home: PathBuf,
     pub config: PathBuf,
+    pub dsh: PathBuf,
     pub appdata: Option<PathBuf>,
     pub local: Option<PathBuf>,
     pub bins: Vec<PathBuf>,
@@ -37,6 +38,7 @@ impl Place {
             "HOME"
         })?;
         let config = var("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config"));
+        let dsh = dsh_home(&home);
         let mut bins: Vec<PathBuf> = std::env::var_os("PATH")
             .map(|all| std::env::split_paths(&all).collect())
             .unwrap_or_default();
@@ -48,6 +50,7 @@ impl Place {
             local: (os == Os::Windows).then(|| var("LOCALAPPDATA")).flatten(),
             home,
             config,
+            dsh,
             bins,
             command,
             open: true,
@@ -65,6 +68,8 @@ impl Place {
             (self.local.clone(), rest)
         } else if let Some(rest) = said.strip_prefix("config:") {
             (Some(self.config.clone()), rest)
+        } else if let Some(rest) = said.strip_prefix("dshhome:") {
+            (Some(self.dsh.clone()), rest)
         } else if let Some(rest) = said.strip_prefix("support:") {
             let base =
                 (self.os == Os::Macos).then(|| self.home.join("Library/Application Support"));
@@ -173,6 +178,16 @@ pub(super) fn var(named: &str) -> Option<PathBuf> {
     std::env::var_os(named)
         .filter(|it| !it.is_empty())
         .map(PathBuf::from)
+}
+
+fn dsh_home(home: &Path) -> PathBuf {
+    dsh_home_of(home, var("DSH_HOME").as_deref())
+}
+
+fn dsh_home_of(home: &Path, told: Option<&Path>) -> PathBuf {
+    told.filter(|at| at.is_absolute())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| home.join(".dsh"))
 }
 
 /// Installed from the Store an app never sees `%APPDATA%`: Windows hands it a private copy under
@@ -340,6 +355,7 @@ pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
         distro: Some(name.to_string()),
         os: Os::Linux,
         config: home.join(".config"),
+        dsh: home.join(".dsh"),
         appdata: None,
         local: None,
         bins,
