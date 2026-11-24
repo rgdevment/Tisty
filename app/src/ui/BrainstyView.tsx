@@ -95,8 +95,11 @@ export default function BrainstyView({ near, groups, onOpen, onLeave }: Props) {
       aria-label={t("brainsty")}
       className="flex min-h-0 min-w-0 flex-col bg-bg text-ink"
     >
-      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-hair px-4">
-        <h1 className="flex items-center gap-2 text-[13px] font-semibold">
+      <header
+        data-tauri-drag-region
+        className="flex h-11 shrink-0 items-center gap-3 border-b border-hair px-4"
+      >
+        <h1 data-tauri-drag-region className="flex items-center gap-2 text-[13px] font-semibold">
           <Glyph name="network" className="h-4 w-4 text-accent" />
           {t("brainsty")}
         </h1>

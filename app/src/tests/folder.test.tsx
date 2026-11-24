@@ -75,6 +75,14 @@ const show = (which: string) => {
 };
 
 describe("the folder view", () => {
+  it("leaves a strip over it to drag the window by, which does not scroll away", () => {
+    const { container } = show("2");
+    const strip = container.querySelector("main > [data-tauri-drag-region]");
+    expect(strip).not.toBeNull();
+    expect(strip?.closest(".scroller")).toBeNull();
+    expect(container.querySelector("main > .scroller")).not.toBeNull();
+  });
+
   it("lists the folders and the papers it holds, and nobody else's", () => {
     show("2");
 

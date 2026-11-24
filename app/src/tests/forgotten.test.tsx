@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded } from "../core";
 import Folder from "../ui/Folder";
-import { clearOfChrome } from "../ui/WindowChrome";
 import type { Forgotten } from "../useForgotten";
 
 const DAY = 86_400;
@@ -130,7 +129,8 @@ describe("the documents not opened in a while", () => {
     show([paper("1", "Una")]);
 
     const dice = await screen.findByRole("button", { name: "A document at random" });
-    expect(dice.parentElement?.className).toContain(clearOfChrome);
+    const strip = document.querySelector("main > [data-tauri-drag-region]");
+    expect(strip?.nextElementSibling?.contains(dice)).toBe(true);
   });
 
   it("stays out of a folder", async () => {

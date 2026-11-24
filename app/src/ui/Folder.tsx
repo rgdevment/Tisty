@@ -19,7 +19,6 @@ import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
 import { TistySkillsEntry } from "./TistySkills";
-import { clearOfChrome } from "./WindowChrome";
 
 const PEEK = 8;
 const FORGOTTEN_AT_A_GLANCE = 5;
@@ -213,173 +212,180 @@ export default function Folder({
   );
 
   return (
-    <main className="scroller min-w-0 flex-1 px-7 pt-5 pb-8">
-      {!folder && docs.length > 0 && (
-        <section aria-label={t("forgottenHeading")} className="mb-5">
-          <div className={`flex items-center gap-2 ${clearOfChrome}`}>
-            {forgotten.length > 0 && (
-              <h2 className="text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
-                {t("forgottenHeading")}
-              </h2>
-            )}
-            <span className="h-px min-w-6 flex-1 bg-hair" />
-            <button
-              type="button"
-              onClick={rolled}
-              className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-[3px] text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-            >
-              <Glyph name="dice" className="h-3.5 w-3.5" />
-              {t("atRandom")}
-            </button>
-          </div>
-          {forgottenShown.length > 0 && (
-            <ul className={`mt-1 ${INDEX}`}>{forgottenShown.map((one) => paper(one.doc, one))}</ul>
-          )}
-          {forgotten.length > FORGOTTEN_AT_A_GLANCE && (
-            <button
-              type="button"
-              aria-expanded={allForgotten}
-              onClick={() => setAllForgotten(!allForgotten)}
-              className="-ml-1.5 mt-1 cursor-pointer rounded-md px-1.5 py-[3px] text-[12.5px] text-faint hover:bg-hover hover:text-soft"
-            >
-              {allForgotten
-                ? t("forgottenSeeFewer")
-                : fill("forgottenSeeAll", String(forgotten.length))}
-            </button>
-          )}
-        </section>
-      )}
-      {trail.length > 0 && (
-        <nav aria-label={t("whereYouAre")} className="mb-2 flex flex-wrap items-center gap-1.5">
-          {trail.map((up, at) => (
-            <span key={up.id} className="flex items-center gap-1.5">
-              {at > 0 && (
-                <span aria-hidden="true" className="text-[10.5px] text-faint">
-                  ›
-                </span>
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <div className="scroller min-h-0 flex-1 px-7 pb-8">
+        {!folder && docs.length > 0 && (
+          <section aria-label={t("forgottenHeading")} className="mb-5">
+            <div className="flex items-center gap-2">
+              {forgotten.length > 0 && (
+                <h2 className="text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+                  {t("forgottenHeading")}
+                </h2>
               )}
-              <button
-                type="button"
-                onClick={() => onHere(up.id)}
-                className="cursor-pointer text-[11.5px] text-faint hover:text-soft"
-              >
-                {folderShown(up)}
-              </button>
-            </span>
-          ))}
-        </nav>
-      )}
-
-      <h1 className="text-[21px] font-semibold">
-        <button
-          type="button"
-          disabled={!ownMenu}
-          aria-haspopup={ownMenu ? "menu" : undefined}
-          aria-keyshortcuts={ownMenu ? "Shift+F10" : undefined}
-          onContextMenu={(e) => {
-            if (!ownMenu) return;
-            e.preventDefault();
-            ownMenu({ x: e.clientX, y: e.clientY });
-          }}
-          onKeyDown={(e) => {
-            if (!ownMenu || !asksForMenu(e)) return;
-            e.preventDefault();
-            ownMenu(menuAt(e));
-          }}
-          className="flex items-center gap-2.5 text-left disabled:cursor-default"
-        >
-          <span
-            className={
-              isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
-            }
-          >
-            {folder ? (
-              <FolderMark folder={folder} root={root} className="h-[19px] w-[19px]" />
-            ) : (
-              <Glyph name="inbox" className="h-[19px] w-[19px]" />
-            )}
-          </span>
-          {folder ? folderShown(folder) : t("unfiled")}
-        </button>
-      </h1>
-      {stage === "brought" && (
-        <p className="mt-1 text-[12.5px] text-faint">
-          {t("agentsNotSynced")} ·{" "}
-          <button
-            type="button"
-            onClick={syncAgents}
-            className="cursor-pointer text-accent underline-offset-2 hover:underline"
-          >
-            {t("agentsSync")}
-          </button>
-        </p>
-      )}
-      <p className="mt-1 text-[12.5px] text-faint">
-        {under.length + inside.length > 0 ? said : !tistySkillsHere && t("folderHoldsNothing")}
-      </p>
-
-      {under.map((one) => {
-        const closed = shut.has(one.id);
-        const deeper = folders.filter((at) => at.parent === one.id);
-        const held = docs.filter((at) => at.away === shelved && !at.pageOf && at.folder === one.id);
-        const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
-        const left = held.length - shown.length;
-        const skillsIn = holdsTistySkills(one, folders);
-        return (
-          <section key={one.id} className="mt-4">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => fold(one.id)}
-                aria-label={fill(closed ? "openFolder" : "closeFolder", folderShown(one))}
-                aria-expanded={!closed}
-                aria-controls={`holds-${one.id}`}
-                className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded-md text-[9px] text-faint hover:text-ink"
-              >
-                <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
-              </button>
-              {named(one)}
               <span className="h-px min-w-6 flex-1 bg-hair" />
+              <button
+                type="button"
+                onClick={rolled}
+                className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-[3px] text-[12.5px] text-soft hover:bg-hover hover:text-ink"
+              >
+                <Glyph name="dice" className="h-3.5 w-3.5" />
+                {t("atRandom")}
+              </button>
             </div>
-            {!closed && (deeper.length > 0 || held.length > 0 || skillsIn) && (
-              <ul id={`holds-${one.id}`} className={`mt-1 pl-5 ${INDEX}`}>
-                {deeper.map((at) => (
-                  <li key={at.id} className="break-inside-avoid">
-                    {named(at)}
-                  </li>
-                ))}
-                {shown.map((one) => paper(one))}
-                {skillsIn && <TistySkillsEntry className={ROW} />}
-                {left > 0 && (
-                  <li className="break-inside-avoid">
-                    <button
-                      type="button"
-                      onClick={() => onHere(one.id)}
-                      className={`${ROW} text-faint hover:text-soft`}
-                    >
-                      {fill("moreHere", String(left))}
-                    </button>
-                  </li>
-                )}
+            {forgottenShown.length > 0 && (
+              <ul className={`mt-1 ${INDEX}`}>
+                {forgottenShown.map((one) => paper(one.doc, one))}
               </ul>
             )}
+            {forgotten.length > FORGOTTEN_AT_A_GLANCE && (
+              <button
+                type="button"
+                aria-expanded={allForgotten}
+                onClick={() => setAllForgotten(!allForgotten)}
+                className="-ml-1.5 mt-1 cursor-pointer rounded-md px-1.5 py-[3px] text-[12.5px] text-faint hover:bg-hover hover:text-soft"
+              >
+                {allForgotten
+                  ? t("forgottenSeeFewer")
+                  : fill("forgottenSeeAll", String(forgotten.length))}
+              </button>
+            )}
           </section>
-        );
-      })}
+        )}
+        {trail.length > 0 && (
+          <nav aria-label={t("whereYouAre")} className="mb-2 flex flex-wrap items-center gap-1.5">
+            {trail.map((up, at) => (
+              <span key={up.id} className="flex items-center gap-1.5">
+                {at > 0 && (
+                  <span aria-hidden="true" className="text-[10.5px] text-faint">
+                    ›
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onHere(up.id)}
+                  className="cursor-pointer text-[11.5px] text-faint hover:text-soft"
+                >
+                  {folderShown(up)}
+                </button>
+              </span>
+            ))}
+          </nav>
+        )}
 
-      {(inside.length > 0 || tistySkillsHere) && (
-        <>
-          {under.length > 0 && (
-            <h2 className="mt-5 mb-1 text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
-              {t("papersHere")}
-            </h2>
-          )}
-          <ul className={`mt-3 ${INDEX}`}>
-            {inside.map((one) => paper(one))}
-            {tistySkillsHere && <TistySkillsEntry className={ROW} />}
-          </ul>
-        </>
-      )}
+        <h1 className="text-[21px] font-semibold">
+          <button
+            type="button"
+            disabled={!ownMenu}
+            aria-haspopup={ownMenu ? "menu" : undefined}
+            aria-keyshortcuts={ownMenu ? "Shift+F10" : undefined}
+            onContextMenu={(e) => {
+              if (!ownMenu) return;
+              e.preventDefault();
+              ownMenu({ x: e.clientX, y: e.clientY });
+            }}
+            onKeyDown={(e) => {
+              if (!ownMenu || !asksForMenu(e)) return;
+              e.preventDefault();
+              ownMenu(menuAt(e));
+            }}
+            className="flex items-center gap-2.5 text-left disabled:cursor-default"
+          >
+            <span
+              className={
+                isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
+              }
+            >
+              {folder ? (
+                <FolderMark folder={folder} root={root} className="h-[19px] w-[19px]" />
+              ) : (
+                <Glyph name="inbox" className="h-[19px] w-[19px]" />
+              )}
+            </span>
+            {folder ? folderShown(folder) : t("unfiled")}
+          </button>
+        </h1>
+        {stage === "brought" && (
+          <p className="mt-1 text-[12.5px] text-faint">
+            {t("agentsNotSynced")} ·{" "}
+            <button
+              type="button"
+              onClick={syncAgents}
+              className="cursor-pointer text-accent underline-offset-2 hover:underline"
+            >
+              {t("agentsSync")}
+            </button>
+          </p>
+        )}
+        <p className="mt-1 text-[12.5px] text-faint">
+          {under.length + inside.length > 0 ? said : !tistySkillsHere && t("folderHoldsNothing")}
+        </p>
+
+        {under.map((one) => {
+          const closed = shut.has(one.id);
+          const deeper = folders.filter((at) => at.parent === one.id);
+          const held = docs.filter(
+            (at) => at.away === shelved && !at.pageOf && at.folder === one.id,
+          );
+          const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
+          const left = held.length - shown.length;
+          const skillsIn = holdsTistySkills(one, folders);
+          return (
+            <section key={one.id} className="mt-4">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => fold(one.id)}
+                  aria-label={fill(closed ? "openFolder" : "closeFolder", folderShown(one))}
+                  aria-expanded={!closed}
+                  aria-controls={`holds-${one.id}`}
+                  className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded-md text-[9px] text-faint hover:text-ink"
+                >
+                  <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
+                </button>
+                {named(one)}
+                <span className="h-px min-w-6 flex-1 bg-hair" />
+              </div>
+              {!closed && (deeper.length > 0 || held.length > 0 || skillsIn) && (
+                <ul id={`holds-${one.id}`} className={`mt-1 pl-5 ${INDEX}`}>
+                  {deeper.map((at) => (
+                    <li key={at.id} className="break-inside-avoid">
+                      {named(at)}
+                    </li>
+                  ))}
+                  {shown.map((one) => paper(one))}
+                  {skillsIn && <TistySkillsEntry className={ROW} />}
+                  {left > 0 && (
+                    <li className="break-inside-avoid">
+                      <button
+                        type="button"
+                        onClick={() => onHere(one.id)}
+                        className={`${ROW} text-faint hover:text-soft`}
+                      >
+                        {fill("moreHere", String(left))}
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+
+        {(inside.length > 0 || tistySkillsHere) && (
+          <>
+            {under.length > 0 && (
+              <h2 className="mt-5 mb-1 text-[10.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+                {t("papersHere")}
+              </h2>
+            )}
+            <ul className={`mt-3 ${INDEX}`}>
+              {inside.map((one) => paper(one))}
+              {tistySkillsHere && <TistySkillsEntry className={ROW} />}
+            </ul>
+          </>
+        )}
+      </div>
     </main>
   );
 }
