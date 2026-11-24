@@ -385,12 +385,18 @@ export const keysOn = (
     return top?.nodeType === Node.ELEMENT_NODE && (top as Element).matches(WHOLE);
   };
 
+  const outOfPieces = () => {
+    caret.solidsLeft();
+    const range = caret.chosen();
+    if (range?.collapsed) outOfLetter(range);
+  };
+
   const outOfSolids = (event: KeyboardEvent) => {
     keptBehind = keptUnlaid(writer.kept);
     if (event.isComposing || !onSheet(page, event)) return;
     if (event.key !== "Backspace" && event.key !== "Delete") return;
     const held = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
-    if (held || !opensBeforeWhole()) return caret.solidsLeft();
+    if (held || !opensBeforeWhole()) return outOfPieces();
     writer.leftFrom = undefined;
     writer.typing = true;
     writer.pending = null;

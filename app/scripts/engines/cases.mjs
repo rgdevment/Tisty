@@ -89,6 +89,10 @@ const NESTED_TABLE = "# Listas\n\n- uno #etiqueta\n  | a | b |\n  |---|---|\n  |
 
 const NESTED_DIAGRAM = "# Listas\n\n- uno `c`\n  ```mermaid\n  flowchart LR\n    A --> B\n  ```\n\nFin.\n";
 
+const NESTED_WIDGET = "# Listas\n\n- uno `c`\n  ```widget\n  <b>42</b>\n  ```\n\nFin.\n";
+
+const NESTED_HTML = "# Listas\n\n- uno `c`\n  <div>hola</div>\n\nFin.\n";
+
 const NESTED_WHOLE = [
   "# Anidados", "",
   "- uno", "",
@@ -149,6 +153,25 @@ const textHolds = async (page, said) => {
   const text = await page.evaluate(() => window.engines.text());
   if (!text.includes(said)) throw new Error(`the first press wrote ${JSON.stringify(text)}`);
 };
+
+const BACK_FAST = [
+  ["Table", NESTED_TABLE, "#etiqueta"],
+  ["Diagram", NESTED_DIAGRAM, "`c`"],
+  ["Widget", NESTED_WIDGET, "`c`"],
+  ["Html", NESTED_HTML, "`c`"],
+];
+
+const backFastOverANestedBlock = BACK_FAST.map(([shape, doc, piece]) => ({
+  name: `leftThenBackspacePressedFastPastANested${shape}TakesThePieceBeforeIt`,
+  doc,
+  run: async ({ clickAt, busyTyped, frame }) => {
+    await clickAt("Fin");
+    await caretInWords(frame, "uno ", 4);
+    await busyTyped(["ArrowRight", "ArrowRight", "ArrowLeft", "Backspace"], "");
+  },
+  was: piece,
+  now: "",
+}));
 
 export const CASES = [
   {
@@ -2373,7 +2396,7 @@ export const CASES = [
   },
   {
     name: "rightStopsAfterCodeBeforeANestedWidget",
-    doc: "# Listas\n\n- uno `c`\n  ```widget\n  <b>42</b>\n  ```\n\nFin.\n",
+    doc: NESTED_WIDGET,
     run: async ({ clickAt, press, frame }) => {
       await clickAt("Fin");
       await caretInWords(frame, "uno ", 4);
@@ -2386,7 +2409,7 @@ export const CASES = [
   },
   {
     name: "rightStopsAfterCodeBeforeNestedHtml",
-    doc: "# Listas\n\n- uno `c`\n  <div>hola</div>\n\nFin.\n",
+    doc: NESTED_HTML,
     run: async ({ clickAt, press, frame }) => {
       await clickAt("Fin");
       await caretInWords(frame, "uno ", 4);
@@ -2397,6 +2420,7 @@ export const CASES = [
     was: "`c`",
     now: "",
   },
+  ...backFastOverANestedBlock,
   {
     name: "secondRightPastANestedTableDrawnWholeWritesOnTheNextLine",
     doc: NESTED_TABLE,

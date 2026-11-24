@@ -218,3 +218,62 @@ describe("the page's edges and a choice's end beside blocks drawn whole", () => 
     expect(text()).toBe(LOOSE.replace("- uno", "- unoX"));
   });
 });
+
+describe("a delete key pressed before the engine tells where the arrow left the caret", () => {
+  const letterAfterCode = () => {
+    const letter = document.querySelector("li > code")?.nextSibling as Text;
+    expect(letter.data).toBe("\u200B");
+    return letter;
+  };
+
+  const keyed = (key: string, init: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+    document.querySelector(".page")?.dispatchEvent(event);
+    return event;
+  };
+
+  const leftInLetter = (offset: number) => {
+    keyed("ArrowLeft");
+    document.getSelection()?.collapse(letterAfterCode(), offset);
+  };
+
+  it.each([0, 1])("takes the code on Backspace from the unseen letter at %i", (offset) => {
+    const text = written(TIGHT, TIGHT_PLACED);
+    leftInLetter(offset);
+    expect(keyed("Backspace").defaultPrevented).toBe(true);
+    expect(text()).toBe(TIGHT.replace("`dos`", ""));
+  });
+
+  it("stands right after the code for a delete the engine makes itself", () => {
+    const text = written(TIGHT, TIGHT_PLACED);
+    leftInLetter(1);
+    expect(keyed("Backspace", { altKey: true }).defaultPrevented).toBe(false);
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([document.querySelector("li"), 2]);
+    expect(text()).toBe(TIGHT);
+  });
+
+  it.each([0, 1])(
+    "takes a formula whole on Backspace from the unseen letter in it at %i",
+    (offset) => {
+      const text = written(
+        "uno $x$\n",
+        '<p data-at="0-8"><span data-src="0-4">uno </span><span class="math" data-src="4-7" contenteditable="false"><math><mi>x</mi></math></span></p>',
+      );
+      const letter = document.querySelector("math")?.nextSibling as Text;
+      expect(letter.data).toBe("\u200B");
+      document.getSelection()?.collapse(letter, offset);
+      expect(keyed("Backspace").defaultPrevented).toBe(true);
+      expect(text()).toBe("uno \n");
+    },
+  );
+
+  it("stays in the letter for a key that deletes nothing", () => {
+    written(TIGHT, TIGHT_PLACED);
+    leftInLetter(1);
+    const letter = letterAfterCode();
+    keyed("x");
+    const held = document.getSelection();
+    expect([held?.anchorNode, held?.anchorOffset]).toEqual([letter, 1]);
+  });
+});
