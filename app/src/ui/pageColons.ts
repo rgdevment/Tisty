@@ -6,11 +6,30 @@ const SHUTS = /^:::[ \t]*\r?$/;
 const BLANK = /^[ \t]*\r?$/;
 const BREAKS_BELOW =
   /^(?:#{1,6}(?:[ \t]|\r?$)|`{3,}|~{3,}|>|[-*+][ \t]|1[.)][ \t]|(?:[*_][ \t]*){3,}\r?$)/;
-const TRAILING_BLANKS = /(?:\r?\n[ \t]*(?:>[ \t]?)*[ \t]*)+$/;
-const LEADING_BLANKS = /^(?:\r?\n[ \t]*(?:>[ \t]?)*[ \t]*)+/;
 const QUOTE = /^[ \t]*(?:>[ \t]?)*/;
-const MARKER = /^([ \t]*(?:>[ \t]?)*[ \t]*):::([\p{L}\p{N}]\S*)[ \t]*/u;
+const MARKER = /^([ \t]*(?:>[ \t]*)*):::([\p{L}\p{N}]\S*)[ \t]*/u;
 const STAND_IN = "\u0000";
+
+const BLANK_MARKS = " \t>";
+
+const withoutTrailingBlanks = (said: string) => {
+  let cut = said.length;
+  for (let at = said.length; ; ) {
+    while (at > 0 && BLANK_MARKS.includes(said[at - 1] ?? "")) at--;
+    if (said[at - 1] !== "\n") return said.slice(0, cut);
+    at -= said[at - 2] === "\r" ? 2 : 1;
+    cut = at;
+  }
+};
+
+const leadingBlanks = (said: string) => {
+  for (let at = 0; ; ) {
+    const step = said.startsWith("\r\n", at) ? 2 : said[at] === "\n" ? 1 : 0;
+    if (step === 0) return at;
+    at += step;
+    while (at < said.length && BLANK_MARKS.includes(said[at] ?? "")) at++;
+  }
+};
 
 type Colon = { readonly open: Span; readonly shut: Span };
 
@@ -108,7 +127,7 @@ const withoutLines = (text: string, from: number, lines: readonly Span[]) => {
   let left = "";
   let at = from;
   for (const line of lines) {
-    left += text.slice(at, line.from).replace(TRAILING_BLANKS, "");
+    left += withoutTrailingBlanks(text.slice(at, line.from));
     at = line.to;
   }
   return { left, at };
@@ -139,9 +158,9 @@ const crossingOf = (text: string, cut: Span): Crossing | null => {
     if (named && cut.to < open.to) to = Math.max(to, open.to);
     if (named && !closed) dropped.push(shut);
     if (!named && cut.from < open.from && cut.to > open.from && cut.to <= name.from)
-      to = cut.from + text.slice(cut.from, open.from).replace(TRAILING_BLANKS, "").length;
+      to = cut.from + withoutTrailingBlanks(text.slice(cut.from, open.from)).length;
     if (!named && cut.from >= name.to && cut.from <= open.to && cut.to > open.to)
-      from = open.to + (LEADING_BLANKS.exec(text.slice(open.to))?.[0].length ?? 0);
+      from = open.to + leadingBlanks(text.slice(open.to));
     if (!named && closed && cut.from >= open.to) kept.push(shut);
   }
   if (from === cut.from && to === cut.to && !dropped.length && !kept.length) return null;
