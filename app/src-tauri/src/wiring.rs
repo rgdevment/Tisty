@@ -1,21 +1,24 @@
 pub mod agents;
 mod catalog;
+mod files;
 pub(crate) mod hooks;
 mod json;
+mod leads;
 mod places;
+mod running;
 mod shape;
 mod toml;
 
 use std::path::{Path, PathBuf};
 
 use catalog::{Client, Found, Shape};
+use files::{Read, Writes};
+use leads::{Leads, leads};
 use places::Place;
 
 use crate::command;
 
 const NAME: &str = "tisty";
-const BEFORE: &str = "before-tisty";
-const LAST: &str = "before-tisty-last";
 const WSL: &str = "wsl:";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -40,6 +43,10 @@ pub struct Seen {
     pub astray: bool,
     /// Told apart from astray so "Repair" can say the old Tisty was deleted, not just moved.
     pub gone: bool,
+    /// It holds an entry of Tisty's that nothing here can tell, so it is left as the person wrote it.
+    pub apart: bool,
+    pub unread: bool,
+    pub installed: bool,
     pub points: Option<String>,
     /// Only a folder that outlives an uninstall says it is here.
     pub maybe: bool,
@@ -63,7 +70,15 @@ pub struct Distro {
 pub enum Stuck {
     NoSuch,
     Shut,
+    Unread(String),
+    Moved(String),
+    Plugged,
+    Unplugged,
+    PluginUnread(String),
     Puzzling(String),
+    Unfixable(String),
+    HooksApart(String),
+    HooksPuzzling(String),
     Unborn(String),
     Cannot(String),
 }
@@ -125,13 +140,15 @@ fn seen_in(place: &Place) -> Vec<Seen> {
 
 fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
     let at = client.file(place)?;
-    let text = std::fs::read_to_string(&at).unwrap_or_default();
-    let points = match client.shape {
-        Shape::Toml => toml::reads(&text, &client.key, NAME),
-        Shape::Manual => None,
-        _ => json::reads(&text, &client.key, NAME),
+    let (text, unread) = match files::read(&at) {
+        Read::Text(text) => (text, false),
+        Read::Missing => (String::new(), false),
+        Read::Unread => (String::new(), true),
     };
-    let wired = points.as_deref().is_some_and(|one| this_tisty(place, one));
+    let points = client.reads(&text);
+    let leads = points.as_deref().map(|one| leads(place, one));
+    let wired = leads == Some(Leads::Here);
+    let astray = leads.is_some_and(Leads::astray);
     let id = match &place.distro {
         Some(named) => format!("{WSL}{named}:{}", client.id),
         None => client.id.clone(),
@@ -143,8 +160,11 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
         place: place.distro.clone(),
         at: at.display().to_string(),
         wired,
-        astray: points.is_some() && !wired,
-        gone: !wired && points.as_deref().is_some_and(|one| lost(place, one)),
+        astray,
+        gone: leads == Some(Leads::Gone),
+        apart: !wired && !astray && client.holds(&text),
+        unread,
+        installed: client.installed(place),
         points,
         maybe: found == Some(Found::Maybe),
         by_hand: client.shape == Shape::Manual,
@@ -167,33 +187,6 @@ fn shown(command: &str) -> String {
     }
 }
 
-// Paths on Windows and macOS ignore case, so the same file written two ways is still this Tisty.
-fn same(one: &str, other: &str) -> bool {
-    let tidy = |it: &str| it.trim().replace('\\', "/").to_lowercase();
-    tidy(one) == tidy(other)
-}
-
-// A link to this Tisty, or a bare name the PATH leads here, is this Tisty said another way.
-fn this_tisty(place: &Place, said: &str) -> bool {
-    same(said, &place.command)
-        || place
-            .led(said)
-            .zip(place.led(&place.command))
-            .is_some_and(|(one, other)| one_file(&one, &other))
-}
-
-fn one_file(one: &Path, other: &Path) -> bool {
-    same(&one.display().to_string(), &other.display().to_string())
-        || matches!((one.canonicalize(), other.canonicalize()), (Ok(one), Ok(other)) if one == other)
-}
-
-// A folder Windows keeps to itself cannot be looked into, and that is not the same as being gone.
-fn lost(place: &Place, said: &str) -> bool {
-    place
-        .reached(said)
-        .is_some_and(|at| matches!(at.try_exists(), Ok(false)))
-}
-
 pub fn wire(id: &str) -> Result<Vec<Seen>, Stuck> {
     let (client, place, at) = asked(id)?;
     wire_at(&client, &place, &at)?;
@@ -204,29 +197,36 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
     if !place.open {
         return Err(Stuck::Shut);
     }
-    let was = std::fs::read_to_string(at).unwrap_or_default();
+    let was = files::text(at)?;
+    let there = client.holds(&was);
+    let told = client.reads(&was).map(|one| leads(place, &one));
+    if there && matches!(told, None | Some(Leads::Unsaid)) {
+        return Err(Stuck::Moved(at.display().to_string()));
+    }
+    let puzzling = || match there {
+        true => Stuck::Unfixable(at.display().to_string()),
+        false => Stuck::Puzzling(at.display().to_string()),
+    };
     let now = match client.shape {
         Shape::Manual => return Err(Stuck::NoSuch),
-        Shape::Toml => toml::set(&was, &client.key, NAME, &shape::toml_entry(&place.command)),
+        Shape::Toml => toml::set(&was, &client.key, NAME, &place.command),
         _ => json::set_fields(
             &was,
             &client.key,
             NAME,
             &shape::fields(client.shape, &place.command),
-        ),
+        )
+        .filter(|now| client.sound(&was, now)),
     }
-    .ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
+    .ok_or_else(puzzling)?;
+    if client.reads(&now).as_deref() != Some(place.command.as_str()) {
+        return Err(puzzling());
+    }
     let aside = place.moved_aside(at);
     if aside && !at.is_file() {
         return Err(Stuck::Unborn(at.display().to_string()));
     }
-    let hooked = hooks_on(client, place);
-    changed(at, &was, &now, aside)?;
-    // A repointed connection carries its hooks along, so they never run an old Tisty.
-    match hooked {
-        true => hook_at(client, place),
-        false => Ok(()),
-    }
+    Writes::default().change(at, &was, &now, aside)
 }
 
 pub fn unwire(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -235,31 +235,41 @@ pub fn unwire(id: &str) -> Result<Vec<Seen>, Stuck> {
     Ok(seen_in(&place))
 }
 
+// Both texts are worked out before either is written, so a file that cannot be read leaves both as they were.
 fn unwire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
-    let was = std::fs::read_to_string(at).unwrap_or_default();
-    let now = match client.shape {
-        Shape::Manual => None,
-        Shape::Toml => toml::unset(&was, &client.key, NAME),
-        _ => json::unset(&was, &client.key, NAME),
+    let was = files::text(at)?;
+    let now = match client.holds(&was) {
+        true => {
+            disconnected(client, &was).ok_or_else(|| Stuck::Unfixable(at.display().to_string()))?
+        }
+        false => was.clone(),
     };
-    if let Some(now) = now {
-        kept(at, &was)?;
-        laid(at, &now, place.moved_aside(at))?;
+    let mut writes = Writes::default();
+    let hooked = hooks::kind(&client.id).and_then(|kind| Some((kind, kind.file(place)?)));
+    let Some((kind, beside)) = hooked else {
+        return writes.change(at, &was, &now, place.moved_aside(at));
+    };
+    if beside == at {
+        let now = unhooked(kind, at, &now)?;
+        return writes.change(at, &was, &now, place.moved_aside(at));
     }
-    match hooks_on(client, place) {
-        true => unhook_at(client, place),
-        false => Ok(()),
-    }
+    let hooks_was = files::text(&beside)?;
+    let hooks_now = unhooked(kind, &beside, &hooks_was)?;
+    writes.change(at, &was, &now, place.moved_aside(at))?;
+    unhook_written(kind, place, &beside, &hooks_was, &hooks_now, &mut writes)
 }
 
-fn hooks_on(client: &Client, place: &Place) -> bool {
-    hooks::kind(&client.id)
-        .and_then(|kind| hooks::seen(kind, place))
-        .is_some_and(|it| it.on)
+fn disconnected(client: &Client, was: &str) -> Option<String> {
+    match client.shape {
+        Shape::Manual => None,
+        Shape::Toml => toml::unset(was, &client.key, NAME),
+        _ => json::unset(was, &client.key, NAME).filter(|now| client.sound(was, now)),
+    }
 }
 
 pub fn hook(id: &str) -> Result<Vec<Seen>, Stuck> {
     let (client, place, _) = asked(id)?;
+    unplugged(&client, homes_of(&place))?;
     hook_at(&client, &place)?;
     Ok(seen_in(&place))
 }
@@ -268,15 +278,52 @@ fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
     if !place.open {
         return Err(Stuck::Shut);
     }
+    let (kind, at) = hooks_of(client, place)?;
+    let was = files::text(&at)?;
+    if hooks::apart(kind, &was) {
+        return Err(Stuck::HooksApart(at.display().to_string()));
+    }
+    let now = hooks::with(kind, &was, place)
+        .ok_or_else(|| Stuck::HooksPuzzling(at.display().to_string()))?;
+    Writes::default().change(&at, &was, &now, place.moved_aside(&at))
+}
+
+fn homes_of(place: &Place) -> Option<agents::Homes> {
+    match place.distro {
+        Some(_) => agents::Homes::of(&place.home),
+        None => agents::Homes::here(),
+    }
+}
+
+// The plugin's own hooks would run beside these, so without its records read none is written.
+fn unplugged(client: &Client, homes: Option<agents::Homes>) -> Result<(), Stuck> {
+    if hooks::kind(&client.id) != Some(hooks::Kind::Claude) {
+        return Ok(());
+    }
+    match brought(homes)? {
+        false => Ok(()),
+        true => Err(Stuck::Plugged),
+    }
+}
+
+fn brought(homes: Option<agents::Homes>) -> Result<bool, Stuck> {
+    homes
+        .map_or(Ok(false), |homes| homes.plugin_brings_hooks())
+        .map_err(|at| Stuck::PluginUnread(at.display().to_string()))
+}
+
+fn still_plugged(client: &Client, homes: Option<agents::Homes>) -> Result<(), Stuck> {
+    let claude = hooks::kind(&client.id) == Some(hooks::Kind::Claude);
+    match claude && brought(homes)? {
+        true => Ok(()),
+        false => Err(Stuck::Unplugged),
+    }
+}
+
+fn hooks_of(client: &Client, place: &Place) -> Result<(hooks::Kind, PathBuf), Stuck> {
     let kind = hooks::kind(&client.id).ok_or(Stuck::NoSuch)?;
     let at = kind.file(place).ok_or(Stuck::NoSuch)?;
-    let was = match hooks::alone(kind) {
-        true => String::new(),
-        false => std::fs::read_to_string(&at).unwrap_or_default(),
-    };
-    let now =
-        hooks::with(kind, &was, place).ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
-    changed(&at, &was, &now, place.moved_aside(&at))
+    Ok((kind, at))
 }
 
 pub fn unhook(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -286,19 +333,145 @@ pub fn unhook(id: &str) -> Result<Vec<Seen>, Stuck> {
 }
 
 fn unhook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
-    let kind = hooks::kind(&client.id).ok_or(Stuck::NoSuch)?;
-    let at = kind.file(place).ok_or(Stuck::NoSuch)?;
-    if hooks::alone(kind) {
-        return hooks::emptied(&at).map_err(sour);
+    let (kind, at) = hooks_of(client, place)?;
+    let was = files::text(&at)?;
+    let now = unhooked(kind, &at, &was)?;
+    unhook_written(kind, place, &at, &was, &now, &mut Writes::default())
+}
+
+fn unhooked(kind: hooks::Kind, at: &Path, was: &str) -> Result<String, Stuck> {
+    match hooks::hooked(kind, was) {
+        true => {
+            hooks::without(kind, was).ok_or_else(|| Stuck::HooksPuzzling(at.display().to_string()))
+        }
+        false => Ok(was.to_string()),
     }
-    let was = std::fs::read_to_string(&at).unwrap_or_default();
-    if !hooks::hooked(kind, &was) {
-        return Ok(());
+}
+
+fn unhook_written(
+    kind: hooks::Kind,
+    place: &Place,
+    at: &Path,
+    was: &str,
+    now: &str,
+    writes: &mut Writes,
+) -> Result<(), Stuck> {
+    match now != was && hooks::alone(kind) && hooks::emptied(now) {
+        true => writes.remove(at, was),
+        false => writes.change(at, was, now, place.moved_aside(at)),
     }
-    let now =
-        hooks::without(kind, &was).ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
-    kept(&at, &was)?;
-    laid(&at, &now, place.moved_aside(&at))
+}
+
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Mend {
+    /// What the connection was said to point at, so nothing that changed since is written over.
+    pub connection: Option<String>,
+    pub hooks: Vec<String>,
+    /// The plugin brings them too, so the ones left behind go instead of running twice.
+    pub hooks_out: bool,
+}
+
+#[derive(Debug)]
+pub struct Mended {
+    pub seen: Vec<Seen>,
+    pub connection: Option<Stuck>,
+    pub hooks: Option<Stuck>,
+}
+
+pub fn mend(id: &str, ask: &Mend) -> Result<Mended, Stuck> {
+    let (client, place, at) = asked(id)?;
+    let (connection, hooks) = mend_guarded(&client, &place, &at, ask, homes_of(&place));
+    Ok(Mended {
+        seen: seen_in(&place),
+        connection,
+        hooks,
+    })
+}
+
+fn mend_guarded(
+    client: &Client,
+    place: &Place,
+    at: &Path,
+    ask: &Mend,
+    homes: Option<agents::Homes>,
+) -> (Option<Stuck>, Option<Stuck>) {
+    let refused = match (ask.hooks.is_empty(), ask.hooks_out) {
+        (true, _) => Ok(()),
+        (false, true) => still_plugged(client, homes),
+        (false, false) => unplugged(client, homes),
+    };
+    let Err(why) = refused else {
+        return mend_at(client, place, at, ask);
+    };
+    let connection = Mend {
+        hooks: Vec::new(),
+        ..ask.clone()
+    };
+    (mend_at(client, place, at, &connection).0, Some(why))
+}
+
+fn mend_at(
+    client: &Client,
+    place: &Place,
+    at: &Path,
+    ask: &Mend,
+) -> (Option<Stuck>, Option<Stuck>) {
+    if !place.open {
+        return (Some(Stuck::Shut), Some(Stuck::Shut));
+    }
+    let mut writes = Writes::default();
+    let connection = ask
+        .connection
+        .as_deref()
+        .and_then(|named| repointed(client, place, at, named, &mut writes).err());
+    let hooks = match ask.hooks.is_empty() {
+        true => None,
+        false => hooks_repointed(client, place, ask, &mut writes).err(),
+    };
+    (connection, hooks)
+}
+
+fn repointed(
+    client: &Client,
+    place: &Place,
+    at: &Path,
+    named: &str,
+    writes: &mut Writes,
+) -> Result<(), Stuck> {
+    let was = files::text(at)?;
+    if client.reads(&was).as_deref() != Some(named) || !leads(place, named).astray() {
+        return Err(Stuck::Moved(at.display().to_string()));
+    }
+    let now = match client.shape {
+        Shape::Manual => None,
+        Shape::Toml => toml::repoint(&was, &client.key, NAME, &place.command),
+        _ => json::repoint(&was, &client.key, NAME, &place.command)
+            .filter(|now| client.sound(&was, now)),
+    }
+    .ok_or_else(|| Stuck::Unfixable(at.display().to_string()))?;
+    writes.change(at, &was, &now, place.moved_aside(at))
+}
+
+fn hooks_repointed(
+    client: &Client,
+    place: &Place,
+    ask: &Mend,
+    writes: &mut Writes,
+) -> Result<(), Stuck> {
+    let (kind, at) = hooks_of(client, place)?;
+    let shown = at.display().to_string();
+    let was = files::text(&at)?;
+    let now = match ask.hooks_out {
+        true => hooks::without_those(kind, &was, place, &ask.hooks),
+        false => hooks::repointed(kind, &was, place, &ask.hooks),
+    }
+    .ok_or_else(|| Stuck::HooksPuzzling(shown.clone()))?;
+    match now == was {
+        true => Err(Stuck::Moved(shown)),
+        false if ask.hooks_out => unhook_written(kind, place, &at, &was, &now, writes),
+        false => writes.change(&at, &was, &now, place.moved_aside(&at)),
+    }
 }
 
 fn asked(id: &str) -> Result<(Client, Place, PathBuf), Stuck> {
@@ -314,44 +487,10 @@ fn asked(id: &str) -> Result<(Client, Place, PathBuf), Stuck> {
     Ok((client, place, at))
 }
 
-/// The first original is kept for good, and the one just before this write beside it.
-fn kept(at: &Path, was: &str) -> Result<(), Stuck> {
-    if was.is_empty() {
-        return Ok(());
-    }
-    let Some(named) = at.file_name().map(|it| it.to_string_lossy().into_owned()) else {
-        return Ok(());
-    };
-    let first = at.with_file_name(format!("{named}.{BEFORE}"));
-    if !first.exists() {
-        std::fs::write(&first, was).map_err(sour)?;
-    }
-    std::fs::write(at.with_file_name(format!("{named}.{LAST}")), was).map_err(sour)
-}
-
-fn changed(at: &Path, was: &str, now: &str, aside: bool) -> Result<(), Stuck> {
-    if now == was {
-        return Ok(());
-    }
-    kept(at, was)?;
-    laid(at, now, aside)
-}
-
-fn laid(at: &Path, text: &str, aside: bool) -> Result<(), Stuck> {
-    if let Some(folder) = at.parent() {
-        std::fs::create_dir_all(folder).map_err(sour)?;
-    }
-    let wrote = match aside && at.is_file() {
-        true => tisty_core::store::write_in_place(at, text.as_bytes()),
-        false => tisty_core::store::write_atomic(at, text.as_bytes()),
-    };
-    wrote.map_err(|e| Stuck::Cannot(e.to_string()))
-}
-
-fn sour(why: std::io::Error) -> Stuck {
-    Stuck::Cannot(why.to_string())
-}
-
 #[cfg(test)]
 #[path = "wiring_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "wiring_shapes_test.rs"]
+mod shapes_tests;

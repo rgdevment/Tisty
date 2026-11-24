@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use tisty_core::agents::Ledger;
 
+use super::agents::{Agent, agent_apart};
 use crate::wiring::agents::Homes;
 use crate::{Answer, Refusal, Session, held, waking, wiring};
 
@@ -39,6 +40,17 @@ pub(crate) fn marked(mut seen: Vec<wiring::Seen>, plugged: &BTreeSet<&str>) -> V
     seen
 }
 
+// Looking without a click never opens the plugin's records, so whether it brings hooks is not known here.
+pub(crate) fn unasked(mut seen: Vec<wiring::Seen>) -> Vec<wiring::Seen> {
+    for one in &mut seen {
+        let plugs = PLUGGED_CLIENTS.iter().any(|(client, _)| *client == one.id);
+        if let Some(hooks) = one.hooks.as_mut().filter(|_| plugs) {
+            hooks.plugin_unknown = true;
+        }
+    }
+    seen
+}
+
 fn shown(session: &Mutex<Session>, seen: Vec<wiring::Seen>) -> Vec<wiring::Seen> {
     marked(seen, &plugged_here(session))
 }
@@ -47,6 +59,20 @@ fn shown(session: &Mutex<Session>, seen: Vec<wiring::Seen>) -> Vec<wiring::Seen>
 #[tauri::command(async)]
 pub fn wiring(session: tauri::State<'_, Mutex<Session>>) -> Vec<wiring::Seen> {
     shown(&session, wiring::seen())
+}
+
+#[derive(serde::Serialize)]
+pub struct Watched {
+    agent: Agent,
+    seen: Option<Vec<wiring::Seen>>,
+}
+
+// Asked for with nobody looking at the agents, so a closed door means none of their files is opened.
+#[tauri::command(async)]
+pub fn wiring_watched(session: tauri::State<'_, Mutex<Session>>) -> Watched {
+    let agent = agent_apart(&session);
+    let seen = agent.on.then(|| unasked(wiring::seen()));
+    Watched { agent, seen }
 }
 
 #[tauri::command(async)]
@@ -101,11 +127,40 @@ pub fn unhook(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<V
         .map_err(stuck)
 }
 
+#[derive(serde::Serialize)]
+pub struct Mended {
+    seen: Vec<wiring::Seen>,
+    connection: Option<Refusal>,
+    hooks: Option<Refusal>,
+}
+
+#[tauri::command(async)]
+pub fn mend(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    ask: wiring::Mend,
+) -> Answer<Mended> {
+    let done = wiring::mend(&id, &ask).map_err(stuck)?;
+    Ok(Mended {
+        seen: shown(&session, done.seen),
+        connection: done.connection.map(stuck),
+        hooks: done.hooks.map(stuck),
+    })
+}
+
 fn stuck(why: wiring::Stuck) -> Refusal {
     match why {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
         wiring::Stuck::Shut => Refusal::of("wslShut"),
+        wiring::Stuck::Unread(at) => Refusal::about("settingsUnread", at),
+        wiring::Stuck::Moved(at) => Refusal::about("settingsMoved", at),
+        wiring::Stuck::Plugged => Refusal::of("hooksByPlugin"),
+        wiring::Stuck::Unplugged => Refusal::of("hooksNotByPlugin"),
+        wiring::Stuck::PluginUnread(at) => Refusal::about("hooksRecordUnread", at),
+        wiring::Stuck::HooksApart(at) => Refusal::about("hooksApart", at),
+        wiring::Stuck::HooksPuzzling(at) => Refusal::about("hooksPuzzling", at),
         wiring::Stuck::Puzzling(at) => Refusal::about("settingsPuzzling", at),
+        wiring::Stuck::Unfixable(at) => Refusal::about("settingsUnfixable", at),
         wiring::Stuck::Unborn(at) => Refusal::about("settingsUnborn", at),
         wiring::Stuck::Cannot(why) => Refusal::about("cannotWrite", why),
     }

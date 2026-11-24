@@ -1458,7 +1458,9 @@ already reads the encrypted cloud: on the new one, **Let in from another
 computer** shows twenty digits, and you type them on the other under Settings ›
 *Security* › **Let a new computer in**; then **It took them** on the new one
 says you did. Or type your 24 words on the new one
-with **Type my phrase**: only the cloud's key stays there, never the phrase.
+with **Open my cloud with the phrase**: only the cloud's key stays there, never
+the phrase. After reinstalling Tisty, the cloud's card shows what that computer
+is missing, **Reconnect** and then the phrase, as two steps.
 Whichever history you then keep, the computer that took the twenty digits does
 not ask for it again; each of your other computers asks you to confirm its code
 once, as with any new computer, since the key alone does not say which computer
@@ -1516,7 +1518,8 @@ task and reads what it noted yesterday.
 
 Two optional helps make that a habit, each with its own yes in Settings ›
 Agents, and when you connect an agent there Tisty offers once the ones it can
-take. Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
+take; for the agents you already had, it offers them together, in one box.
+Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
 bring the agent its open tasks when a session starts, and hand the turn back
 once when it edited files without writing anything here. Its **own skills**,
 `tisty`, `consolidate` and `writing-for-the-next-agent`, teach it what
@@ -1544,9 +1547,11 @@ a task is done, you are the one who closes it.
 Settings › Agents › *Connected* lists the agents already installed on
 this computer and connects the one you pick: it writes a single line into that
 agent's own settings, leaves the rest of that file where it was, and keeps a
-copy of it as it was before. For one it does not know, a line does it, and the
-tab shows it with where the `tisty` that came with the app sits on this
-computer:
+copy of it as it was before. If an agent, or its hooks, can no longer find
+Tisty because you moved or reinstalled it, the window says so, and **Fix all**
+shows the files and points them back here. For one it does not know, a line
+does it, and the tab shows it with where the `tisty` that came with the app
+sits on this computer:
 
 ```console
 $ <your-agent> mcp add tisty -- <path-to-tisty> mcp

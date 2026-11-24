@@ -126,9 +126,11 @@ visible instead of making it for you.
   document deletes its versions; **Empty the history** deletes them without
   deleting the document.
 - **Words a save refused** — if a document got locked or too long while you were
-  writing, Tisty keeps what it could not save in the window's own storage on
-  this computer, until you put it back, discard it or delete the document in
-  this window. It is never synced, backed up, put in a parcel or shared by link.
+  writing, or a table's change came after you left its page or while that same
+  place was changing, Tisty keeps what it could not save in the window's own
+  storage on this computer, until you put it back, discard it or delete the
+  document in this window. It is never synced, backed up, put in a parcel or
+  shared by link.
 - **Attachments** — the files themselves, unmodified. The log keeps a note of
   each one: the name it is kept under (a lowercased form of the file's name
   with a short fingerprint), its size and fingerprint, how it came in (dropped
@@ -606,8 +608,8 @@ above.
 | **What the provider still sees** | As Tisty itself warns before you start: the provider keeps earlier unencrypted versions for a while, in its history and its bin; the names and sizes of the files and how many computers you have stay visible; and while it encrypts, your cloud takes twice the room, until you delete the old copy. Documents are named by an identifier rather than their title, but an attachment's name is a lowercased form of the file's own name. The provider still sees when files change and the address and time of each request |
 | **What stays unencrypted** | `tisty.toml`, which says what the folder is and now also that it is encrypted and with which store; `moved.json`, the signed note left when a computer moves elsewhere; the store's identifier in `store/`; a small mark, `sealed/sealed.mark`, which lets a phrase be checked before anything comes down; and the `knock/` folder, where your computers ask each other for the key. An ask in `knock/` carries the name you gave that computer in Tisty |
 | **The old copy** | It stays as it was until you press *Delete the unencrypted copy*, which deletes only the files whose encrypted copy is already there. Until the last step, cancelling loses nothing. A file too big for the provider to take encrypted is left out and stays as it is |
-| **Where the phrase lives** | On the computer where you made it, in the system keychain on macOS or, on Windows, in a DPAPI-sealed file apart from the cloud tokens, which the installer's uninstaller leaves in place. It is never synced, backed up or put in a parcel. You can show it again in Settings › Security or save it as a PDF; keep that outside Tisty. It never passes through our hands, so nobody can give it back to you |
-| **Your other computers** | A computer that already syncs with you asks for the key on its own, and another of yours that holds it answers, as soon as one of them has Tisty open. A new computer chooses *Let in from another computer* and shows twenty digits, which you type on one of your computers that already reads the encrypted cloud. Or you can type your 24 words on it with *Type my phrase*: only the key of your cloud stays on that computer, never the phrase. Either way the key travels only inside the cloud, sealed for that one computer, and is kept in its keychain or, on Windows, in the same sealed folder as the phrase |
+| **Where the phrase lives** | On the computer where you made it and on the ones where you press *Keep my phrase on this computer*, in the system keychain on macOS or, on Windows, in a DPAPI-sealed file apart from the cloud tokens, which the installer's uninstaller leaves in place. It is never synced, backed up or put in a parcel. You can show it again in Settings › Security or save it as a PDF; keep that outside Tisty. It never passes through our hands, so nobody can give it back to you |
+| **Your other computers** | A computer that already syncs with you asks for the key on its own, and another of yours that holds it answers, as soon as one of them has Tisty open. A new computer chooses *Let in from another computer* and shows twenty digits, which you type on one of your computers that already reads the encrypted cloud. Or you can type your 24 words on it with *Open my cloud with the phrase*: only the key of your cloud stays on that computer, never the phrase. Either way the key travels only inside the cloud, sealed for that one computer, and is kept in its keychain or, on Windows, in the same sealed folder as the phrase |
 | **Who can open it** | Only someone with your phrase or one of your computers. Not the provider, and not us: there is no copy of the key anywhere else, so if you lose the phrase and all your computers, the encrypted data is lost |
 | **Going back** | *Decrypt my cloud* copies everything back unencrypted and deletes the encrypted copy. It leaves a signed note, `knock/unsealed.json`, so your other computers follow without you doing anything on each one. Your phrase stays yours |
 
@@ -662,11 +664,11 @@ What Agents never brings in:
   anywhere, `.credentials.json`, `credentials.json`, `auth.json`, `.netrc`,
   `.env` and `.env.*`, `id_rsa*`, `id_ed25519*`, and files ending in `.pem`,
   `.key`, `.p12`, `.pfx` or `.env`. These are skipped without being brought in.
-  Apart from adding or taking out Tisty's hooks when you ask, Claude Code's
-  `settings.json` is opened for two things, and neither keeps anything of it:
-  with your yes to Agents or to Tisty's own skills, to see whether the Tisty
-  plugin is turned off (`enabledPlugins`); and, for the hooks row in Settings ›
-  Agents › Connected, to see whether Tisty's hooks are in it. Nor is an Agents
+  For Agents and Tisty's own skills, only Claude Code's `settings.json` is
+  opened, with your yes to one of them, to see whether the Tisty plugin is
+  turned off (`enabledPlugins`), and nothing of it is kept. Connecting an
+  agent and adding its hooks is something else, with a reading of its own,
+  told in [The agents you connect](#the-agents-you-connect). Nor is an Agents
   document ever written to an assistant's own settings or credentials: a
   document goes only where each assistant keeps its rules, its skills and its
   memory.
@@ -726,8 +728,11 @@ and no agent can name or change them through the MCP. Only the bytes of the
 release, checked against a fingerprint built into the app, are written.
 
 - **They have their own yes, on this computer.** Settings › Agents › Connected
-  shows them in a row of their own, and **Turn on here** is that yes. It needs
-  no Agents folder, and a record copied from another computer does not count.
+  shows them in a row of their own, and **Turn on here** is that yes; so is
+  **Turn on skills**, or **Add hooks and turn on skills**, in the box Settings ›
+  Agents shows above its tabs, which says the same before you press it. It
+  needs no Agents folder, and a record copied from another computer does not
+  count.
 - **Before that yes, and with no yes to Agents either, their card opens nothing
   inside your agents' folders.** It looks only at which agents' folders exist,
   as Settings › Agents already does, and, for copies Tisty wrote before, whether
@@ -755,6 +760,59 @@ release, checked against a fingerprint built into the app, are written.
   Tisty, ready to turn on again, and are never deleted. A copy you changed is
   left for you to take away from the same card. No file is ever taken away on
   its own or through the MCP.
+
+## The agents you connect
+
+Settings › Agents › Connected writes Tisty into your agents' settings, and its
+hooks if you ask for them. For that it reads settings files of your agents, on
+this computer and sending nothing:
+
+- **When Tisty's window opens and when Settings opens, with the door below
+  open**, it reads, of each agent it finds on this computer, the file where
+  that agent connects, such as `~/.claude.json`, `~/.codex/config.toml`,
+  `~/.copilot/mcp-config.json` or `~/.cursor/mcp.json`, and, in those that run
+  hooks, the file that holds them: `~/.claude/settings.json`,
+  `~/.cursor/hooks.json`, `~/.gemini/settings.json` and
+  `~/.copilot/hooks/tisty.json`. It looks only for Tisty's own entry and
+  Tisty's own hooks, and at whether the program they name is there and is this
+  Tisty, to tell you when one of them can no longer find it. **It writes
+  nothing in them until you click.** It never reads a WSL distro's files this
+  way: those, only when you press **Look in** that distro or, once you did, the
+  **Connected** tab.
+- **With the door closed**, that reading does not happen. Two that were already
+  there do: Settings › Agents reads the same files each time you open it, to
+  show how each agent stands; and, until you answer the offer to connect your
+  agents, Tisty looks at them when it opens and when you come back to its
+  window, with the door open or closed, to know whether to offer it.
+- **With your yes to Agents or to Tisty's own skills**, Tisty also reads Claude
+  Code's plugin records, named below, when it opens, when something changes in
+  your data while it is open, and when it shows its own skills, even turned off,
+  to tell whether the plugin already brings the skills. For hooks, it uses them
+  only in Settings › Agents, or when you press the button. Nothing of them is
+  kept.
+- **When you add or fix Claude Code's hooks**, even with neither of those two
+  yeses, and without them only then — when you press **Add them**, **Add
+  hooks**, **Fix**, **Fix all** or **Yes, fix** and that writes them, or removes
+  them because the Tisty plugin already brings them — it first reads
+  `plugins/installed_plugins.json` in its folder (`~/.claude`, or the one
+  `CLAUDE_CONFIG_DIR` says; in WSL, that distro's) and, only if the Tisty
+  plugin is there, looks at `settings.json` to know whether it is turned off.
+  That way it does not write hooks the plugin already brings, nor remove the
+  ones it no longer does. If it brings them it writes none, if they cannot be
+  read it neither writes nor removes, and either way it tells you. Nothing of
+  those two files is kept this way; that the plugin brings them is remembered
+  in memory until the window closes, or until it sees that it no longer does.
+- **When you press Connect, Add, Fix or Remove**, it reads the file again and
+  changes only its own entry or its own hooks. If the file changed since it was
+  shown to you for fixing, could not be read, or is written in a way Tisty
+  would not know how to change without spoiling it, nothing is written.
+- **What stays.** Beside each file it changes, two copies: the first it ever
+  saw, ending in `.before-tisty`, and the one from just before, ending in
+  `.before-tisty-last`. And in the window's own storage on this computer: which
+  agents were already offered to you and, if you press **Not now** on a notice,
+  which agent it was and the path it pointed at, so as not to repeat it, until
+  that agent finds Tisty again. None of it is synced, backed up, put in a
+  parcel or shared by link.
 
 ## The door you can open for an assistant
 
@@ -804,12 +862,14 @@ happens on its own:
   comes back without the paths of your disk.
 - **Its hooks, if you add them.** Settings › Agents › Connected can add Tisty's
   hooks to an assistant's own settings file; it names the file and asks first,
-  and leaves the rest of that file as it is. If the file held anything, a copy
-  of it as it was stays beside it, as `.before-tisty`. With them, a session
-  starts with the tasks it left open, what moved and how much is pressing, and
-  after each edit and each call to Tisty a mark is kept in Tisty's cache on this
-  computer, without reading the conversation. The marks never leave it, and
-  **Remove** takes the hooks out.
+  and leaves the rest of that file as it is. If the file held anything, two
+  copies of it stay beside it: the first Tisty ever saw, as `.before-tisty`, and
+  the one from just before its last write, as `.before-tisty-last`. With them, a
+  session starts with the tasks it left open, what moved and how much is
+  pressing, and after each edit and each call to Tisty a mark is kept in Tisty's
+  cache on this computer, without reading the conversation. The marks never
+  leave it, and **Remove** takes the hooks out. When these files are read is in
+  [The agents you connect](#the-agents-you-connect).
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
   never leaves this computer. A summary it leaves on a long document is an

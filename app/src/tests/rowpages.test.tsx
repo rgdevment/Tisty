@@ -234,6 +234,8 @@ describe("the assistants' page", () => {
     shown(true, "wired");
     expect(await screen.findByRole("button", { name: fill("wslLook", "Ubuntu") })).toBeTruthy();
     expect(sent("wsl_seen")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("tab", { name: "Door" }));
+    expect(sent("wsl_seen")).toHaveLength(0);
     await userEvent.click(screen.getByRole("tab", { name: "Connected" }));
     await waitFor(() => expect(sent("wsl_seen")).toHaveLength(1));
   });

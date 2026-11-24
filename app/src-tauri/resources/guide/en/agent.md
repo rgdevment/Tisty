@@ -8,7 +8,9 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 - **Connected**: it already opens this Tisty.
 - **Not connected**: **Connect** writes Tisty into that agent's settings, and touches only its own line.
-- **Points at another Tisty**: an older copy, or one that moved. **Fix** points it here.
+- **Points at another Tisty**: an older copy, or one that is gone. **Fix** shows you what it will write and, with your yes, points it here. If it is gone, the window tells you too.
+- **Set up your own way**: it holds a Tisty entry that Tisty cannot check, and leaves it as you wrote it.
+- **Could not be read**: Tisty could not read its file, so it does not touch it.
 - **May be here**: only its folder is left, so it may no longer be installed.
 - **By hand**: it keeps its settings in a format Tisty does not write, and the row shows what to paste.
 

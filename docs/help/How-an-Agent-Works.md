@@ -19,9 +19,9 @@ In **Settings › Agents**:
 
 1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
 2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the agent uses them.
-3. At the end of the same list, the **Tisty's skills** row says **Off**. **See** opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
+3. Below it, that agent's **Tisty's skills** row says **Off**. **Turn on skills** opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
 
-   If you connect the agent now, steps 2 and 3 come together: under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with its hooks and **See Tisty's skills**.
+   If you connect the agent now, steps 2 and 3 come together: under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with its hooks and **See Tisty's skills**. If it was already connected, they come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
 4. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.

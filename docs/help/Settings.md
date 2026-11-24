@@ -6,7 +6,7 @@ Settings is where Tisty fits itself to you: how it looks, how it tells you thing
 
 - **The gear** at the foot of the sidebar. **Back**, at the top left, or `Esc` take you back to where you were.
 - **The command palette**: type «settings» and choose **Settings** (the shortcuts are in [Keyboard shortcuts](Keyboard-Shortcuts)).
-- **From a notice**: the foot of the sidebar, when sync needs something, takes you to the page that sorts it out.
+- **From a notice**: the foot of the sidebar, when sync needs something, takes you to the page that sorts it out. When an agent can no longer find Tisty, the notice at the foot of the sidebar has **See and fix**, which opens **Agents**.
 
 The gear and the palette always open it on **Overview**. On the left you have, in this order, **Back**, **Search a setting**, **Overview** and the ten pages in four groups:
 
@@ -57,15 +57,19 @@ Below, **To attend to · 2** gathers what needs something from you, each with an
 | **Your last backup is from Mon, Oct 5 11:47** (30 days or more) | **Create backup** | Copies › Save a copy |
 | **3 things to look at in your history** | **Review** | Health |
 | **Quick capture was left without a shortcut** | **Choose another** | Tasks and reminders › Quick capture |
-| **Claude Code points to a Tisty that no longer exists** | **Fix** | Agents › Connected |
+| **Claude Code points to a Tisty that no longer exists**, itself or its hooks; with several, a single line: **3 agents point to a Tisty that no longer exists** | **Fix** | Agents › Connected, in the box above the tabs |
+| **Codex points to another Tisty**, one still on this computer | **Fix** | Agents › Connected, in the box above the tabs |
+| **Tisty's skills are to be brought up to date in your agents** | **Fix** | Agents › Connected, in the box above the tabs |
 
 When nothing is left, it says **Nothing needs your attention.** with a green dot. That line only shows if Tisty could read everything it checks on opening: if a read failed or is still on its way, it does not say it, because it cannot promise it. While the steps of **Make Tisty yours** are showing, it does not either.
 
+Below there may be a line that asks for nothing: **Your agents can use Tisty's hooks and skills · Optional**, or just the hooks, or just the skills, with **See** and **Not now**. It shows with the door open, when an agent you already had connected lacks them and was not offered them when you connected it, and none has lost Tisty. It counts in no number and sits well with **Nothing needs your attention.** **See** takes you to the box in **Agents** where they are added; **Not now** takes it away from here and from there.
+
 **Example.** Jaime comes back from holiday and opens Settings. **To attend to · 2** says **Your phrase is not confirmed yet** and **Your last backup is from Mon, Oct 5 11:47**, and in the column **Security** and **Copies** carry a 1. **Create backup ›** lands on **Save a copy**, with the row highlighted for a moment; Jaime presses **Create backup…**, keeps the file on an external drive and, back in **Overview**, one thing is left.
 
-Each of these also shows on its row, as an amber **Attention** note: it is the same one, not another, and sorting it out clears it from both places and from the column's number at once. More in [Attention, on its row](#attention-on-its-row).
+Each of these also shows on its row, as an amber **Attention** note (your agents', in the box in [Agents](#agents)): it is the same one, not another, and sorting it out clears it from both places and from the column's number at once. More in [Attention, on its row](#attention-on-its-row).
 
-Some things are only known after a look: the computers waiting for your confirmation show once you have opened **Security** or **Health**, what to look at in your history once you have opened **Health**, and an agent pointing to another Tisty once you have opened **Agents**. **Overview** does not start those checks on its own.
+Some things are only known after a look: the computers waiting for your confirmation show once you have opened **Security** or **Health**, and what to look at in your history once you have opened **Health**. **Overview** does not start those checks on its own. Your agents do not wait for that: with the door open, Tisty looks at whether they point at this Tisty when its window opens and when Settings opens, writing nothing. What it reads is in [Privacy](Privacy#the-agents-you-connect).
 
 ### Status
 
@@ -81,13 +85,13 @@ Some things are only known after a look: the computers waiting for your confirma
 | **Sync** | **In Google Drive** (or your folder, your OneDrive, your WebDAV) with a round that ended well or is under way | Something asks for you, **nothing new since …** (three days with nothing from your other computers) or **Chosen by a newer Tisty** | **Off** · only on this computer; offline, at today's limit or waiting; or **the cloud's state could not be read yet** |
 | **Copies** | **Last backup** with its date | The last backup is 30 days old or more | **No backup** · none yet |
 | **Security** | **Phrase confirmed** | **Phrase not confirmed**, **Phrase on another computer**, or a computer waiting for your confirmation | **No phrase yet** · your identity is born with it |
-| **Agents** | **Door open** · signs as «palmera 95» | An agent points to a Tisty that no longer exists | **Door closed** · what an agent asks is turned down |
+| **Agents** | **Door open** · signs as «palmera 95» | **Door open** · 2 to fix: each agent that, itself or its hooks, can no longer find Tisty, and Tisty's skills to bring up to date | **Door closed** · what an agent asks is turned down |
 | **Health** | **Everything in order** · checked 10:42 | **3 things to look at**, or **Some checks could not run** | **Not checked yet** · checked when you open Health |
 | **Help and about** | **Tisty 1.49.0** · up to date, if Tisty checked for versions today and got an answer | **1.50.0 is out** · you have 1.49.0 | **no check for updates yet**, or **last checked …** when the last answer is not from today |
 
 **Health** is the only one not checked when Settings opens: it shows the last check you made in this window, with its time, so you see how old it is.
 
-**On another computer**, **Overview** speaks for that computer: each one keeps its own backups, its **Health** check and its agents, so on your desktop it may say **No backup** even though the laptop made one yesterday. Your phrase, though, is yours on all of them: on a computer where you have not typed it yet, **Security** says **Phrase on another computer** · type it here to recognise this one.
+**On another computer**, **Overview** speaks for that computer: each one keeps its own backups, its **Health** check and its agents, so on your desktop it may say **No backup** even though the laptop made one yesterday. Your phrase, though, is yours on all of them: on a computer that does not keep it, because you created it on another or because you reinstalled Tisty there, **Security** says **Phrase on another computer** · type it here to recognise this one.
 
 ## Search a setting
 
@@ -163,9 +167,9 @@ Everything that happens on this page is in [Sync and backup](Sync-and-Backup).
 
 «Your identity, the computers you recognise as yours, and your cloud's encryption.»
 
-- **Your identity**: it is born with your 24-word phrase. **Create my phrase** creates it; **I already have my phrase** types it on this computer, if you created it on another. Afterwards, **See the phrase** shows it again on the computer where you created it.
+- **Your identity**: it is born with your 24-word phrase. **Create my phrase** creates it; **Keep my phrase on this computer** takes it and leaves it kept here, if you created it on another computer or reinstalled Tisty on this one. **See the phrase** shows it again on each computer that keeps it. If you only want to open your encrypted cloud, use **Open my cloud with the phrase**, further down, which does not keep the phrase.
 - **Your computers**: one single list with every computer that writes where you sync, this one marked **This computer**. Each with its code and **See the code**; the others, with **Remove**. While syncing, below, **Rename** and **Show large** for this computer.
-- **Encrypt my data in the cloud**: **Encrypt my cloud…**; with the cloud encrypted, **Let a new computer in**. Without a direct cloud, the row carries the **Missing** note: «Connect a cloud in Sync to encrypt what Tisty keeps there.», with **Go to Sync**. With the cloud encrypted, the **Handle with care** zone keeps **Delete the unencrypted copy** and **Decrypt my cloud**.
+- **Encrypt my data in the cloud**: **Encrypt my cloud…**; with the cloud encrypted, **Let a new computer in**. On a computer that cannot open your encrypted cloud yet, the steps it is missing, with **Reconnect** and **Open my cloud with the phrase** ([how](Sync-and-Backup#syncing-again-on-a-computer)). Without a direct cloud, the row carries the **Missing** note: «Connect a cloud in Sync to encrypt what Tisty keeps there.», with **Go to Sync**. With the cloud encrypted, the **Handle with care** zone keeps **Delete the unencrypted copy** and **Decrypt my cloud**.
 
 Step by step in [Confirming your machines](Sync-and-Backup#confirming-your-machines) and [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud).
 
@@ -194,13 +198,21 @@ More in [Large attachments](Sync-and-Backup#large-attachments) and [Privacy](Pri
 
 ### Agents
 
-«Tisty has no AI inside. Your agent brings it; Tisty is the memory you share.» The page has five tabs:
+«Tisty has no AI inside. Your agent brings it; Tisty is the memory you share.» The page has five tabs. With the door open you come in on **Connected**; with the door closed, on **Door**:
 
 - **Door**: **An agent can file work here**, with **Stop it** to close it (and **Let an agent file here** to open it again), **Ask it to keep its task up to date** and **Remind it when a turn starts and ends**.
-- **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere**, the **Tisty's skills** row, with **See**, and **How to connect one**, folded, to connect it by hand. Under each agent that takes them, the **Hooks: when a turn starts and ends** row, with **Add** or **Remove**; and when you connect one, once, a box that offers its hooks and the skills. [Hooks and skills](Hooks-and-Skills) tells it.
+- **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere**, the **Tisty's skills** row, with **See**, and **How to connect one**, folded, to connect it by hand. Each row says how that agent stands, **Connected**, **Not connected**, **Points at another Tisty**, **May be here**, **Set up your own way**, **Could not be read** or **By hand**. Under each connected agent that takes them, the **Hooks: when a turn starts and ends** row, with **Add** or **Remove**, and the **Tisty's skills** row, with its standing; and when you connect one, once, a box that offers its hooks and the skills. [Hooks and skills](Hooks-and-Skills) tells it.
 - **Agents folder**: the **Agents** card, to bring and sync your agents' rules, skills and memory. More in [Agents: rules, skills and memory](AGENTS-Folder).
 - **How its signature looks**: **Who signs what an agent writes**, with a **Preview of a row** that changes at once, **Only a diamond**, **Name the agent in the task list** and **Name the agent inside a task**.
 - **What it can and cannot do**: **What it can do** and **What it can never do**, side by side.
+
+**The box above the tabs.** With the door open, what happens with your agents shows on top, whichever tab you are on:
+
+- **2 agents to fix**: the ones that point, themselves or their hooks, to a Tisty that is no longer on this computer. Each one says what is fixed (**connection**, **hooks** or **connection and hooks**), what it points at today and, under **It writes in:**, the files that will be touched. If Tisty's skills are to be brought up to date, they go right there with their folders. **Fix all**, or **Fix** if there is a single thing, does it, and in its place it leaves **Fixed**, with a ✓ for each one, or **Some could not be fixed**, with the reason.
+- **Codex points to another Tisty**: «That Tisty is still on this computer. To bring one here, use Fix on its row.». **Fix all** does not touch it, and **Not now** takes away the box and the line in **Overview**.
+- **Hooks and skills for your agents**: the optional part, in one step. **Add hooks and turn on skills** first shows you two ticks, with the files and folders that will be written, and only writes what you left ticked when you press it again. What you untick is not offered again; with **Not now**, nothing is. The usual rows are still there.
+
+**Example.** Lucas had Tisty from the installer and now installs it from Microsoft Store and uninstalls the other one. On opening it, the foot of the sidebar says **2 agents can no longer find Tisty** · «The Tisty they point to is no longer on this computer.». Lucas presses **See and fix** and lands on the box: **Claude Code · connection and hooks**, with `~/.claude.json` and `~/.claude/settings.json`, and **Codex · connection**, with `~/.codex/config.toml`. After **Fix all**, the box reads **Fixed**, and what is left is to quit both agents completely and open them again. One by one, it is in [When an agent can no longer find Tisty](Agents-and-MCP#when-an-agent-can-no-longer-find-tisty).
 
 With the keyboard, `←` and `→` change tabs, and `Home` and `End` jump to the first and the last.
 
@@ -327,9 +339,8 @@ What **To attend to** gathers in **Overview** also shows on the row where it is 
 | Tasks and reminders › **Quick capture** | **Quick capture was left without a shortcut** | «Another app already uses them. Choose another combination.» |
 | Copies › **Save a copy** | **Your last backup is from Mon, Oct 5 11:47** | — |
 | **Health**, at the top | **3 things to look at in your history** | — |
-| Agents › Connected › **Agents on this computer** | **Claude Code points to a Tisty that no longer exists** | — |
 
-With a folder, **Where it syncs** also shows there whether your cloud asks you to sign in, whether there is something to look at or whether syncing is paused; with a direct cloud, your cloud's card says so, with its button. The update does not repeat its notice: its row already is the offer, with the **Note**.
+With a folder, **Where it syncs** also shows there whether your cloud asks you to sign in, whether there is something to look at or whether syncing is paused; with a direct cloud, your cloud's card says so, with its button. The update does not repeat its notice: its row already is the offer, with the **Note**. Your agents' do not go on a row either: they show in the [box above the tabs](#agents) of **Agents**.
 
 **Example.** Marisol presses **Confirm it ›** in **Overview** and lands on **Your identity**, with the amber note **Your phrase is not confirmed yet** and, below it, «Type it once to check you kept it right. Without that you can't encrypt your cloud.». Once the words are typed, the note leaves the row, **To attend to** and the 1 next to **Security** at once.
 

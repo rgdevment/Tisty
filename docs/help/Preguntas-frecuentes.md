@@ -66,6 +66,9 @@ No por su cuenta. Las lee como cualquier documento, pero un cambio suyo queda co
 **¿Tisty usa IA?**
 No. Tisty no es IA ni la lleva dentro. Eso no va a cambiar. El lenguaje natural son reglas en tu equipo. Si usas un agente propio, Tisty deja una [[puerta MCP|Agentes-y-MCP]]: viene abierta y la cierras cuando quieras.
 
+**Mi agente dejó de ver Tisty después de moverlo o reinstalarlo.**
+Sigue apuntando al de antes. Con la puerta abierta, la ventana te lo dice, **Claude Code ya no encuentra Tisty**, con **Ver y corregir**: pulsa **Corregir**, sal del agente del todo y ábrelo otra vez. Mira [Cuando un agente deja de encontrar Tisty](Agentes-y-MCP#cuando-un-agente-deja-de-encontrar-tisty).
+
 **Un agente dice que una de sus tareas está hecha. ¿La cerró?**
 No. Nada de lo que hace un agente cierra una tarea. La marca, con su cuenta en la bitácora, y la tarea espera en **Por confirmar** hasta que decidas. Mira [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 
@@ -126,6 +129,9 @@ Sí, desde la 1.32, por WebDAV: Nextcloud, ownCloud, Synology y otros. En **Conf
 
 **¿Puedo cifrar mi nube?**
 Sí, desde la 1.36, con Google Drive, OneDrive o WebDAV: **Configuración › Seguridad › Cifrar mi nube…** cifra lo que Tisty guarda ahí con una frase de 24 palabras que solo tú conoces, así que el proveedor ya no puede leer tus tareas ni tus documentos. Una carpeta que otro programa mantiene al día no se cifra. Tus otros equipos reciben la llave solos; uno nuevo se autoriza con veinte dígitos que escribes en un equipo que ya tiene la llave, o con tu frase. El proveedor sigue viendo los nombres y tamaños de los archivos, cuántos equipos tienes y, por un tiempo, versiones anteriores sin cifrar. Sin la frase o sin uno de tus equipos, nadie puede abrirla, ni siquiera Tisty. Mira [Cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube).
+
+**Reinstalé Tisty y mi nube está cifrada. ¿Cómo vuelvo a sincronizar?**
+En dos pasos que te muestra la tarjeta de tu nube: **Reconectar** y, después, **Abrir mi nube con la frase**, o esperar a que otro de tus equipos encendido le entregue la llave. Mira [Volver a sincronizar en un equipo](Sincronizar-y-respaldar#volver-a-sincronizar-en-un-equipo).
 
 **Tisty dice que algo está bloqueando Google Drive.**
 Un proxy, un filtro de tu trabajo o un antivirus se interpone entre este equipo y Google, o revisa las conexiones seguras de modo que Tisty no puede confiar en ellas. Mientras tanto, tu trabajo queda a salvo en este equipo. En una red de trabajo, pide a quien la administra que deje pasar a Tisty; en tu propio equipo, permite a Tisty en tu antivirus. Nunca rodees por tu cuenta la protección de tu empresa. Qué significa cada aviso está en [Sincronizar y respaldar](Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).

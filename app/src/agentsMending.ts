@@ -1,93 +1,150 @@
-import { amiss, hooksAmiss, landingSaid, leftAsIs, skillsBehind } from "./agentsAmiss";
+import { landingSaid, leftAsIs, type Parts, skillsBehind } from "./agentsAmiss";
+import { partsSaid } from "./agentsSaid";
 import { AGENTS_CHANGED, type TistySkills, tistySkillsRound, tistySkillsTake } from "./agentsSync";
-import { hooked, type Wired, wireAgent } from "./core";
+import { hooked, mendAgent, seenAgents, type Wired } from "./core";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 
-export type Part = "connection" | "hooks";
-
-export interface Mended {
+export interface Outcome {
   id: string;
   name: string;
-  parts: Part[];
-  state?: string;
-  why?: string;
+  done?: string;
+  failed?: { what?: string; why: string }[];
+  wrote?: boolean;
+  brings?: boolean;
+  recordUnread?: boolean;
 }
 
-export const partsOf = (one: Wired): Part[] => [
-  ...(one.astray ? (["connection"] as const) : []),
-  ...(hooksAmiss(one) ? (["hooks"] as const) : []),
-];
+const coded = (e: unknown, code: string): boolean =>
+  (e as { code?: string } | null | undefined)?.code === code;
 
-export const partsSaid = (parts: readonly Part[]): string => {
-  if (parts.length === 2) return t("mendBoth");
-  return parts.map((one) => t(one === "hooks" ? "mendHooks" : "mendConnection")).join("");
+const byPlugin = (e: unknown): boolean => coded(e, "hooksByPlugin");
+
+export const bringing = (all: readonly Outcome[], brings: boolean): string[] =>
+  all.filter((one) => one.brings === brings).map((one) => one.id);
+
+export interface Asked {
+  one: Wired;
+  parts: Parts;
+}
+
+const hooksGo = ({ one, parts }: Asked): boolean => parts.hooks.length > 0 && !!one.hooks?.plugged;
+
+const stillStray = (after: Wired | undefined, parts: Parts): boolean =>
+  !!after?.hooks?.stray?.some((it) => parts.hooks.includes(it.said));
+
+const doneSaid = (one: Wired, parts: Parts): string => {
+  if (!hooksGo({ one, parts })) return partsSaid(parts);
+  const said = t("mendHooksOut");
+  return parts.connection === undefined ? said : `${t("mendConnection")} · ${said}`;
 };
 
-// Writing the connection carries its hooks along; ones the plugin brings too go, as they would run twice.
-async function written(one: Wired): Promise<Wired[]> {
-  const joined = one.astray ? await wireAgent(one.id) : null;
-  if (hooksAmiss(one) && one.hooks?.plugged) return hooked(one.id, false);
-  return joined ?? hooked(one.id, true);
-}
-
-export async function mendOne(one: Wired): Promise<{ said: Mended; seen: Wired[] | null }> {
-  const said: Mended = { id: one.id, name: one.name, parts: partsOf(one) };
+export async function mendOne(asked: Asked): Promise<{ said: Outcome; seen: Wired[] | null }> {
+  const { one, parts } = asked;
+  const said: Outcome = { id: one.id, name: one.name };
   try {
-    const seen = await written(one);
-    const after = seen.find((it) => it.id === one.id);
-    return { said: after && amiss(after) ? { ...said, why: t("mendStill") } : said, seen };
+    const answer = await mendAgent(one.id, {
+      connection: parts.connection,
+      hooks: parts.hooks,
+      hooksOut: hooksGo(asked),
+    });
+    const after = answer.seen.find((it) => it.id === one.id);
+    const failed: NonNullable<Outcome["failed"]> = [];
+    const fixed: Parts = { ...parts };
+    if (parts.connection !== undefined && (answer.connection || !after?.wired)) {
+      const why = answer.connection ? saidPlainly(answer.connection) : t("mendStill");
+      failed.push({ what: t("mendConnection"), why });
+      fixed.connection = undefined;
+    }
+    if (parts.hooks.length > 0 && (answer.hooks || stillStray(after, parts))) {
+      const why = answer.hooks ? saidPlainly(answer.hooks) : t("mendStill");
+      failed.push({ what: t("mendHooks"), why });
+      fixed.hooks = [];
+    }
+    const any = fixed.connection !== undefined || fixed.hooks.length > 0;
+    if (byPlugin(answer.hooks)) said.brings = true;
+    if (coded(answer.hooks, "hooksNotByPlugin")) said.brings = false;
+    if (any) {
+      said.done = doneSaid(one, fixed);
+      said.wrote = true;
+    }
+    if (failed.length > 0) said.failed = failed;
+    return { said, seen: answer.seen };
   } catch (e) {
-    return { said: { ...said, why: saidPlainly(e) }, seen: null };
+    return { said: { ...said, failed: [{ why: saidPlainly(e) }] }, seen: null };
   }
 }
 
-const skillsLine = (why?: string): Mended => ({
-  id: "tisty-skills",
+const SKILLS = "tisty-skills";
+
+const skillsDone = (done: string): Outcome => ({ id: SKILLS, name: t("tistySkills"), done });
+
+const skillsFailed = (why: string): Outcome => ({
+  id: SKILLS,
   name: t("tistySkills"),
-  parts: [],
-  why,
+  failed: [{ why }],
 });
 
 const changed = () => window.dispatchEvent(new Event(AGENTS_CHANGED));
 
-export async function mendSkills(skills: TistySkills | null): Promise<Mended[]> {
+export async function mendSkills(skills: TistySkills | null): Promise<Outcome[]> {
   if (!skillsBehind(skills)) return [];
   try {
     const now = await tistySkillsRound();
     changed();
-    return [skillsLine(skillsBehind(now) ? t("mendSkillsStill") : undefined)];
+    const behind = skillsBehind(now);
+    return [behind ? skillsFailed(t("mendSkillsStill")) : skillsDone(t("mendSkillsDone"))];
   } catch (e) {
-    return [skillsLine(saidPlainly(e))];
+    return [skillsFailed(saidPlainly(e))];
   }
 }
 
 export async function mendAll(
-  all: readonly Wired[],
+  all: readonly Asked[],
   skills: TistySkills | null,
-): Promise<Mended[]> {
-  const told: Mended[] = [];
-  for (const one of all) told.push((await mendOne(one)).said);
+): Promise<Outcome[]> {
+  const told: Outcome[] = [];
+  for (const asked of all) told.push((await mendOne(asked)).said);
   return [...told, ...(await mendSkills(skills))];
 }
 
-export async function addExtras(hooks: readonly Wired[], skills: boolean): Promise<Mended[]> {
-  const told: Mended[] = [];
-  for (const one of hooks) {
-    const said: Mended = { id: one.id, name: one.name, parts: ["hooks"] };
-    await hooked(one.id, true)
-      .then(() => told.push(said))
-      .catch((e) => told.push({ ...said, why: saidPlainly(e) }));
+async function skillsOn(): Promise<Outcome> {
+  try {
+    const now = await tistySkillsTake(true);
+    const left = skillsBehind(now) ? "write" : leftAsIs(now);
+    const done = skillsDone(t("extrasSkillsOn"));
+    return left ? { ...done, failed: [{ why: landingSaid(left) }] } : done;
+  } catch (e) {
+    return skillsFailed(saidPlainly(e));
+  } finally {
+    changed();
   }
-  if (!skills) return told;
-  await tistySkillsTake(true)
-    .then((now) => {
-      const left = skillsBehind(now) ? "write" : leftAsIs(now);
-      told.push(
-        left ? skillsLine(landingSaid(left)) : { ...skillsLine(), state: t("extrasSkillsOn") },
+}
+
+// The skills' yes lets the plugin's records be read, so the hooks come after it and never run twice.
+export async function addExtras(hooks: readonly Wired[], skills: boolean): Promise<Outcome[]> {
+  const taught = skills ? [await skillsOn()] : [];
+  const now = skills ? await seenAgents().catch(() => hooks) : hooks;
+  const told: Outcome[] = [];
+  for (const one of hooks) {
+    const said: Outcome = { id: one.id, name: one.name };
+    if (now.find((it) => it.id === one.id)?.hooks?.plugged) {
+      told.push({ ...said, done: t("extrasByPlugin") });
+      continue;
+    }
+    await hooked(one.id, true)
+      .then(() => told.push({ ...said, done: t("mendHooks"), wrote: true }))
+      .catch((e) =>
+        told.push(
+          byPlugin(e)
+            ? { ...said, done: t("extrasByPlugin"), brings: true }
+            : {
+                ...said,
+                failed: [{ why: saidPlainly(e) }],
+                recordUnread: coded(e, "hooksRecordUnread"),
+              },
+        ),
       );
-    })
-    .catch((e) => told.push(skillsLine(saidPlainly(e))));
-  changed();
-  return told;
+  }
+  return [...told, ...taught];
 }

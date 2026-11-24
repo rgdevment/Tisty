@@ -164,6 +164,7 @@ export default function Keeping({
     seen,
     wired: known.agents,
     skills: known.skills,
+    door: known.agent?.on,
     waiting: answered !== ALL_READ,
     desk,
   });

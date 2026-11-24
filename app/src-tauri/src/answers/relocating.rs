@@ -1,15 +1,15 @@
 use std::sync::Mutex;
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tisty_core::config::{CloudAt, Leaving, Sync};
 use tisty_core::witness::channel;
 
+use super::choosing::{folder_way, restored_store, went_back_on};
 use super::storing::{
-    After, Joins, Telling, catching_up, changed_with, cloud_joined, folder_way, forget_word_in,
-    joined_on, went_back_on,
+    After, Joins, Telling, catching_up, changed_with, cloud_joined, forget_word_in, joined_on,
 };
 use crate::reaching::GOOGLE;
-use crate::{Answer, Erasing, OneAtATime, Refusal, Session, held, said};
+use crate::{Answer, Erasing, OneAtATime, Refusal, Session, elsewhere, held, said};
 
 const PENDING: &str = "moving.json";
 const WAITED: std::time::Duration = std::time::Duration::from_secs(30);
@@ -110,10 +110,10 @@ pub enum Moving {
     },
 }
 
-fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
+fn way_of(data: &std::path::Path, toward: &Toward) -> Answer<Sync> {
     match toward {
         Toward::Alone => Ok(Sync::alone()),
-        Toward::Folder { at } => folder_way(session, at.trim().to_string()),
+        Toward::Folder { at } => folder_way(data, at.trim()),
         Toward::Cloud {
             account,
             email,
@@ -128,7 +128,7 @@ fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
 
 /// The carrier a way would use, built without choosing it.
 pub(crate) fn carrier_toward(session: &Session, toward: &Toward) -> Answer<tisty_carrier::Shared> {
-    let way = way_of(session, toward)?;
+    let way = way_of(session.paths.data(), toward)?;
     match tisty_carrier::cloud_of(Some(&way)) {
         Some(at) => session.reach.apart(at),
         None => tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier,
@@ -140,19 +140,45 @@ struct Ends {
     from: Option<tisty_carrier::Shared>,
     to: Option<tisty_carrier::Shared>,
     way: Sync,
+    left: Option<CloudAt>,
     here: tisty_carrier::Here,
     alive: Vec<String>,
     joins: Joins,
 }
 
-fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
+async fn ends_of(app: &tauri::AppHandle, toward: &Toward) -> Answer<Ends> {
+    let (app, toward) = (app.clone(), toward.clone());
+    elsewhere(move || ends(&app.state::<Mutex<Session>>(), &toward)).await?
+}
+
+fn ends(session: &Mutex<Session>, toward: &Toward) -> Answer<Ends> {
+    let data = held(session).paths.data().to_path_buf();
+    let way = way_of(&data, toward)?;
+    let (end, restored) = {
+        let mut session = held(session);
+        (ends_now(&mut session, &way)?, restored_store(&session))
+    };
+    let Some((restored, to)) = restored.zip(end.to.clone()) else {
+        return Ok(end);
+    };
+    if went_back_on(Some(&restored), || to.theirs()) {
+        return Err(Refusal::about("restoredApart", towards(toward)));
+    }
+    // The answer may have taken as long as a whole history, so the rest is read as it stands now.
+    let end = ends_now(&mut held(session), &way)?;
+    Ok(Ends {
+        to: Some(to),
+        ..end
+    })
+}
+
+fn ends_now(session: &mut Session, way: &Sync) -> Answer<Ends> {
     session.refresh_settings();
-    let way = way_of(session, toward)?;
     let now = session.config.sync.clone();
     if now
         .as_ref()
-        .is_some_and(|now| crate::leaving::same_place(now, &way))
-        || (now.is_none() && way == Sync::alone())
+        .is_some_and(|now| crate::leaving::same_place(now, way))
+        || (now.is_none() && *way == Sync::alone())
     {
         return Err(Refusal::of("moveSamePlace"));
     }
@@ -166,27 +192,22 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
     if from.is_none() && tisty_carrier::cloud_of(now.as_ref()).is_some() {
         return Err(Refusal::of("moveFromUnreachable"));
     }
-    let to = match tisty_carrier::cloud_of(Some(&way)) {
+    let to = match tisty_carrier::cloud_of(Some(way)) {
         Some(at) => session.reach.apart(at),
-        None => tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier,
+        None => tisty_carrier::chosen_with(Some(way), Some(&session.reach)).carrier,
     };
-    if way != Sync::alone() && to.is_none() {
+    if *way != Sync::alone() && to.is_none() {
         return Err(Refusal::of("moveToUnreachable"));
     }
-    if session.config.restored_at.is_some()
-        && let Some(to) = &to
-        && went_back_on(session, to.theirs())
-    {
-        return Err(Refusal::about("restoredApart", towards(toward)));
-    }
     let joins = Joins {
-        rejoined: joined_on(session, Some(&way)),
+        rejoined: joined_on(session, Some(way)),
         left: true,
     };
     Ok(Ends {
         from,
         to,
-        way,
+        way: way.clone(),
+        left: tisty_carrier::cloud_of(now.as_ref()).cloned(),
         here: session.here(),
         alive: session.alive(),
         joins,
@@ -211,9 +232,9 @@ fn towards(toward: &Toward) -> String {
 }
 
 #[tauri::command(async)]
-pub async fn move_plan(session: tauri::State<'_, Mutex<Session>>, toward: Toward) -> Answer<Plan> {
+pub async fn move_plan(app: tauri::AppHandle, toward: Toward) -> Answer<Plan> {
     accessible(&toward).await?;
-    let ends = ends(&mut held(&session), &toward)?;
+    let ends = ends_of(&app, &toward).await?;
     tauri::async_runtime::spawn_blocking(move || {
         let down = ends
             .from
@@ -328,12 +349,8 @@ async fn moving(
         return Err(Refusal::of("wipeGoing"));
     }
     accessible(&toward).await?;
-    let (mut end, paths, left) = {
-        let mut session = held(session);
-        let end = ends(&mut session, &toward)?;
-        let left = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned();
-        (end, session.paths.clone(), left)
-    };
+    let mut end = ends_of(&app, &toward).await?;
+    let paths = held(session).paths.clone();
     pending_kept(&paths, Some(&toward));
 
     let mut shifted = shifting(&app, &end).await?;
@@ -347,11 +364,15 @@ async fn moving(
             super::joining::will_adopt(session, end.to.clone(), refusal.code, refusal.name).await
         && super::joining::adopted_quietly(session, theirs).await
     {
-        end = ends(&mut held(session), &toward)?;
+        end = ends_of(&app, &toward).await?;
         shifted = shifting(&app, &end).await?;
     }
     let Ends {
-        from, way, joins, ..
+        from,
+        way,
+        left,
+        joins,
+        ..
     } = end;
     let caught = catching_up(
         session,

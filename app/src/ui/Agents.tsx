@@ -67,7 +67,7 @@ export default function Agents({
   const [pressed, setPressed] = useState(false);
   const pick = (one: Shelf) => {
     setPicked(one);
-    setPressed(true);
+    setPressed(one === "wired");
   };
   useEffect(() => {
     if (sent) setPicked(sent);
@@ -208,7 +208,7 @@ function Connected({
   chosen,
 }: Props & { onDoor: () => void; chosen: boolean }) {
   const held = isHeld(busy, "wiring");
-  const { agent, agents, setAgents, hands, skills, setSkills } = known;
+  const { agent, agents, setAgents, hands, skills, setSkills, learnPlugged } = known;
   return (
     <Card row="wired" which="wiring">
       {agent?.on === false && agents && agents.length > 0 && (
@@ -222,6 +222,7 @@ function Connected({
         hands={hands}
         skills={skills}
         setSkills={setSkills}
+        learnPlugged={learnPlugged}
         wakes={chosen}
         held={held}
         quietly={quietly}

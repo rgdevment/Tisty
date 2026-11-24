@@ -35,7 +35,7 @@ fn a_settings_file_that_is_not_there_yet_is_written() {
     let (seen, at) = wired_here("claude-code", tmp.path(), "/opt/tisty");
 
     assert!(seen.wired && !seen.astray);
-    assert!(!at.with_file_name(format!(".claude.json.{BEFORE}")).exists());
+    assert!(!at.with_file_name(".claude.json.before-tisty").exists());
     let read: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
     assert_eq!(read["mcpServers"]["tisty"]["type"], "stdio");
@@ -47,12 +47,12 @@ fn the_first_original_is_kept_for_good_and_the_last_beside_it() {
     let at = tmp.path().join(".claude.json");
     std::fs::write(&at, "{\n  \"numStartups\": 53\n}\n").unwrap();
 
-    wired_here("claude-code", tmp.path(), "/opt/one");
-    wired_here("claude-code", tmp.path(), "/opt/two");
+    wired_here("claude-code", tmp.path(), "/opt/one/tisty");
+    wired_here("claude-code", tmp.path(), "/opt/two/tisty");
 
-    let first =
-        std::fs::read_to_string(at.with_file_name(format!(".claude.json.{BEFORE}"))).unwrap();
-    let last = std::fs::read_to_string(at.with_file_name(format!(".claude.json.{LAST}"))).unwrap();
+    let first = std::fs::read_to_string(at.with_file_name(".claude.json.before-tisty")).unwrap();
+    let last =
+        std::fs::read_to_string(at.with_file_name(".claude.json.before-tisty-last")).unwrap();
     assert!(!first.contains("tisty"), "{first}");
     assert!(last.contains("/opt/one"), "{last}");
 }
@@ -91,18 +91,33 @@ fn an_entry_pointing_at_another_tisty_is_told_apart() {
 #[test]
 fn an_entry_pointing_at_a_file_that_is_gone_says_so() {
     let tmp = tempfile::tempdir().unwrap();
-    let there = tmp.path().join("debug-tisty");
+    let os = match cfg!(windows) {
+        true => places::Os::Windows,
+        false => places::Os::Linux,
+    };
+    let here = Place {
+        os,
+        ..place(tmp.path(), "/opt/tisty")
+    };
+    let there = tmp.path().join("there").join("tisty");
+    std::fs::create_dir_all(there.parent().unwrap()).unwrap();
     std::fs::write(&there, b"").unwrap();
     let there = there.display().to_string();
-    let gone = tmp.path().join("no-such-tisty").display().to_string();
+    let gone = tmp
+        .path()
+        .join("no-such")
+        .join("tisty")
+        .display()
+        .to_string();
     let client = client("cursor");
 
-    wired_here("cursor", tmp.path(), &there);
-    let seen = told(&client, &place(tmp.path(), "/opt/tisty"), None).unwrap();
+    let (_, at) = wired_here("cursor", tmp.path(), &there);
+    let seen = told(&client, &here, None).unwrap();
     assert!(seen.astray && !seen.gone, "another Tisty, still on disk");
 
+    std::fs::remove_file(at).unwrap();
     wired_here("cursor", tmp.path(), &gone);
-    let seen = told(&client, &place(tmp.path(), "/opt/tisty"), None).unwrap();
+    let seen = told(&client, &here, None).unwrap();
     assert!(seen.astray && seen.gone, "a Tisty that is no longer there");
 }
 
@@ -126,7 +141,7 @@ fn copilot_keeps_the_tools_the_person_chose() {
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
     std::fs::write(
         &at,
-        "{ \"mcpServers\": { \"tisty\": { \"command\": \"x\", \"tools\": [\"find\"] } } }",
+        "{ \"mcpServers\": { \"tisty\": { \"command\": \"/old/tisty\", \"tools\": [\"find\"] } } }",
     )
     .unwrap();
 
@@ -143,7 +158,7 @@ fn a_toml_table_keeps_what_the_person_put_in_it() {
     let tmp = tempfile::tempdir().unwrap();
     let at = tmp.path().join(".codex/config.toml");
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
-    std::fs::write(&at, "model = \"gpt\"\n\n[mcp_servers.tisty]\ncommand = \"old\"\nargs = [\"mcp\"]\nstartup_timeout_sec = 30\n").unwrap();
+    std::fs::write(&at, "model = \"gpt\"\n\n[mcp_servers.tisty]\ncommand = \"/old/tisty\"\nargs = [\"mcp\"]\nstartup_timeout_sec = 30\n").unwrap();
 
     let (seen, _) = wired_here("codex", tmp.path(), "/opt/tisty");
 
@@ -266,7 +281,7 @@ fn a_store_copy_edits_a_file_already_there_in_place() {
         std::fs::write(&at, "was").unwrap();
         std::fs::hard_link(&at, &other).unwrap();
 
-        laid(&at, "now", packaged).unwrap();
+        files::laid(&at, "was", "now", packaged).unwrap();
 
         assert_eq!(std::fs::read_to_string(&at).unwrap(), "now");
         assert_eq!(std::fs::read_to_string(&other).unwrap(), seen);
@@ -363,23 +378,6 @@ fn disconnecting_an_assistant_takes_its_hooks_out_too() {
 }
 
 #[test]
-fn repointing_an_assistant_repoints_its_hooks() {
-    let tmp = tempfile::tempdir().unwrap();
-    let client = client("cursor");
-    let old = place(tmp.path(), "/opt/old/tisty");
-    let new = place(tmp.path(), "/opt/new/tisty");
-    let at = client.file(&old).unwrap();
-    wire_at(&client, &old, &at).unwrap();
-    hook_at(&client, &old).unwrap();
-
-    wire_at(&client, &new, &at).unwrap();
-
-    let hooks = std::fs::read_to_string(tmp.path().join(".cursor").join("hooks.json")).unwrap();
-    assert!(hooks.contains("/opt/new/tisty"), "{hooks}");
-    assert!(!hooks.contains("/opt/old/tisty"), "{hooks}");
-}
-
-#[test]
 fn connecting_an_assistant_never_adds_hooks_the_person_did_not_ask_for() {
     let tmp = tempfile::tempdir().unwrap();
     let client = client("gemini-cli");
@@ -410,29 +408,167 @@ fn hooks_left_behind_are_seen_with_the_connection_already_right_and_adding_them_
         let before = looked(id, tmp.path(), "/opt/tisty");
         let hooks = before.hooks.unwrap();
         assert!(before.wired && !before.astray, "{id}");
-        assert!(hooks.on && hooks.astray, "{id}");
-        assert_eq!(hooks.points.as_deref(), Some("/old/tisty"), "{id}");
+        assert!(hooks.on, "{id}");
+        assert_eq!(hooks.stray.len(), 1, "{id}");
+        assert_eq!(hooks.stray[0].said, "/old/tisty", "{id}");
 
         hooked_here(id, tmp.path(), "/opt/tisty");
 
         let hooks = looked(id, tmp.path(), "/opt/tisty").hooks.unwrap();
-        assert!(hooks.on && !hooks.astray && hooks.points.is_none(), "{id}");
+        assert!(hooks.on && hooks.stray.is_empty(), "{id}");
+    }
+}
+
+fn mended(id: &str, home: &Path, ask: &Mend) -> (Option<Stuck>, Option<Stuck>) {
+    let place = place(home, "/opt/tisty");
+    let client = client(id);
+    let at = client.file(&place).unwrap();
+    mend_at(&client, &place, &at, ask)
+}
+
+fn both() -> Mend {
+    Mend {
+        connection: Some("/old/tisty".into()),
+        hooks: vec!["/old/tisty".into()],
+        hooks_out: false,
     }
 }
 
 #[test]
-fn fixing_the_connection_carries_its_old_hooks_along() {
+fn one_fix_repoints_the_connection_and_the_hooks_it_named() {
     for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
         let tmp = tempfile::tempdir().unwrap();
         wired_here(id, tmp.path(), "/old/tisty");
         hooked_here(id, tmp.path(), "/old/tisty");
-        assert!(looked(id, tmp.path(), "/opt/tisty").hooks.unwrap().astray);
 
-        let (seen, _) = wired_here(id, tmp.path(), "/opt/tisty");
+        let (connection, hooks) = mended(id, tmp.path(), &both());
 
-        let hooks = seen.hooks.unwrap();
-        assert!(seen.wired && hooks.on && !hooks.astray, "{id}");
+        assert!(connection.is_none() && hooks.is_none(), "{id}");
+        let after = looked(id, tmp.path(), "/opt/tisty");
+        let hooks = after.hooks.unwrap();
+        assert!(after.wired && hooks.on && hooks.stray.is_empty(), "{id}");
     }
+}
+
+#[test]
+fn a_fix_keeps_what_the_file_held_before_the_whole_of_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("gemini-cli", tmp.path(), "/old/tisty");
+    hooked_here("gemini-cli", tmp.path(), "/old/tisty");
+    let at = tmp.path().join(".gemini").join("settings.json");
+    let was = read_of(&at);
+
+    mended("gemini-cli", tmp.path(), &both());
+
+    assert_eq!(read_of(&beside(&at, "before-tisty-last")), was);
+}
+
+#[test]
+fn a_fix_never_writes_over_what_changed_since_it_was_named_nor_adds_hooks() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("claude-code", tmp.path(), "/other/tisty");
+    let at = tmp.path().join(".claude.json");
+    let was = read_of(&at);
+
+    let (connection, hooks) = mended("claude-code", tmp.path(), &both());
+
+    assert!(matches!(connection, Some(Stuck::Moved(_))));
+    assert!(matches!(hooks, Some(Stuck::Moved(_))));
+    assert_eq!(read_of(&at), was);
+    assert!(!tmp.path().join(".claude").join("settings.json").exists());
+}
+
+#[test]
+fn a_fix_takes_out_the_hooks_left_behind_when_the_plugin_brings_them() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("claude-code", tmp.path(), "/opt/tisty");
+    hooked_here("claude-code", tmp.path(), "/old/tisty");
+
+    let ask = Mend {
+        connection: None,
+        hooks_out: true,
+        ..both()
+    };
+    let (connection, hooks) = mended("claude-code", tmp.path(), &ask);
+
+    assert!(connection.is_none() && hooks.is_none());
+    assert!(
+        !looked("claude-code", tmp.path(), "/opt/tisty")
+            .hooks
+            .unwrap()
+            .on
+    );
+}
+
+#[test]
+fn one_half_that_cannot_be_written_leaves_the_other_fixed_and_says_which() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("claude-code", tmp.path(), "/old/tisty");
+    let settings = tmp.path().join(".claude").join("settings.json");
+    std::fs::create_dir_all(settings.parent().unwrap()).unwrap();
+    std::fs::write(&settings, b"{ \"WHO\": \"Jos\xE9\" }").unwrap();
+
+    let (connection, hooks) = mended("claude-code", tmp.path(), &both());
+
+    assert!(connection.is_none());
+    assert!(matches!(hooks, Some(Stuck::Unread(_))));
+    assert!(looked("claude-code", tmp.path(), "/opt/tisty").wired);
+}
+
+#[test]
+fn a_connection_written_some_other_way_is_the_persons_and_is_not_called_broken() {
+    for command in [
+        "${userHome}/tisty",
+        "~/.local/bin/tisty",
+        "/usr/bin/env",
+        "tisty",
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        wired_here("cursor", tmp.path(), command);
+
+        let seen = looked("cursor", tmp.path(), "/opt/tisty");
+
+        assert!(
+            seen.apart && !seen.wired && !seen.astray && !seen.gone,
+            "{command}"
+        );
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".cursor").join("mcp.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(
+        &at,
+        "{ \"mcpServers\": { \"tisty\": { \"url\": \"http://x\" } } }",
+    )
+    .unwrap();
+    assert!(looked("cursor", tmp.path(), "/opt/tisty").apart);
+}
+
+#[test]
+fn a_connection_that_cannot_be_read_is_said_so() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".cursor").join("mcp.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, b"Jos\xE9").unwrap();
+
+    let seen = looked("cursor", tmp.path(), "/opt/tisty");
+
+    assert!(seen.unread && !seen.wired && !seen.astray && !seen.apart);
+}
+
+#[test]
+fn an_entry_that_cannot_be_taken_out_whole_is_said_so_and_left() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".codex").join("config.toml");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    let was = "[mcp_servers.tisty]\ncommand = 't'\nargs = [\n  [\"a\"],\n]\n\n[other]\na = 1\n";
+    std::fs::write(&at, was).unwrap();
+
+    unwire_at(&client("codex"), &place(tmp.path(), "/opt/tisty"), &at).unwrap();
+
+    let read: ::toml::Table = read_of(&at).parse().unwrap();
+    assert_eq!(read["other"]["a"].as_integer(), Some(1));
+    assert!(read.get("mcp_servers").is_none());
 }
 
 #[test]
@@ -441,7 +577,7 @@ fn a_file_that_already_says_it_is_not_written_again() {
     let at = tmp.path().join(".claude.json");
     std::fs::write(&at, "{\n  \"numStartups\": 53\n}\n").unwrap();
     wired_here("claude-code", tmp.path(), "/opt/tisty");
-    let last = at.with_file_name(format!(".claude.json.{LAST}"));
+    let last = at.with_file_name(".claude.json.before-tisty-last");
     let kept = std::fs::read_to_string(&last).unwrap();
 
     wired_here("claude-code", tmp.path(), "/opt/tisty");
@@ -463,6 +599,10 @@ fn a_bare_name_the_path_leads_here_is_this_tisty_and_any_other_is_not() {
     let with_path = |bins: Vec<PathBuf>| {
         let place = Place {
             bins,
+            os: match cfg!(windows) {
+                true => places::Os::Windows,
+                false => places::Os::Linux,
+            },
             ..place(tmp.path(), &command)
         };
         told(&client("cursor"), &place, None).unwrap()
@@ -470,17 +610,19 @@ fn a_bare_name_the_path_leads_here_is_this_tisty_and_any_other_is_not() {
 
     let here = with_path(vec![mine.clone(), other.clone()]);
     assert!(here.wired && !here.astray);
-    let first_is_another = with_path(vec![other, mine]);
-    assert!(first_is_another.astray && !first_is_another.gone);
-    let nowhere = with_path(Vec::new());
-    assert!(nowhere.astray && !nowhere.gone);
+    for elsewhere in [vec![other, mine], Vec::new()] {
+        let seen = with_path(elsewhere);
+        assert!(seen.apart && !seen.wired && !seen.astray);
+    }
 }
 
 #[cfg(unix)]
 #[test]
 fn a_link_to_this_tisty_is_this_tisty() {
     let tmp = tempfile::tempdir().unwrap();
-    let real = tmp.path().join("real-tisty");
+    let app = tmp.path().join("app");
+    std::fs::create_dir(&app).unwrap();
+    let real = app.join("tisty");
     let link = tmp.path().join("tisty");
     std::fs::write(&real, b"").unwrap();
     std::os::unix::fs::symlink(&real, &link).unwrap();
@@ -489,4 +631,231 @@ fn a_link_to_this_tisty_is_this_tisty() {
     let seen = looked("cursor", tmp.path(), &real.display().to_string());
 
     assert!(seen.wired && !seen.astray);
+}
+
+fn read_of(at: &Path) -> String {
+    std::fs::read_to_string(at).unwrap()
+}
+
+fn beside(at: &Path, end: &str) -> PathBuf {
+    let named = at.file_name().unwrap().to_string_lossy().into_owned();
+    at.with_file_name(format!("{named}.{end}"))
+}
+
+#[test]
+fn what_was_there_before_the_whole_operation_is_the_last_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".gemini").join("settings.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "{\n  \"theme\": \"first\"\n}\n").unwrap();
+    wired_here("gemini-cli", tmp.path(), "/opt/old/tisty");
+    hooked_here("gemini-cli", tmp.path(), "/opt/old/tisty");
+    let months_later = read_of(&at).replace("first", "months later");
+    std::fs::write(&at, &months_later).unwrap();
+
+    wired_here("gemini-cli", tmp.path(), "/opt/tisty");
+
+    assert_eq!(read_of(&beside(&at, "before-tisty-last")), months_later);
+    assert!(read_of(&beside(&at, "before-tisty")).contains("first"));
+    assert!(!read_of(&beside(&at, "before-tisty")).contains("tisty"));
+}
+
+#[test]
+fn copilots_own_file_keeps_what_is_not_tistys_and_leaves_a_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".copilot").join("hooks").join("tisty.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    let was = r#"{ "version": 1, "hooks": { "sessionStart": [ { "type": "command", "exec": "/opt/old/tisty", "args": ["hook","copilot","start"] }, { "type": "command", "exec": "mine.exe" } ] } }"#;
+    std::fs::write(&at, was).unwrap();
+
+    hooked_here("copilot", tmp.path(), "/opt/tisty");
+
+    assert!(read_of(&at).contains("mine.exe"));
+    assert_eq!(read_of(&beside(&at, "before-tisty-last")), was);
+    let hooked = read_of(&at);
+    unhook_at(&client("copilot"), &place(tmp.path(), "/opt/tisty")).unwrap();
+    assert!(read_of(&at).contains("mine.exe"));
+    assert_eq!(read_of(&beside(&at, "before-tisty-last")), hooked);
+}
+
+#[test]
+fn copilots_own_file_goes_when_only_tistys_hooks_were_in_it_and_leaves_a_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    hooked_here("copilot", tmp.path(), "/opt/tisty");
+    let at = tmp.path().join(".copilot").join("hooks").join("tisty.json");
+    let was = read_of(&at);
+
+    unhook_at(&client("copilot"), &place(tmp.path(), "/opt/tisty")).unwrap();
+
+    assert!(!at.exists());
+    assert_eq!(read_of(&beside(&at, "before-tisty-last")), was);
+}
+
+#[test]
+fn a_file_that_cannot_be_read_is_never_taken_for_an_empty_one() {
+    for (named, bytes) in [
+        ("ansi", b"{ \"env\": { \"WHO\": \"Jos\xE9\" } }".to_vec()),
+        (
+            "utf-16",
+            [0xFF, 0xFE]
+                .into_iter()
+                .chain("{ \"env\": {} }".encode_utf16().flat_map(u16::to_le_bytes))
+                .collect(),
+        ),
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        let claude = client("claude-code");
+        let here = place(tmp.path(), "/opt/tisty");
+        let settings = tmp.path().join(".claude").join("settings.json");
+        let connection = claude.file(&here).unwrap();
+        std::fs::create_dir_all(settings.parent().unwrap()).unwrap();
+        std::fs::write(&settings, &bytes).unwrap();
+        std::fs::write(&connection, &bytes).unwrap();
+
+        assert!(hook_at(&claude, &here).is_err(), "{named}");
+        assert!(unhook_at(&claude, &here).is_err(), "{named}");
+        assert!(wire_at(&claude, &here, &connection).is_err(), "{named}");
+
+        assert_eq!(std::fs::read(&settings).unwrap(), bytes, "{named}");
+        assert_eq!(std::fs::read(&connection).unwrap(), bytes, "{named}");
+    }
+}
+
+#[test]
+fn codex_is_never_left_with_a_file_that_does_not_read() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".codex").join("config.toml");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(
+        &at,
+        "[mcp_servers.tisty]\ncommand = '/opt/old/tisty'\nargs = [\n  \"mcp\",\n]\n",
+    )
+    .unwrap();
+
+    let (seen, _) = wired_here("codex", tmp.path(), "/opt/tisty");
+
+    assert!(seen.wired);
+    assert!(read_of(&at).parse::<::toml::Table>().is_ok());
+}
+
+#[test]
+fn comments_and_trailing_commas_stay_where_they_were() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".cursor").join("mcp.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    let was = "{\n // servers\n \"mcpServers\": {\n  \"tisty\": { \"command\": \"/old/tisty\", /* why */ \"args\": [\"mcp\", \"--mine\",], },\n  },\n}\n";
+    std::fs::write(&at, was).unwrap();
+
+    let ask = Mend {
+        connection: Some("/old/tisty".into()),
+        ..Mend::default()
+    };
+    let (connection, _) = mended("cursor", tmp.path(), &ask);
+
+    assert!(connection.is_none());
+    assert_eq!(read_of(&at), was.replace("/old/tisty", "/opt/tisty"));
+}
+
+#[test]
+fn a_list_for_a_command_keeps_what_follows_the_program() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("opencode", tmp.path(), "/old/tisty");
+
+    let ask = Mend {
+        connection: Some("/old/tisty".into()),
+        ..Mend::default()
+    };
+    let (connection, hooks) = mended("opencode", tmp.path(), &ask);
+
+    assert!(connection.is_none() && hooks.is_none());
+    assert!(looked("opencode", tmp.path(), "/opt/tisty").wired);
+}
+
+#[test]
+fn a_distro_where_windows_may_not_run_is_never_mended() {
+    let tmp = tempfile::tempdir().unwrap();
+    let claude = client("claude-code");
+    let shut = Place {
+        open: false,
+        ..place(tmp.path(), "/opt/tisty")
+    };
+    let at = claude.file(&shut).unwrap();
+
+    let (connection, hooks) = mend_at(&claude, &shut, &at, &both());
+
+    assert!(matches!(connection, Some(Stuck::Shut)));
+    assert!(matches!(hooks, Some(Stuck::Shut)));
+}
+
+#[test]
+fn claude_codes_hooks_are_written_only_once_its_plugin_is_known_not_to_bring_them() {
+    let tmp = tempfile::tempdir().unwrap();
+    let claude = client("claude-code");
+    let homes = || agents::Homes::of(tmp.path());
+    assert!(unplugged(&claude, homes()).is_ok());
+    assert!(unplugged(&claude, None).is_ok());
+
+    let records = tmp.path().join(".claude").join("plugins");
+    std::fs::create_dir_all(&records).unwrap();
+    let records = records.join("installed_plugins.json");
+    std::fs::write(
+        &records,
+        "{\"plugins\":{\"tisty@x\":[{\"scope\":\"user\"}]}}",
+    )
+    .unwrap();
+    assert!(matches!(unplugged(&claude, homes()), Err(Stuck::Plugged)));
+    assert!(unplugged(&client("cursor"), homes()).is_ok());
+
+    std::fs::write(&records, "{ not read").unwrap();
+    assert!(matches!(
+        unplugged(&claude, homes()),
+        Err(Stuck::PluginUnread(_))
+    ));
+    std::fs::remove_file(&records).unwrap();
+    let settings = tmp.path().join(".claude").join("settings.json");
+    std::fs::write(&settings, b"Jos\xE9").unwrap();
+    assert!(
+        unplugged(&claude, homes()).is_ok(),
+        "with no plugin of Tisty's there is nothing to ask its settings"
+    );
+}
+
+#[test]
+fn a_fix_leaves_claude_codes_hooks_alone_when_the_plugin_turns_out_to_bring_them() {
+    let tmp = tempfile::tempdir().unwrap();
+    wired_here("claude-code", tmp.path(), "/old/tisty");
+    hooked_here("claude-code", tmp.path(), "/old/tisty");
+    let settings = tmp.path().join(".claude").join("settings.json");
+    let was = read_of(&settings);
+    let records = tmp.path().join(".claude").join("plugins");
+    std::fs::create_dir_all(&records).unwrap();
+    std::fs::write(
+        records.join("installed_plugins.json"),
+        r#"{"plugins":{"tisty@x":[{"scope":"user"}]}}"#,
+    )
+    .unwrap();
+    let claude = client("claude-code");
+    let here = place(tmp.path(), "/opt/tisty");
+    let at = claude.file(&here).unwrap();
+
+    let (connection, hooks) =
+        mend_guarded(&claude, &here, &at, &both(), agents::Homes::of(tmp.path()));
+
+    assert!(connection.is_none());
+    assert!(matches!(hooks, Some(Stuck::Plugged)));
+    assert_eq!(read_of(&settings), was);
+    std::fs::remove_dir_all(&records).unwrap();
+    let only_hooks = Mend {
+        connection: None,
+        ..both()
+    };
+    let (_, hooks) = mend_guarded(
+        &claude,
+        &here,
+        &at,
+        &only_hooks,
+        agents::Homes::of(tmp.path()),
+    );
+    assert!(hooks.is_none());
+    assert!(!read_of(&settings).contains("/old/tisty"));
 }

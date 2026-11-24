@@ -13,7 +13,8 @@ How to connect an agent is in [[Agents and MCP|Agents-and-MCP]]; a session call 
 | **What they are** | Commands your agent runs by itself when a session starts, after it uses a tool and when a turn ends | Three folders with a `SKILL.md` that your agent reads when what you ask fits them |
 | **What they do** | Bring the agent its open tasks when it starts, and hand the turn back once if it edited files without writing anything in Tisty | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
 | **Which agents** | Claude Code, Cursor, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot and Gemini CLI |
-| **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, on the **Tisty's skills** row |
+| **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or on the **Tisty's skills** row, at the end |
+| **Both at once** | **Hooks and skills for your agents**, above the tabs | The same box |
 | **The yes** | One per agent, naming the file that will be written | One for the whole computer, naming the folders that will be written |
 | **How they come out** | **Remove**, on the same row | **Turn off on this computer**, on their card. They are never deleted: they stay in Tisty |
 | **With the Tisty plugin** | In Claude Code, the plugin brings them | In Claude Code, the plugin brings them |
@@ -39,20 +40,38 @@ Work that edits no file, like planning or research, the hook at the end does not
 | **Gemini CLI** | `~/.gemini/settings.json` |
 | **GitHub Copilot** (its command line and the Copilot sessions in VS Code) | a file of its own, `~/.copilot/hooks/tisty.json` |
 
-Tisty writes only its own entries and leaves the rest of the file as it is, with the same `.before-tisty` backups as the connection.
+Tisty writes only its own entries and leaves the rest of the file as it is, with the same two backups as the connection, `.before-tisty`, the first version it ever saw, and `.before-tisty-last`, the one from just before. If the file could not be read, the row says **Could not be read** and Tisty does not touch it.
 
 ### Adding them
 
 1. Open **Settings › Agents › Connected**.
 2. Under the row of a connected agent, like **Claude Code**, the **Hooks: when a turn starts and ends** row says **Not added**. Press **Add**.
-3. Tisty tells you what it will do before touching anything: «Tisty will add its hooks to `~/.claude/settings.json`. When a session starts, the agent gets the tasks it left open and what moved…», with **Add them** and **Not now**.
+3. Tisty tells you what it will do before touching anything: «Tisty will add its hooks to `~/.claude/settings.json`. When a session starts, the agent gets the tasks it left open and what moved…», with **Add them** and **Not now**. In Claude Code it adds a line: «For Claude Code, Tisty first reads its plugin's records (installed_plugins.json and settings.json) so as not to write hooks the plugin already brings.».
 4. With **Add them**, the row says **Added**, and below it «Added. It runs them from its next session.».
 
 There is no need to restart the agent for the hooks: it picks them up in its next session.
 
+### When they run another Tisty
+
+Hooks keep the path of the Tisty that put them there. If you move Tisty or switch installers, they keep calling the old one, and the agent does not always say so. The row does:
+
+| The row says | What happens |
+| :-- | :-- |
+| **Added** | They call this Tisty, or one whose path Tisty cannot check, such as plain `tisty` |
+| **Set up your own way** | «It runs Tisty from hooks written your own way. Tisty leaves them as they are and adds none beside them.». They are the ones that call Tisty from a script of yours or in another way Tisty cannot read: they are not fixed, not removed, and the row does not offer **Add** |
+| **They run a Tisty that is gone** | «Its hooks point at `C:\…\tisty.exe`, which is no longer there». **Fix** points them here |
+| **They run another Tisty** | That other one is still on this computer. **Fix** points them here, if you want |
+| **Could not be read** | Tisty could not read their file, so it does not touch it |
+| **Not added** | That file holds no Tisty hooks |
+| **The Tisty plugin brings them** | The plugin brings them, in its own file |
+
+**Fix** shows you the file and waits for your **Yes, fix**. It changes only the program they call: the matchers, the times and a wrapper of yours stay as they were. The ones that are gone show in the window's notice and in **Fix all** too, as [When an agent can no longer find Tisty](Agents-and-MCP#when-an-agent-can-no-longer-find-tisty) tells.
+
+**Example.** Jaime was trying Tisty from a downloads folder and deleted it on installing it for real. Jaime connected Cursor again, but never its hooks: Cursor's row says **Connected** and, below it, **They run a Tisty that is gone**. Jaime presses **Fix**, reads `~/.cursor/hooks.json` under **It writes in:**, presses **Yes, fix** and opens Cursor again. The longer time set on one of the hooks stays as it was.
+
 ### Removing them or turning them off
 
-- **Remove**, on the same row, takes out only Tisty's entries: «Removed. Its next session runs without them.».
+- **Remove**, on the same row, takes out only Tisty's entries: «Removed. Its next session runs without them.». If there are others of your own way too: «Tisty's own are removed. The ones written your own way stay.».
 - **Remind it when a turn starts and ends**, in **Settings › Agents › Door**, turns them off for every agent without taking them out of any file. It is handy for an afternoon when you do not want turns handed back.
 - **Stop it**, on the same **Door**, closes the door: while it is closed, the hooks stay quiet.
 
@@ -62,7 +81,9 @@ The Tisty plugin for Claude Code brings its own hooks, in its own file, from ver
 
 If you already had Tisty's and then install the plugin, the row warns you: «The Tisty plugin brings them too, so they run twice. Remove these to keep the plugin's.», with **Remove**.
 
-Tisty knows about the plugin only after a yes on this computer, the one for [Tisty's skills](#tistys-skills) or the one for the [[Agents|AGENTS-Folder]] folder: the plugin's record is one of your agent's files, and before that yes it is not read. With neither, the row offers **Add** even with the plugin there; if you add them, the warning above shows up as soon as you give one of those yeses.
+The plugin's record is one of your agent's files, so Tisty reads it only with a yes from you. With the one for [Tisty's skills](#tistys-skills) or the one for the [[Agents|AGENTS-Folder]] folder, it knows when you open **Settings › Agents**; for the skills it also looks when the app opens and when something changes in your data, even with them off. With neither, the row offers **Add** even with the plugin there, and Tisty reads it right when you press **Add them**, **Add hooks**, **Fix**, **Fix all** or **Yes, fix**, before writing Claude Code's hooks. If the plugin already brings them, it writes nothing: «The Tisty plugin already brings Claude Code's hooks, so those in its settings were left as they were.». If the record cannot be read, it does not write either, and tells you which file it was.
+
+If Tisty knows the plugin brings them and the ones left from before point at a Tisty that is gone, **Fix** removes them, because with the plugin's they would run twice, and it tells you first: «The Tisty plugin already brings its hooks, so these are removed. Tisty first reads its records (installed_plugins.json and settings.json) to make sure.». Those records are read with your click, right before removing them. If the plugin no longer brings them, none is removed: «The Tisty plugin no longer brings Claude Code's hooks, so these were not removed. Look again to see how they are now.».
 
 ## Tisty's skills
 
@@ -99,6 +120,8 @@ The phrases are the ones their card shows, on the **Ask your agent:** line. They
 3. Read the yes, at the foot: «To turn them on, Tisty writes only one folder per skill in the folders above, and reads the files already in those skill folders so as never to write over one of yours. In Claude Code it also reads its plugin's records (installed_plugins.json and settings.json) so as not to copy them twice. It reads no rules, memory or other files of your agents, and needs no Agents folder.».
 4. Press **Turn on here**. Each folder turns **In sync**, and the row in Settings says **On this computer**.
 
+Under each connected agent that reads them there is another **Tisty's skills** row. When they are off, **Turn on skills** opens the same card. And if you have connected agents without them, the box [Hooks and skills for your agents](#both-at-once) turns them on together with the hooks, with the same yes written out first.
+
 At the foot of the card, «From Tisty 1.50.0» says which version yours come from. Your agent sees them from its next session.
 
 **They need no Agents folder.** If you never opened [[Agents|AGENTS-Folder]], or keep it unsynced, the skills still reach every agent on this computer: their yes is a different, smaller one. Nor do the agents have to be connected through MCP to read them, though without a connection they have nothing to work with.
@@ -115,6 +138,17 @@ At the foot of the card, «From Tisty 1.50.0» says which version yours come fro
 | **Cannot be read: left as it is** | Tisty could not read or write a file in that folder |
 
 Before you turn them on, a folder shows no standing.
+
+The row under each agent sums it up:
+
+| The row says | What happens |
+| :-- | :-- |
+| **On this computer** | All three are up to date in that agent's folder |
+| **Off** | You did not turn them on here. **Turn on skills** opens the card |
+| **To bring up to date** | This Tisty's version is still to be written. It shows in the box on top too, with **Fix** |
+| **Not all up to date** | A copy is not Tisty's, you changed it or it cannot be read, or you already have a skill with that name in Agents; below it says what happens. Tisty does not touch it, not with **Fix** either |
+| **Not here** | «Tisty found no folder of this agent to put them in.», or «You already have skills with those names in Agents, so Tisty's stay out.» |
+| **The Tisty plugin brings them** | That agent has them through the plugin |
 
 If you already have a skill of your own with the same name in the **Agents** folder, like your own `consolidate`, the card says so instead of its line: «You already have a skill named consolidate in Agents, so Tisty's is left out.». Yours wins, in every agent, once this computer gave its yes to Agents; without it, the folder guards it: a skill that is not Tisty's is left as it is.
 
@@ -146,9 +180,29 @@ If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fi
 - **The plugin comes later.** The copies Tisty had left in `~/.claude/skills` show up on the card under «Copies left over: Tisty no longer writes them there. Removing one keeps a backup.», each path with **Take the file away**. They are never taken away on their own.
 - **Cursor.** Its plugin leaves no record Tisty can read, so the card always warns: «If you installed the Tisty plugin in Cursor, Cursor will list each skill twice: Tisty cannot tell.». If it happens to you, keep only one of the two: the plugin in Cursor or Tisty's skills.
 
+## Both at once
+
+If you already have connected agents and one of them lacks the hooks or the skills, **Settings › Agents** offers them together, above the tabs. It takes in the ones that did not see the box of [When you connect an agent](#when-you-connect-an-agent), since that one already offered them:
+
+> **Hooks and skills for your agents**
+>
+> Optional. With hooks, an agent starts each session knowing what it left open. With Tisty's skills, it learns to work with Tisty.
+>
+> Hooks for Claude Code, Cursor
+> Tisty's skills on this whole computer: Claude Code, Cursor, Codex · Copilot · Gemini
+>
+> **Add hooks and turn on skills** · **Not now**
+
+1. **Add hooks and turn on skills** writes nothing yet: it opens two ticks, one with the files the hooks go in and one with the folders the skills go in and what Tisty reads to write them.
+2. Untick what you do not want. The button changes with what you leave: **Add hooks** or **Turn on skills**.
+3. Press it again. Tisty turns the skills on, adds the hooks and tells you what was done, agent by agent: **Claude Code** · hooks, or «the Tisty plugin already brings its hooks» when the plugin does.
+4. Quit each one completely and open it again.
+
+If they all have the hooks already, the box offers only the skills, and the other way round. **Not now**, or unticking a part, means it is not offered again; what failed is, and the usual rows stay. **Overview** recalls it in one line, **Your agents can use Tisty's hooks and skills · Optional**, which does not count as pending. It waits if an agent can no longer find Tisty: that goes first. And it does not offer the hooks while **Remind it when a turn starts and ends** is off, nor the skills if you hid them from Agents.
+
 ## When you connect an agent
 
-When you connect an agent from **Settings › Agents › Connected**, with **Connect** or with **Connect the 3 found**, its row shows a box, once. It also shows when you connect with **Fix** or **Connect anyway**, if that agent had not seen it, and never for agents inside WSL:
+When you connect an agent from **Settings › Agents › Connected**, with **Connect** or with **Connect the 3 found**, its row shows a box, once. It also shows when you connect with **Connect anyway**, if that agent had not seen it, and never for agents inside WSL nor when you press **Fix**, which adds nothing new:
 
 > **Claude Code is connected. This helps it work with Tisty:**
 >
@@ -175,7 +229,7 @@ It changes with the agent and with what you already have:
 | the agent is Codex | carries only the skills line: Codex has no hooks |
 | the agent has neither hooks nor skills, like Claude Desktop | does not appear |
 
-**If your agent was already connected** before 1.50, the box does not appear: it is offered only when you connect. Use the usual rows, the hooks row under the agent and **Tisty's skills** › **See**, at the end of the list. It is the same yes.
+**If your agent was already connected** before 1.50, this box does not appear: it is offered only when you connect. For those there is [Hooks and skills for your agents](#both-at-once), above the tabs, or the rows under the agent. It is the same yes.
 
 ## A case from end to end
 
@@ -183,7 +237,7 @@ Yisset uses Codex, which she connected to Tisty months ago. Today she updates Ti
 
 ### 1. She connects Claude Code
 
-In **Settings › Agents › Connected**, Claude Code shows **Not connected**. Yisset presses **Connect**, and under the row the box appears: «Claude Code is connected. This helps it work with Tisty:».
+She opens **Settings › Agents**. Above the tabs, **Hooks and skills for your agents** offers to turn the skills on, because Codex does not have them; she leaves it for after connecting. In **Connected**, Claude Code shows **Not connected**. Yisset presses **Connect**, and under the row the box appears: «Claude Code is connected. This helps it work with Tisty:».
 
 ### 2. She adds its hooks
 
@@ -273,7 +327,7 @@ Had Yisset written the task herself and ticked the first step, the agent's ticks
 
 ### 9. Later, another agent
 
-Yisset goes back to Codex. Codex has no hooks, so nothing reaches it when it starts, and since it was connected before 1.50 it never saw the box; but it reads the `tisty` skill, which Yisset turned on in step 3 and which landed in `~/.agents/skills`. “Pick up where we left off”, alone, would take it to the last thing **it** left, so Yisset names the task: “Pick up the monthly report export”.
+Yisset goes back to Codex. Codex has no hooks, so nothing reaches it when it starts, and since it was connected before 1.50 it never saw the box for connecting; but it reads the `tisty` skill, which Yisset turned on in step 3 and which landed in `~/.agents/skills`. “Pick up where we left off”, alone, would take it to the last thing **it** left, so Yisset names the task: “Pick up the monthly report export”.
 
 ```json
 > brain {"query": "export monthly report"}
@@ -293,7 +347,7 @@ Yisset installs the Tisty plugin in Claude Code. The next time she opens **Setti
 ## Cases worth knowing
 
 - **On another computer.** The hooks and the skills are decided on each computer: on the work computer, the **Tisty's skills** row starts **Off** and the hooks **Not added**, even if at home they are on. A record copied from another computer does not count as a yes to the skills.
-- **Before any yes**, the skills' or Agents', the card opens nothing inside your agents' folders: it only looks at which ones exist and whether the copies Tisty wrote before are still there. It does not read the plugin's record either. With Agents' yes alone, it reads that record and those copies, to tell whether they changed.
+- **Before any yes**, the skills' or Agents', the card opens nothing inside your agents' folders: it only looks at which ones exist and whether the copies Tisty wrote before are still there. It does not read the plugin's record either, unless you press to add or fix Claude Code's hooks, and only then. With Agents' yes alone, it reads that record and those copies, to tell whether they changed.
 - **With the door closed.** The skills stay in your agents' folders, and your agent can read them, but every call to Tisty is refused and the hooks stay quiet. **Stop it** touches neither piece.
 - **An agent paused in Agents.** The pause does not reach Tisty's skills: they keep reaching and updating in that agent. For none to have them, **Turn off on this computer**.
 - **Codex and Claude Desktop** have no hooks. Codex gets the skills; Claude Desktop, neither, and only the question in Tisty's answers reaches it.
@@ -306,9 +360,9 @@ Yisset installs the Tisty plugin in Claude Code. The next time she opens **Setti
 
 ## What they read and what travels
 
-- **The hooks** write only their entries in the file named. Their marks for each session stay in this computer's cache and do not sync. What they hand the agent when it starts, the titles of a few tasks, travels wherever that agent travels.
+- **The hooks** write only their entries in the file named. With the door open, Tisty reads that file, and the connection's, when its window opens and when Settings opens, to see whether they point at this Tisty, writing nothing until you click. In Claude Code, when you add or fix them, also when fixing is removing them because the plugin brings them, it also reads its plugin's record; without the skills' yes or Agents', only then. Their marks for each session stay in this computer's cache and do not sync. What they hand the agent when it starts, the titles of a few tasks, travels wherever that agent travels.
 - **The skills** write only one folder per skill. They read the files in those folders, so as not to write over one of yours, and in Claude Code its plugin's record, only to tell whether it already brings them. Nothing else of your agents is opened.
-- **The skills' yes** is kept in `data/agents/` inside Tisty's folder, on this computer, with the backups of what Tisty took away. It does not travel with sync, backups or parcels. The hooks keep no separate yes: they are added when you press **Add them**, after reading which file they go in, they come out with **Remove**, and Tisty knows whether they are there by reading that file.
+- **The skills' yes** is kept in `data/agents/` inside Tisty's folder, on this computer, with the backups of what Tisty took away. It does not travel with sync, backups or parcels. The hooks keep no separate yes: they are added when you press **Add them** or **Add hooks**, after reading which file they go in, they come out with **Remove**, and Tisty knows whether they are there by reading that file.
 
 All of it, file by file, is in [[Privacy]].
 

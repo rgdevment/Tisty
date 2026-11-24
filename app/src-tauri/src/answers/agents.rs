@@ -8,7 +8,7 @@ use crate::{Answer, Session, blamed, held, wiring};
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Agent {
-    on: bool,
+    pub(crate) on: bool,
     called: Option<String>,
     code: Option<String>,
     asks: bool,
@@ -40,12 +40,13 @@ pub struct Assistant {
     pub last: Option<String>,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn assistants(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Assistant>> {
-    let mut session = held(&session);
-    session.reload()?;
-    let assistants = session.state.assistants.clone();
-    let events = session.log()?;
+    let (assistants, events) = {
+        let mut session = held(&session);
+        session.reload()?;
+        (session.state.assistants.clone(), session.log()?)
+    };
     Ok(hands(&events, &assistants, &wiring::seen()))
 }
 
@@ -113,7 +114,7 @@ pub fn hands(
     all
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let mut session = held(&session);
     session.reload()?;
@@ -131,6 +132,28 @@ fn as_agent(session: &Session) -> Agent {
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
         asks: session.config.asks_open_task(),
         hooks: session.config.turn_hooks(),
+    }
+}
+
+// Its code is read from disk, so the session is let go first.
+pub(crate) fn agent_apart(session: &Mutex<Session>) -> Agent {
+    let (paths, who, asks, hooks) = {
+        let session = held(session);
+        (
+            session.paths.clone(),
+            session.seated_agent().cloned(),
+            session.config.asks_open_task(),
+            session.config.turn_hooks(),
+        )
+    };
+    Agent {
+        on: who.is_some(),
+        code: spoken_by(&paths, who.as_ref()),
+        called: who
+            .as_ref()
+            .map(|one| tisty_core::config::nicknamed(&one.0)),
+        asks,
+        hooks,
     }
 }
 

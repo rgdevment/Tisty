@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { hushedHere } from "../agentsAmiss";
 import { offeredHere } from "../agentsOffered";
 import type { Ready } from "../core";
 import { adopt } from "../locales";
@@ -77,6 +78,8 @@ vi.mock("@tauri-apps/api/core", () => ({
           alias: "Mario",
           machines: [],
         });
+      case "wiring_watched":
+        return Promise.resolve({ agent: { on: ipc.door }, seen: ipc.door ? ipc.wired : null });
       case "agent":
         return Promise.resolve({ on: ipc.door });
       case "wiring":
@@ -104,6 +107,7 @@ beforeEach(() => {
   ipc.door = false;
   ipc.wired = [];
   offeredHere.put([]);
+  hushedHere.put({ said: [] });
   ipc.alias = "Mario";
   ipc.keys = "Ctrl+Alt+T";
   ipc.state = {
@@ -170,13 +174,13 @@ describe("opening the settings", () => {
     expect(await screen.findByText("Nada pide tu atención.")).toBeTruthy();
     expect([...new Set(ipc.calls)].sort()).toEqual([
       "about",
-      "agent",
       "reachable",
       "settings",
       "shortcut",
       "signed",
       "sync_state",
       "waking",
+      "wiring_watched",
     ]);
   });
 
@@ -196,6 +200,7 @@ describe("opening the settings", () => {
 describe("the agents on the overview", () => {
   it("counts in the bar and leads in one click to the one button that fixes them", async () => {
     ipc.door = true;
+    ipc.standing = { ...ipc.standing, door: "espino 3" };
     ipc.wired = [lostOne("Codex"), lostOne("Cursor")];
     render(<Window />);
 
@@ -211,6 +216,7 @@ describe("the agents on the overview", () => {
 
   it("offers what is optional apart, uncounted, until told not now", async () => {
     ipc.door = true;
+    ipc.standing = { ...ipc.standing, door: "espino 3" };
     ipc.wired = [wiredOne("cursor", { wired: true, hooks: { on: false, at: "/hooks.json" } })];
     render(<Window />);
 
@@ -223,6 +229,7 @@ describe("the agents on the overview", () => {
 
   it("opens the agents' page from what is optional", async () => {
     ipc.door = true;
+    ipc.standing = { ...ipc.standing, door: "espino 3" };
     ipc.wired = [wiredOne("cursor", { wired: true, hooks: { on: false, at: "/hooks.json" } })];
     render(<Window />);
     await screen.findByText(/Tus agentes pueden usar los hooks de Tisty/);

@@ -1,12 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde_json::{Value, json};
 
+use super::files::{self, Read};
 use super::json;
+use super::leads::{Leads, leads};
 use super::places::{Os, Place};
+use super::running::{self, New, Program, Run, Spoken};
 
 const HOOKS: &str = "hooks";
-const COMMANDS: [&str; 4] = ["command", "exec", "bash", "powershell"];
 const START_SECONDS: u64 = 15;
 const TURN_SECONDS: u64 = 5;
 
@@ -25,9 +27,17 @@ pub struct Hooks {
     pub at: String,
     /// The Tisty plugin brings its own hooks, which live in the plugin and never in this file.
     pub plugged: bool,
-    pub astray: bool,
+    pub plugin_unknown: bool,
+    pub unread: bool,
+    /// Run in a way of the person's own, so Tisty neither changes it nor adds hers beside it.
+    pub apart: bool,
+    pub stray: Vec<Stray>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Stray {
+    pub said: String,
     pub gone: bool,
-    pub points: Option<String>,
 }
 
 pub fn kind(client: &str) -> Option<Kind> {
@@ -57,6 +67,10 @@ impl Kind {
             Kind::Gemini => "gemini-cli",
             Kind::Copilot => "copilot",
         }
+    }
+
+    fn mark(self) -> String {
+        format!("hook {}", self.client())
     }
 
     fn events(self) -> &'static [&'static str] {
@@ -144,154 +158,125 @@ impl Kind {
 
 // Cursor and Gemini run a hook through PowerShell on Windows and a POSIX shell elsewhere.
 fn spoken(place: &Place, args: &[&str]) -> String {
-    let rest = args.join(" ");
-    match place.os == Os::Windows && place.distro.is_none() {
-        true => format!("& '{}' {rest}", place.command.replace('\'', "''")),
-        false => format!("'{}' {rest}", place.command.replace('\'', "'\\''")),
+    format!("{} {}", quoted(place), args.join(" "))
+}
+
+fn windows(place: &Place) -> bool {
+    place.os == Os::Windows && place.distro.is_none()
+}
+
+fn quoted(place: &Place) -> String {
+    match windows(place) {
+        true => format!("& '{}'", place.command.replace('\'', "''")),
+        false => format!("'{}'", place.command.replace('\'', "'\\''")),
     }
 }
 
 pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
     let at = kind.file(place)?;
-    let text = std::fs::read_to_string(&at).unwrap_or_default();
-    let stray: Vec<String> = programs(kind, &text)
-        .into_iter()
-        .filter(|one| !super::this_tisty(place, one))
-        .collect();
-    let gone = stray.iter().find(|one| super::lost(place, one));
+    let shown = at.display().to_string();
+    let text = match files::read(&at) {
+        Read::Text(text) => text,
+        Read::Missing => String::new(),
+        Read::Unread => {
+            return Some(Hooks {
+                at: shown,
+                unread: true,
+                ..Hooks::default()
+            });
+        }
+    };
+    let stray = stray(kind, &text, place);
     Some(Hooks {
         on: hooked(kind, &text),
-        at: at.display().to_string(),
+        at: shown,
         plugged: false,
-        astray: !stray.is_empty(),
-        gone: gone.is_some(),
-        points: gone.or(stray.first()).cloned(),
+        plugin_unknown: false,
+        unread: false,
+        apart: apart(kind, &text),
+        stray,
     })
 }
 
 pub fn hooked(kind: Kind, text: &str) -> bool {
-    !runs(kind, text).is_empty()
+    runs(kind, text).iter().any(|run| run.all_read)
 }
 
-fn runs(kind: Kind, text: &str) -> Vec<Value> {
-    let spans = |event: &&str| {
-        list(text, event)
-            .and_then(|at| json::elements(text.as_bytes(), at))
-            .unwrap_or_default()
+pub fn apart(kind: Kind, text: &str) -> bool {
+    own_ways(kind, text) > 0
+}
+
+fn own_ways(kind: Kind, text: &str) -> usize {
+    let runs = runs(kind, text);
+    runs.iter().filter(|run| !run.all_read).count()
+}
+
+fn runs(kind: Kind, text: &str) -> Vec<Run> {
+    let spoken = Spoken {
+        mark: &kind.mark(),
+        posix: kind == Kind::Claude,
     };
-    kind.events()
-        .iter()
-        .flat_map(spans)
-        .flat_map(|span| ours(kind, &text[span.0..span.1]))
-        .collect()
+    running::found(text, kind.events(), &spoken)
 }
 
-// What cannot be read for certain is left out, so a wrapper or a bare name is never said to be broken.
-fn programs(kind: Kind, text: &str) -> Vec<String> {
-    runs(kind, text)
-        .iter()
-        .filter_map(|run| program(kind, run))
-        .filter(|one| rooted(one) && named_tisty(one))
-        .collect()
-}
-
-fn program(kind: Kind, run: &Value) -> Option<String> {
-    let said = COMMANDS
-        .iter()
-        .find_map(|field| run.get(*field)?.as_str())?;
-    if run.get("args").is_some_and(Value::is_array) {
-        return Some(said.to_string());
-    }
-    let cut = said.find(&format!(" {}", marked(kind)))?;
-    Some(unquoted(said[..cut].trim()))
-}
-
-fn unquoted(said: &str) -> String {
-    let said = said.strip_prefix("& ").unwrap_or(said).trim();
-    for (quote, escapes) in [("'", ["'\\''", "''"]), ("\"", ["\\\"", "\"\""])] {
-        let inside = said
-            .strip_prefix(quote)
-            .and_then(|it| it.strip_suffix(quote));
-        if let Some(inside) = inside {
-            return escapes
-                .iter()
-                .fold(inside.to_string(), |it, escape| it.replace(escape, quote));
+fn stray(kind: Kind, text: &str, place: &Place) -> Vec<Stray> {
+    let mut all: Vec<Stray> = Vec::new();
+    for program in runs(kind, text).into_iter().flat_map(|run| run.programs) {
+        let leads = leads(place, &program.said);
+        if leads.astray() && !all.iter().any(|one| one.said == program.said) {
+            all.push(Stray {
+                said: program.said,
+                gone: leads == Leads::Gone,
+            });
         }
     }
-    said.to_string()
+    all
 }
 
-fn rooted(said: &str) -> bool {
-    let drive = said.as_bytes();
-    let on_a_drive = drive.len() > 2
-        && drive[0].is_ascii_alphabetic()
-        && drive[1] == b':'
-        && matches!(drive[2], b'\\' | b'/');
-    said.starts_with(['/', '\\']) || on_a_drive
-}
-
-fn named_tisty(said: &str) -> bool {
-    let name = said.rsplit(['/', '\\']).next().unwrap_or(said);
-    ["tisty", "tisty.exe"]
-        .iter()
-        .any(|one| name.eq_ignore_ascii_case(one))
-}
-
-fn list(text: &str, event: &str) -> Option<usize> {
-    let raw = text.as_bytes();
-    let under = json::member(raw, json::opens(raw)?, HOOKS)?;
-    let at = json::member(raw, under.value.0, event)?.value.0;
-    (raw.get(at) == Some(&b'[')).then_some(at)
-}
-
-fn marked(kind: Kind) -> String {
-    format!("hook {}", kind.client())
-}
-
-fn ours(kind: Kind, element: &str) -> Vec<Value> {
-    let Ok(read) = serde_json::from_str::<Value>(element) else {
-        return Vec::new();
-    };
-    let inner = read.get(HOOKS).and_then(Value::as_array).cloned();
-    std::iter::once(read)
-        .chain(inner.unwrap_or_default())
-        .filter(|run| is_ours(kind, run))
-        .collect()
-}
-
-fn is_ours(kind: Kind, run: &Value) -> bool {
-    let mut said: Vec<&str> = COMMANDS
-        .iter()
-        .filter_map(|field| run.get(*field)?.as_str())
-        .collect();
-    if let Some(args) = run.get("args").and_then(Value::as_array) {
-        said.extend(args.iter().filter_map(Value::as_str));
-    }
-    let said = said.join(" ");
-    said.to_lowercase().contains("tisty") && said.contains(&marked(kind))
+fn named(program: &Program, place: &Place, named: &[String]) -> bool {
+    named.contains(&program.said) && leads(place, &program.said).astray()
 }
 
 pub fn without(kind: Kind, text: &str) -> Option<String> {
+    taken_out(kind, text, |run| run.all_read)
+}
+
+pub fn without_those(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
+    taken_out(kind, text, |run| {
+        run.all_read && run.programs.iter().all(|one| named(one, place, said))
+    })
+}
+
+fn taken_out(kind: Kind, text: &str, which: impl Fn(&Run) -> bool) -> Option<String> {
     let mut now = text.to_string();
-    for event in kind.events() {
-        while let Some(at) = list(&now, event) {
-            let all = json::elements(now.as_bytes(), at)?;
-            let Some(&span) = all
-                .iter()
-                .find(|span| !ours(kind, &now[span.0..span.1]).is_empty())
-            else {
-                break;
-            };
-            now = json::cut(&now, span);
-            if all.len() == 1 {
-                now = json::unset(&now, HOOKS, event)?;
-            }
-        }
+    while let Some(run) = runs(kind, &now).into_iter().find(|run| which(run)) {
+        now = running::taken_out(&now, &run)?;
     }
-    Some(now)
+    sound(kind, text, &now).then_some(now)
+}
+
+pub fn repointed(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
+    let now = running::repointed(
+        text,
+        &runs(kind, text),
+        |one| named(one, place, said),
+        &New {
+            command: &place.command,
+            spoken: &quoted(place),
+            windows: windows(place),
+        },
+    )?;
+    sound(kind, text, &now).then_some(now)
 }
 
 pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
+    let fits = kind
+        .events()
+        .iter()
+        .all(|event| running::list_fits(text, event));
+    if !fits || apart(kind, text) {
+        return None;
+    }
     let mut now = without(kind, text)?;
     if now.trim().is_empty() {
         now = match kind {
@@ -301,7 +286,7 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
     }
     for (event, entry) in kind.entries(place) {
         let piece = serde_json::to_string_pretty(&entry).ok()?;
-        now = match list(&now, event) {
+        now = match running::list(&now, event) {
             Some(at) => json::push(&now, at, &piece)?,
             None => {
                 let laid: Vec<String> = piece.lines().map(|line| format!("  {line}")).collect();
@@ -309,18 +294,67 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
             }
         };
     }
-    Some(now)
+    (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
+}
+
+fn sound(kind: Kind, was: &str, now: &str) -> bool {
+    let kept = json::same_but(was, now, |doc| {
+        doc.remove("version");
+        if let Some(Value::Object(hooks)) = doc.get_mut(HOOKS) {
+            let named = kind.events().iter().copied();
+            named.for_each(|event| others_alone(kind, hooks, event));
+        }
+        let bare = |it: &Value| it.as_object().is_some_and(serde_json::Map::is_empty);
+        if doc.get(HOOKS).is_some_and(bare) {
+            doc.remove(HOOKS);
+        }
+    });
+    kept && own_ways(kind, was) == own_ways(kind, now)
+}
+
+// Read back apart from what cut it, so whatever is not Tisty's has to be there still.
+fn others_alone(kind: Kind, hooks: &mut serde_json::Map<String, Value>, event: &str) {
+    let Some(Value::Array(groups)) = hooks.get_mut(event) else {
+        return;
+    };
+    let mark = kind.mark();
+    groups.retain_mut(|group| {
+        let Some(Value::Array(inner)) = group.get_mut(HOOKS) else {
+            return !ours(group, &mark);
+        };
+        inner.retain(|one| !ours(one, &mark));
+        !inner.is_empty()
+    });
+    if groups.is_empty() {
+        hooks.remove(event);
+    }
+}
+
+fn ours(run: &Value, mark: &str) -> bool {
+    let fields = ["command", "exec", "bash", "powershell"].map(|named| run.get(named));
+    let args = run.get("args").and_then(Value::as_array);
+    let said: Vec<&str> = fields
+        .into_iter()
+        .flatten()
+        .chain(args.into_iter().flatten())
+        .filter_map(Value::as_str)
+        .collect();
+    let said = said.join(" ");
+    said.to_lowercase().contains("tisty") && said.contains(mark)
+}
+
+pub fn emptied(text: &str) -> bool {
+    serde_json::from_str::<serde_json::Map<String, Value>>(text).is_ok_and(|doc| {
+        doc.iter().all(|(key, value)| match key.as_str() {
+            "version" => true,
+            HOOKS => value.as_object().is_some_and(serde_json::Map::is_empty),
+            _ => false,
+        })
+    })
 }
 
 pub fn alone(kind: Kind) -> bool {
     kind == Kind::Copilot
-}
-
-pub fn emptied(at: &Path) -> std::io::Result<()> {
-    match std::fs::remove_file(at) {
-        Err(why) if why.kind() != std::io::ErrorKind::NotFound => Err(why),
-        _ => Ok(()),
-    }
 }
 
 #[cfg(test)]

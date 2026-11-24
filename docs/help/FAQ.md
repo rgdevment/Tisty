@@ -66,6 +66,9 @@ Not on its own. It reads them like any document, but a change of its own stays a
 **Does Tisty use AI?**
 No. Tisty is not AI and has none inside, and that is not going to change. The natural language is rules on your machine. If you use an agent of your own, Tisty leaves an [[MCP door|Agents-and-MCP]] — it comes open, and you close it whenever you like.
 
+**My agent stopped seeing Tisty after I moved or reinstalled it.**
+It still points at the old one. With the door open, the window tells you, **Claude Code can no longer find Tisty**, with **See and fix**: press **Fix**, quit the agent completely and open it again. See [When an agent can no longer find Tisty](Agents-and-MCP#when-an-agent-can-no-longer-find-tisty).
+
 **An agent says one of its tasks is done. Did it close it?**
 No. Nothing an agent does closes a task. It marks it, with its account in the journal, and the task waits under **To confirm** until you decide. See [[What an agent may do|MCP-Permissions]].
 
@@ -126,6 +129,9 @@ Yes, since 1.32, over WebDAV: Nextcloud, ownCloud, Synology and others. In **Set
 
 **Can I encrypt my cloud?**
 Yes, since 1.36, for Google Drive, OneDrive or WebDAV: **Settings › Security › Encrypt my cloud…** encrypts what Tisty keeps there with a 24-word phrase only you know, so the provider can no longer read your tasks or documents. A folder kept in step by another program is not encrypted. Your other computers get the key on their own; a new one is let in with twenty digits typed on a computer that already has the key, or with your phrase. The provider still sees file names and sizes, how many computers you have, and earlier unencrypted versions for a while. Without the phrase or one of your computers, nobody can open it, not even Tisty. See [Encrypting your cloud](Sync-and-Backup#encrypting-your-cloud).
+
+**I reinstalled Tisty and my cloud is encrypted. How do I sync again?**
+In two steps your cloud's card shows you: **Reconnect** and then **Open my cloud with the phrase**, or wait for another of your computers that is on to hand it the key. See [Syncing again on a computer](Sync-and-Backup#syncing-again-on-a-computer).
 
 **Tisty says something is blocking Google Drive.**
 A proxy, a filter at work or an antivirus stands between this computer and Google, or inspects secure connections so Tisty cannot trust them. Your work stays safe on this computer meanwhile. On a work network, ask whoever runs it to let Tisty through; on your own computer, allow Tisty in your antivirus. Never go around your company's protection on your own. What each message means is in [Sync and backup](Sync-and-Backup#when-something-stands-in-the-way-of-google).

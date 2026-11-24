@@ -815,7 +815,7 @@ Una versión anterior de Tisty escribía los archivos sin anotar de qué documen
 
 ## Lo que nunca se lee
 
-- **Los ajustes de tus agentes**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` y `keybindings.json`. Para buscarlos, Tisty solo mira donde van las reglas, las skills y la memoria, nunca la carpeta principal de un agente, salvo el `settings.json` y `plugins/installed_plugins.json` de Claude Code, solo para saber si el plugin de Tisty ya trae sus skills; y dentro de una skill un archivo con esos nombres sí entra, porque es de la skill.
+- **Los ajustes de tus agentes**: `settings.json`, `settings.local.json`, `config.toml`, `config.json`, `hooks.json`, `mcp.json`, `mcp-config.json`, `.claude.json` y `keybindings.json`. Para buscarlos, Tisty solo mira donde van las reglas, las skills y la memoria, nunca la carpeta principal de un agente, salvo el `settings.json` y `plugins/installed_plugins.json` de Claude Code, solo para saber si el plugin de Tisty ya trae sus skills; y dentro de una skill un archivo con esos nombres sí entra, porque es de la skill. Esto es de la carpeta Agentes: conectar un agente y ponerle sus hooks lee y escribe algunos de ellos, como cuenta [Privacidad](Privacidad#los-agentes-que-conectas).
 - **Las credenciales**, por su nombre y sin abrirlas: `.credentials.json`, `credentials.json`, `auth.json`, `.env` y sus variantes, `.netrc`, y las llaves `.pem`, `.key`, `.p12`, `.pfx`, `id_rsa` o `id_ed25519`.
 - **Un archivo que parece llevar un secreto**, como un token o una llave privada, aunque su nombre sea inocente. La revisión se hace en este equipo y busca formas conocidas, así que puede no reconocerlas todas: deja los secretos fuera de las reglas de tus agentes.
 - **Las conversaciones de Claude Code**: de su carpeta `projects` solo se mira la carpeta `memory` de cada proyecto.
@@ -983,7 +983,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Qué pasa si cierro o desinstalo Tisty?** Tus agentes siguen leyendo sus archivos tal como Tisty los dejó. Nada depende de que Tisty esté abierto.
 
-**¿Agentes toca `settings.json`, los hooks o mi configuración MCP?** No los escribe, y solo lee el `settings.json` y `plugins/installed_plugins.json` de Claude Code, para saber si el plugin de Tisty ya trae sus skills. Conectar un agente es otra cosa: ahí Tisty agrega su servidor MCP a la configuración de ese agente, y sus hooks si pulsas **Agregar**, como cuenta [[Agentes y MCP|Agentes-y-MCP]].
+**¿Agentes toca `settings.json`, los hooks o mi configuración MCP?** No los escribe, y solo lee el `settings.json` y `plugins/installed_plugins.json` de Claude Code, para saber si el plugin de Tisty ya trae sus skills. Conectar un agente es otra cosa: ahí Tisty agrega su servidor MCP a la configuración de ese agente, y sus hooks si los pides, como cuenta [[Agentes y MCP|Agentes-y-MCP]]; y, con la puerta abierta, lee esos archivos al abrir su ventana para ver si apuntan a este Tisty, [sin escribir nada](Privacidad#los-agentes-que-conectas).
 
 **¿Por qué la memoria del agente viene sin marcar?** Porque la escribe el agente, puede hablar de tus proyectos, y una vez en Tisty viaja con tu sincronización y tus respaldos como cualquier documento. La traes solo si quieres leerla en Tisty.
 

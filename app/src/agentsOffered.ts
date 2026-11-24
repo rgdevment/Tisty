@@ -11,6 +11,8 @@ export const SKILLED: Record<string, string> = {
 
 export const SKILLS_DECLINED = "tisty-skills";
 
+export const hooksToken = (id: string): string => `${id}#hooks`;
+
 export const offeredHere = stored<string[]>("tisty.wiring.offered", (said) =>
   Array.isArray(said) ? said.filter((one) => typeof one === "string") : [],
 );

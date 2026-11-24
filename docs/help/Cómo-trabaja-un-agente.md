@@ -19,9 +19,9 @@ En **Configuración › Agentes**:
 
 1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del agente. Mira [[Agentes y MCP|Agentes-y-MCP]].
 2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el agente los usa.
-3. Al final de la misma lista, la fila **Skills de Tisty** dice **Apagadas**. **Ver** abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
+3. Debajo, la fila **Skills de Tisty** de ese agente dice **Apagadas**. **Encender skills** abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
 
-   Si conectas el agente ahora, los pasos 2 y 3 llegan juntos: bajo su fila aparece una vez «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:», con sus hooks y **Ver las skills de Tisty**.
+   Si conectas el agente ahora, los pasos 2 y 3 llegan juntos: bajo su fila aparece una vez «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:», con sus hooks y **Ver las skills de Tisty**. Si ya lo tenías conectado, llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
 4. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
    - **Recordarle al empezar y al terminar cada turno**: los hooks, sin quitarlos del archivo.

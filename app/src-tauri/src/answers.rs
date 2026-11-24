@@ -10,7 +10,10 @@ pub mod brainstorming;
 pub mod brainsty;
 pub mod calendar;
 pub mod cards;
+#[cfg(test)]
+pub mod carried_cloud;
 pub mod carrying;
+pub mod choosing;
 pub mod cited_tasks;
 pub mod citing;
 pub mod clouding;

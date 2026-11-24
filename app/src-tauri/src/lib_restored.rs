@@ -1,5 +1,5 @@
 use super::Session;
-use super::answers::storing::{went_back_asking, went_back_on};
+use super::answers::choosing::{restored_store, went_back_on};
 use tisty_core::Paths;
 
 struct Desk {
@@ -26,6 +26,12 @@ fn sharing_the_same_store(desk: &Desk, session: &Session) {
     std::fs::write(desk.shared.join("store").join(".store-id"), ours.as_bytes()).unwrap();
 }
 
+fn went_back(desk: &Desk, session: &Session) -> bool {
+    went_back_on(restored_store(session).as_deref(), || {
+        tisty_carrier::considering(desk.shared.clone()).theirs()
+    })
+}
+
 #[test]
 fn a_store_that_went_back_on_a_copy_does_not_carry_to_the_folder_it_went_back_from() {
     let desk = desk();
@@ -33,10 +39,7 @@ fn a_store_that_went_back_on_a_copy_does_not_carry_to_the_folder_it_went_back_fr
     sharing_the_same_store(&desk, &session);
 
     assert!(
-        !went_back_on(
-            &session,
-            tisty_carrier::considering(desk.shared.clone()).theirs()
-        ),
+        !went_back(&desk, &session),
         "nothing was restored, so the folder is just a folder"
     );
 
@@ -45,10 +48,7 @@ fn a_store_that_went_back_on_a_copy_does_not_carry_to_the_folder_it_went_back_fr
         .unwrap();
 
     assert!(
-        went_back_on(
-            &session,
-            tisty_carrier::considering(desk.shared.clone()).theirs()
-        ),
+        went_back(&desk, &session),
         "carrying would bring back the very history the copy went back on"
     );
 }
@@ -67,10 +67,7 @@ fn a_folder_holding_somebody_elses_store_is_not_what_this_one_went_back_from() {
         .unwrap();
 
     assert!(
-        !went_back_on(
-            &session,
-            tisty_carrier::considering(desk.shared.clone()).theirs()
-        ),
+        !went_back(&desk, &session),
         "another store has its own door, and this one is not it"
     );
 }
@@ -84,10 +81,7 @@ fn an_empty_folder_is_open_to_a_store_that_went_back() {
         .unwrap();
 
     assert!(
-        !went_back_on(
-            &session,
-            tisty_carrier::considering(desk.shared.clone()).theirs()
-        ),
+        !went_back(&desk, &session),
         "a folder that holds nothing has nothing to bring back"
     );
 }
@@ -98,7 +92,7 @@ fn a_store_never_restored_does_not_ask_the_carrier_whose_store_it_holds() {
     let session = Session::at(desk.paths.clone()).unwrap();
     let asked = std::cell::Cell::new(false);
 
-    let went_back = went_back_asking(&session, || {
+    let went_back = went_back_on(restored_store(&session).as_deref(), || {
         asked.set(true);
         None
     });

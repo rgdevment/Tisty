@@ -1506,7 +1506,9 @@ lee la nube cifrada: en el nuevo, **Autorizar desde otro equipo** muestra veinte
 dígitos, y los escribes en el otro, en Configuración › *Seguridad* ›
 **Autorizar un equipo nuevo**; luego **Ya los aceptó** en el nuevo confirma
 que lo hiciste. O escribe tus 24 palabras en el nuevo con
-**Escribir mi frase**: ahí solo queda la llave de la nube, nunca la frase.
+**Abrir mi nube con la frase**: ahí solo queda la llave de la nube, nunca la
+frase. Después de reinstalar Tisty, la tarjeta de tu nube muestra lo que le
+falta a ese equipo, **Reconectar** y luego la frase, en dos pasos.
 Te quedes luego con el historial que te quedes, el equipo que recibió los veinte
 dígitos no vuelve a pedirlo; cada uno de tus otros equipos te pide confirmar su
 código una vez, como con cualquier equipo nuevo, porque la llave sola no dice
@@ -1564,7 +1566,8 @@ pregunta qué cambió, abre esa tarea y lee lo que anotó ayer.
 
 Dos ayudas opcionales lo vuelven costumbre, cada una con su propio sí en
 Configuración › Agentes, y al conectar ahí un agente Tisty te ofrece una vez las
-que ese agente admite. Sus **hooks**, en Claude Code, Cursor, Gemini CLI y
+que ese agente admite; para los que ya tenías, las ofrece juntas, en un solo
+recuadro. Sus **hooks**, en Claude Code, Cursor, Gemini CLI y
 GitHub Copilot, le traen al agente sus tareas abiertas al empezar una sesión, y
 le devuelven el turno una vez cuando editó archivos sin escribir nada aquí. Sus
 **skills propias**, `tisty`, `consolidate` y `writing-for-the-next-agent`, le
@@ -1593,9 +1596,11 @@ que una tarea está lista, eres tú quien la cierra.
 Configuración › Agentes › *Conectados* enumera los agentes que ya tienes
 instalados en este equipo y conecta el que elijas: escribe una sola línea en la
 configuración de ese agente, deja el resto de ese archivo donde estaba y
-guarda al lado una copia de cómo era. Para uno que no conozca, basta una línea,
-y la pestaña te la muestra con la ruta del `tisty` que vino con la app en este
-equipo:
+guarda al lado una copia de cómo era. Si un agente, o sus hooks, ya no encuentra
+Tisty porque lo moviste o lo reinstalaste, la ventana te lo dice, y **Corregir
+todo** muestra los archivos y los apunta aquí otra vez. Para uno que no conozca,
+basta una línea, y la pestaña te la muestra con la ruta del `tisty` que vino con
+la app en este equipo:
 
 ```console
 $ <tu-agente> mcp add tisty -- <ruta-de-tisty> mcp

@@ -1,4 +1,8 @@
 use super::*;
+use crate::answers::carried_cloud::{
+    a_session, carried_cloud, cloud_that, forgotten, holding_our_store, restored,
+};
+use crate::answers::choosing::{Standing, choosing};
 use tisty_core::config::Sync;
 
 fn folder(at: &str) -> Option<Sync> {
@@ -51,7 +55,11 @@ fn a_folder_no_round_ever_finished_with_can_be_left_freely() {
     let mut session = Session::at(paths).unwrap();
     session.config.sync = Some(Sync::folder(away.path().to_path_buf()));
 
-    assert!(stranded_by_leaving(&session, &Sync::alone()).is_none());
+    assert!(
+        Standing::of(&session)
+            .stranded_by_leaving(&Sync::alone())
+            .is_none()
+    );
 
     std::fs::create_dir_all(session.paths.cache()).unwrap();
     std::fs::write(
@@ -60,7 +68,8 @@ fn a_folder_no_round_ever_finished_with_can_be_left_freely() {
     )
     .unwrap();
 
-    let stopped = stranded_by_leaving(&session, &Sync::alone())
+    let stopped = Standing::of(&session)
+        .stranded_by_leaving(&Sync::alone())
         .expect("a folder holding what was let go was left");
     assert_eq!(
         (stopped.code, stopped.name),
@@ -81,7 +90,8 @@ fn a_way_a_later_build_chose_is_never_left_from_here() {
     session.config.holds = Some(tisty_core::config::Holds::Everywhere);
 
     for toward in [Sync::alone(), Sync::folder("G:/otra")] {
-        let stopped = stranded_by_leaving(&session, &toward)
+        let stopped = Standing::of(&session)
+            .stranded_by_leaving(&toward)
             .expect("a choice a later build made was replaced, whatever the setting says");
         assert_eq!(stopped.code, "syncLaterToLeave");
     }
@@ -94,7 +104,11 @@ fn staying_on_the_way_a_later_build_chose_is_not_leaving_it() {
     let mut session = Session::at(paths).unwrap();
     session.config.sync = Some(later());
 
-    assert!(stranded_by_leaving(&session, &later()).is_none());
+    assert!(
+        Standing::of(&session)
+            .stranded_by_leaving(&later())
+            .is_none()
+    );
 }
 
 #[test]
@@ -103,9 +117,17 @@ fn leaving_nothing_is_always_free() {
     let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
     let mut session = Session::at(paths).unwrap();
 
-    assert!(stranded_by_leaving(&session, &Sync::folder("G:/otra")).is_none());
+    assert!(
+        Standing::of(&session)
+            .stranded_by_leaving(&Sync::folder("G:/otra"))
+            .is_none()
+    );
     session.config.sync = Some(Sync::alone());
-    assert!(stranded_by_leaving(&session, &Sync::folder("G:/otra")).is_none());
+    assert!(
+        Standing::of(&session)
+            .stranded_by_leaving(&Sync::folder("G:/otra"))
+            .is_none()
+    );
 }
 
 #[test]
@@ -156,8 +178,9 @@ fn choosing_a_folder_over_a_way_a_newer_build_wrote_meanwhile_is_refused_and_wri
         .keep(|c| c.sync = Some(Sync::folder("G:/compartida")))
         .unwrap();
     written_since_the_window_opened(&paths, Some(later()));
+    let session = Mutex::new(session);
 
-    let stopped = choose(&mut session, Some("G:/otra".to_string()))
+    let stopped = choose(&session, Some("G:/otra".to_string()))
         .err()
         .expect("replaced");
 
@@ -166,7 +189,7 @@ fn choosing_a_folder_over_a_way_a_newer_build_wrote_meanwhile_is_refused_and_wri
         .unwrap()
         .unwrap();
     assert_eq!(on_disk.sync, Some(later()));
-    assert_eq!(session.config.sync, Some(later()));
+    assert_eq!(held(&session).config.sync, Some(later()));
 }
 
 #[test]
@@ -176,8 +199,9 @@ fn a_window_that_still_believes_in_a_later_way_is_not_stuck_on_it() {
     let mut session = Session::at(paths.clone()).unwrap();
     session.keep(|c| c.sync = Some(later())).unwrap();
     written_since_the_window_opened(&paths, None);
+    let session = Mutex::new(session);
 
-    choose(&mut session, Some("G:/otra".to_string()))
+    choose(&session, Some("G:/otra".to_string()))
         .expect("a way that is no longer written refused the change")
         .done();
 
@@ -185,7 +209,7 @@ fn a_window_that_still_believes_in_a_later_way_is_not_stuck_on_it() {
         .unwrap()
         .unwrap();
     assert_eq!(on_disk.sync, Some(Sync::folder("G:/otra")));
-    assert_eq!(session.config.sync, Some(Sync::folder("G:/otra")));
+    assert_eq!(held(&session).config.sync, Some(Sync::folder("G:/otra")));
 }
 
 #[test]
@@ -200,7 +224,7 @@ fn settings_this_version_cannot_read_are_never_written_over() {
     let stopped = session
         .keep(|c| c.locale = Some("es".into()))
         .expect_err("settings written by a newer build were overwritten");
-    let chosen = choose(&mut session, Some("G:/otra".to_string()))
+    let chosen = choose(&Mutex::new(session), Some("G:/otra".to_string()))
         .err()
         .expect("overwritten");
 
@@ -464,4 +488,102 @@ fn a_cloud_closed_by_this_computer_is_told_apart_from_one_closed_by_another() {
     );
     let here = Refusal::of("cloudSealingHere");
     assert!(stuck_after(Some(&here), &folder("G:/shared"), &folder("G:/shared")).is_none());
+}
+
+const ANSWERED: std::time::Duration = std::time::Duration::from_secs(10);
+const NEVER_ASKED: std::time::Duration = std::time::Duration::from_millis(300);
+
+#[test]
+fn a_round_of_a_restored_store_asks_whose_store_the_cloud_holds_with_the_session_let_go_of() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (at, asked) = carried_cloud(&session, &std::sync::Arc::new(OneAtATime::idle()));
+    restored(&session);
+
+    assert!(setting_out(&session).is_ok());
+
+    let (free, _) = asked
+        .recv_timeout(ANSWERED)
+        .expect("a restored store never asked whose store the cloud holds");
+    assert!(
+        free,
+        "the window waited on the network behind the session every command needs"
+    );
+    forgotten(&at);
+}
+
+#[test]
+fn a_round_of_a_store_never_restored_asks_the_cloud_nothing_before_it_sets_out() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (at, asked) = carried_cloud(&session, &std::sync::Arc::new(OneAtATime::idle()));
+
+    assert!(setting_out(&session).is_ok());
+
+    assert!(asked.recv_timeout(NEVER_ASKED).is_err());
+    forgotten(&at);
+}
+
+#[test]
+fn a_round_never_sets_out_to_the_folder_the_store_went_back_from() {
+    let room = tempfile::tempdir().unwrap();
+    let session = a_session(&room.path().join("one"));
+    let shared = room.path().join("shared");
+    holding_our_store(&session, &shared);
+    restored(&session);
+    held(&session)
+        .keep(|config| config.sync = Some(Sync::folder(&shared)))
+        .unwrap();
+
+    let refused = setting_out(&session).err().expect("the round set out");
+
+    assert_eq!(
+        (refused.code, refused.name),
+        ("restoredApart", Some(shared.display().to_string()))
+    );
+}
+
+#[test]
+fn a_folder_chosen_while_the_cloud_answered_is_asked_before_a_round_sets_out_to_it() {
+    let room = tempfile::tempdir().unwrap();
+    let session = a_session(&room.path().join("one"));
+    let shared = room.path().join("shared");
+    holding_our_store(&session, &shared);
+    let (theirs, folder) = (session.clone(), shared.clone());
+    let at = cloud_that(&session, move || {
+        held(&theirs)
+            .keep(|config| config.sync = Some(Sync::folder(&folder)))
+            .unwrap();
+    });
+    restored(&session);
+
+    let refused = setting_out(&session).err().expect("the round set out");
+
+    assert_eq!(
+        (refused.code, refused.name),
+        ("restoredApart", Some(shared.display().to_string()))
+    );
+    forgotten(&at);
+}
+
+#[test]
+fn a_round_sets_out_with_the_carrier_that_answered_though_another_was_built_meanwhile() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let theirs = session.clone();
+    let at = cloud_that(&session, move || {
+        held(&theirs).reach.taken();
+    });
+    restored(&session);
+    let asked = held(&session).carrying().ok().unwrap();
+
+    let setting = setting_out(&session).ok().unwrap();
+
+    assert!(std::sync::Arc::ptr_eq(&asked, &setting.carrier));
+    let rebuilt = held(&session).carrying().ok().unwrap();
+    assert!(
+        !std::sync::Arc::ptr_eq(&asked, &rebuilt),
+        "nothing was rebuilt while the cloud answered"
+    );
+    forgotten(&at);
 }

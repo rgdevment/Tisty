@@ -1,4 +1,7 @@
 use super::*;
+use crate::answers::carried_cloud::{
+    a_session, carried_cloud, cloud_that, forgotten, holding_our_store, restored,
+};
 
 fn config_with(sync: Option<Sync>) -> (tempfile::TempDir, tisty_core::Config) {
     let home = tempfile::tempdir().unwrap();
@@ -139,4 +142,96 @@ fn a_move_paused_by_something_in_the_way_names_it_for_the_window() {
     let said = serde_json::to_value(said).unwrap();
     assert_eq!(said["reason"], "offline");
     assert_eq!(said["cause"], "filtered");
+}
+
+fn toward_cloud(at: &CloudAt) -> Toward {
+    Toward::Cloud {
+        account: at.account.clone(),
+        email: at.email.clone(),
+        provider: at.provider.clone(),
+    }
+}
+
+fn syncing(session: &Mutex<Session>, way: Sync) {
+    held(session)
+        .keep(|config| config.sync = Some(way))
+        .unwrap();
+}
+
+#[test]
+fn a_move_of_a_restored_store_asks_whose_store_the_cloud_holds_with_the_session_let_go_of() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (at, asked) = carried_cloud(&session, &std::sync::Arc::new(OneAtATime::idle()));
+    syncing(&session, Sync::alone());
+    restored(&session);
+
+    let end = ends(&session, &toward_cloud(&at)).ok().unwrap();
+
+    let (free, _) = asked
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("a restored store never asked whose store the cloud holds");
+    assert!(
+        free,
+        "the window waited on the network behind the session every command needs"
+    );
+    assert!(end.to.is_some() && end.from.is_none() && end.left.is_none());
+    assert_eq!(end.way, Sync::cloud(at.clone()));
+    forgotten(&at);
+}
+
+#[test]
+fn a_move_of_a_store_never_restored_asks_the_cloud_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (at, asked) = carried_cloud(&session, &std::sync::Arc::new(OneAtATime::idle()));
+    syncing(&session, Sync::alone());
+
+    assert!(ends(&session, &toward_cloud(&at)).is_ok());
+
+    assert!(
+        asked
+            .recv_timeout(std::time::Duration::from_millis(300))
+            .is_err()
+    );
+    forgotten(&at);
+}
+
+#[test]
+fn a_move_to_the_place_chosen_while_it_answered_is_no_move() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let chosen = std::sync::Arc::new(Mutex::new(None));
+    let (theirs, there) = (session.clone(), chosen.clone());
+    let at = cloud_that(&session, move || {
+        let at = there.lock().unwrap().clone();
+        syncing(&theirs, Sync::cloud(Option::unwrap(at)));
+    });
+    *chosen.lock().unwrap() = Some(at.clone());
+    syncing(&session, Sync::alone());
+    restored(&session);
+
+    let refused = ends(&session, &toward_cloud(&at)).err().unwrap();
+
+    assert_eq!(refused.code, "moveSamePlace");
+    forgotten(&at);
+}
+
+#[test]
+fn a_restored_store_never_moves_into_the_folder_it_went_back_from() {
+    let room = tempfile::tempdir().unwrap();
+    let session = a_session(&room.path().join("one"));
+    let shared = room.path().join("shared");
+    holding_our_store(&session, &shared);
+    restored(&session);
+    let toward = Toward::Folder {
+        at: shared.display().to_string(),
+    };
+
+    let refused = ends(&session, &toward).err().unwrap();
+
+    assert_eq!(
+        (refused.code, refused.name),
+        ("restoredApart", Some(shared.display().to_string()))
+    );
 }

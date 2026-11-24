@@ -40,6 +40,14 @@ fn shares_the_store(by: &Session, of: &Session) {
     .unwrap();
 }
 
+fn chooses(one: Session, folder: &Path) -> Session {
+    let one = Mutex::new(one);
+    crate::answers::choosing::choose(&one, Some(folder.display().to_string()))
+        .unwrap()
+        .done();
+    one.into_inner().unwrap()
+}
+
 fn word_in(folder: &Path) -> Option<String> {
     std::fs::read_to_string(folder.join(tisty_core::moved::NAMED)).ok()
 }
@@ -51,16 +59,12 @@ fn moving_away_keeps_tasks_and_documents_first_and_stops_the_machine_left_behind
     let elsewhere = room.path().join("elsewhere");
     std::fs::create_dir_all(&shared).unwrap();
     std::fs::create_dir_all(&elsewhere).unwrap();
-    let (mut one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
+    let (one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
     vouches_for(&two, &one);
     shares_the_store(&two, &one);
-    crate::answers::storing::choose(&mut one, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &shared);
 
-    crate::answers::storing::choose(&mut one, Some(elsewhere.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &elsewhere);
 
     let kept = std::fs::read_dir(one.paths.private().join("before-a-change"))
         .unwrap()
@@ -96,11 +100,9 @@ fn a_place_chosen_again_is_the_person_s_and_its_old_word_goes() {
     let shared = room.path().join("shared");
     std::fs::create_dir_all(&shared).unwrap();
     std::fs::write(shared.join(tisty_core::moved::NAMED), "un aviso viejo").unwrap();
-    let mut one = machine(room.path(), "one");
+    let one = machine(room.path(), "one");
 
-    crate::answers::storing::choose(&mut one, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    chooses(one, &shared);
 
     assert_eq!(word_in(&shared), None);
 }
@@ -153,15 +155,11 @@ fn choosing_again_the_place_this_machine_was_stopped_in_takes_the_word_away() {
     let room = tempfile::tempdir().unwrap();
     let shared = room.path().join("shared");
     std::fs::create_dir_all(&shared).unwrap();
-    let mut two = machine(room.path(), "two");
-    crate::answers::storing::choose(&mut two, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    let two = machine(room.path(), "two");
+    let two = chooses(two, &shared);
     std::fs::write(shared.join(tisty_core::moved::NAMED), "otro equipo se fue").unwrap();
 
-    crate::answers::storing::choose(&mut two, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    chooses(two, &shared);
 
     assert_eq!(
         word_in(&shared),
@@ -174,15 +172,13 @@ fn choosing_again_the_place_this_machine_was_stopped_in_takes_the_word_away() {
 fn a_word_owed_to_a_place_this_machine_came_back_to_is_never_delivered() {
     let room = tempfile::tempdir().unwrap();
     let shared = room.path().join("shared");
-    let mut one = machine(room.path(), "one");
+    let one = machine(room.path(), "one");
     let left = Sync::folder(&shared);
     leave_word(&one.paths, &one.config, &left, None, &Sync::alone());
     assert!(one.paths.private().join(OWED).is_file());
     std::fs::create_dir_all(&shared).unwrap();
 
-    crate::answers::storing::choose(&mut one, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &shared);
 
     assert!(!one.paths.private().join(OWED).exists());
     assert!(owing(&one.paths, &one.reach, one.config.sync.as_ref()).is_empty());
@@ -216,9 +212,7 @@ fn leaving_this_machine_alone_owes_nobody_and_keeps_the_word_owed_to_a_real_plac
         "para la carpeta desconectada",
     );
 
-    crate::answers::storing::choose(&mut one, Some(elsewhere.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &elsewhere);
 
     let owed = owed_all(&one.paths);
     assert_eq!(
@@ -273,13 +267,19 @@ fn a_change_that_is_refused_keeps_no_copy() {
     let later: Sync = toml::from_str("how = \"nube\"\nat = { cuenta = \"yo\" }").unwrap();
     one.keep(|c| c.sync = Some(later.clone())).unwrap();
 
-    let refused = crate::answers::storing::choose(&mut one, Some("G:/otra".to_string()))
+    let one = Mutex::new(one);
+    let refused = crate::answers::choosing::choose(&one, Some("G:/otra".to_string()))
         .err()
         .expect("left a way a newer build chose");
 
     assert_eq!(refused.code, "syncLaterToLeave");
     assert!(
-        !one.paths.private().join("before-a-change").exists(),
+        !one.lock()
+            .unwrap()
+            .paths
+            .private()
+            .join("before-a-change")
+            .exists(),
         "a refused change pushed out a real copy"
     );
 }
@@ -289,12 +289,10 @@ fn machines_left_behind_are_told_the_cloud_the_others_moved_to() {
     let room = tempfile::tempdir().unwrap();
     let shared = room.path().join("shared");
     std::fs::create_dir_all(&shared).unwrap();
-    let (mut one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
+    let (one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
     vouches_for(&two, &one);
     shares_the_store(&two, &one);
-    crate::answers::storing::choose(&mut one, Some(shared.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &shared);
     let cloud = Sync::cloud(CloudAt {
         provider: "google".into(),
         account: "0123".into(),
@@ -681,9 +679,7 @@ fn a_move_owes_the_word_before_the_settings_change() {
     let mut one = machine(room.path(), "one");
     one.keep(|c| c.sync = Some(Sync::folder(&shared))).unwrap();
 
-    crate::answers::storing::choose(&mut one, Some(elsewhere.display().to_string()))
-        .unwrap()
-        .done();
+    let one = chooses(one, &elsewhere);
 
     let owed = owed_all(&one.paths);
     assert_eq!(

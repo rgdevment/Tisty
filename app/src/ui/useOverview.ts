@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { hushedHere } from "../agentsAmiss";
 import type { TistySkills } from "../agentsSync";
 import { attention, firstSteps, type Item, type Known, tiles, whole } from "../attention";
 import type { About, Carrying, CloudStatus, Ready, Reviewed, Settings, Wired } from "../core";
@@ -21,6 +22,7 @@ interface Read {
   seen: Seen | null;
   wired: Wired[] | null;
   skills: TistySkills | null;
+  door?: boolean;
   waiting: boolean;
   desk?: SettingsDesk;
 }
@@ -29,6 +31,7 @@ const said = <T>(one: T | null): string | null => (one === null ? null : JSON.st
 const unsaid = <T>(one: string | null): T | null => (one === null ? null : (JSON.parse(one) as T));
 
 export function useOverview(read: Read) {
+  hushedHere.use();
   const { state, status, audit, seen, desk } = read;
   const { foot } = useFoot(state, status);
   const own = audit && seen ? checkedOf(audit, seen) : null;

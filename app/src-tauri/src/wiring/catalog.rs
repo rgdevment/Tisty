@@ -36,6 +36,10 @@ pub struct Client {
     #[serde(default)]
     dirs: Vec<String>,
     #[serde(default)]
+    also_apps: Vec<String>,
+    #[serde(default)]
+    also_clients: Vec<String>,
+    #[serde(default)]
     pub cli: Option<String>,
 }
 
@@ -70,6 +74,34 @@ impl Client {
             .collect()
     }
 
+    pub fn reads(&self, text: &str) -> Option<String> {
+        match self.shape {
+            Shape::Toml => super::toml::reads(text, &self.key, super::NAME),
+            Shape::Manual => None,
+            _ => super::json::reads(text, &self.key, super::NAME),
+        }
+    }
+
+    pub fn holds(&self, text: &str) -> bool {
+        match self.shape {
+            Shape::Toml => super::toml::holds(text, &self.key, super::NAME),
+            Shape::Manual => false,
+            _ => super::json::holds(text, &self.key, super::NAME),
+        }
+    }
+
+    pub fn sound(&self, was: &str, now: &str) -> bool {
+        super::json::same_but(was, now, |doc| {
+            let under = doc.get_mut(&self.key).and_then(|it| it.as_object_mut());
+            if under.is_some_and(|it| {
+                it.remove(super::NAME);
+                it.is_empty()
+            }) {
+                doc.remove(&self.key);
+            }
+        })
+    }
+
     /// The file to write: the first one there, else the first one this place has a way to.
     pub fn file(&self, place: &Place) -> Option<PathBuf> {
         let all = self.files(place);
@@ -79,15 +111,39 @@ impl Client {
             .or_else(|| all.into_iter().next())
     }
 
-    // A folder outlives an uninstall, so on its own it only says the assistant may still be here.
-    pub fn found(&self, place: &Place) -> Option<Found> {
-        let sure = self.files(place).iter().any(|at| at.is_file())
-            || self.bins.iter().any(|one| place.runs(one))
+    /// Settings outlive an uninstall, so only a program that reads them says they still matter, where one is named.
+    pub fn installed(&self, place: &Place) -> bool {
+        self.stands(place)
+            || all()
+                .iter()
+                .filter(|one| self.also_clients.contains(&one.id))
+                .any(|one| one.stands(place))
+    }
+
+    fn stands(&self, place: &Place) -> bool {
+        let named =
+            !self.bins.is_empty() || self.apps.iter().any(|one| place.resolve(one).is_some());
+        !named
+            || self.started_from(place)
+            || self
+                .also_apps
+                .iter()
+                .chain(&self.dirs)
+                .any(|one| stands(place, one))
+    }
+
+    fn started_from(&self, place: &Place) -> bool {
+        self.bins.iter().any(|one| place.runs(one))
             || self
                 .apps
                 .iter()
                 .filter_map(|one| place.resolve(one))
-                .any(|at| at.exists());
+                .any(|at| at.exists())
+    }
+
+    // A folder outlives an uninstall, so on its own it only says the assistant may still be here.
+    pub fn found(&self, place: &Place) -> Option<Found> {
+        let sure = self.files(place).iter().any(|at| at.is_file()) || self.started_from(place);
         if sure {
             return Some(Found::Sure);
         }
@@ -96,6 +152,15 @@ impl Client {
             .filter_map(|one| place.resolve(one))
             .any(|at| at.is_dir())
             .then_some(Found::Maybe)
+    }
+}
+
+// A Store package takes its own folder away with it when it is uninstalled; any other folder stays behind.
+fn stands(place: &Place, said: &str) -> bool {
+    let at = place.resolve(said);
+    match said.starts_with("store:") {
+        true => at.is_some(),
+        false => said.ends_with(".app") && at.is_some_and(|at| at.exists()),
     }
 }
 

@@ -1,13 +1,13 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ComponentProps, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { offeredHere } from "../agentsOffered";
 import { AGENTS_FIRST } from "../agentsSync";
 import type { Wired } from "../core";
-import { adopt } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Wiring from "../ui/Wiring";
-import { skillsFor } from "./knownFor";
+import { skillsFor, strayHooks } from "./knownFor";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -39,19 +39,17 @@ const one = (id: string, more: Partial<Wired> = {}): Wired => ({
   ...more,
 });
 
-const lostHooks = {
-  on: true,
-  at: "/home/someone/hooks.json",
-  astray: true,
-  gone: true,
-  points: "/old/tisty",
-};
+const lostHooks = strayHooks();
 
 const shown = (agents: Wired[], more: Partial<ComponentProps<typeof Wiring>> = {}) => {
-  const quietly = <T,>(_card: string, work: Promise<T>, then: (answer: T) => void) => {
-    void work.then(then);
+  const quietly = <T,>(
+    _card: string,
+    work: Promise<T> | (() => Promise<T>),
+    then: (answer: T) => void,
+  ) => {
+    void (typeof work === "function" ? work() : work).then(then);
   };
-  render(
+  return render(
     <Wiring
       agents={agents}
       setAgents={() => {}}
@@ -71,7 +69,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.answer = (cmd) => {
     if (cmd === "wsl_distros") return Promise.resolve([]);
-    if (cmd === "wire" || cmd === "wiring") return Promise.resolve([]);
+    if (["wire", "unwire", "hook", "unhook", "wiring"].includes(cmd)) return Promise.resolve([]);
     return Promise.resolve(null);
   };
   window.localStorage.clear();
@@ -97,11 +95,11 @@ describe("connecting assistants", () => {
     expect(sent("wire").map((call) => call.args.id)).toEqual(["codex", "copilot"]);
   });
 
-  it("fixes one pointing at another Tisty or at one that is gone, and says what it did", async () => {
+  it("asks before fixing one, naming every file it writes, and says what it did", async () => {
     const tell = vi.fn();
     ipc.answer = (cmd, args) => {
       if (cmd === "wsl_distros") return Promise.resolve([]);
-      if (cmd === "wire") return Promise.resolve([one(String(args.id), { wired: true })]);
+      if (cmd === "mend") return Promise.resolve({ seen: [one(String(args.id), { wired: true })] });
       return Promise.resolve([]);
     };
     shown(
@@ -114,14 +112,25 @@ describe("connecting assistants", () => {
 
     expect(screen.getByText("Points at /old/debug/tisty, which is no longer there")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Connect the 1 found" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Repair/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    const ask = within(screen.getByRole("region", { name: "Fix gemini: connection and hooks" }));
+    expect(ask.getByText("/home/someone/gemini.json")).toBeTruthy();
+    expect(ask.getByText("/home/someone/hooks.json")).toBeTruthy();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Fix gemini: connection and hooks",
+    );
+    await userEvent.click(ask.getByRole("button", { name: "Not now" }));
+    expect(sent("mend")).toHaveLength(0);
 
+    await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
     await waitFor(() => expect(tell).toHaveBeenCalled());
-    expect(sent("wire").map((call) => call.args.id)).toEqual(["gemini"]);
-    expect(sent("hook")).toHaveLength(0);
+    expect(sent("mend")[0].args).toEqual({
+      id: "gemini",
+      ask: { connection: "/old/debug/tisty", hooks: ["/old/tisty"], hooksOut: false },
+    });
     expect(tell.mock.calls[0][0].text).toBe(
-      "gemini: connection and hooks fixed. Quit it completely and open it again.",
+      "Fixed in gemini: connection and hooks. Quit it completely and open it again.",
     );
   });
 
@@ -129,20 +138,42 @@ describe("connecting assistants", () => {
     const fail = vi.fn();
     ipc.answer = (cmd) => {
       if (cmd === "wsl_distros") return Promise.resolve([]);
-      if (cmd === "hook") return Promise.reject({ code: "cannotWrite", name: "disk full" });
+      if (cmd === "mend") return Promise.reject({ code: "cannotWrite", name: "disk full" });
       return Promise.resolve([]);
     };
-    shown([one("cursor", { wired: true, hooks: lostHooks })], { fail });
+    const hooks = { ...lostHooks, plugged: true };
+    shown([one("cursor", { wired: true, hooks })], { fail });
 
     expect(screen.getByText("They run a Tisty that is gone")).toBeTruthy();
-    expect(screen.getByText("Points at /old/tisty, which is no longer there")).toBeTruthy();
+    expect(
+      screen.getByText("Its hooks point at /old/tisty, which is no longer there"),
+    ).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /^Fix · Hooks/ }));
+    expect(screen.getByText(t("mendHooksGo"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
 
     await waitFor(() => expect(fail).toHaveBeenCalled());
-    expect(sent("wire")).toHaveLength(0);
-    expect(sent("hook").map((call) => call.args.id)).toEqual(["cursor"]);
-    expect(fail.mock.calls[0][0].text).toMatch(/^cursor could not be fixed: /);
+    expect(sent("mend")[0].args.ask).toMatchObject({ hooks: ["/old/tisty"], hooksOut: true });
+    expect(fail.mock.calls[0][0].text).toMatch(/^cursor · /);
     expect(sent("wiring")).toHaveLength(1);
+  });
+
+  it("leaves one written the person's own way, and one that cannot be read, as they are", () => {
+    shown([
+      one("cursor", { apart: true, points: "~/.local/bin/tisty" }),
+      one("zed", { apart: true }),
+      one("codex", { unread: true }),
+      one("gemini", { hooks: { on: false, at: "/hooks.json", unread: true } }),
+      one("kiro", { wired: true, hooks: strayHooks("/other/tisty", false) }),
+    ]);
+
+    expect(screen.getAllByText("Set up your own way")).toHaveLength(2);
+    expect(screen.getByText(/says ~\/.local\/bin\/tisty/)).toBeTruthy();
+    expect(screen.getByText(t("wiringApartPlain"))).toBeTruthy();
+    expect(screen.getAllByText("Could not be read")).toHaveLength(2);
+    expect(screen.getByText(/^\/hooks.json could not be read/)).toBeTruthy();
+    expect(screen.getByText("They run another Tisty")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Connect the 1 found" })).toBeTruthy();
   });
 
   it("shows how to connect one Tisty cannot write to, and each agent's skills beside its hooks", () => {
@@ -158,12 +189,34 @@ describe("connecting assistants", () => {
   });
 
   it.each([
-    [skillsFor({ on: true }), "cursor", "On this computer"],
+    [
+      skillsFor({ on: true, landing: [{ assistant: "cursor", at: "/s", standing: "upToDate" }] }),
+      "cursor",
+      "On this computer",
+    ],
+    [skillsFor({ on: true }), "cursor", "Tisty found no folder of this agent to put them in."],
+    [
+      skillsFor({
+        on: true,
+        skills: [{ name: "tisty", label: "tisty", about: null, files: [], yours: true }],
+      }),
+      "cursor",
+      "You already have skills with those names in Agents, so Tisty's stay out.",
+    ],
+    [
+      skillsFor({
+        on: true,
+        landing: [{ assistant: "cursor", at: "/s", standing: "upToDate" }],
+        skills: [{ name: "tisty", label: "tisty", about: null, files: [], yours: true }],
+      }),
+      "cursor",
+      "Not all up to date",
+    ],
     [skillsFor(), "cursor", "Off"],
     [
       skillsFor({ on: true, landing: [{ assistant: "codex", at: "/s", standing: "write" }] }),
       "gemini-cli",
-      "Out of date",
+      "To bring up to date",
     ],
     [
       skillsFor({ on: true, landing: [{ assistant: "cursor", at: "/s", standing: "foreign" }] }),
@@ -234,44 +287,48 @@ describe("connecting assistants", () => {
     expect(await screen.findByText(/Windows programs are turned off/)).toBeTruthy();
   });
 
-  it("fixes every broken agent of a distro at once, with its skills left to this computer", async () => {
+  it("brings the skills up to date while fixing one agent, and says so", async () => {
     const tell = vi.fn();
-    const broken = ["claude-code", "codex"].map((id) =>
-      one(`wsl:Ubuntu:${id}`, {
-        name: id,
-        place: "Ubuntu",
-        astray: true,
-        points: "/mnt/c/old/tisty.exe",
-      }),
-    );
-    ipc.answer = (cmd, args) => {
-      if (cmd === "wsl_distros") return Promise.resolve(["Ubuntu"]);
-      if (cmd === "wsl_seen")
-        return Promise.resolve({ distro: { name: "Ubuntu", shut: false }, seen: broken });
-      return Promise.resolve([one(String(args.id), { wired: true })]);
-    };
-    shown([], { tell });
-    await userEvent.click(await screen.findByRole("button", { name: "Look in Ubuntu" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Fix all" }));
-
-    await waitFor(() => expect(tell).toHaveBeenCalled());
-    expect(sent("wire").map((call) => call.args.id)).toEqual(broken.map((it) => it.id));
-    expect(tell.mock.calls[0][0].text).toBe("Fixed. Quit each one completely and open it again.");
-  });
-
-  it("brings the skills up to date while fixing one agent", async () => {
     ipc.answer = (cmd, args) => {
       if (cmd === "wsl_distros") return Promise.resolve([]);
       if (cmd === "agents_tisty_round") return Promise.resolve(skillsFor({ on: true }));
-      return Promise.resolve([one(String(args.id), { wired: true })]);
+      return Promise.resolve({ seen: [one(String(args.id), { wired: true })] });
     };
-    const landing = [{ assistant: "cursor", at: "/s", standing: "write" }];
+    const landing = [{ assistant: "cursor", at: "/s/skills/tisty/SKILL.md", standing: "write" }];
     shown([one("cursor", { astray: true, gone: true, points: "/old/tisty" })], {
       skills: skillsFor({ on: true, landing }),
       setSkills: () => {},
+      tell,
     });
     await userEvent.click(screen.getByRole("button", { name: "Fix" }));
-    await waitFor(() => expect(sent("agents_tisty_round")).toHaveLength(1));
+    expect(screen.getByText("/s/skills")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
+    await waitFor(() => expect(tell).toHaveBeenCalled());
+    expect(sent("agents_tisty_round")).toHaveLength(1);
+    expect(tell.mock.calls[0][0].text).toContain("Tisty's skills: up to date");
+  });
+
+  it("fixes one inside a distro there", async () => {
+    const broken = one("wsl:Ubuntu:codex", {
+      name: "Codex",
+      place: "Ubuntu",
+      astray: true,
+      points: "/mnt/c/old/tisty.exe",
+    });
+    ipc.answer = (cmd) => {
+      if (cmd === "wsl_distros") return Promise.resolve(["Ubuntu"]);
+      if (cmd === "wsl_seen")
+        return Promise.resolve({ distro: { name: "Ubuntu", shut: false }, seen: [broken] });
+      if (cmd === "mend") return Promise.reject({ code: "wslUnread", name: "Ubuntu" });
+      return Promise.resolve([]);
+    };
+    shown([]);
+    await userEvent.click(await screen.findByRole("button", { name: "Look in Ubuntu" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Fix" }));
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
+    await waitFor(() => expect(sent("wsl_seen")).toHaveLength(2));
+    expect(sent("mend")[0].args.id).toBe("wsl:Ubuntu:codex");
+    expect(sent("agents_tisty_round")).toHaveLength(0);
   });
 
   it("finds an assistant Tisty knows but did not see, to connect by hand", async () => {
@@ -391,10 +448,98 @@ const joining = (after: Wired, skills: unknown) => {
   };
 };
 
+describe("taking Tisty out of an agent", () => {
+  const hooks = { on: true, at: "/home/someone/settings.json" };
+  const remove = () => userEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+  it("asks first, naming both files it writes, also when it was set up the person's own way", async () => {
+    for (const more of [{ wired: true }, { apart: true, points: "npx" }]) {
+      ipc.calls = [];
+      const { unmount } = shown([one("claude-code", { ...more, hooks })]);
+      await remove();
+      expect(sent("unwire")).toHaveLength(0);
+      const ask = within(screen.getByRole("region", { name: "Remove Tisty from claude-code" }));
+      expect(ask.getByText("/home/someone/claude-code.json")).toBeTruthy();
+      expect(ask.getByText("/home/someone/settings.json")).toBeTruthy();
+      await userEvent.click(ask.getByRole("button", { name: "Not now" }));
+      expect(screen.queryByRole("region")).toBeNull();
+
+      await remove();
+      await userEvent.click(screen.getByRole("button", { name: "Yes, remove" }));
+      await waitFor(() => expect(sent("unwire")).toHaveLength(1));
+      unmount();
+    }
+  });
+
+  it("names only the file that holds something of Tisty's", async () => {
+    shown([one("cursor", { wired: true, hooks: { ...hooks, on: false } })]);
+    await remove();
+    expect(screen.queryByText("/home/someone/settings.json")).toBeNull();
+  });
+
+  it("looks again when it could not be done whole", async () => {
+    const trouble = vi.fn();
+    ipc.answer = (cmd) => {
+      if (cmd === "wsl_distros") return Promise.resolve([]);
+      if (cmd === "unwire") return Promise.reject({ code: "settingsUnread", name: "/s.json" });
+      return Promise.resolve([one("codex")]);
+    };
+    const setAgents = vi.fn();
+    shown([one("codex", { wired: true })], {
+      setAgents,
+      quietly: ((_card: string, work: Promise<unknown>) => void work.catch(trouble)) as never,
+    });
+    await remove();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, remove" }));
+    await waitFor(() => expect(trouble).toHaveBeenCalled());
+    await waitFor(() => expect(setAgents).toHaveBeenCalledWith([one("codex")]));
+  });
+});
+
+describe("hooks the person runs their own way", () => {
+  const hooks = { on: false, apart: true, at: "/home/someone/settings.json" };
+
+  it("are said, and neither taken out nor joined by Tisty's", () => {
+    shown([one("claude-code", { wired: true, hooks })]);
+    expect(screen.getByText("Set up your own way")).toBeTruthy();
+    expect(screen.getByText(t("hooksOwnWayWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /· Hooks/ })).toBeNull();
+  });
+
+  it("stay when Tisty's are removed, and it says so", async () => {
+    const tell = vi.fn();
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "unhook" ? [one("claude-code", { wired: true, hooks })] : []);
+    shown([one("claude-code", { wired: true, hooks: { ...hooks, on: true } })], { tell });
+    await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
+    await waitFor(() =>
+      expect(tell).toHaveBeenCalledWith({ card: "wiring", text: t("hooksGoneApart") }),
+    );
+  });
+
+  it("are not said to be gone when they read as still there", async () => {
+    const fail = vi.fn();
+    const still = one("claude-code", { wired: true, hooks: { ...hooks, on: true } });
+    ipc.answer = (cmd) => Promise.resolve(cmd === "unhook" ? [still] : []);
+    shown([still], { fail });
+    await userEvent.click(screen.getByRole("button", { name: /^Remove · Hooks/ }));
+    await waitFor(() =>
+      expect(fail).toHaveBeenCalledWith({
+        card: "wiring",
+        text: fill("hooksPuzzling", hooks.at),
+      }),
+    );
+  });
+});
+
 function Live({ first }: Readonly<{ first: Wired[] }>) {
   const [agents, setAgents] = useState(first);
-  const quietly = <T,>(_card: string, work: Promise<T>, then: (answer: T) => void) => {
-    void work.then(then);
+  const quietly = <T,>(
+    _card: string,
+    work: Promise<T> | (() => Promise<T>),
+    then: (answer: T) => void,
+  ) => {
+    void (typeof work === "function" ? work() : work).then(then);
   };
   return (
     <Wiring
@@ -474,6 +619,7 @@ describe("right after connecting an agent", () => {
     expect(screen.queryByRole("region")).toBeNull();
 
     await userEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Yes, remove" }));
     await userEvent.click(await screen.findByRole("button", { name: "Connect" }));
     await waitFor(() => expect(sent("wire")).toHaveLength(2));
     expect(screen.queryByRole("region")).toBeNull();

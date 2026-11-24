@@ -84,7 +84,7 @@ Your history, your documents and their settings go up. Attachments stay on the c
 
 ### What the card says
 
-- **«Google no longer lets Tisty in»** — the permission was removed, from your Google account or with **Remove Tisty's access on every computer**, or it expired. Press **Reconnect** and sign in again. Removing access on one machine removes it on all of them, so each one will ask.
+- **«Google no longer lets Tisty in»** — the permission was removed, from your Google account or with **Remove Tisty's access on every computer**, expired or was lost when Tisty was reinstalled. Press **Reconnect** and sign in again; meanwhile everything stays safe on this computer, and once done, Tisty syncs on its own. If your cloud is encrypted as well, the card shows you the steps: [Syncing again on a computer](#syncing-again-on-a-computer). Removing access on one machine removes it on all of them, so each one will ask.
 - **«This copy belongs to another account»** — you signed in with a different Google account from the one this copy already syncs with. Tisty stops rather than mix two accounts. Press **Change account** and sign in with the one you used before. If you really mean to sync with a different account, move there instead (below).
 - **«Your Google Drive is full»** — your Drive has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in Drive or get more. **See storage** opens Google's page for it.
 - **«Your cloud reached today's limit»** — every computer has its own daily allowance, 2,000,000 requests' worth and 50 GB downloaded, so no single copy can spend the quota Google grants the project. It is per computer, not per person. When it runs out, syncing carries on the next day by itself. **Cloud use today**, under **Free up space** in Settings › Storage, shows how much is left.
@@ -152,7 +152,7 @@ Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in 
 
 ### Your other computers
 
-**One that already synced with you gets the key on its own.** It waits a moment and takes the key from another of your computers that has Tisty open, and meanwhile it writes nothing unencrypted.
+**One that already synced with you gets the key on its own**, if your cloud lets it in; if it lost its access, **Reconnect** comes first. It waits a moment and takes the key from another of your computers that has Tisty open, and meanwhile it writes nothing unencrypted.
 
 **A new computer is let in from one that already reads the encrypted cloud:**
 
@@ -160,9 +160,28 @@ Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in 
 2. On the other, open **Settings › Security › Let a new computer in** and type them.
 3. Back on the new computer, press **It took them**. While the key is on its way you see it under way; once it arrives, the new computer brings your encrypted cloud, and the bottom bar and Settings › Security say how far it came.
 
-If you type nothing, nothing is handed over. Or, on the new computer, **Type my phrase** takes your 24 words: only the cloud's key stays there, never the phrase. Type them only there, in your own Tisty: nobody from Tisty or Folio will ever ask you for them, and anyone who does is trying to trick you.
+If you type nothing, nothing is handed over. Or, on the new computer, **Open my cloud with the phrase** takes your 24 words: only the cloud's key stays there, never the phrase. If you also want that computer to keep the phrase, there is **Keep my phrase on this computer**, in **Your identity**. Type them only there, in your own Tisty: nobody from Tisty or Folio will ever ask you for them, and anyone who does is trying to trick you.
 
 If the new computer then keeps your cloud's history, it does not ask you about your other computers, and the one that took its digits does not ask for it again; each of your other computers asks you to confirm its code once, as with any new computer, since the key alone does not say which computer is yours. Choose it within a week of typing the digits: after that, the one that took them asks once more.
+
+### Syncing again on a computer
+
+After reinstalling Tisty, or if the cloud withdrew its access, a computer may be missing two things to open an encrypted cloud: the cloud's permission and its key. Your cloud's card, in **Settings › Sync**, and **Encrypt my data in the cloud**, in **Settings › Security**, show them to you as two steps, under **To sync on this computer**:
+
+1. **Reconnect Google Drive** (or the cloud you use), with **Reconnect**: your browser opens and the card says «Finish in your browser; Tisty waits here.», with **Cancel**; then, «Reconnected; getting your cloud ready…». With WebDAV it asks for the password right there. Once done, it stays as ✓ **Google Drive is connected**.
+2. **Open your cloud with your 24-word phrase**, with **Open my cloud with the phrase**. While the first is missing it says «Available once you reconnect.». Once done, it stays as ✓ **This computer has your cloud's key**.
+
+The second is also met without typing the phrase. On a computer that was already yours it says «Or wait: your other computers hand this one the key on their own as soon as one of them is on.»; on a new one, «Or let this computer in from another of your computers that already reads the encrypted cloud, in Settings › Security.». As soon as both are there, Tisty syncs on its own: there is no need to press **Sync now**. If you press it before, it tells you «Tried to sync, but it is not possible yet. The notice above says why.», and nothing is lost.
+
+Two buttons ask for the same 24 words, and they do different things:
+
+| | **Open my cloud with the phrase** | **Keep my phrase on this computer** |
+|---|---|---|
+| **Where it is** | In the steps, in **Sync** and in **Security** | **Settings › Security › Your identity** |
+| **What stays on this computer** | Your cloud's key, never the phrase | The phrase, and the key with it |
+| **What you can do afterwards** | Sync | Sync, **See the phrase**, and encrypt or decrypt your cloud |
+
+**Example.** Jaime reinstalls Tisty on a laptop. The tasks are there, but the card says **Microsoft no longer lets Tisty in** and shows the two steps. Jaime presses **Reconnect**, signs in, and step 1 gets its ✓. The desktop computer is off, so there is no waiting for the key: Jaime presses **Open my cloud with the phrase** and types the 24 words from the sheet. The card starts syncing on its own. Since that laptop is the one used for everything, Jaime goes to **Security › Your identity**, presses **Keep my phrase on this computer**, types it again and reads «This computer now keeps your phrase.».
 
 ### What it does not hide
 
@@ -170,7 +189,7 @@ Your provider keeps earlier unencrypted versions for a while, in its history and
 
 ### Keep the phrase safe
 
-The phrase is kept only on the computer where you made it, and **See the phrase** in Settings › Security shows it again there. It never passes through anybody's hands, so nobody can give it back to you: without it or one of your computers, nobody can open your cloud, not even Tisty.
+The phrase is kept only on the computer where you made it and on the ones where you press **Keep my phrase on this computer**; **See the phrase**, in Settings › Security, shows it again on those. A computer that does not keep it says so: «This computer does not keep your phrase: you created it on another computer, or Tisty was reinstalled on this one. Your tasks and documents are still here.». It never passes through anybody's hands, so nobody can give it back to you: without it or one of your computers, nobody can open your cloud, not even Tisty.
 
 ### Going back
 

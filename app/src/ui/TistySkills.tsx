@@ -55,6 +55,22 @@ export const skillFolders = (skills: TistySkills): string[] => [
   ...new Set(skills.landing.map((one) => folderOf(one.at))),
 ];
 
+export const foldersBehind = (skills: TistySkills): string[] => [
+  ...new Set(
+    skills.landing.filter((one) => one.standing === "write").map((one) => folderOf(one.at)),
+  ),
+];
+
+export const agentsTaught = (skills: TistySkills): string[] => [
+  ...new Set(
+    skills.landing.map((one) =>
+      SHARED.has(one.assistant)
+        ? "Codex · Copilot · Gemini"
+        : (NAMES[one.assistant] ?? one.assistant),
+    ),
+  ),
+];
+
 export function useTistySkills() {
   const [held, setHeld] = useState<TistySkills>();
   const ask = useCallback(() => {
@@ -280,7 +296,7 @@ export function TistySkillsAgentLine({
   const said = lineSaid(agent, skills);
   const off = said === "tistySkillsOff";
   const act = t(off ? "extrasAddSkills" : "agentSee");
-  const left = said === "tistySkillsRowPartly" ? leftAsIs(skills, landsFor(agent)) : undefined;
+  const left = leftSaid(agent, skills, said);
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
       <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">{t("tistySkills")}</span>
@@ -299,7 +315,7 @@ export function TistySkillsAgentLine({
       >
         {act}
       </Opener>
-      {left && <p className="w-full text-[12.5px] text-soft">{landingSaid(left)}</p>}
+      {left && <p className="w-full text-[12.5px] text-soft">{left}</p>}
     </div>
   );
 }
@@ -309,6 +325,7 @@ const LINE = {
   tistySkillsRowPlugged: "border-hue-green/40 text-hue-green",
   tistySkillsRowBehind: "border-hue-amber/40 text-hue-amber",
   tistySkillsRowPartly: "border-line text-soft",
+  tistySkillsRowNone: "border-line text-soft",
   tistySkillsOff: "border-line text-soft",
 } as const;
 
@@ -318,11 +335,20 @@ const landsFor = (agent: string) => (assistant: string) =>
 function lineSaid(agent: string, skills: TistySkills): keyof typeof LINE {
   if (skills.plugged.includes(agent)) return "tistySkillsRowPlugged";
   if (!skills.on) return "tistySkillsOff";
-  const behind = skills.landing.some(
-    (one) => landsFor(agent)(one.assistant) && one.standing === "write",
-  );
-  if (behind) return "tistySkillsRowBehind";
-  return leftAsIs(skills, landsFor(agent)) ? "tistySkillsRowPartly" : "tistySkillsOn";
+  const here = skills.landing.filter((one) => landsFor(agent)(one.assistant));
+  if (here.length === 0) return "tistySkillsRowNone";
+  if (here.some((one) => one.standing === "write")) return "tistySkillsRowBehind";
+  const whole = !leftAsIs(skills, landsFor(agent)) && !yours(skills);
+  return whole ? "tistySkillsOn" : "tistySkillsRowPartly";
+}
+
+const yours = (skills: TistySkills) => skills.skills.some((one) => one.yours);
+
+function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE) {
+  if (said === "tistySkillsRowNone" && !yours(skills)) return t("tistySkillsRowNoFolder");
+  if (said !== "tistySkillsRowNone" && said !== "tistySkillsRowPartly") return undefined;
+  const left = leftAsIs(skills, landsFor(agent));
+  return left ? landingSaid(left) : t("tistySkillsRowYours");
 }
 
 function HideRow() {

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { hush, hushedHere } from "../agentsAmiss";
 import type { TistySkills } from "../agentsSync";
 import {
   attention,
@@ -13,7 +14,7 @@ import {
 } from "../attention";
 import type { About, Carrying, Settings, Standing, Wired } from "../core";
 import { adopt } from "../locales";
-import { lostOne, skillsFor, wiredOne } from "./knownFor";
+import { lostOne, skillsFor } from "./knownFor";
 
 const NOW = new Date(2026, 10, 21, 10, 0, 0);
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 86_400_000).toISOString();
@@ -74,7 +75,10 @@ const known = (over: Partial<Known> = {}): Known => ({
   ...over,
 });
 
-beforeEach(() => adopt("es"));
+beforeEach(() => {
+  adopt("es");
+  hushedHere.put({ said: [] });
+});
 
 describe("what asks for the person's attention", () => {
   it("is not said at all until what the page reads on opening has arrived", () => {
@@ -107,7 +111,7 @@ describe("what asks for the person's attention", () => {
       known({
         ready: { version: "1.50.0", route: "download", installs: true },
         state: carrying({ backedUpAt: daysAgo(47) }),
-        build: build({ phrase: "loose" }),
+        build: build({ phrase: "loose", door: "espino 3" }),
         keys: null,
         checked: { many: 2, at: daysAgo(0), waiting: ["Mac mini"] },
         wired: [
@@ -166,32 +170,31 @@ describe("what asks for the person's attention", () => {
     ]);
   });
 
-  it("says in one line each what is lost, what points elsewhere and what skills were left behind", () => {
+  it("says in one line each what is lost, what points elsewhere and what skills are to be brought up to date", () => {
     const said = (wired: Wired[], skills: TistySkills | null = null) =>
-      attention(known({ wired, skills }), NOW)?.map((one) => one.said);
-    const hooks = { on: true, at: "", astray: true, gone: true, points: "/old/tisty" };
+      attention(known({ build: build({ door: "espino 3" }), wired, skills }), NOW)?.map(
+        (one) => one.said,
+      );
 
-    expect(said([lostOne("Cursor")])).toEqual(["Cursor apunta a un Tisty que ya no existe"]);
-    expect(said([wiredOne("Cursor", { wired: true, hooks })])).toEqual([
-      "Los hooks de Cursor apuntan a un Tisty que ya no existe",
-    ]);
-    expect(said([wiredOne("Cursor", { wired: true, hooks: { ...hooks, gone: false } })])).toEqual([
-      "Los hooks de Cursor apuntan a otro Tisty",
-    ]);
     expect(
       said([
         lostOne("Cursor"),
         lostOne("Codex"),
         lostOne("Zed", { gone: false }),
-        lostOne("Kiro", { gone: false }),
+        lostOne("Kiro", { gone: false, installed: false }),
       ]),
-    ).toEqual(["2 agentes apuntan a un Tisty que ya no existe", "2 agentes apuntan a otro Tisty"]);
+    ).toEqual(["2 agentes apuntan a un Tisty que ya no existe", "Zed apunta a otro Tisty"]);
+    hush([lostOne("Zed", { gone: false })], "elsewhere");
+    expect(said([lostOne("Zed", { gone: false })])).toEqual([]);
     const behind = skillsFor({
       on: true,
       landing: [{ assistant: "claude", at: "/a/skills/tisty/SKILL.md", standing: "write" }],
     });
-    expect(said([], behind)).toEqual(["Las skills de Tisty están sin actualizar en tus agentes"]);
+    expect(said([], behind)).toEqual([
+      "Las skills de Tisty están por ponerse al día en tus agentes",
+    ]);
     expect(said([], { ...behind, on: false })).toEqual([]);
+    expect(attention(known({ wired: [lostOne("Cursor")] }), NOW)).toEqual([]);
   });
 
   it("counts on the agents' tile what there is to fix", () => {
@@ -456,6 +459,7 @@ describe("the status tiles", () => {
             at: "",
             wired: true,
             astray: true,
+            gone: true,
             maybe: false,
             byHand: false,
             manual: { file: "", snippet: "" },

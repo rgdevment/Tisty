@@ -265,10 +265,17 @@ beforeEach(() => {
         return Promise.resolve({ fresh: arriving.fresh, holds: arriving.holds });
       case "reachable":
         return Promise.resolve({ ...standing });
+      case "wiring_watched":
+        return Promise.resolve({
+          agent: { ...serving },
+          seen: serving.on ? installed.seen.map((one) => ({ ...one })) : null,
+        });
       case "wiring":
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       case "assistants":
         return Promise.resolve(installed.hands.map((one) => ({ ...one })));
+      case "mend":
+        return Promise.resolve({ seen: installed.seen.map((one) => ({ ...one })) });
       case "wire":
       case "unwire": {
         const id = String(ipc.calls[ipc.calls.length - 1]?.args.id);
@@ -3210,13 +3217,15 @@ describe("letting an assistant file work here", () => {
     await openTab(/^connected$/i);
 
     await userEvent.click(await screen.findByRole("button", { name: /^Remove$/ }));
+    expect(sent("unwire").length).toBe(0);
+    await userEvent.click(screen.getByRole("button", { name: "Yes, remove" }));
 
     await waitFor(() => expect(sent("unwire").length).toBe(1));
     expect(sent("unwire")[0].args.id).toBe("claude-code");
     expect(sent("wire").length).toBe(0);
   });
 
-  it("one pointing at another Tisty is said plainly, and fixing it writes again", async () => {
+  it("one pointing at another Tisty is said plainly, and fixing it asks first", async () => {
     installed.seen = [
       {
         id: "codex",
@@ -3231,11 +3240,15 @@ describe("letting an assistant file work here", () => {
     await openTab(/^connected$/i);
 
     expect(await screen.findByText(/Points at another Tisty/i)).toBeTruthy();
-    expect(screen.getByRole("region", { name: "1 agent to fix" })).toBeTruthy();
-    await userEvent.click(screen.getAllByRole("button", { name: /^Fix$/ })[0]);
+    await userEvent.click(screen.getByRole("button", { name: /^Fix$/ }));
+    expect(sent("mend")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
 
-    await waitFor(() => expect(sent("wire").length).toBe(1));
-    expect(sent("wire")[0].args.id).toBe("codex");
+    await waitFor(() => expect(sent("mend").length).toBe(1));
+    expect(sent("mend")[0].args).toEqual({
+      id: "codex",
+      ask: { connection: "C:/Programs/Gone/tisty.exe", hooks: [], hooksOut: false },
+    });
   });
 
   it("looks at the agents with the door open before anyone opens their page, never with it shut", async () => {
@@ -3263,7 +3276,8 @@ describe("letting an assistant file work here", () => {
     opened();
     await sync();
 
-    await waitFor(() => expect(sent("wiring").length).toBeGreaterThan(0));
+    await waitFor(() => expect(sent("wiring_watched").length).toBeGreaterThan(0));
+    expect(sent("agent")).toHaveLength(0);
     expect(sent("wsl_seen")).toHaveLength(0);
     await userEvent.click(screen.getByRole("tab", { name: /^overview/i }));
     expect(await screen.findByText("Codex points to another Tisty")).toBeTruthy();

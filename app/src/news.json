@@ -1871,11 +1871,23 @@
       },
       {
         "title": "Documentos que se leen como una página",
-        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila."
+        "said": "el texto va en una columna cómoda de leer, el documento abre en su título y su menú queda en esa misma fila. Una tabla, un diagrama o una fórmula dentro de una lista o de una cita se dibuja entero, y la tabla se escribe celda por celda."
       },
       {
         "title": "Lo que escribes no se pierde",
         "said": "si un guardado no puede escribir lo que tecleaste, Tisty lo guarda aparte en este equipo, y Recuperar lo que escribiste te lo devuelve."
+      },
+      {
+        "title": "Tus agentes, a la vista",
+        "said": "si un agente o sus hooks apuntan a un Tisty que ya no está, la ventana te lo dice, y Corregir todo muestra los archivos antes de escribir, con dos copias de cada uno. Y a los agentes que ya tenías les ofrece, si quieres, sus hooks y las skills en un solo paso."
+      },
+      {
+        "title": "Volver a una nube cifrada, paso a paso",
+        "said": "después de reinstalar, la tarjeta de tu nube muestra lo que falta: reconectar y abrirla con tu frase. Guardar mi frase en este equipo es otro botón, para el equipo que quieras."
+      },
+      {
+        "title": "Pregúntale qué tienes pendiente",
+        "said": "tu agente te responde de una vez, dice cuántas tareas deja fuera y encuentra también las de la bandeja."
       },
       {
         "title": "Agentes, en todas partes",
@@ -1925,11 +1937,23 @@
       },
       {
         "title": "Documents that read like a page",
-        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row."
+        "said": "the text sits in a column that is easy to read, the document opens on its title and its menu stays on that same row. A table, a diagram or a formula inside a list or a quote is drawn whole, and the table is written cell by cell."
       },
       {
         "title": "What you write is not lost",
         "said": "if a save cannot write what you typed, Tisty keeps it aside on this computer, and Recover what you wrote gives it back."
+      },
+      {
+        "title": "Your agents, in sight",
+        "said": "if an agent or its hooks point at a Tisty that is gone, the window tells you, and Fix all shows the files before writing, with two copies of each one. And it offers the agents you already had, if you like, their hooks and the skills in one step."
+      },
+      {
+        "title": "Back into an encrypted cloud, step by step",
+        "said": "after reinstalling, your cloud's card shows what is missing: reconnecting and opening it with your phrase. Keep my phrase on this computer is another button, for the computer you want."
+      },
+      {
+        "title": "Ask it what is pending",
+        "said": "your agent answers you at once, says how many tasks it leaves out and finds the ones in the inbox too."
       },
       {
         "title": "Agents, everywhere",

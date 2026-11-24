@@ -1,4 +1,5 @@
-import { amiss, lost, onlyHooks, skillsBehind } from "./agentsAmiss";
+import { hushedHere, inState, skillsBehind, unheeded } from "./agentsAmiss";
+import { pendingSaid } from "./agentsSaid";
 import type { TistySkills } from "./agentsSync";
 import type { About, Carrying, CloudStatus, Ready, Settings, Wired } from "./core";
 import { type Footing, synced } from "./footing";
@@ -33,6 +34,7 @@ export interface Known {
   checked: Checked | null;
   wired: Wired[] | null;
   skills?: TistySkills | null;
+  door?: boolean;
   waiting?: boolean;
   machines?: string[] | null;
   status?: CloudStatus | null;
@@ -132,28 +134,23 @@ export function attention(known: Known, now = new Date()): Item[] | null {
 
 const MENDING: Spot = { page: "agents", shelf: "wired" };
 
-const amissSaid = (all: Wired[], gone: boolean): string => {
-  const [one] = all;
-  if (all.length > 1) return fill(gone ? "attAstrayMany" : "attElsewhereMany", String(all.length));
-  if (onlyHooks(one)) return fill(gone ? "attAstrayHooks" : "attElsewhereHooks", one.name);
-  return fill(gone ? "attAstray" : "attElsewhere", one.name);
-};
-
-function agentItems({ wired, skills }: Known): Item[] {
-  const all = wired?.filter(amiss) ?? [];
+function agentItems({ wired, skills, build, door }: Known): Item[] {
+  if (!(door ?? Boolean(build?.standing?.door))) return [];
   const item = (key: string, said: string): Item => ({
     key,
     spot: MENDING,
     said,
     act: t("attAstrayAct"),
   });
-  const items = [true, false].flatMap((gone) => {
-    const group = all.filter((one) => lost(one) === gone);
-    return group.length > 0
-      ? [item(gone ? "agents-lost" : "agents-elsewhere", amissSaid(group, gone))]
-      : [];
-  });
-  return skillsBehind(skills) ? [...items, item("agents-skills", t("attSkillsBehind"))] : items;
+  const lost = inState(wired, "lost");
+  const elsewhere = unheeded(wired, "elsewhere", hushedHere.current().said);
+  return [
+    ...(lost.length > 0 ? [item("agents-lost", pendingSaid(lost, "lost"))] : []),
+    ...(elsewhere.length > 0
+      ? [item("agents-elsewhere", pendingSaid(elsewhere, "elsewhere"))]
+      : []),
+    ...(skillsBehind(skills) ? [item("agents-skills", t("attSkillsBehind"))] : []),
+  ];
 }
 
 // «Nothing asks for you» is said only when every source answered.
@@ -292,7 +289,7 @@ function agentsTile({ build, wired, skills }: Known): Tile | null {
   const standing = build?.standing;
   if (!standing) return null;
   if (!standing.door) return tile("agents", "off", t("tileDoorShut"), t("tileDoorShutWhy"));
-  const many = (wired?.filter(amiss).length ?? 0) + (skillsBehind(skills) ? 1 : 0);
+  const many = inState(wired, "lost").length + (skillsBehind(skills) ? 1 : 0);
   if (many > 0)
     return tile("agents", "warn", t("tileDoorOpen"), fill("tileAgentsFix", String(many)));
   return tile("agents", "ok", t("tileDoorOpen"), fill("tileDoorAs", standing.door));

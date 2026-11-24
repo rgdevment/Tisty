@@ -1,4 +1,5 @@
 use super::*;
+use crate::answers::carried_cloud::{a_session, carried_cloud};
 
 fn ana() -> Sync {
     Sync::cloud(CloudAt {
@@ -300,55 +301,6 @@ fn dav_server(
         }
     });
     (tisty_webdav::DavAt::under(&base, "mario").unwrap(), served)
-}
-
-type Asked = std::sync::mpsc::Receiver<(bool, bool)>;
-
-// The server of a cloud already carried here; each request says whether the session and the round's turn are free.
-fn carried_cloud(session: &Arc<Mutex<Session>>, alone: &Arc<OneAtATime>) -> (CloudAt, Asked) {
-    let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-    let base = format!(
-        "http://127.0.0.1:{}/dav/mario",
-        listener.local_addr().unwrap().port()
-    );
-    let dav = tisty_webdav::DavAt::under(&base, "mario").unwrap();
-    let at = CloudAt {
-        provider: WEBDAV.into(),
-        account: dav.account(),
-        email: dav.shown(),
-    };
-    secrets_for(&at)
-        .unwrap()
-        .write(KEPT_AS, "r0ck4me!")
-        .unwrap();
-    {
-        let mut session = held(session);
-        session
-            .keep(|config| config.sync = Some(Sync::cloud(at.clone())))
-            .unwrap();
-        let home = session.reach.home_of(&at);
-        std::fs::create_dir_all(&home).unwrap();
-        std::fs::write(home.join("carried-here"), "1").unwrap();
-    }
-    let (heard, asked) = std::sync::mpsc::channel();
-    let (session, alone) = (session.clone(), alone.clone());
-    std::thread::spawn(move || {
-        use std::io::Write;
-        for stream in listener.incoming() {
-            let free = session.try_lock().is_ok();
-            let turn = alone.claim().is_some();
-            let _ = heard.send((free, turn));
-            let _ = stream.unwrap().write_all(
-                b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-            );
-        }
-    });
-    (at, asked)
-}
-
-fn a_session(home: &std::path::Path) -> Arc<Mutex<Session>> {
-    let paths = tisty_core::Paths::new(home.join("data"), home.join("config"));
-    Arc::new(Mutex::new(Session::at(paths).unwrap()))
 }
 
 #[test]

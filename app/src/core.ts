@@ -969,6 +969,9 @@ export interface Wired {
   wired: boolean;
   astray: boolean;
   gone?: boolean;
+  apart?: boolean;
+  unread?: boolean;
+  installed?: boolean;
   points?: string | null;
   maybe: boolean;
   byHand: boolean;
@@ -977,9 +980,10 @@ export interface Wired {
     on: boolean;
     at: string;
     plugged?: boolean;
-    astray?: boolean;
-    gone?: boolean;
-    points?: string | null;
+    pluginUnknown?: boolean;
+    unread?: boolean;
+    apart?: boolean;
+    stray?: { said: string; gone: boolean }[];
   } | null;
 }
 
@@ -989,6 +993,8 @@ export interface InDistro {
 }
 
 export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
+export const watchedAgents = (): Promise<{ agent: Agent; seen: Wired[] | null } | null> =>
+  invoke("wiring_watched");
 export const wiringKnown = (): Promise<Wired[]> => invoke("wiring_known");
 export const wslDistros = (): Promise<string[]> => invoke("wsl_distros");
 export const wslSeen = (name: string): Promise<InDistro> => invoke("wsl_seen", { name });
@@ -1005,6 +1011,17 @@ export interface Assistant {
 export const assistants = (): Promise<Assistant[]> => invoke("assistants");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
+export interface MendAsked {
+  connection?: string;
+  hooks: string[];
+  hooksOut: boolean;
+}
+export interface MendAnswer {
+  seen: Wired[];
+  connection?: unknown;
+  hooks?: unknown;
+}
+export const mendAgent = (id: string, ask: MendAsked) => invoke<MendAnswer>("mend", { id, ask });
 export const hooked = (id: string, on: boolean) => invoke<Wired[]>(on ? "hook" : "unhook", { id });
 
 export interface Waking {

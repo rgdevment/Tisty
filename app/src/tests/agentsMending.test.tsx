@@ -1,14 +1,18 @@
 import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  amiss,
+  allParts,
   extrasIds,
   extrasOf,
-  hushAmiss,
+  filesOf,
+  forgetHealed,
+  hush,
   hushedHere,
-  lost,
+  inState,
   type Offering,
+  partsIn,
   unheeded,
 } from "../agentsAmiss";
 import { mendOne } from "../agentsMending";
@@ -23,7 +27,7 @@ import AgentsMending from "../ui/AgentsMending";
 import { TistySkillsCard } from "../ui/TistySkills";
 import { useExtras } from "../ui/useExtras";
 import { IDLE } from "../ui/working";
-import { knownFor, lostOne, skillsFor, wiredOne } from "./knownFor";
+import { knownFor, lostOne, skillsFor, strayHooks, wiredOne } from "./knownFor";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -40,10 +44,15 @@ vi.mock("@tauri-apps/api/core", () => ({
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const ids = (cmd: string) => sent(cmd).map((one) => one.args.id);
 
-const hooks = { on: true, at: "/home/someone/hooks.json" };
-const lostHooks = { ...hooks, astray: true, gone: true, points: "/old/tisty" };
-const noHooks = { ...hooks, on: false };
+const HOOKS_AT = "/home/someone/hooks.json";
+const hooksOn = { on: true, at: HOOKS_AT };
+const noHooks = { on: false, at: HOOKS_AT };
 const open = { on: true, called: "espino 3" };
+const landing = [
+  { assistant: "claude", at: "/home/someone/.claude/skills/tisty/SKILL.md", standing: "write" },
+  { assistant: "codex", at: "/home/someone/.agents/skills/tisty/SKILL.md", standing: "write" },
+];
+const skillsHere = (more = {}) => skillsFor({ landing, ...more });
 
 beforeEach(() => {
   adopt("en");
@@ -54,31 +63,54 @@ beforeEach(() => {
   showAll();
 });
 
-describe("what is amiss with an agent", () => {
-  it("is a connection or hooks that run another Tisty, and lost once that one is gone", () => {
-    expect(amiss(wiredOne("a", { wired: true, hooks }))).toBe(false);
-    expect(amiss(lostOne("a")) && lost(lostOne("a"))).toBe(true);
-    expect(lost(lostOne("a", { gone: false }))).toBe(false);
-    const byHooks = wiredOne("a", { wired: true, hooks: lostHooks });
-    expect(amiss(byHooks) && lost(byHooks)).toBe(true);
-    expect(amiss(wiredOne("a", { hooks: { ...lostHooks, on: false } }))).toBe(false);
+describe("what is wrong with an agent", () => {
+  it("is lost when a part leads to a Tisty that is gone, and elsewhere when it leads to another", () => {
+    const healthy = wiredOne("a", { wired: true, hooks: hooksOn });
+    expect(inState([healthy], "lost")).toEqual([]);
+    expect(inState([lostOne("a")], "lost")).toHaveLength(1);
+    expect(inState([lostOne("a", { gone: false })], "elsewhere")).toHaveLength(1);
+    const byHooks = wiredOne("a", { wired: true, hooks: strayHooks() });
+    expect(partsIn(byHooks, "lost")).toEqual({ connection: undefined, hooks: ["/old/tisty"] });
+    expect(inState([byHooks], "elsewhere")).toEqual([]);
   });
 
-  it("is never a bare name, found on the PATH of whoever runs it, nor an agent that may be gone", () => {
-    expect(amiss(wiredOne("a", { astray: true, points: "tisty" }))).toBe(false);
-    expect(amiss(lostOne("a", { maybe: true }))).toBe(false);
+  it("is never said of one whose own writing nothing here can tell, nor of one no longer here", () => {
+    const apart = wiredOne("a", { apart: true, points: "tisty", hooks: strayHooks() });
+    expect(partsIn(apart, "lost").connection).toBeUndefined();
+    expect(inState([lostOne("a", { installed: false })], "lost")).toEqual([]);
+    expect(inState([lostOne("a", { maybe: true })], "lost")).toEqual([]);
+    expect(inState(null, "lost")).toEqual([]);
   });
 
-  it("stays quiet once put off, until something else breaks", () => {
-    const all = [lostOne("a"), lostOne("b", { gone: false })];
-    expect(unheeded(all, [])).toEqual([all[0]]);
-    hushAmiss(all);
-    expect(unheeded(all, hushedHere.current().said)).toEqual([]);
+  it("names every file a fix writes, once", () => {
+    const both = lostOne("gemini", { at: "/s.json", hooks: { ...strayHooks(), at: "/s.json" } });
+    expect(filesOf(both, allParts(both))).toEqual(["/s.json"]);
+    const two = lostOne("claude", { at: "/a.json", hooks: strayHooks() });
+    expect(filesOf(two, allParts(two))).toEqual(["/a.json", HOOKS_AT]);
+    expect(filesOf(two, { hooks: [] })).toEqual([]);
+  });
+
+  it("stays quiet once put off, and is said again once it healed and broke the same way", () => {
+    const all = [lostOne("a")];
+    expect(unheeded(all, "lost", hushedHere.current().said)).toEqual(all);
+    hush(all, "lost");
+    expect(unheeded(all, "lost", hushedHere.current().said)).toEqual([]);
+    forgetHealed(all);
+    expect(unheeded(all, "lost", hushedHere.current().said)).toEqual([]);
     const moved = [lostOne("a", { points: "/older/tisty" })];
-    expect(unheeded(moved, hushedHere.current().said)).toEqual(moved);
-    hushAmiss(moved);
-    expect(unheeded([...all, ...moved], hushedHere.current().said)).toEqual([]);
-    expect(unheeded(null, [])).toEqual([]);
+    expect(unheeded(moved, "lost", hushedHere.current().said)).toEqual(moved);
+
+    for (const away of [
+      [],
+      [wiredOne("a", { unread: true })],
+      [lostOne("a", { installed: false })],
+      [wiredOne("a", { wired: true, hooks: { ...noHooks, unread: true } })],
+    ])
+      forgetHealed(away);
+    expect(unheeded(all, "lost", hushedHere.current().said)).toEqual([]);
+
+    forgetHealed([wiredOne("a", { wired: true })]);
+    expect(unheeded(all, "lost", hushedHere.current().said)).toEqual(all);
   });
 });
 
@@ -86,7 +118,7 @@ describe("what may be added", () => {
   const offering = (over: Partial<Offering> = {}): Offering => ({
     agent: open,
     agents: [wiredOne("claude-code", { wired: true, hooks: noHooks })],
-    skills: skillsFor(),
+    skills: skillsHere(),
     declined: [],
     skillsHidden: false,
     ...over,
@@ -102,33 +134,36 @@ describe("what may be added", () => {
     expect(named({ agent: null })).toBeNull();
     expect(named({ agents: null })).toBeNull();
     expect(named({ agents: [wiredOne("claude-code", { hooks: noHooks })] })).toBeNull();
-    expect(named({ agents: [lostOne("claude-code", { hooks: noHooks })] })).toBeNull();
   });
 
-  it("waits until what is broken is fixed", () => {
+  it("waits only for what was lost, never for one that leads to another Tisty or skills to bring up to date", () => {
     const able = wiredOne("claude-code", { wired: true, hooks: noHooks });
     expect(named({ agents: [able, lostOne("codex")] })).toBeNull();
-    const landing = [{ assistant: "claude", at: "/s", standing: "write" }];
-    expect(named({ skills: skillsFor({ on: true, landing }) })).toBeNull();
+    expect(named({ agents: [able, lostOne("codex", { gone: false })] })).not.toBeNull();
+    expect(named({ skills: skillsHere({ on: true }) })).toEqual([["claude-code"], []]);
   });
 
-  it("leaves out what is there already, what the plugin brings and what was turned down", () => {
-    const agents = [wiredOne("claude-code", { wired: true, hooks: { ...noHooks, plugged: true } })];
-    expect(named({ agents, skills: skillsFor({ plugged: ["claude"] }) })).toBeNull();
-    expect(named({ skills: skillsFor({ on: true }) })).toEqual([["claude-code"], []]);
-    expect(named({ skills: null })).toEqual([["claude-code"], []]);
-    expect(named({ skills: skillsFor({ skills: [] }) })).toEqual([["claude-code"], []]);
+  it("leaves out what is there, what cannot be read, what the plugin brings and what was turned down", () => {
+    const agents = (hooks: object) => [
+      wiredOne("claude-code", { wired: true, hooks: { ...noHooks, ...hooks } }),
+    ];
+    expect(
+      named({ agents: agents({ plugged: true }), skills: skillsHere({ plugged: ["claude"] }) }),
+    ).toBeNull();
+    expect(named({ agents: agents({ unread: true }), skills: null })).toBeNull();
+    expect(named({ skills: skillsFor() })).toEqual([["claude-code"], []]);
     expect(named({ skillsHidden: true })).toEqual([["claude-code"], []]);
     expect(named({ declined: [SKILLS_DECLINED] })).toEqual([["claude-code"], []]);
+    expect(named({ declined: ["claude-code#hooks"] })).toEqual([[], ["claude-code"]]);
     expect(named({ agent: { on: true, hooks: false } })).toEqual([[], ["claude-code"]]);
     expect(named({ declined: ["claude-code"] })).toBeNull();
   });
 
-  it("is turned down for the agents it named, and for the skills as a whole", () => {
-    const all = extrasOf(offering());
-    expect(all && extrasIds(all)).toEqual(["claude-code", SKILLS_DECLINED]);
+  it("turns down the hooks and the skills each on their own", () => {
+    const both = extrasOf(offering());
+    expect(both && extrasIds(both)).toEqual(["claude-code#hooks", SKILLS_DECLINED]);
     const onlyHooks = extrasOf(offering({ skills: null }));
-    expect(onlyHooks && extrasIds(onlyHooks)).toEqual(["claude-code"]);
+    expect(onlyHooks && extrasIds(onlyHooks)).toEqual(["claude-code#hooks"]);
   });
 
   it("remembers the skills as turned down once they are turned off by hand", async () => {
@@ -141,36 +176,73 @@ describe("what may be added", () => {
   });
 });
 
-describe("fixing one agent", () => {
-  it("takes away its own hooks when the plugin brings them too, so they never run twice", async () => {
-    ipc.answer = (cmd) =>
-      Promise.resolve([
-        wiredOne("claude-code", { wired: true, hooks: { ...hooks, on: cmd !== "unhook" } }),
-      ]);
-    const { said } = await mendOne(
-      lostOne("claude-code", { hooks: { ...lostHooks, plugged: true } }),
-    );
+const fixed = (id: string) => ({ seen: [wiredOne(id, { wired: true, hooks: hooksOn })] });
 
-    expect(ids("wire")).toEqual(["claude-code"]);
-    expect(ids("unhook")).toEqual(["claude-code"]);
-    expect(said).toEqual({
+describe("fixing one agent", () => {
+  const asked = (one: Wired) => ({ one, parts: partsIn(one, "lost") });
+
+  it("asks for exactly the parts it named, and takes out hooks the plugin brings too", async () => {
+    ipc.answer = () => Promise.resolve(fixed("claude-code"));
+    const one = lostOne("claude-code", { hooks: { ...strayHooks(), plugged: true } });
+    const { said } = await mendOne(asked(one));
+
+    expect(sent("mend")[0].args).toEqual({
       id: "claude-code",
-      name: "claude-code",
-      parts: ["connection", "hooks"],
+      ask: { connection: "/old/tisty", hooks: ["/old/tisty"], hooksOut: true },
+    });
+    expect(said.done).toBe("connection · hooks removed, the plugin brings them");
+
+    const alone = wiredOne("claude-code", {
+      wired: true,
+      hooks: { ...strayHooks(), plugged: true },
+    });
+    expect((await mendOne(asked(alone))).said.done).toBe("hooks removed, the plugin brings them");
+  });
+
+  it("leaves a connection of the person's own writing out of what it asks", async () => {
+    ipc.answer = () => Promise.resolve(fixed("cursor"));
+    const one = wiredOne("cursor", { apart: true, points: "tisty", hooks: strayHooks() });
+    await mendOne(asked(one));
+
+    expect(sent("mend")[0].args.ask).toEqual({
+      connection: undefined,
+      hooks: ["/old/tisty"],
+      hooksOut: false,
     });
   });
 
-  it("never connects an agent that has only its hooks left", async () => {
-    ipc.answer = () => Promise.resolve([wiredOne("cursor", { hooks })]);
-    await mendOne(wiredOne("cursor", { hooks: lostHooks }));
+  it("says fixed only of what reads fixed afterwards", async () => {
+    const one = lostOne("codex", { hooks: strayHooks() });
+    ipc.answer = () => Promise.resolve({ seen: [wiredOne("codex", { hooks: strayHooks() })] });
+    const { said } = await mendOne(asked(one));
 
-    expect(sent("wire")).toHaveLength(0);
-    expect(ids("hook")).toEqual(["cursor"]);
+    expect(said.done).toBeUndefined();
+    expect(said.failed).toEqual([
+      { what: "connection", why: "it did not end up fixed" },
+      { what: "hooks", why: "it did not end up fixed" },
+    ]);
   });
 
-  it("says so when it still points at another Tisty afterwards", async () => {
-    ipc.answer = () => Promise.resolve([lostOne("cursor")]);
-    expect((await mendOne(lostOne("cursor"))).said.why).toBe("it still points at another Tisty");
+  it("counts each half on its own when one cannot be written", async () => {
+    const one = lostOne("claude-code", { hooks: strayHooks() });
+    ipc.answer = () =>
+      Promise.resolve({
+        seen: [wiredOne("claude-code", { wired: true, hooks: strayHooks() })],
+        hooks: { code: "hooksPuzzling", name: "/home/someone/settings.json" },
+      });
+    const { said } = await mendOne(asked(one));
+
+    expect(said.done).toBe("connection");
+    expect(said.failed?.[0].what).toBe("hooks");
+    expect(said.failed?.[0].why).toContain("/home/someone/settings.json");
+    expect(said.failed?.[0].why).not.toContain("By hand");
+  });
+
+  it("says why when nothing could be done at all", async () => {
+    ipc.answer = () => Promise.reject({ code: "noSuchAgent" });
+    const { said, seen } = await mendOne(asked(lostOne("codex")));
+    expect(seen).toBeNull();
+    expect(said.failed?.[0].why).toBe(t("noSuchAgent"));
   });
 });
 
@@ -182,160 +254,297 @@ const quietly = <T,>(
   void (typeof work === "function" ? work() : work).then(then);
 };
 
-function Page({ known }: Readonly<{ known: KnownAgents }>) {
-  return <AgentsMending known={known} busy={IDLE} quietly={quietly as never} />;
+function Page({ known, sentAt }: Readonly<{ known: KnownAgents; sentAt?: number }>) {
+  return <AgentsMending known={known} busy={IDLE} quietly={quietly as never} sentAt={sentAt} />;
+}
+
+function Window() {
+  const known = useKnownAgents();
+  const { lookIfOpen } = known;
+  useEffect(() => void lookIfOpen(), [lookIfOpen]);
+  return <Page known={known} />;
 }
 
 describe("the agents' page", () => {
-  it("is quiet with nothing to fix or add", () => {
-    render(
-      <Page
-        known={knownFor({
-          agent: open,
-          agents: [wiredOne("codex", { wired: true })],
-          skills: null,
-        })}
-      />,
+  const able = () => [
+    wiredOne("claude-code", { name: "Claude Code", wired: true, hooks: noHooks }),
+    wiredOne("codex", { name: "Codex", wired: true }),
+  ];
+
+  it("is quiet with nothing to fix or add, and with the door closed", () => {
+    const { rerender } = render(
+      <Page known={knownFor({ agent: open, agents: [wiredOne("codex", { wired: true })] })} />,
     );
     expect(screen.queryByRole("region")).toBeNull();
-    expect(screen.queryByRole("status")).toBeNull();
+    rerender(<Page known={knownFor({ agent: { on: false }, agents: [lostOne("codex")] })} />);
+    expect(screen.queryByRole("region")).toBeNull();
   });
 
-  it("fixes everything broken with one button, goes on past the one that fails and says each", async () => {
+  it("shows every file and folder it would write before its one button, and says what each got", async () => {
     const look = vi.fn(() => Promise.resolve());
     ipc.answer = (cmd, args) => {
-      if (cmd === "wire" && args.id === "codex")
-        return Promise.reject({ code: "settingsPuzzling", name: "/home/someone/config.toml" });
       if (cmd === "agents_tisty_round") return Promise.resolve(skillsFor({ on: true }));
-      return Promise.resolve([wiredOne(String(args.id), { wired: true, hooks })]);
+      if (args.id === "codex")
+        return Promise.resolve({
+          seen: [lostOne("codex")],
+          connection: { code: "settingsPuzzling", name: "/home/someone/config.toml" },
+        });
+      return Promise.resolve(fixed(String(args.id)));
     };
-    const landing = [{ assistant: "claude", at: "/s", standing: "write" }];
     render(
       <Page
         known={knownFor({
           agent: open,
           agents: [
             lostOne("codex"),
-            lostOne("claude-code", { hooks: lostHooks }),
-            wiredOne("cursor", { wired: true, hooks: lostHooks }),
-            wiredOne("zed", { wired: true }),
+            lostOne("claude-code", { hooks: strayHooks() }),
+            wiredOne("cursor", { wired: true, hooks: strayHooks() }),
+            lostOne("zed", { gone: false }),
           ],
-          skills: skillsFor({ on: true, landing }),
+          skills: skillsHere({ on: true }),
           lookAgents: look,
         })}
       />,
     );
 
     const todo = within(screen.getByRole("region", { name: "3 agents to fix" }));
-    expect(todo.getByText("claude-code").parentElement?.textContent).toContain(
-      "connection and hooks",
-    );
-    expect(todo.getAllByText("Points at /old/tisty, which is no longer there")).toHaveLength(3);
-    expect(todo.getByText(/\.before-tisty/)).toBeTruthy();
+    for (const at of [
+      "/home/someone/codex.json",
+      "/home/someone/claude-code.json",
+      "/home/someone/.claude/skills",
+      "/home/someone/.agents/skills",
+    ])
+      expect(todo.getByText(at)).toBeTruthy();
+    expect(todo.getAllByText(HOOKS_AT)).toHaveLength(2);
+    expect(todo.getByText(/\.before-tisty-last/)).toBeTruthy();
+    expect(todo.queryByText(/could not/)).toBeNull();
     expect(ipc.calls).toHaveLength(0);
 
     await userEvent.click(todo.getByRole("button", { name: "Fix all" }));
 
     const told = within(await screen.findByRole("status"));
     expect(told.getByText("Some could not be fixed")).toBeTruthy();
-    expect(told.getAllByText("✓")).toHaveLength(3);
-    expect(told.getByText("✕")).toBeTruthy();
-    expect(told.getByText("codex").parentElement?.textContent).toContain("config.toml");
+    expect(ids("mend")).toEqual(["codex", "claude-code", "cursor"]);
+    expect(told.getByText("codex").closest("li")?.textContent).toContain("config.toml");
+    expect(told.getByText("claude-code").closest("li")?.textContent).toContain(
+      "connection and hooks",
+    );
+    expect(told.getByText("Tisty's skills").closest("li")?.textContent).toContain("up to date");
     expect(told.getByText("Quit each one completely and open it again.")).toBeTruthy();
-    expect(ids("wire")).toEqual(["codex", "claude-code"]);
-    expect(ids("hook")).toEqual(["cursor"]);
-    expect(sent("agents_tisty_round")).toHaveLength(1);
     expect(look).toHaveBeenCalled();
-
     await userEvent.click(told.getByRole("button", { name: "Got it" }));
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it.each([
-    [() => Promise.resolve(skillsFor({ on: true })), "Fixed"],
-    [() => Promise.reject({ code: "cannotWrite", name: "disk" }), "Some could not be fixed"],
-  ])("brings the skills up to date on their own when only they are behind", async (round, said) => {
-    ipc.answer = (cmd) => (cmd === "agents_tisty_round" ? round() : Promise.resolve(null));
-    const landing = [{ assistant: "claude", at: "/s", standing: "write" }];
-    render(
-      <Page
-        known={knownFor({
-          agent: open,
-          skills: skillsFor({ on: true, landing }),
-        })}
-      />,
-    );
-    const todo = screen.getByRole("region", { name: "Tisty's skills are out of date" });
-    await userEvent.click(within(todo).getByRole("button", { name: "Fix" }));
-    expect(await screen.findByText(said)).toBeTruthy();
+  it("says before and after that hooks the plugin brings are taken out", () => {
+    const hooks = { ...strayHooks(), plugged: true };
+    const agents = [wiredOne("claude-code", { wired: true, hooks })];
+    render(<Page known={knownFor({ agent: open, agents })} />);
+    expect(screen.getByText(t("mendHooksGo"))).toBeTruthy();
   });
 
-  const able = () => [
-    wiredOne("claude-code", { name: "Claude Code", wired: true, hooks: noHooks }),
-    wiredOne("codex", { name: "Codex", wired: true }),
-  ];
+  it("finds the plugin out by its first fix and takes the hooks out with the next one, said before", async () => {
+    const stray = wiredOne("claude-code", { wired: true, hooks: strayHooks() });
+    ipc.answer = (cmd, args) => {
+      if (cmd === "wiring_watched") return Promise.resolve({ agent: open, seen: [stray] });
+      if (cmd === "wiring") return Promise.resolve([stray]);
+      if (cmd === "mend")
+        return (args.ask as { hooksOut: boolean }).hooksOut
+          ? Promise.resolve(fixed("claude-code"))
+          : Promise.resolve({ seen: [stray], hooks: { code: "hooksByPlugin" } });
+      return Promise.resolve(null);
+    };
+    render(<Window />);
+    const todo = await screen.findByRole("region", { name: "1 agent to fix" });
+    expect(within(todo).getByText(/installed_plugins.json/)).toBeTruthy();
+    await userEvent.click(within(todo).getByRole("button", { name: "Fix" }));
 
-  it("offers hooks and skills once, writing only what stays ticked after saying where", async () => {
-    ipc.answer = () => Promise.resolve([]);
-    const landing = [
-      { assistant: "codex", at: "/home/someone/.agents/skills/tisty/SKILL.md", standing: "write" },
-    ];
-    render(
-      <Page known={knownFor({ agent: open, agents: able(), skills: skillsFor({ landing }) })} />,
+    expect(await screen.findByText(t("mendHooksGo"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    await waitFor(() => expect(sent("mend")).toHaveLength(2));
+    expect((sent("mend")[1].args.ask as { hooksOut: boolean }).hooksOut).toBe(true);
+    expect(await screen.findByText(/hooks removed, the plugin brings them/)).toBeTruthy();
+  });
+
+  it("says before taking hooks out that it reads the plugin's records, and forgets a plugin no longer there", async () => {
+    const stray = wiredOne("claude-code", { wired: true, hooks: strayHooks() });
+    ipc.answer = (cmd, args) => {
+      if (cmd === "wiring_watched") return Promise.resolve({ agent: open, seen: [stray] });
+      if (cmd === "wiring") return Promise.resolve([stray]);
+      const out = (args.ask as { hooksOut?: boolean } | undefined)?.hooksOut;
+      const code = out ? "hooksNotByPlugin" : "hooksByPlugin";
+      return Promise.resolve(cmd === "mend" ? { seen: [stray], hooks: { code } } : null);
+    };
+    render(<Window />);
+    await userEvent.click(await screen.findByRole("button", { name: "Fix" }));
+    expect((await screen.findByText(t("mendHooksGo"))).textContent).toContain("settings.json");
+    await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    await waitFor(() => expect(sent("mend")).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByText(t("mendHooksGo"))).toBeNull());
+    await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    await waitFor(() => expect(sent("mend")).toHaveLength(3));
+    expect((sent("mend")[2].args.ask as { hooksOut: boolean }).hooksOut).toBe(false);
+  });
+
+  it("asks to quit only an agent whose own files were written", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_tisty_round") return Promise.resolve(skillsFor({ on: true }));
+      if (cmd === "hook") return Promise.reject({ code: "hooksByPlugin" });
+      return Promise.resolve([]);
+    };
+    const { rerender } = render(
+      <Page known={knownFor({ agent: open, agents: [], skills: skillsHere({ on: true }) })} />,
     );
+    await userEvent.click(screen.getByRole("button", { name: "Fix" }));
+    expect((await screen.findByRole("status")).textContent).toContain("up to date");
+    expect(screen.queryByText(t("mendRestart"))).toBeNull();
 
+    rerender(<Page known={knownFor({ agent: open, agents: able() })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Add hooks" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add hooks" }));
+    expect(await screen.findByText(/the Tisty plugin already brings its hooks/)).toBeTruthy();
+    expect(screen.queryByText(t("mendRestart"))).toBeNull();
+  });
+
+  it("never offers again hooks the plugin turned out to bring", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "hook" ? Promise.reject({ code: "hooksByPlugin" }) : Promise.resolve([]);
+    render(<Page known={knownFor({ agent: open, agents: able() })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Add hooks" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add hooks" }));
+    expect(await screen.findByText(/the Tisty plugin already brings its hooks/)).toBeTruthy();
+    expect(offered()).toEqual(["claude-code#hooks"]);
+  });
+
+  it("keeps one that leads to another Tisty apart, with its own «Not now», and fixes none of them", async () => {
+    const agents = [
+      lostOne("zed", { gone: false, points: "/other/tisty" }),
+      wiredOne("claude-code", { wired: true, hooks: noHooks }),
+    ];
+    render(<Page known={knownFor({ agent: open, agents, skills: skillsHere() })} />);
+
+    const apart = within(screen.getByRole("region", { name: "zed points to another Tisty" }));
+    expect(apart.getByText(/\/other\/tisty, which is not this Tisty/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Fix/ })).toBeNull();
+    expect(screen.getByRole("region", { name: t("extrasTitle") })).toBeTruthy();
+    await userEvent.click(apart.getByRole("button", { name: "Not now" }));
+    expect(screen.queryByRole("region", { name: /another Tisty/ })).toBeNull();
+  });
+
+  it.each([
+    [() => Promise.resolve(skillsFor({ on: true })), "Fixed"],
+    [() => Promise.resolve(skillsHere({ on: true })), "Some could not be fixed"],
+    [() => Promise.reject({ code: "cannotWrite", name: "disk" }), "Some could not be fixed"],
+  ])(
+    "brings the skills up to date on their own, without saying they failed before trying",
+    async (round, said) => {
+      ipc.answer = (cmd) => (cmd === "agents_tisty_round" ? round() : Promise.resolve(null));
+      render(<Page known={knownFor({ agent: open, skills: skillsHere({ on: true }) })} />);
+      const todo = within(
+        screen.getByRole("region", { name: "Tisty's skills to bring up to date" }),
+      );
+      expect(todo.queryByText(/could not|before-tisty/)).toBeNull();
+      await userEvent.click(todo.getByRole("button", { name: "Fix" }));
+      expect(await screen.findByText(said)).toBeTruthy();
+    },
+  );
+
+  const ask = async (known: Partial<KnownAgents> = {}) => {
+    render(
+      <Page known={knownFor({ agent: open, agents: able(), skills: skillsHere(), ...known })} />,
+    );
     const offer = within(screen.getByRole("region", { name: t("extrasTitle") }));
-    expect(offer.getByText("Hooks for Claude Code")).toBeTruthy();
-    expect(offer.getByText("Tisty's skills for Claude Code, Codex")).toBeTruthy();
     await userEvent.click(offer.getByRole("button", { name: "Add hooks and turn on skills" }));
-    expect(offer.getByText(/Tisty will add its hooks to \/home\/someone\/hooks.json/)).toBeTruthy();
-    expect(offer.getByText(/installed_plugins.json/)).toBeTruthy();
-    expect(offer.getByText("/home/someone/.agents/skills")).toBeTruthy();
-    expect(document.activeElement).toBe(offer.getByRole("checkbox", { name: /^Hooks/ }));
-    expect(ipc.calls).toHaveLength(0);
+    return offer;
+  };
 
+  it("names the agents the skills reach, and every file and folder, tied to its own tick", async () => {
+    const offer = await ask();
+    const skills = offer.getByRole("checkbox", {
+      name: "Tisty's skills on this whole computer: Claude Code, Codex · Copilot · Gemini",
+    });
+    const about = document.getElementById(skills.getAttribute("aria-describedby") ?? "");
+    expect(about?.textContent).toContain("/home/someone/.agents/skills");
+    const hooks = offer.getByRole("checkbox", { name: "Hooks for Claude Code" });
+    const where = document.getElementById(hooks.getAttribute("aria-describedby") ?? "");
+    expect(where?.textContent).toContain(HOOKS_AT);
+    expect(where?.textContent).toContain("installed_plugins.json");
+    expect(document.activeElement).toBe(hooks);
+    expect(ipc.calls).toHaveLength(0);
+  });
+
+  it("writes only what stays ticked, and offers again neither it nor what was unticked", async () => {
+    ipc.answer = () => Promise.resolve([]);
+    const offer = await ask();
     await userEvent.click(offer.getByRole("checkbox", { name: /^Tisty's skills/ }));
     await userEvent.click(offer.getByRole("button", { name: "Add hooks" }));
 
     expect(await screen.findByText("Done")).toBeTruthy();
     expect(ids("hook")).toEqual(["claude-code"]);
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
-    expect(offered()).toEqual(["claude-code", "codex", SKILLS_DECLINED]);
+    expect(offered()).toEqual(["claude-code#hooks", SKILLS_DECLINED]);
   });
 
-  it("turns the skills on here, and says what could not be added", async () => {
-    ipc.answer = (cmd) =>
-      cmd === "hook"
-        ? Promise.reject({ code: "cannotWrite", name: "disk" })
-        : Promise.resolve(skillsFor({ on: true }));
-    render(<Page known={knownFor({ agent: open, agents: able(), skills: skillsFor() })} />);
-    await userEvent.click(screen.getByRole("button", { name: "Add hooks and turn on skills" }));
-    await userEvent.click(screen.getByRole("button", { name: "Add hooks and turn on skills" }));
+  it("turns the skills on first, so hooks the plugin turns out to bring are never added", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "agents_tisty_skills_take")
+        return Promise.resolve(skillsFor({ on: true, plugged: ["claude"] }));
+      if (cmd === "wiring")
+        return Promise.resolve([
+          wiredOne("claude-code", { wired: true, hooks: { ...noHooks, plugged: true } }),
+        ]);
+      return Promise.resolve([]);
+    };
+    const offer = await ask();
+    await userEvent.click(offer.getByRole("button", { name: "Add hooks and turn on skills" }));
+
+    expect(await screen.findByText(/the Tisty plugin already brings its hooks/)).toBeTruthy();
+    expect(sent("hook")).toHaveLength(0);
+    expect(screen.getByText("Tisty's skills").closest("li")?.textContent).toContain("on");
+  });
+
+  it("says what could not be done and offers that again", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "hook") return Promise.reject({ code: "cannotWrite", name: "disk" });
+      if (cmd === "wiring") return Promise.reject({ code: "x" });
+      return Promise.resolve(
+        skillsFor({ on: true, landing: [{ ...landing[0], standing: "foreign" }] }),
+      );
+    };
+    const offer = await ask();
+    await userEvent.click(offer.getByRole("button", { name: "Add hooks and turn on skills" }));
 
     expect(await screen.findByText("Some could not be done")).toBeTruthy();
-    expect(sent("agents_tisty_skills_take")[0].args.on).toBe(true);
-    expect(screen.getByText("Tisty's skills").parentElement?.textContent).toBe(
-      "Tisty's skills · on",
-    );
+    expect(screen.getByText(/A skill that is not Tisty's/)).toBeTruthy();
+    expect(offered()).toEqual([]);
   });
 
-  it.each(["foreign", "write"])(
-    "never says the skills were added where one was left as it is",
-    async (standing) => {
-      const landing = [{ assistant: "claude", at: "/s", standing }];
-      ipc.answer = () => Promise.resolve(skillsFor({ on: true, landing }));
-      const agents = [wiredOne("codex", { wired: true })];
-      render(<Page known={knownFor({ agent: open, agents, skills: skillsFor() })} />);
-      await userEvent.click(screen.getByRole("button", { name: "Turn on skills" }));
-      await userEvent.click(screen.getByRole("button", { name: "Turn on skills" }));
-      expect(await screen.findByText("Some could not be done")).toBeTruthy();
-    },
-  );
+  it("does not offer for ever hooks whose plugin's records cannot be read", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "hook") return Promise.reject({ code: "hooksRecordUnread", name: "/s.json" });
+      if (cmd === "wiring") return Promise.reject({ code: "x" });
+      return Promise.resolve(skillsFor({ on: true }));
+    };
+    const offer = await ask();
+    await userEvent.click(offer.getByRole("button", { name: "Add hooks and turn on skills" }));
+
+    expect(await screen.findByText(/\/s\.json could not be read/)).toBeTruthy();
+    expect(offered()).toEqual(["claude-code#hooks"]);
+  });
+
+  it("says why when the skills could not be turned on", async () => {
+    ipc.answer = () => Promise.reject({ code: "cannotWrite", name: "disk" });
+    const agents = [wiredOne("codex", { wired: true })];
+    render(<Page known={knownFor({ agent: open, agents, skills: skillsHere() })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Turn on skills" }));
+    await userEvent.click(screen.getByRole("button", { name: "Turn on skills" }));
+    expect(await screen.findByText("Some could not be done")).toBeTruthy();
+  });
 
   it.each([
-    [[wiredOne("codex", { wired: true })], skillsFor(), "Turn on skills"],
+    [[wiredOne("codex", { wired: true })], skillsHere(), "Turn on skills"],
     [able(), null, "Add hooks"],
-  ])("names on its button only what there is to add", async (agents, skills, said) => {
+  ])("names on its button only what there is", async (agents, skills, said) => {
     render(<Page known={knownFor({ agent: open, agents, skills })} />);
     expect(screen.getByRole("button", { name: said })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Not now" }));
@@ -343,16 +552,14 @@ describe("the agents' page", () => {
     expect(offered().length).toBeGreaterThan(0);
   });
 
-  it("takes the keyboard there when it was reached from a notice", () => {
-    render(
-      <AgentsMending
-        known={knownFor({ agents: [lostOne("codex")] })}
-        busy={IDLE}
-        quietly={quietly as never}
-        sentAt={1}
-      />,
+  it("takes the keyboard there when it was reached from a notice, and not with nothing to show", () => {
+    const { unmount } = render(
+      <Page known={knownFor({ agent: open, agents: [lostOne("codex")] })} sentAt={1} />,
     );
     expect(document.activeElement?.textContent).toContain("1 agent to fix");
+    unmount();
+    render(<Page known={knownFor({ agent: open })} sentAt={2} />);
+    expect(document.activeElement).toBe(document.body);
   });
 });
 
@@ -361,27 +568,21 @@ function Notice({
   onOpen,
   agent = open,
 }: Readonly<{ all: Wired[]; onOpen: () => void; agent?: { on: boolean } }>) {
-  const amissNow = useUnheeded(knownFor({ agent, agents: all }));
-  return <AgentsAmiss amiss={amissNow} onOpen={onOpen} />;
+  return <AgentsAmiss amiss={useUnheeded(knownFor({ agent, agents: all }))} onOpen={onOpen} />;
 }
 
 describe("the notice in the window", () => {
-  it.each([
-    [[lostOne("Codex")], "Codex can no longer find Tisty"],
-    [
-      [wiredOne("Codex", { wired: true, hooks: lostHooks })],
-      "Codex's hooks can no longer find Tisty",
-    ],
-    [[lostOne("Codex"), lostOne("Cursor")], "2 agents can no longer find Tisty"],
-  ])("says who can no longer find Tisty, and leads there", async (all, said) => {
+  it("says who was lost and leads there", async () => {
     const onOpen = vi.fn();
-    render(<Notice all={all} onOpen={onOpen} />);
-    expect(within(screen.getByRole("status")).getByText(said)).toBeTruthy();
+    render(<Notice all={[lostOne("Codex")]} onOpen={onOpen} />);
+    const said = within(screen.getByRole("status"));
+    expect(said.getByText("Codex can no longer find Tisty")).toBeTruthy();
+    expect(said.getByText("The Tisty they point to is no longer on this computer.")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "See and fix" }));
     expect(onOpen).toHaveBeenCalled();
   });
 
-  it("goes on «Not now», and says nothing of one that points at another Tisty still there", async () => {
+  it("goes on «Not now», and says nothing with the door shut nor of one that leads to another Tisty", async () => {
     const { rerender } = render(<Notice all={[lostOne("Codex")]} onOpen={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByRole("status")).toBeNull();
@@ -393,22 +594,64 @@ describe("the notice in the window", () => {
 });
 
 describe("what the window knows of the agents", () => {
-  it("looks at them only with the door open, and reads the skills once their round is done", async () => {
-    let door = { on: false };
+  it("never offers Claude Code's hooks while nobody asked whether the plugin brings them", async () => {
+    const unknown = wiredOne("claude-code", {
+      wired: true,
+      hooks: { on: false, at: "/home/someone/settings.json", pluginUnknown: true },
+    });
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "wiring_watched" ? { agent: open, seen: [unknown] } : []);
+    const { result } = renderHook(() => useKnownAgents());
+    await act(() => result.current.lookIfOpen());
+    const asked = {
+      agent: result.current.agent,
+      agents: result.current.agents,
+      skills: null,
+      declined: [],
+      skillsHidden: false,
+    };
+    expect(extrasOf(asked)).toBeNull();
+  });
+
+  it("keeps what the page found out of the plugin when the window looks again", async () => {
+    const hooks = { on: false, at: "/home/someone/settings.json" };
     ipc.answer = (cmd) => {
-      if (cmd === "agent") return Promise.resolve(door);
-      if (cmd === "wiring") return Promise.resolve([lostOne("codex")]);
+      if (cmd === "wiring")
+        return Promise.resolve([wiredOne("claude-code", { hooks: { ...hooks, plugged: true } })]);
+      if (cmd === "wiring_watched")
+        return Promise.resolve({
+          agent: open,
+          seen: [wiredOne("claude-code", { hooks: { ...hooks, pluginUnknown: true } })],
+        });
+      return Promise.resolve([]);
+    };
+    const { result } = renderHook(() => useKnownAgents());
+    await act(() => result.current.lookAgents());
+    await act(() => result.current.lookIfOpen());
+    expect(result.current.agents?.[0].hooks).toMatchObject({ plugged: true, pluginUnknown: false });
+  });
+
+  it("is told only with the door open, and reads the skills once their round is done", async () => {
+    let watched: unknown = { agent: { on: false }, seen: null };
+    ipc.answer = (cmd) => {
+      if (cmd === "wiring_watched") return Promise.resolve(watched);
       if (cmd === "agents_tisty_skills") return Promise.resolve(skillsFor({ on: true }));
       return Promise.resolve([]);
     };
     const { result } = renderHook(() => useKnownAgents());
     await act(() => result.current.lookIfOpen());
-    expect(sent("wiring")).toHaveLength(0);
+    expect(result.current.agent).toEqual({ on: false });
+    expect(result.current.agents).toBeNull();
 
-    door = { on: true };
+    watched = { agent: { on: true }, seen: [lostOne("codex")] };
     await act(() => result.current.lookIfOpen());
     expect(result.current.agents).toHaveLength(1);
+    expect(sent("wiring")).toHaveLength(0);
+    expect(sent("agent")).toHaveLength(0);
     expect(sent("agents_tisty_skills")).toHaveLength(0);
+    watched = null;
+    await act(() => result.current.lookIfOpen());
+    expect(result.current.agents).toHaveLength(1);
 
     act(() => {
       window.dispatchEvent(new Event(AGENTS_CHANGED));
@@ -428,7 +671,7 @@ describe("what the window knows of the agents", () => {
     const known = knownFor({
       agent: open,
       agents: [wiredOne("codex", { wired: true })],
-      skills: skillsFor(),
+      skills: skillsHere(),
     });
     const { result } = renderHook(() => useExtras(known));
     expect(result.current.extras?.skills).toHaveLength(1);

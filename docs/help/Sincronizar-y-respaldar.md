@@ -84,7 +84,7 @@ Suben tu historia, tus documentos y su configuración. Los adjuntos se quedan en
 
 ### Lo que dice la tarjeta
 
-- **«Google ya no deja entrar a Tisty»**: se quitó el permiso, desde tu cuenta de Google o con **Quitar el acceso de Tisty en todos tus equipos**, o venció. Pulsa **Reconectar** y vuelve a entrar. Quitar el acceso en un equipo lo quita en todos, así que cada uno te lo va a pedir.
+- **«Google ya no deja entrar a Tisty»**: se quitó el permiso, desde tu cuenta de Google o con **Quitar el acceso de Tisty en todos tus equipos**, venció o se perdió al reinstalar Tisty. Pulsa **Reconectar** y vuelve a entrar; mientras tanto todo queda a salvo en este equipo, y al terminar, Tisty sincroniza solo. Si además tu nube está cifrada, la tarjeta te muestra los pasos: [Volver a sincronizar en un equipo](#volver-a-sincronizar-en-un-equipo). Quitar el acceso en un equipo lo quita en todos, así que cada uno te lo va a pedir.
 - **«Esta copia es de otra cuenta»**: entraste con una cuenta de Google distinta de la que esta copia ya usa para sincronizar. Tisty se detiene antes que mezclar dos cuentas. Pulsa **Cambiar cuenta** y entra con la que usaste antes. Si de verdad quieres sincronizar con otra cuenta, múdate a ella (más abajo).
 - **«Tu Google Drive está lleno»**: tu Drive no tiene más espacio. Tisty manda primero tus tareas; el resto, incluido lo que mandan tus otros equipos, espera hasta que liberes espacio en Drive o consigas más. **Ver espacio** abre la página de Google para eso.
 - **«Tu nube llegó a su límite de hoy»**: cada equipo tiene su propia cuota diaria, el equivalente a 2.000.000 de peticiones y 50 GB descargados, para que ninguna copia pueda gastarse la cuota que Google le da al proyecto. Es por equipo, no por persona. Cuando se agota, la sincronización sigue sola al día siguiente. **Uso de hoy en la nube**, en **Liberar espacio** de Configuración › Almacenamiento, muestra cuánto queda.
@@ -152,7 +152,7 @@ Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en 
 
 ### Tus otros equipos
 
-**Uno que ya sincronizaba contigo recibe la llave solo.** Espera un momento y la toma de otro de tus equipos que tenga Tisty abierto, y mientras tanto no escribe nada sin cifrar.
+**Uno que ya sincronizaba contigo recibe la llave solo**, si tu nube lo deja entrar; si perdió el acceso, primero va **Reconectar**. Espera un momento y la toma de otro de tus equipos que tenga Tisty abierto, y mientras tanto no escribe nada sin cifrar.
 
 **Un equipo nuevo se autoriza desde uno que ya lee la nube cifrada:**
 
@@ -160,9 +160,28 @@ Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en 
 2. En el otro, abre **Configuración › Seguridad › Autorizar un equipo nuevo** y escríbelos.
 3. De vuelta en el equipo nuevo, pulsa **Ya los aceptó**. Mientras la llave va en camino lo ves en curso; cuando llega, el equipo nuevo trae tu nube cifrada, y la barra de abajo y Configuración › Seguridad dicen cuánto lleva.
 
-Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Escribir mi frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase. Escríbelas solo ahí, en tu Tisty: nadie de Tisty ni de Folio te las pedirá, y si alguien te las pide, es un engaño.
+Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Abrir mi nube con la frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase. Si quieres que ese equipo también guarde la frase, está **Guardar mi frase en este equipo**, en **Tu identidad**. Escríbelas solo ahí, en tu Tisty: nadie de Tisty ni de Folio te las pedirá, y si alguien te las pide, es un engaño.
 
 Si luego el equipo nuevo se queda con el historial de tu nube, no te pregunta por tus otros equipos, y el que recibió sus dígitos no vuelve a pedirlos; cada uno de tus otros equipos te pide confirmar su código una vez, como con cualquier equipo nuevo, porque la llave sola no dice qué equipo es tuyo. Elígelo dentro de la semana en que escribiste los dígitos: pasado ese plazo, el que los recibió te lo pregunta una vez más.
+
+### Volver a sincronizar en un equipo
+
+Después de reinstalar Tisty, o si la nube le quitó el acceso, a un equipo pueden faltarle dos cosas para abrir una nube cifrada: el permiso de la nube y su llave. La tarjeta de tu nube, en **Configuración › Sincronización**, y **Cifrar mis datos en la nube**, en **Configuración › Seguridad**, te las muestran como dos pasos, bajo **Para sincronizar en este equipo**:
+
+1. **Reconecta Google Drive** (o la nube que uses), con **Reconectar**: se abre tu navegador y la tarjeta dice «Termina en tu navegador; Tisty espera aquí.», con **Cancelar**; después, «Reconectado; preparando tu nube…». Con WebDAV te pide la contraseña ahí mismo. Hecho, queda ✓ **Google Drive está conectado**.
+2. **Abre tu nube con tu frase de 24 palabras**, con **Abrir mi nube con la frase**. Mientras falta el primero dice «Se puede después de reconectar.». Hecho, queda ✓ **Este equipo ya tiene la llave de tu nube**.
+
+El segundo también se cumple sin escribir la frase. En un equipo que ya era tuyo dice «O espera: tus otros equipos le entregan la llave a este, solos, apenas uno de ellos esté encendido.»; en uno nuevo, «O autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada, en Configuración › Seguridad.». En cuanto están los dos, Tisty sincroniza solo: no hace falta pulsar **Sincronizar ahora**. Si lo pulsas antes, te dice «Se intentó sincronizar, pero todavía no se puede. El aviso de arriba dice por qué.», y nada se pierde.
+
+Hay dos botones que piden las mismas 24 palabras, y hacen cosas distintas:
+
+| | **Abrir mi nube con la frase** | **Guardar mi frase en este equipo** |
+|---|---|---|
+| **Dónde está** | En los pasos, en **Sincronización** y en **Seguridad** | **Configuración › Seguridad › Tu identidad** |
+| **Qué queda en este equipo** | La llave de tu nube, nunca la frase | La frase, y con ella la llave |
+| **Qué puedes hacer después** | Sincronizar | Sincronizar, **Ver la frase**, y cifrar o descifrar tu nube |
+
+**Ejemplo.** Jaime reinstala Tisty en su portátil. Sus tareas están, pero la tarjeta dice **Microsoft ya no deja entrar a Tisty** y muestra los dos pasos. Pulsa **Reconectar**, entra en su cuenta, y el paso 1 queda con su ✓. Tiene el escritorio apagado, así que no espera la llave: pulsa **Abrir mi nube con la frase** y escribe las 24 palabras de su hoja. La tarjeta empieza a sincronizar sola. Como ese portátil es el que usa para todo, va a **Seguridad › Tu identidad**, pulsa **Guardar mi frase en este equipo**, la escribe otra vez y lee «Este equipo ya guarda tu frase.».
 
 ### Lo que no oculta
 
@@ -170,7 +189,7 @@ Tu proveedor guarda un tiempo versiones anteriores sin cifrar, en su historial y
 
 ### Guarda bien la frase
 
-La frase se guarda solo en el equipo donde la creaste, y **Ver la frase**, en Configuración › Seguridad, te la vuelve a mostrar ahí. Nunca pasa por las manos de nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos, nadie puede abrir tu nube, ni siquiera Tisty.
+La frase se guarda solo en el equipo donde la creaste y en los que tú pulses **Guardar mi frase en este equipo**; **Ver la frase**, en Configuración › Seguridad, te la vuelve a mostrar en ellos. Un equipo que no la guarda lo dice: «Este equipo no guarda tu frase: la creaste en otro equipo, o Tisty se reinstaló en este. Tus tareas y documentos siguen aquí.». Nunca pasa por las manos de nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos, nadie puede abrir tu nube, ni siquiera Tisty.
 
 ### Volver atrás
 

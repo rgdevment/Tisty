@@ -53,7 +53,7 @@ export default function ConnectOffer({
       className="mt-2 rounded-[10px] border border-accent/40 bg-panel px-3 py-2.5"
     >
       <p className="text-[12.5px] font-semibold">{fill("connectOfferTitle", one.name)}</p>
-      {hooks && (
+      {hooks && !hooks.apart && (
         <p className="mt-1.5 text-[12.5px] text-soft">
           {fill(hooks.plugged && !hooks.on ? "connectOfferPlugged" : "connectOfferHooks", one.name)}
         </p>

@@ -549,7 +549,16 @@ const words = {
   tistySkills: ["Tisty's skills", "Skills de Tisty"],
   tistySkillsOff: ["Off", "Apagadas"],
   tistySkillsOn: ["On this computer", "En este equipo"],
-  tistySkillsRowBehind: ["Out of date", "Sin actualizar"],
+  tistySkillsRowBehind: ["To bring up to date", "Por poner al día"],
+  tistySkillsRowNone: ["Not here", "Aquí no"],
+  tistySkillsRowNoFolder: [
+    "Tisty found no folder of this agent to put them in.",
+    "Tisty no encontró una carpeta de este agente donde ponerlas.",
+  ],
+  tistySkillsRowYours: [
+    "You already have skills with those names in Agents, so Tisty's stay out.",
+    "Ya tienes en Agentes skills con esos nombres, así que las de Tisty quedan fuera.",
+  ],
   tistySkillsRowPartly: ["Not all up to date", "No todas al día"],
   tistySkillsRowPlugged: ["The Tisty plugin brings them", "Las trae el plugin de Tisty"],
   tistySkillsLead: [

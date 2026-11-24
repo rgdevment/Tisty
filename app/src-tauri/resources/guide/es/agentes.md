@@ -8,7 +8,9 @@ Esta hoja es una página de la guía. Cuenta cómo trabajar con un agente de IA 
 
 - **Conectado**: ya abre este Tisty.
 - **Sin conectar**: **Conectar** escribe Tisty en la configuración de ese agente, y solo toca su propia línea.
-- **Apunta a otro Tisty**: una copia vieja o que se movió. **Corregir** lo apunta aquí.
+- **Apunta a otro Tisty**: una copia vieja, o una que ya no está. **Corregir** te muestra qué va a escribir y, con tu sí, lo apunta aquí. Si ya no está, la ventana también te avisa.
+- **Escrito a tu manera**: tiene una entrada de Tisty que Tisty no puede comprobar, y la deja como la escribiste.
+- **No se pudo leer**: Tisty no pudo leer su archivo, así que no lo toca.
 - **Puede que esté**: solo quedó su carpeta, así que quizás ya no está instalado.
 - **A mano**: guarda su configuración en un formato que Tisty no escribe, y la fila muestra qué pegar.
 

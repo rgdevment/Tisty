@@ -15,13 +15,20 @@ const CODEX_OVERRIDE: &str = "AGENTS.override.md";
 const TISTY_PLUGIN: &str = "tisty@";
 const JSON_AT_MOST: u64 = 4 * 1024 * 1024;
 
-fn read_json(at: &Path) -> serde_json::Value {
-    std::fs::metadata(at)
+fn record(at: &Path) -> Result<serde_json::Value, PathBuf> {
+    let Ok(meta) = std::fs::symlink_metadata(at) else {
+        return Ok(serde_json::Value::Null);
+    };
+    let text = std::fs::metadata(at)
         .ok()
-        .filter(|meta| meta.len() <= JSON_AT_MOST)
-        .and_then(|_| std::fs::read(at).ok())
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default()
+        .filter(|it| it.len() <= JSON_AT_MOST && !meta.is_dir())
+        .and_then(|_| std::fs::read_to_string(at).ok())
+        .ok_or(at)?;
+    let text = text.trim_start_matches('\u{feff}').trim();
+    match text.is_empty() {
+        true => Ok(serde_json::Value::Null),
+        false => serde_json::from_str(text).map_err(|_| at.to_path_buf()),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,28 +172,31 @@ impl Homes {
         }
     }
 
+    /// Whether the plugin brings Claude Code's hooks; the file that could not be read when nothing can tell.
+    pub fn plugin_brings_hooks(&self) -> Result<bool, PathBuf> {
+        let Some(root) = self.root("claude") else {
+            return Ok(false);
+        };
+        let added = plugins_added(&root)?;
+        if added.is_empty() {
+            return Ok(false);
+        }
+        let settings = record(&root.join("settings.json"))?;
+        Ok(added.iter().any(|one| turned_on(&settings, one)))
+    }
+
+    pub fn of(home: &Path) -> Option<Self> {
+        Self::told(home.to_path_buf(), [])
+    }
+
     // Claude Code lists a plugin's skills beside the person's, so the plugin's copy is the one it keeps.
     fn claude_plugged(&self) -> bool {
         let Some(root) = self.root("claude") else {
             return false;
         };
-        let installed = read_json(&root.join("plugins").join("installed_plugins.json"));
-        let enabled = read_json(&root.join("settings.json"));
-        installed
-            .get("plugins")
-            .and_then(serde_json::Value::as_object)
-            .is_some_and(|all| {
-                all.iter().any(|(key, installs)| {
-                    key.starts_with(TISTY_PLUGIN)
-                        && enabled.get("enabledPlugins").and_then(|all| all.get(key))
-                            != Some(&false.into())
-                        && installs.as_array().is_some_and(|all| {
-                            all.iter().any(|one| {
-                                one.get("scope").and_then(|s| s.as_str()) == Some("user")
-                            })
-                        })
-                })
-            })
+        let added = plugins_added(&root).unwrap_or_default();
+        let settings = record(&root.join("settings.json")).unwrap_or_default();
+        added.iter().any(|one| turned_on(&settings, one))
     }
 
     fn skills_of(&self, id: &str) -> Option<(PathBuf, PathBuf)> {
@@ -208,6 +218,31 @@ impl Homes {
             false => one.main,
         }
     }
+}
+
+fn plugins_added(root: &Path) -> Result<Vec<String>, PathBuf> {
+    let installed = record(&root.join("plugins").join("installed_plugins.json"))?;
+    let for_the_person = |installs: &serde_json::Value| {
+        installs
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|one| one.get("scope").and_then(serde_json::Value::as_str) == Some("user"))
+    };
+    let all = installed
+        .get("plugins")
+        .and_then(serde_json::Value::as_object);
+    Ok(all
+        .into_iter()
+        .flatten()
+        .filter(|(key, installs)| key.starts_with(TISTY_PLUGIN) && for_the_person(installs))
+        .map(|(key, _)| key.clone())
+        .collect())
+}
+
+fn turned_on(settings: &serde_json::Value, plugin: &str) -> bool {
+    let said = settings.get("enabledPlugins").and_then(|it| it.get(plugin));
+    said != Some(&false.into())
 }
 
 fn under(at: &Path, name: &str) -> PathBuf {

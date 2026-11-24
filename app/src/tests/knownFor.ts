@@ -7,11 +7,12 @@ export const knownFor = (over: Partial<KnownAgents> = {}): KnownAgents => ({
   setAgent: () => {},
   agents: [],
   setAgents: () => {},
+  learnPlugged: () => false,
   hands: [],
   skills: null,
   setSkills: () => {},
   lookIfOpen: () => Promise.resolve(),
-  lookDoor: () => Promise.resolve({ on: false }),
+  lookDoor: () => Promise.resolve(),
   lookAgents: () => Promise.resolve(),
   lookHands: () => Promise.resolve(),
   lookSkills: () => {},
@@ -32,6 +33,12 @@ export const wiredOne = (id: string, more: Partial<Wired> = {}): Wired => ({
 
 export const lostOne = (id: string, more: Partial<Wired> = {}): Wired =>
   wiredOne(id, { astray: true, gone: true, points: "/old/tisty", ...more });
+
+export const strayHooks = (said = "/old/tisty", gone = true) => ({
+  on: true,
+  at: "/home/someone/hooks.json",
+  stray: [{ said, gone }],
+});
 
 export const skillsFor = (more: Partial<TistySkills> = {}): TistySkills => ({
   version: "1.50.0",

@@ -6,7 +6,7 @@ Configuración es donde Tisty se acomoda a ti: cómo se ve, cómo te avisa, dón
 
 - **El engranaje** al pie de la barra lateral. **Volver**, arriba a la izquierda, o `Esc` te devuelven a donde estabas.
 - **La paleta de comandos**: escribe «configuración» y elige **Configuración** (los atajos están en [Atajos de teclado](Atajos-de-teclado)).
-- **Desde un aviso**: el pie de la barra lateral, cuando la sincronización pide algo, te lleva a la página que lo resuelve.
+- **Desde un aviso**: el pie de la barra lateral, cuando la sincronización pide algo, te lleva a la página que lo resuelve. Cuando un agente deja de encontrar Tisty, el aviso al pie de la barra lateral tiene **Ver y corregir**, que abre **Agentes**.
 
 El engranaje y la paleta abren siempre en **Resumen**. A la izquierda tienes, en este orden, **Volver**, **Buscar un ajuste**, **Resumen** y las diez páginas en cuatro grupos:
 
@@ -57,15 +57,19 @@ Debajo, **Por atender · 2** junta lo que pide algo de ti, cada cosa con un punt
 | **Tu último respaldo es de lun, 5 oct 11:47** (30 días o más) | **Crear respaldo** | Copias › Guardar una copia |
 | **3 cosas por revisar en tu historial** | **Revisar** | Salud |
 | **La captura rápida se quedó sin atajo** | **Elegir otro** | Tareas y avisos › Captura rápida |
-| **Claude Code apunta a un Tisty que ya no existe** | **Corregir** | Agentes › Conectados |
+| **Claude Code apunta a un Tisty que ya no existe**, él o sus hooks; si son varios, una sola línea: **3 agentes apuntan a un Tisty que ya no existe** | **Corregir** | Agentes › Conectados, en el recuadro sobre las pestañas |
+| **Codex apunta a otro Tisty**, uno que sigue en este equipo | **Corregir** | Agentes › Conectados, en el recuadro sobre las pestañas |
+| **Las skills de Tisty están por ponerse al día en tus agentes** | **Corregir** | Agentes › Conectados, en el recuadro sobre las pestañas |
 
 Cuando no queda nada, dice **Nada pide tu atención.** con un punto verde. Esa frase solo aparece si Tisty pudo leer todo lo que revisa al abrir: si una lectura falló o sigue en camino, no la dice, porque no puede prometerlo. Mientras están los pasos de **Deja Tisty a tu medida**, tampoco.
 
+Debajo puede quedar una línea que no pide nada: **Tus agentes pueden usar los hooks y las skills de Tisty · Opcional**, o solo los hooks, o solo las skills, con **Ver** y **Ahora no**. Sale con la puerta abierta, cuando le faltan a un agente que ya tenías conectado, sin que se le ofrecieran al conectarlo, y ninguno dejó de encontrar Tisty. No cuenta en ningún número y convive con **Nada pide tu atención.** **Ver** te lleva al recuadro de **Agentes** donde se agregan; **Ahora no** la quita de aquí y de allá.
+
 **Ejemplo.** Jaime vuelve de vacaciones y abre Configuración. **Por atender · 2** dice **Tu frase todavía no está confirmada** y **Tu último respaldo es de lun, 5 oct 11:47**, y en la columna **Seguridad** y **Copias** llevan un 1. **Crear respaldo ›** lo deja en **Guardar una copia**, con la fila resaltada un momento; pulsa **Crear respaldo…**, guarda el archivo en su disco externo y, de vuelta en **Resumen**, queda una sola cosa.
 
-Cada una de estas cosas sale también en su fila, como nota ámbar **Atención**: es la misma, no otra, y al resolverla se va de las dos partes y del número de la columna a la vez. Más en [Atención, en su fila](#atención-en-su-fila).
+Cada una de estas cosas sale también en su fila, como nota ámbar **Atención** (lo de tus agentes, en el recuadro de [Agentes](#agentes)): es la misma, no otra, y al resolverla se va de las dos partes y del número de la columna a la vez. Más en [Atención, en su fila](#atención-en-su-fila).
 
-Algunas cosas solo se saben después de mirar: los equipos que esperan tu confirmación salen cuando ya abriste **Seguridad** o **Salud**, lo que hay que revisar en tu historial, cuando ya abriste **Salud**, y un agente que apunta a otro Tisty, cuando ya abriste **Agentes**. **Resumen** no lanza esas revisiones por su cuenta.
+Algunas cosas solo se saben después de mirar: los equipos que esperan tu confirmación salen cuando ya abriste **Seguridad** o **Salud**, y lo que hay que revisar en tu historial, cuando ya abriste **Salud**. **Resumen** no lanza esas revisiones por su cuenta. Tus agentes no esperan a eso: con la puerta abierta, Tisty mira si apuntan a este Tisty al abrir su ventana y al abrir Configuración, sin escribir nada. Qué lee está en [Privacidad](Privacidad#los-agentes-que-conectas).
 
 ### Estado
 
@@ -81,13 +85,13 @@ Algunas cosas solo se saben después de mirar: los equipos que esperan tu confir
 | **Sincronización** | **En Google Drive** (o tu carpeta, tu OneDrive, tu WebDAV) con una ronda que terminó bien o en curso | Algo te pide a ti, **sin noticias desde …** (tres días sin nada de tus otros equipos) o **La eligió un Tisty más nuevo** | **Desactivada** · solo en este equipo; sin conexión, con el límite de hoy o esperando; o **todavía no se pudo leer el estado de la nube** |
 | **Copias** | **Último respaldo** con su fecha | El último respaldo tiene 30 días o más | **Sin respaldo** · ninguna todavía |
 | **Seguridad** | **Frase confirmada** | **Frase sin confirmar**, **Frase en otro equipo**, o un equipo que espera tu confirmación | **Sin frase todavía** · tu identidad nace con ella |
-| **Agentes** | **Puerta abierta** · firma como «palmera 95» | Un agente apunta a un Tisty que ya no existe | **Puerta cerrada** · se le niega lo que pida un agente |
+| **Agentes** | **Puerta abierta** · firma como «palmera 95» | **Puerta abierta** · 2 por corregir: cada agente que, él o sus hooks, ya no encuentra Tisty, y las skills de Tisty por poner al día | **Puerta cerrada** · se le niega lo que pida un agente |
 | **Salud** | **Todo en orden** · revisado 10:42 | **3 cosas por revisar**, o **Algunas revisiones no se pudieron hacer** | **Sin revisar todavía** · se revisa al abrir Salud |
 | **Ayuda y acerca de** | **Tisty 1.49.0** · estás al día, si Tisty buscó versiones hoy y le respondieron | **Hay una 1.50.0** · tienes la 1.49.0 | **aún no busca versiones nuevas**, o **buscó por última vez …** si la última respuesta no es de hoy |
 
 **Salud** es el único que no se revisa al abrir Configuración: muestra la última revisión que hiciste en esta ventana, con su hora, así que ves cuánto tiene.
 
-**En otro equipo**, **Resumen** habla de ese equipo: cada uno guarda sus respaldos, su revisión de **Salud** y sus agentes, así que en tu escritorio puede decir **Sin respaldo** aunque el portátil tenga uno de ayer. La frase, en cambio, es tuya en todos: en un equipo donde todavía no la escribiste, **Seguridad** dice **Frase en otro equipo** · escríbela aquí para reconocer este.
+**En otro equipo**, **Resumen** habla de ese equipo: cada uno guarda sus respaldos, su revisión de **Salud** y sus agentes, así que en tu escritorio puede decir **Sin respaldo** aunque el portátil tenga uno de ayer. La frase, en cambio, es tuya en todos: en un equipo que no la guarda, porque la creaste en otro o porque reinstalaste Tisty ahí, **Seguridad** dice **Frase en otro equipo** · escríbela aquí para reconocer este.
 
 ## Buscar un ajuste
 
@@ -163,9 +167,9 @@ Todo lo que pasa en esta página está en [Sincronizar y respaldar](Sincronizar-
 
 «Tu identidad, los equipos que reconoces como tuyos y el cifrado de tu nube.»
 
-- **Tu identidad**: nace con tu frase de 24 palabras. **Crear mi frase** la crea; **Ya tengo mi frase** la escribe en este equipo, si la creaste en otro. Después, **Ver la frase** te la vuelve a mostrar en el equipo donde la creaste.
+- **Tu identidad**: nace con tu frase de 24 palabras. **Crear mi frase** la crea; **Guardar mi frase en este equipo** la recibe y la deja guardada aquí, si la creaste en otro equipo o reinstalaste Tisty en este. **Ver la frase** te la vuelve a mostrar en cada equipo que la guarda. Si solo quieres abrir tu nube cifrada, usa **Abrir mi nube con la frase**, más abajo, que no guarda la frase.
 - **Tus equipos**: una sola lista con cada equipo que escribe donde sincronizas, este marcado como **Este equipo**. Cada uno con su código y **Ver el código**; los demás, con **Quitar**. Sincronizando, debajo, **Cambiar nombre** y **Mostrar en grande** para este equipo.
-- **Cifrar mis datos en la nube**: **Cifrar mi nube…**; con la nube cifrada, **Autorizar un equipo nuevo**. Sin una nube directa, la fila lleva la nota **Falta algo**: «Conecta una nube en Sincronización para cifrar lo que Tisty guarda ahí.», con **Ir a Sincronización**. Con la nube cifrada, la **Zona delicada** guarda **Borrar la copia sin cifrar** y **Descifrar mi nube**.
+- **Cifrar mis datos en la nube**: **Cifrar mi nube…**; con la nube cifrada, **Autorizar un equipo nuevo**. En un equipo que todavía no puede abrir tu nube cifrada, los pasos que le faltan, con **Reconectar** y **Abrir mi nube con la frase** ([cómo](Sincronizar-y-respaldar#volver-a-sincronizar-en-un-equipo)). Sin una nube directa, la fila lleva la nota **Falta algo**: «Conecta una nube en Sincronización para cifrar lo que Tisty guarda ahí.», con **Ir a Sincronización**. Con la nube cifrada, la **Zona delicada** guarda **Borrar la copia sin cifrar** y **Descifrar mi nube**.
 
 Paso a paso en [Confirmar tus equipos](Sincronizar-y-respaldar#confirmar-tus-equipos) y [Cifrar tu nube](Sincronizar-y-respaldar#cifrar-tu-nube).
 
@@ -194,13 +198,21 @@ Más en [Adjuntos grandes](Sincronizar-y-respaldar#adjuntos-grandes) y [Privacid
 
 ### Agentes
 
-«Tisty no lleva IA dentro. La pone tu agente; Tisty es la memoria que comparten.» La página tiene cinco pestañas:
+«Tisty no lleva IA dentro. La pone tu agente; Tisty es la memoria que comparten.» La página tiene cinco pestañas. Con la puerta abierta entras por **Conectados**; con la puerta cerrada, por **Puerta**:
 
 - **Puerta**: **Un agente puede anotar aquí**, con **Quitarle la voz** para cerrarla (y **Dejar que un agente anote** para abrirla otra vez), **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno**.
-- **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares**, la fila **Skills de Tisty**, con **Ver**, y **Cómo conectar uno**, plegado, para conectarlo a mano. Bajo cada agente que los acepta, la fila **Hooks: al empezar y al terminar cada turno**, con **Agregar** o **Quitar**; y al conectar uno, una vez, un recuadro que ofrece sus hooks y las skills. Lo cuenta [Hooks y skills](Hooks-y-skills).
+- **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares**, la fila **Skills de Tisty**, con **Ver**, y **Cómo conectar uno**, plegado, para conectarlo a mano. Cada fila dice cómo está ese agente, **Conectado**, **Sin conectar**, **Apunta a otro Tisty**, **Puede que esté**, **Escrito a tu manera**, **No se pudo leer** o **A mano**. Bajo cada agente conectado que los acepta, la fila **Hooks: al empezar y al terminar cada turno**, con **Agregar** o **Quitar**, y la fila **Skills de Tisty**, con su estado; y al conectar uno, una vez, un recuadro que ofrece sus hooks y las skills. Lo cuenta [Hooks y skills](Hooks-y-skills).
 - **Carpeta Agentes**: la tarjeta **Agentes**, para traer y sincronizar las reglas, skills y memoria de tus agentes. Más en [Agentes: reglas, skills y memoria](Carpeta-AGENTS).
 - **Cómo se ve su firma**: **Quién firma lo que escribe un agente**, con una **Vista previa de una fila** que cambia al momento, **Solo un rombo**, **Nombrar al agente en la lista de tareas** y **Nombrar al agente dentro de una tarea**.
 - **Qué puede y qué no**: **Lo que puede hacer** y **Lo que no podrá hacer nunca**, lado a lado.
+
+**El recuadro sobre las pestañas.** Con la puerta abierta, lo que pasa con tus agentes sale encima, estés en la pestaña que estés:
+
+- **2 agentes por corregir**: los que apuntan, ellos o sus hooks, a un Tisty que ya no está en este equipo. Cada uno dice qué se corrige (**conexión**, **hooks** o **conexión y hooks**), a qué apunta hoy y, bajo **Escribe en:**, los archivos que se van a tocar. Si hay skills de Tisty por poner al día, van ahí mismo con sus carpetas. **Corregir todo**, o **Corregir** si hay una sola cosa, lo hace, y en su lugar queda **Corregido**, con un ✓ por cada uno, o **Algunos no se pudieron corregir**, con el motivo.
+- **Codex apunta a otro Tisty**: «Ese Tisty sigue en este equipo. Para traer uno aquí, usa Corregir en su fila.». **Corregir todo** no lo toca, y **Ahora no** quita el recuadro y la línea de **Resumen**.
+- **Hooks y skills para tus agentes**: lo opcional, en un solo paso. **Agregar hooks y encender skills** te muestra primero dos casillas, con los archivos y las carpetas que se van a escribir, y solo al pulsarlo otra vez escribe lo que dejaste marcado. Lo que desmarcas no se vuelve a ofrecer; con **Ahora no**, nada. Las filas de siempre siguen ahí.
+
+**Ejemplo.** Lucas tenía Tisty con el instalador y ahora lo instala desde Microsoft Store y desinstala el otro. Al abrirlo, el pie de la barra lateral dice **2 agentes ya no encuentran Tisty** · «El Tisty al que apuntan ya no está en este equipo.». Pulsa **Ver y corregir** y llega al recuadro: **Claude Code · conexión y hooks**, con `~/.claude.json` y `~/.claude/settings.json`, y **Codex · conexión**, con `~/.codex/config.toml`. Pulsa **Corregir todo**, lee **Corregido**, cierra los dos agentes del todo y los abre otra vez. Uno por uno está en [Cuando un agente deja de encontrar Tisty](Agentes-y-MCP#cuando-un-agente-deja-de-encontrar-tisty).
 
 Con el teclado, `←` y `→` cambian de pestaña, e `Inicio` y `Fin` saltan a la primera y a la última.
 
@@ -327,9 +339,8 @@ Lo que **Por atender** junta en **Resumen** sale también en la fila donde se re
 | Tareas y avisos › **Captura rápida** | **La captura rápida se quedó sin atajo** | «Otra aplicación ya los usa. Elige otra combinación.» |
 | Copias › **Guardar una copia** | **Tu último respaldo es de lun, 5 oct 11:47** | — |
 | **Salud**, arriba | **3 cosas por revisar en tu historial** | — |
-| Agentes › Conectados › **Agentes en este equipo** | **Claude Code apunta a un Tisty que ya no existe** | — |
 
-Con una carpeta, **Dónde se sincroniza** también muestra ahí si tu nube pide iniciar sesión, si hay algo que revisar o si la sincronización está en pausa; con una nube directa, eso lo dice la tarjeta de tu nube, con su botón. La actualización no repite su aviso: su fila ya es la oferta, con la nota **Dato**.
+Con una carpeta, **Dónde se sincroniza** también muestra ahí si tu nube pide iniciar sesión, si hay algo que revisar o si la sincronización está en pausa; con una nube directa, eso lo dice la tarjeta de tu nube, con su botón. La actualización no repite su aviso: su fila ya es la oferta, con la nota **Dato**. Lo de tus agentes tampoco va en una fila: sale en el [recuadro sobre las pestañas](#agentes) de **Agentes**.
 
 **Ejemplo.** Marisol pulsa **Confirmarla ›** en **Resumen** y llega a **Tu identidad**, con la nota ámbar **Tu frase todavía no está confirmada** y, debajo, «Escríbela una vez para comprobar que la guardaste bien. Sin eso no puedes cifrar tu nube.». Escribe sus palabras, y la nota se va de la fila, de **Por atender** y del 1 junto a **Seguridad** a la vez.
 

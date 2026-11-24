@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use super::{WakeOffer, marked, reminded, wake_offer};
+use super::{WakeOffer, marked, reminded, unasked, wake_offer};
 use crate::waking::Waking;
 use crate::wiring::{Manual, Seen, hooks::Hooks};
 
@@ -97,6 +97,9 @@ fn row(id: &str, place: Option<&str>, hooked: bool) -> Seen {
         wired: true,
         astray: false,
         gone: false,
+        apart: false,
+        unread: false,
+        installed: true,
         points: None,
         maybe: false,
         by_hand: false,
@@ -131,6 +134,24 @@ fn claude_codes_hooks_row_says_the_plugin_brings_them_on_this_computer_only() {
     assert_eq!(
         plugged_rows(seen, &["claude"]),
         vec![Some(true), Some(false), Some(false), None]
+    );
+}
+
+#[test]
+fn a_look_with_no_click_never_says_whether_the_plugin_brings_them() {
+    let seen = unasked(vec![
+        row("claude-code", None, true),
+        row("cursor", None, true),
+        row("codex", None, false),
+    ]);
+    let unknown: Vec<_> = seen
+        .iter()
+        .map(|one| one.hooks.as_ref().map(|it| it.plugin_unknown))
+        .collect();
+    assert_eq!(unknown, vec![Some(true), Some(false), None]);
+    assert!(
+        seen.iter()
+            .all(|one| one.hooks.as_ref().is_none_or(|it| !it.plugged))
     );
 }
 

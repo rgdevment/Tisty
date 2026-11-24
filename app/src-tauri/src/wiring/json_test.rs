@@ -203,9 +203,9 @@ fn cutting_an_element_leaves_the_list_whole() {
     let at = list_at(was, "Stop");
     let all = elements(was.as_bytes(), at).unwrap();
 
-    let first = cut(was, all[0]);
-    let middle = cut(was, all[1]);
-    let last = cut(was, all[2]);
+    let first = cut(was, at, all[0]).unwrap();
+    let middle = cut(was, at, all[1]).unwrap();
+    let last = cut(was, at, all[2]).unwrap();
 
     assert_eq!(value(&first)["Stop"].as_array().unwrap().len(), 2);
     assert_eq!(value(&first)["Stop"][0]["b"], 2);
@@ -220,9 +220,10 @@ fn cutting_an_element_leaves_the_list_whole() {
 #[test]
 fn cutting_the_only_element_leaves_an_empty_list() {
     let was = "{\n  \"Stop\": [\n    { \"a\": 1 }\n  ]\n}\n";
-    let all = elements(was.as_bytes(), list_at(was, "Stop")).unwrap();
+    let at = list_at(was, "Stop");
+    let all = elements(was.as_bytes(), at).unwrap();
 
-    let now = cut(was, all[0]);
+    let now = cut(was, at, all[0]).unwrap();
 
     assert_eq!(value(&now)["Stop"], serde_json::json!([]));
 }

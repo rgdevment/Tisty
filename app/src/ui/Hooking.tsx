@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { hooksAmiss } from "../agentsAmiss";
 import type { Wired } from "../core";
 import { fill, t, type Word } from "../locales";
 
@@ -13,14 +12,20 @@ interface Props {
 const button =
   "shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint hover:border-accent hover:text-accent";
 
+const strayOf = (one: Wired) => one.hooks?.stray ?? [];
+
 const pillSaid = (one: Wired): Word => {
-  if (hooksAmiss(one)) return one.hooks?.gone ? "hooksLost" : "hooksAstray";
+  if (one.hooks?.unread) return "hooksUnread";
+  if (strayOf(one).some((it) => it.gone)) return "hooksLost";
+  if (strayOf(one).length > 0) return "hooksAstray";
   if (one.hooks?.on) return "hooksOn";
+  if (one.hooks?.apart && !one.hooks.plugged) return "hooksOwnWay";
   return one.hooks?.plugged ? "hooksPlugged" : "hooksOff";
 };
 
 const pillDress = (one: Wired): string => {
-  if (hooksAmiss(one)) return "border-hue-amber/40 text-hue-amber";
+  if (one.hooks?.unread) return "border-line text-soft";
+  if (strayOf(one).length > 0) return "border-hue-amber/40 text-hue-amber";
   return one.hooks?.on || one.hooks?.plugged
     ? "border-hue-green/40 text-hue-green"
     : "border-line text-soft";
@@ -31,7 +36,8 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
   const hooks = one.hooks;
   if (!hooks) return null;
   const byPlugin = !!hooks.plugged && !hooks.on;
-  const broken = hooksAmiss(one);
+  const addable = !byPlugin && !hooks.on && !hooks.apart;
+  const broken = strayOf(one);
   return (
     <div className="px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -41,7 +47,7 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
         >
           {t(pillSaid(one))}
         </span>
-        {broken && onFix && (
+        {broken.length > 0 && onFix && (
           <button
             type="button"
             disabled={held}
@@ -52,7 +58,7 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
             {t("wiringFix")}
           </button>
         )}
-        {!byPlugin && (
+        {(addable || hooks.on) && !hooks.unread && (
           <button
             type="button"
             disabled={held}
@@ -65,18 +71,25 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
           </button>
         )}
       </div>
-      {broken && hooks.points && (
+      {broken.map((it) => (
+        <p key={it.said} className="mt-1 text-[12.5px] text-soft [overflow-wrap:anywhere]">
+          {fill(it.gone ? "hooksPointGone" : "hooksPoint", it.said)}
+        </p>
+      ))}
+      {hooks.unread && (
         <p className="mt-1 text-[12.5px] text-soft [overflow-wrap:anywhere]">
-          {fill(hooks.gone ? "wiringPointsGone" : "wiringPoints", hooks.points)}
+          {fill("wiringUnread", hooks.at)}
         </p>
       )}
+      {hooks.apart && <p className="mt-1 text-[12.5px] text-soft">{t("hooksOwnWayWhy")}</p>}
       {hooks.plugged && hooks.on && (
         <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">{t("hooksTwice")}</p>
       )}
-      {asking && !hooks.on && !byPlugin && (
+      {asking && addable && (
         <div className="mt-2 flex flex-col gap-2">
           <p className="text-[12.5px] leading-relaxed text-soft [overflow-wrap:anywhere]">
             {fill("hooksAsk", hooks.at)}
+            {one.id.endsWith("claude-code") && ` ${t("hooksAskPlugin")}`}
           </p>
           <div className="flex gap-2">
             <button

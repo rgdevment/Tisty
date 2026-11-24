@@ -10,6 +10,7 @@ shape = "stdio"
 key = "mcpServers"
 everywhere = ["~/.claude.json"]
 bins = ["claude"]
+also_clients = ["claude-desktop", "vscode", "cursor"]
 dirs = ["~/.claude"]
 cli = "claude mcp add --scope user tisty -- {command} mcp"
 
@@ -32,6 +33,8 @@ shape = "toml"
 key = "mcp_servers"
 everywhere = ["~/.codex/config.toml"]
 bins = ["codex"]
+also_apps = ["store:OpenAI.:ChatGPT", "/Applications/ChatGPT.app", "/Applications/Codex.app"]
+also_clients = ["warp", "vscode", "cursor"]
 dirs = ["~/.codex"]
 cli = "codex mcp add tisty -- {command} mcp"
 
@@ -43,6 +46,7 @@ shape = "copilot"
 key = "mcpServers"
 everywhere = ["~/.copilot/mcp-config.json"]
 bins = ["copilot"]
+also_clients = ["vscode"]
 dirs = ["~/.copilot"]
 cli = "copilot mcp add tisty -- {command} mcp"
 
