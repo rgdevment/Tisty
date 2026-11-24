@@ -597,7 +597,6 @@ const en = {
   lookAgain: "not found — look again",
   settingsTitle: "Notices and attachments",
   settingsKept: "Saved",
-  noteInfo: "Note",
   noteWarn: "Attention",
   noteErr: "Error",
   noteDep: "Missing",
@@ -621,8 +620,6 @@ const en = {
   doorNeeded: "These two settings act while the door is open.",
   goToDoor: "Go to Door",
   goToSync: "Go to Sync",
-  updateEverywhere:
-    "This notice also shows in the Overview and as a dot in the bar, not only here.",
   attSyncQuietWhy: "They may be off, or the program that uploads this folder may not be running.",
   attPhraseWhy:
     "Type it once to check you kept it right. Without that you can't encrypt your cloud.",
@@ -4422,7 +4419,6 @@ const es: Catalog = {
   lookAgain: "no encontrado — reintentar",
   settingsTitle: "Avisos y adjuntos",
   settingsKept: "Guardado",
-  noteInfo: "Dato",
   noteWarn: "Atención",
   noteErr: "Error",
   noteDep: "Falta algo",
@@ -4446,7 +4442,6 @@ const es: Catalog = {
   doorNeeded: "Estos dos ajustes actúan cuando la puerta está abierta.",
   goToDoor: "Ir a Puerta",
   goToSync: "Ir a Sincronización",
-  updateEverywhere: "Este aviso también sale en el Resumen y como punto en la barra, no solo aquí.",
   attSyncQuietWhy:
     "Puede que estén apagados, o que el programa que sube esta carpeta no esté en marcha.",
   attPhraseWhy:

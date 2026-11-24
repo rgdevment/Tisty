@@ -240,7 +240,7 @@ Si trabajas sin agente, esta página puede esperar: la puerta abierta no hace na
 - **Ayuda**: **La bienvenida**, con **Verla otra vez** (vuelve a preguntar idioma, dónde van tus copias, si inicia con el equipo y qué hace al cerrar la ventana, sin tocar lo que escribiste) y **Abrir la guía**; y **Ayuda en tisty.app**, con **Abrir ↗**.
 - **Apoyar a Tisty**, con **Dar una estrella en GitHub**, y **Otras herramientas**.
 
-Cuando hay una versión nueva, su fila lleva la nota **Dato**: «Este aviso también sale en el Resumen y como punto en la barra, no solo aquí.». Si **Buscar actualizaciones**, **Actualizar** o **Recibir versiones candidatas** fallan, el error sale en esa misma fila, con su causa. Sin conexión, por ejemplo, **Buscar actualizaciones** te dice que Tisty no pudo llegar a su lista de versiones. La fila dice «Estás en la versión más reciente» solo después de una respuesta de hoy; si no, dice «Aún no hay respuesta sobre versiones nuevas» o el día de la última.
+Si **Buscar actualizaciones**, **Actualizar** o **Recibir versiones candidatas** fallan, el error sale en esa misma fila, con su causa. Sin conexión, por ejemplo, **Buscar actualizaciones** te dice que Tisty no pudo llegar a su lista de versiones. La fila dice «Estás en la versión más reciente» solo después de una respuesta de hoy; si no, dice «Aún no hay respuesta sobre versiones nuevas» o el día de la última.
 
 En la copia de la Microsoft Store, la Store mantiene Tisty al día: cuando te ofrece una versión, **Actualizar** se la pide; si la Store ya la está trayendo por su cuenta, **Resumen** te deja **Ver** cómo va. Ahí **Recibir versiones candidatas** lleva la nota **No aplica aquí**: «La Microsoft Store mantiene esta copia al día y no ofrece candidatas.».
 
@@ -300,7 +300,6 @@ Lo que pasa cuando tocas algo sale justo debajo de la fila que lo causó, nunca 
 | **Lo tiene el sistema**, con borde punteado | Lo decide Windows o macOS, no Tisty. La nota dice dónde cambiarlo y, cuando puede, te abre esa pantalla. |
 | **No aplica aquí**, con borde punteado | En esta copia de Tisty ese ajuste no tiene sentido, y la nota dice por qué. |
 | **Atención**, en ámbar | Lo mismo que cuenta **Por atender**, aquí en la fila donde se resuelve. |
-| **Dato**, en azul | Contexto que no te pide nada. |
 
 Un interruptor en gris nunca está roto: siempre lleva debajo la nota que dice por qué y, si se puede, el botón que lo destraba.
 
@@ -317,7 +316,6 @@ Un interruptor en gris nunca está roto: siempre lleva debajo la nota que dice p
 | Agentes › Conectados › **Agentes en este equipo** | **Falta algo** | Hay agentes conectados y la puerta está cerrada | «Aun así no anotarán nada hasta que abras la puerta.» | **Ir a Puerta** |
 | Agentes › Cómo se ve su firma › **Nombrar al agente dentro de una tarea** | **Falta algo** | **Solo un rombo** está encendido | «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.» | — |
 | Ayuda y acerca de › **Recibir versiones candidatas** | **No aplica aquí** | La copia de la Microsoft Store | «La Microsoft Store mantiene esta copia al día y no ofrece candidatas.» | — |
-| Ayuda y acerca de › la actualización | **Dato** | Hay una versión nueva | «Este aviso también sale en el Resumen y como punto en la barra, no solo aquí.» | — |
 
 ### Una cosa a la vez con tus datos
 
@@ -340,7 +338,7 @@ Lo que **Por atender** junta en **Resumen** sale también en la fila donde se re
 | Copias › **Guardar una copia** | **Tu último respaldo es de lun, 5 oct 11:47** | — |
 | **Salud**, arriba | **3 cosas por revisar en tu historial** | — |
 
-Con una carpeta, **Dónde se sincroniza** también muestra ahí si tu nube pide iniciar sesión, si hay algo que revisar o si la sincronización está en pausa; con una nube directa, eso lo dice la tarjeta de tu nube, con su botón. La actualización no repite su aviso: su fila ya es la oferta, con la nota **Dato**. Lo de tus agentes tampoco va en una fila: sale en el [recuadro sobre las pestañas](#agentes) de **Agentes**.
+Con una carpeta, **Dónde se sincroniza** también muestra ahí si tu nube pide iniciar sesión, si hay algo que revisar o si la sincronización está en pausa; con una nube directa, eso lo dice la tarjeta de tu nube, con su botón. La actualización no repite su aviso: su fila ya es la oferta. Lo de tus agentes tampoco va en una fila: sale en el [recuadro sobre las pestañas](#agentes) de **Agentes**.
 
 **Ejemplo.** Marisol pulsa **Confirmarla ›** en **Resumen** y llega a **Tu identidad**, con la nota ámbar **Tu frase todavía no está confirmada** y, debajo, «Escríbela una vez para comprobar que la guardaste bien. Sin eso no puedes cifrar tu nube.». Escribe sus palabras, y la nota se va de la fila, de **Por atender** y del 1 junto a **Seguridad** a la vez.
 

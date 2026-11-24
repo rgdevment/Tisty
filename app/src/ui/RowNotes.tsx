@@ -17,10 +17,9 @@ export const HeedContext = createContext<Item[] | null>(null);
 
 export const useRows = (): Rows => useContext(RowsContext);
 
-export type Kind = "info" | "warn" | "err" | "dep" | "sys" | "na";
+export type Kind = "warn" | "err" | "dep" | "sys" | "na";
 
 const KIND: Record<Kind, Parameters<typeof t>[0]> = {
-  info: "noteInfo",
   warn: "noteWarn",
   err: "noteErr",
   dep: "noteDep",
@@ -29,7 +28,6 @@ const KIND: Record<Kind, Parameters<typeof t>[0]> = {
 };
 
 const DRESS: Record<Kind, string> = {
-  info: "bg-accent-soft text-soft",
   warn: "bg-hue-amber/10 text-soft",
   err: "bg-urgent/10 text-ink",
   dep: "border border-dashed border-line text-soft",
@@ -38,7 +36,6 @@ const DRESS: Record<Kind, string> = {
 };
 
 const LABEL: Record<Kind, string> = {
-  info: "text-accent",
   warn: "text-hue-amber",
   err: "text-urgent",
   dep: "text-faint",

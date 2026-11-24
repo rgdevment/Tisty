@@ -240,7 +240,7 @@ If you work without an agent, this page can wait: the open door does nothing whi
 - **Help**: **The welcome**, with **Show it again** (it asks again about language, where your copies go, whether it starts with the computer and what closing the window does, without touching what you wrote) and **Open the guide**; and **Help on tisty.app**, with **Open ↗**.
 - **Support Tisty**, with **Star on GitHub**, and **Other tools**.
 
-When there is a new version, its row carries the **Note**: «This notice also shows in the Overview and as a dot in the bar, not only here.». If **Check for updates**, **Update** or **Take release candidates** fail, the error shows on that same row, with its cause. With no connection, for example, **Check for updates** tells you Tisty could not reach its list of versions. The row says «You are on the newest version» only after an answer from today; otherwise it says «No check for updates has been answered yet» or the day of the last one.
+If **Check for updates**, **Update** or **Take release candidates** fail, the error shows on that same row, with its cause. With no connection, for example, **Check for updates** tells you Tisty could not reach its list of versions. The row says «You are on the newest version» only after an answer from today; otherwise it says «No check for updates has been answered yet» or the day of the last one.
 
 On the Microsoft Store copy, the Store keeps Tisty up to date: when it offers a version, **Update** asks it for it; when the Store is already bringing it on its own, **Overview** lets you **See** how it goes. There, **Take release candidates** carries the **Doesn't apply here** note: «The Microsoft Store keeps this copy up to date and offers no release candidates.».
 
@@ -300,7 +300,6 @@ What happens when you touch something shows right below the row that caused it, 
 | **Held by the system**, with a dotted border | Windows or macOS decides it, not Tisty. The note says where to change it and, when it can, opens that screen for you. |
 | **Doesn't apply here**, with a dotted border | On this copy of Tisty that setting makes no sense, and the note says why. |
 | **Attention**, in amber | The same thing **To attend to** counts, here on the row where it is sorted out. |
-| **Note**, in blue | Context that asks nothing of you. |
 
 A grey switch is never broken: it always has the note below that says why and, when it can, the button that frees it.
 
@@ -317,7 +316,6 @@ A grey switch is never broken: it always has the note below that says why and, w
 | Agents › Connected › **Agents on this computer** | **Missing** | There are agents connected and the door is closed | «Even so, they file nothing until you open the door.» | **Go to Door** |
 | Agents › How its signature looks › **Name the agent inside a task** | **Missing** | **Only a diamond** is on | «The two above stay off while «Only a diamond» is on.» | — |
 | Help and about › **Take release candidates** | **Doesn't apply here** | The Microsoft Store copy | «The Microsoft Store keeps this copy up to date and offers no release candidates.» | — |
-| Help and about › the update | **Note** | There is a new version | «This notice also shows in the Overview and as a dot in the bar, not only here.» | — |
 
 ### One thing at a time with your data
 
@@ -340,7 +338,7 @@ What **To attend to** gathers in **Overview** also shows on the row where it is 
 | Copies › **Save a copy** | **Your last backup is from Mon, Oct 5 11:47** | — |
 | **Health**, at the top | **3 things to look at in your history** | — |
 
-With a folder, **Where it syncs** also shows there whether your cloud asks you to sign in, whether there is something to look at or whether syncing is paused; with a direct cloud, your cloud's card says so, with its button. The update does not repeat its notice: its row already is the offer, with the **Note**. Your agents' do not go on a row either: they show in the [box above the tabs](#agents) of **Agents**.
+With a folder, **Where it syncs** also shows there whether your cloud asks you to sign in, whether there is something to look at or whether syncing is paused; with a direct cloud, your cloud's card says so, with its button. The update does not repeat its notice: its row already is the offer. Your agents' do not go on a row either: they show in the [box above the tabs](#agents) of **Agents**.
 
 **Example.** Marisol presses **Confirm it ›** in **Overview** and lands on **Your identity**, with the amber note **Your phrase is not confirmed yet** and, below it, «Type it once to check you kept it right. Without that you can't encrypt your cloud.». Once the words are typed, the note leaves the row, **To attend to** and the 1 next to **Security** at once.
 

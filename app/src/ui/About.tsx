@@ -236,7 +236,6 @@ export default function About({
                   </button>
                 )}
                 <span className="w-full">
-                  <Note kind="info">{t("updateEverywhere")}</Note>
                   <Feedback which="update" />
                 </span>
               </div>

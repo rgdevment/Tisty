@@ -295,7 +295,6 @@ describe("what hangs under a row", () => {
 
   it("names every kind of note", () => {
     for (const [kind, label] of [
-      ["info", "noteInfo"],
       ["warn", "noteWarn"],
       ["dep", "noteDep"],
       ["sys", "noteSys"],
