@@ -1,4 +1,4 @@
-export declare const VERSION: "1.12.1";
+export declare const VERSION: "1.13.0";
 
 export type PictureKind = "image/png" | "image/jpeg";
 
@@ -12,11 +12,19 @@ export type SaidPriority = "do" | "decide" | "delegate" | "minor";
 
 export type Verdict = "holds" | "retired" | "doubtful" | "refused" | "unreadable";
 
+export type LookSheet = "papel" | "arena" | "durazno" | "rosa" | "lavanda" | "cielo" | "menta" | "salvia";
+
+export type LookHeading = "grafito" | "vino" | "teja" | "ocre" | "pino" | "petroleo" | "anil" | "ciruela";
+
+export type LookInk = "tinta" | "cafe" | "noche" | "musgo" | "uva" | "humo";
+
+export type LookFont = "sans" | "inter" | "atkinson" | "nunito" | "grotesk" | "source_serif" | "lora" | "fraunces" | "caveat";
+
 export type Paper = "a4" | "letter" | "folio" | "tabloid";
 
 export type Orientation = "portrait" | "landscape";
 
-export type Design = "tisty" | "bosque" | "coral" | "fiordo" | "violeta";
+export type Design = "tisty" | "bosque" | "coral" | "fiordo" | "violeta" | "own";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -272,12 +280,21 @@ export interface Cited {
   title?: string;
 }
 
+/** What a document picked for a design of its own, by its names in designs. Each is read alone, so one this reader does not know leaves the others as they are. */
+export interface OwnDesign {
+  sheet?: LookSheet;
+  heading?: LookHeading;
+  ink?: LookInk;
+  font?: LookFont;
+}
+
 /** How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page. */
 export interface Sheet {
   paper?: Paper;
   on?: boolean;
   orientation?: Orientation;
   design?: Design;
+  own?: OwnDesign;
 }
 
 /** A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this. */
@@ -317,7 +334,7 @@ export interface Reminder {
   at: string;
 }
 
-export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "designs" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "review" | "reviewed" | "revocation" | "served" | "cited" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
+export type ContractName = "text" | "table" | "code" | "diagram" | "formula" | "attachment" | "picture" | "widget" | "designs" | "document" | "envelope" | "sealing" | "opening" | "envelope_part" | "sync" | "link" | "front_matter" | "page" | "translation" | "tag" | "signature" | "owner" | "editor" | "review" | "reviewed" | "revocation" | "served" | "cited" | "own_design" | "sheet" | "style" | "task" | "step" | "note" | "reminder";
 export declare const CONTRACTS: Record<ContractName, unknown>;
 export declare const ALLOWED: Record<string, { attributes: string[]; classes: string[]; class_starts: string[]; class_ends: string[] }>;
 /** What a person may write by hand, for whoever cleans a document. */

@@ -656,10 +656,21 @@ const hostileWidget = {
 const designsWorn = [
   ["a document without one", {}, undefined, "tisty"],
   ["a document with one", { design: "bosque" }, undefined, "bosque"],
+  ["a design of its own", { design: "own", own: { sheet: "arena" } }, undefined, "own"],
+  ["a page with a design of its own, which is not read", { design: "coral" }, { design: "own", own: { sheet: "rosa" } }, "coral"],
   ["one this reader does not know", { design: "pergamino" }, undefined, "tisty"],
   ["a page with another one, which is not read", { design: "bosque" }, { design: "coral" }, "bosque"],
   ["a page with one, in a document without any", {}, { design: "coral" }, "tisty"],
 ].map(([says, document, page, wears]) => ({ says, document, ...(page ? { page } : {}), wears }));
+
+const OWN_DEFAULTS = { sheet: "papel", heading: "grafito", ink: "tinta", font: "sans" };
+const designsOwn = [
+  ["nothing picked", {}, {}],
+  ["the four", { sheet: "menta", heading: "ciruela", ink: "noche", font: "fraunces" }, { sheet: "menta", heading: "ciruela", ink: "noche", font: "fraunces" }],
+  ["a font this reader does not know", { sheet: "arena", font: "papyrus" }, { sheet: "arena" }],
+  ["a color written instead of named", { sheet: "#ff0000", heading: "vino" }, { heading: "vino" }],
+  ["a name the object of any language has", { ink: "constructor", font: "toString" }, {}],
+].map(([says, own, wears]) => ({ says, own, wears: { ...OWN_DEFAULTS, ...wears } }));
 
 const said = {
   link_key: b64(LINK_KEY),
@@ -754,6 +765,7 @@ const said = {
   playing,
   first_bytes: firstBytes,
   designs_worn: designsWorn,
+  designs_own: designsOwn,
   hostile_widget: hostileWidget,
   revocation: revoked,
   main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")), print: mainPrint },

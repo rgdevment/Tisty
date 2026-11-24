@@ -140,7 +140,10 @@ function checkFields(name, value, at, out) {
     }
     if (said.only_when && value[said.only_when] !== true) out.push(here + " is only for what is " + said.only_when);
     // A word this version does not list wears its default, so a later one can add it.
-    if (said.otherwise !== undefined && typeof given === "string") continue;
+    if (said.otherwise !== undefined) {
+      if (typeof given !== "string") out.push(here + " is no word");
+      continue;
+    }
     if (said.type === "list") {
       if (!Array.isArray(given)) {
         out.push(here + " is not a list");

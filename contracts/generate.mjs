@@ -220,8 +220,15 @@ const typescriptTypes = () => {
 const typescriptRuntime = () => `const WHOLE = ${JSON.stringify(whole)};\n${readFileSync(join(here, "runtime", "check.js"), "utf8")}`;
 
 // Only what a verdict reads: its cases and its words stay in the full entry, and a page does not carry them.
+// The words of a field with a default are never read by a verdict, which takes any of them.
+const judged = () => {
+  const read = new Set(contracts.flatMap((one) => Object.values(one.fields ?? {})).filter((one) => one.otherwise === undefined).flatMap((one) => [one.type, one.of]));
+  return Object.fromEntries(Object.entries(whole.enums).filter(([name]) => read.has(name)));
+};
+
 const judging = () => ({
   ...whole,
+  enums: judged(),
   contracts: Object.fromEntries(
     contracts.map((one) => [
       one.contract,

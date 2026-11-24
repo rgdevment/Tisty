@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: &str = "1.12.1";
+pub const VERSION: &str = "1.13.0";
 pub const CONTRACT: &str = include_str!("contract.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +66,84 @@ pub enum Verdict {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LookSheet {
+    #[serde(rename = "papel")]
+    Papel,
+    #[serde(rename = "arena")]
+    Arena,
+    #[serde(rename = "durazno")]
+    Durazno,
+    #[serde(rename = "rosa")]
+    Rosa,
+    #[serde(rename = "lavanda")]
+    Lavanda,
+    #[serde(rename = "cielo")]
+    Cielo,
+    #[serde(rename = "menta")]
+    Menta,
+    #[serde(rename = "salvia")]
+    Salvia,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LookHeading {
+    #[serde(rename = "grafito")]
+    Grafito,
+    #[serde(rename = "vino")]
+    Vino,
+    #[serde(rename = "teja")]
+    Teja,
+    #[serde(rename = "ocre")]
+    Ocre,
+    #[serde(rename = "pino")]
+    Pino,
+    #[serde(rename = "petroleo")]
+    Petroleo,
+    #[serde(rename = "anil")]
+    Anil,
+    #[serde(rename = "ciruela")]
+    Ciruela,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LookInk {
+    #[serde(rename = "tinta")]
+    Tinta,
+    #[serde(rename = "cafe")]
+    Cafe,
+    #[serde(rename = "noche")]
+    Noche,
+    #[serde(rename = "musgo")]
+    Musgo,
+    #[serde(rename = "uva")]
+    Uva,
+    #[serde(rename = "humo")]
+    Humo,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LookFont {
+    #[serde(rename = "sans")]
+    Sans,
+    #[serde(rename = "inter")]
+    Inter,
+    #[serde(rename = "atkinson")]
+    Atkinson,
+    #[serde(rename = "nunito")]
+    Nunito,
+    #[serde(rename = "grotesk")]
+    Grotesk,
+    #[serde(rename = "source_serif")]
+    SourceSerif,
+    #[serde(rename = "lora")]
+    Lora,
+    #[serde(rename = "fraunces")]
+    Fraunces,
+    #[serde(rename = "caveat")]
+    Caveat,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Paper {
     #[serde(rename = "a4")]
     A4,
@@ -97,6 +175,8 @@ pub enum Design {
     Fiordo,
     #[serde(rename = "violeta")]
     Violeta,
+    #[serde(rename = "own")]
+    Own,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -464,6 +544,19 @@ pub struct Cited {
     pub title: Option<String>,
 }
 
+/// What a document picked for a design of its own, by its names in designs. Each is read alone, so one this reader does not know leaves the others as they are.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OwnDesign {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sheet: Option<LookSheet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<LookHeading>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ink: Option<LookInk>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font: Option<LookFont>,
+}
+
 /// How a document or a page is laid on paper: its size and its orientation. A sheet holds nothing of its own, and measures on screen what it measures on paper. A line of three dashes, the page break, cuts a sheet and never a page.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sheet {
@@ -475,6 +568,8 @@ pub struct Sheet {
     pub orientation: Option<Orientation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub design: Option<Design>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub own: Option<OwnDesign>,
 }
 
 /// A task is something to do. It ends, and is kept whole. Only whoever needs tasks implements this.

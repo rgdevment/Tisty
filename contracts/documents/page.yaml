@@ -481,6 +481,37 @@ cases:
     value: { key: "ylsrD8-8Gn6kHk09Wmw65fL0pN3T9qT3yS4NH3-b0sQ" }
     holds: false
 ---
+contract: own_design
+group: documents
+checked_by: [reader]
+says: What a document picked for a design of its own, by its names in designs. Each is read alone, so one this reader does not know leaves the others as they are.
+enums:
+  look_sheet: [papel, arena, durazno, rosa, lavanda, cielo, menta, salvia]
+  look_heading: [grafito, vino, teja, ocre, pino, petroleo, anil, ciruela]
+  look_ink: [tinta, cafe, noche, musgo, uva, humo]
+  look_font: [sans, inter, atkinson, nunito, grotesk, source_serif, lora, fraunces, caveat]
+fields:
+  sheet: { type: look_sheet, otherwise: papel, says: "The color of the sheet." }
+  heading: { type: look_heading, otherwise: grafito, says: "The color of the title and of every heading." }
+  ink: { type: look_ink, otherwise: tinta, says: "The color of the words." }
+  font: { type: look_font, otherwise: sans, says: "The font of the words and of the headings. Never a size." }
+cases:
+  - says: "Nothing picked, which is the default of each."
+    value: {}
+    holds: true
+  - says: "The four."
+    value: { sheet: "menta", heading: "ciruela", ink: "noche", font: "fraunces" }
+    holds: true
+  - says: "A font this reader does not know, which is read as the default one."
+    value: { font: "papyrus" }
+    holds: true
+  - says: "A color written, which is no name and is read as the default one."
+    value: { sheet: "#ff0000" }
+    holds: true
+  - says: "A font that is no word."
+    value: { font: 3 }
+    holds: false
+---
 contract: sheet
 group: documents
 checked_by: [reader]
@@ -490,12 +521,13 @@ says: >-
 enums:
   paper: [a4, letter, folio, tabloid]
   orientation: [portrait, landscape]
-  design: [tisty, bosque, coral, fiordo, violeta]
+  design: [tisty, bosque, coral, fiordo, violeta, own]
 fields:
   paper: { type: paper, otherwise: a4, says: "Its size. A4 when it says none, or one this reader does not know." }
   on: { type: bool, says: "Whether it is drawn in sheets on screen. Off, the paper only says how it prints." }
   orientation: { type: orientation, otherwise: portrait, says: "Only while in sheets. Portrait when it says none, or one this reader does not know." }
   design: { type: design, otherwise: tisty, says: "How it looks, by its name in designs. The default of designs when it says none, or one this reader does not know. In sheets or not. The sheet of a page is not read for it: its document says it." }
+  own: { type: own_design, says: "What the document picked, read only when design is own." }
 values:
   millimetres:
     a4: [210, 297]
@@ -538,6 +570,12 @@ cases:
   - says: "A design this reader does not know, which is read as the default one."
     value: { design: "pergamino" }
     holds: true
+  - says: "A design of its own, with what it picked."
+    value: { design: "own", own: { sheet: "arena", heading: "vino", ink: "cafe", font: "lora" } }
+    holds: true
+  - says: "A design of its own, with a color that is no word."
+    value: { design: "own", own: { sheet: 3 } }
+    holds: false
   - says: "A design that is no word."
     value: { design: 3 }
     holds: false

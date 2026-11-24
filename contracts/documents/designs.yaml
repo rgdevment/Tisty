@@ -17,7 +17,6 @@ values:
     inherited: "Every other color is the one of style in that theme. rail and desk belong to whoever shows the sheet."
   fonts:
     sans: "The text_font of style."
-    serif: ["Georgia", "Cambria", "Times New Roman", "serif"]
   headings_font: "The title and every heading. Their sizes and margins are those of style, over the size of the design."
   title_says: "Only the title, the one style draws with a rule under it. Any other heading keeps its own measures."
   titles:
@@ -26,10 +25,57 @@ values:
     bar: { border_bottom: "4px solid accent" }
   tables:
     grid: "As style says."
-    tint: { head: { color: sheet, background: accent }, says: "The head is the th of its thead, and no other th. Nothing else changes, and no measure does." }
+    tint: { head: { color: sheet, background: accent }, says: "The head is the th of its thead, and no other th. What it holds, a link, strong letters or a mark, is drawn in those letters too. Nothing else changes, and no measure does." }
   cutting: "The type and the title of a design decide where a sheet is cut, so a reader wears them before it lays the sheets."
   printing: "On paper it wears its light colors over white paper, in whatever theme it is read. Only the paper turns white: a head of tint keeps the light sheet of the design as its letters."
   diagrams: "A diagram travels drawn and keeps its own colors."
+  own:
+    says: "The design named own. The document picks four things by name, and each has its light color and its dark one, so it is picked once. Nobody writes a color: what is not a name here is the default of its list."
+    defaults: { sheet: papel, heading: grafito, ink: tinta, font: sans }
+    legible: "Every heading and every ink, and soft, keep 4.5 to 1 over every sheet of its theme, and the light ones over white. So any four names go together."
+    soft: "color-mix(in srgb, ink 78%, sheet)"
+    line: "color-mix(in srgb, heading 28%, transparent)"
+    accent: "The color of heading."
+    type: { headings: "The same font as the words.", size: "14.5px", line_height: 1.65, align: left }
+    title: rule
+    table: tint
+    font_holds: "The words, the title, the headings and the tables. Callouts, notes, code, diagrams and widgets keep the fonts of style, as they keep its colors."
+    files: "The Latin and Latin extended files of weight of that package and version, normal only, as whoever shows the sheet serves them, and never fetched from another site. They are asked for only by a document that wears that font. While one comes, the words are drawn with the text_font of style, and the sheets are cut, and printed, once it is ready or has failed, and then with falls_to. Its weight is the variable one, its italic is slanted by the browser, and a letter it lacks falls to falls_to."
+    sheets:
+      papel: { names: { es: "Papel", en: "Paper" }, light: "#fbfaf7", dark: "#242321" }
+      arena: { names: { es: "Arena", en: "Sand" }, light: "#f8f2e6", dark: "#28241d" }
+      durazno: { names: { es: "Durazno", en: "Peach" }, light: "#fff3ec", dark: "#2a201c" }
+      rosa: { names: { es: "Rosa", en: "Rose" }, light: "#fdf1f4", dark: "#291f24" }
+      lavanda: { names: { es: "Lavanda", en: "Lavender" }, light: "#f5f2fc", dark: "#222030" }
+      cielo: { names: { es: "Cielo", en: "Sky" }, light: "#eff5fb", dark: "#1d2530" }
+      menta: { names: { es: "Menta", en: "Mint" }, light: "#eef7f2", dark: "#1b2622" }
+      salvia: { names: { es: "Salvia", en: "Sage" }, light: "#f3f6ec", dark: "#22261d" }
+    headings:
+      grafito: { names: { es: "Grafito", en: "Graphite" }, light: "#3d4048", dark: "#c9ccd4" }
+      vino: { names: { es: "Vino", en: "Wine" }, light: "#8c2f45", dark: "#f2a3b4" }
+      teja: { names: { es: "Teja", en: "Brick" }, light: "#9a3f1c", dark: "#f5a885" }
+      ocre: { names: { es: "Ocre", en: "Ochre" }, light: "#785200", dark: "#e3bf72" }
+      pino: { names: { es: "Pino", en: "Pine" }, light: "#2f6438", dark: "#9fd3a6" }
+      petroleo: { names: { es: "Petróleo", en: "Teal" }, light: "#0f5f69", dark: "#86cdd6" }
+      anil: { names: { es: "Añil", en: "Indigo" }, light: "#2d52a0", dark: "#a3bff2" }
+      ciruela: { names: { es: "Ciruela", en: "Plum" }, light: "#70378c", dark: "#d8b0ec" }
+    inks:
+      tinta: { names: { es: "Tinta", en: "Ink" }, light: "#24262b", dark: "#e6e7ea" }
+      cafe: { names: { es: "Café", en: "Coffee" }, light: "#33261f", dark: "#ece1da" }
+      noche: { names: { es: "Noche", en: "Night" }, light: "#1f2a3d", dark: "#dfe6f2" }
+      musgo: { names: { es: "Musgo", en: "Moss" }, light: "#23301f", dark: "#e1eadd" }
+      uva: { names: { es: "Uva", en: "Grape" }, light: "#30233b", dark: "#e9e0f0" }
+      humo: { names: { es: "Humo", en: "Smoke" }, light: "#44474d", dark: "#cfd1d6" }
+    fonts:
+      sans: { name: "System", stack: "The text_font of style. It is in every system, so no file goes with it." }
+      inter: { name: "Inter", family: "Inter Variable", package: "@fontsource-variable/inter", version: "5.3.0", falls_to: sans-serif }
+      atkinson: { name: "Atkinson Hyperlegible", family: "Atkinson Hyperlegible Next Variable", package: "@fontsource-variable/atkinson-hyperlegible-next", version: "5.3.0", falls_to: sans-serif }
+      nunito: { name: "Nunito", family: "Nunito Variable", package: "@fontsource-variable/nunito", version: "5.3.0", falls_to: sans-serif }
+      grotesk: { name: "Space Grotesk", family: "Space Grotesk Variable", package: "@fontsource-variable/space-grotesk", version: "5.3.0", falls_to: sans-serif }
+      source_serif: { name: "Source Serif", family: "Source Serif 4 Variable", package: "@fontsource-variable/source-serif-4", version: "5.3.1", falls_to: serif }
+      lora: { name: "Lora", family: "Lora Variable", package: "@fontsource-variable/lora", version: "5.3.0", falls_to: serif }
+      fraunces: { name: "Fraunces", family: "Fraunces Variable", package: "@fontsource-variable/fraunces", version: "5.3.0", falls_to: serif }
+      caveat: { name: "Caveat", family: "Caveat Variable", package: "@fontsource-variable/caveat", version: "5.3.0", falls_to: cursive }
   designs:
     tisty:
       names: { es: "Default", en: "Default" }
@@ -42,7 +88,7 @@ values:
       names: { es: "Bosque", en: "Forest" }
       light: { sheet: "#f3f8f2", ink: "#1d2b1f", soft: "#51654f", line: "rgb(40 100 50 / 0.28)", accent: "#2f7d3b", heading: "#2d5a34" }
       dark: { sheet: "#18211a", ink: "#e3ece2", soft: "#a3b5a2", line: "rgb(166 217 172 / 0.25)", accent: "#7fc98a", heading: "#a6d9ac" }
-      type: { text: sans, headings: serif, size: "14.5px", line_height: 1.65, align: left }
+      type: { text: sans, headings: sans, size: "14.5px", line_height: 1.65, align: left }
       title: rule
       table: tint
     coral:

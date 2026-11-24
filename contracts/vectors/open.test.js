@@ -670,3 +670,44 @@ test("every sheet of the designs holds, and what is worn is the document's and o
     assert.equal(named.includes(document.design) ? document.design : CONTRACTS.designs.values.default, wears, says);
   }
 });
+
+test("what a design of its own picks is read by its names, each alone", () => {
+  const { own } = CONTRACTS.designs.values;
+  const lists = { sheet: own.sheets, heading: own.headings, ink: own.inks, font: own.fonts };
+  for (const { says, own: picked, wears } of VECTORS.designs_own) {
+    assert.deepEqual(check("own_design", picked), [], says);
+    const read = Object.entries(lists).map(([key, list]) => [key, Object.hasOwn(list, picked[key] ?? "") ? picked[key] : own.defaults[key]]);
+    assert.deepEqual(Object.fromEntries(read), wears, says);
+  }
+  const named = CONTRACTS.own_design.enums;
+  assert.deepEqual(Object.keys(own.sheets), named.look_sheet);
+  assert.deepEqual(Object.keys(own.headings), named.look_heading);
+  assert.deepEqual(Object.keys(own.inks), named.look_ink);
+  assert.deepEqual(Object.keys(own.fonts), named.look_font);
+});
+
+test("any four names of a design of its own can be read, in light, in dark and on paper", () => {
+  const { own } = CONTRACTS.designs.values;
+  const channels = (hex) => [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16));
+  const light = (rgb) => {
+    const [r, g, b] = rgb.map((one) => one / 255).map((one) => (one <= 0.03928 ? one / 12.92 : ((one + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (one, other) => {
+    const [high, low] = [light(one), light(other)].sort((a, b) => b - a);
+    return (high + 0.05) / (low + 0.05);
+  };
+  const share = Number(/ink (\d+)%/.exec(own.soft)[1]) / 100;
+  for (const theme of ["light", "dark"])
+    for (const [sheet, under] of Object.entries(own.sheets)) {
+      const paper = channels(under[theme]);
+      const grounds = theme === "light" ? [paper, [255, 255, 255]] : [paper];
+      for (const list of [own.headings, own.inks])
+        for (const [name, over] of Object.entries(list))
+          for (const ground of grounds) assert.ok(contrast(channels(over[theme]), ground) >= 4.5, `${name} over ${sheet}, ${theme}`);
+      for (const [name, over] of Object.entries(own.inks)) {
+        const soft = channels(over[theme]).map((one, at) => one * share + paper[at] * (1 - share));
+        for (const ground of grounds) assert.ok(contrast(soft, ground) >= 4.5, `the soft of ${name} over ${sheet}, ${theme}`);
+      }
+    }
+});
