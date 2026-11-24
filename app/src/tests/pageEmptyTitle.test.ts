@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { wired, worn } from "../ui/dressing";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
@@ -11,7 +11,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const empty = () => {
+const empty = (redraw: (now: string) => void = () => {}) => {
   let text = "";
   document.body.innerHTML = '<article class="page"></article>';
   const reach = {
@@ -27,7 +27,7 @@ const empty = () => {
       text = next;
     },
     shown: () => {},
-    redraw: () => {},
+    redraw,
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
     translated: (_, plain) => Promise.resolve(plain),
@@ -81,4 +81,27 @@ it("begins a task's first line inside the sheet", () => {
   expect(document.querySelectorAll("[data-ghost]")).toHaveLength(1);
   key("insertText", "O");
   expect(text()).toBe("O");
+});
+
+it("waits at the title again once what was written is erased, also after Enter", async () => {
+  const drawn = (now: string) => {
+    if (now) return;
+    sheet().innerHTML = "";
+    worn(document, () => true, { body: "", onDoc: () => {}, onBegin: () => {} });
+    writing?.drawn();
+  };
+  const text = empty(drawn);
+  press(slot());
+  key("insertText", "O");
+  sheet().innerHTML = '<h1 data-at="0-3"><span data-src="2-3">O</span></h1>';
+  document.getSelection()?.collapse(sheet().querySelector("span")?.firstChild as Text, 1);
+  key("deleteContentBackward");
+  expect(text()).toBe("");
+  await vi.waitFor(() => expect(slot()).not.toBeNull());
+  expect(document.querySelector("[data-ghost]")).toBe(slot());
+  expect(slot()?.querySelector("br")).toBeNull();
+  key("insertParagraph");
+  expect(text()).toBe("");
+  key("insertText", "H");
+  expect(text()).toBe("# H");
 });

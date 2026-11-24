@@ -1,5 +1,5 @@
 import { namesSum, type PlacedNear, summed } from "../placing";
-import { keyMoved, placeCopied, placeOf } from "./pagePlaces";
+import { keyMoved, placeCopied, placeOf, TITLE_OF_SHEET } from "./pagePlaces";
 
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
 const WHOLE_ONLY = "code.language-widget, figure.widget, .doc-card";
@@ -171,7 +171,11 @@ export const patched = (
   });
   for (const one of folds(laid)) if (opened.has(placeOf(one)?.[0] ?? -1)) one.open = true;
   for (const one of going) if (!laid.includes(one)) one.remove();
-  for (const one of sheet.querySelectorAll(":scope > [data-ghost]")) one.remove();
+  // The title's slot waits on a page with nothing written, and leaves with the first block.
+  const title = sheet.querySelector(TITLE_OF_SHEET);
+  for (const one of sheet.querySelectorAll(":scope > [data-ghost]"))
+    if (one !== title) one.remove();
+  if (count > 0) title?.remove();
   const next = old[kept - trail] ?? null;
   const before = from + lead > 0 ? old[from + lead - 1] : null;
   laid.forEach((one, at) => {

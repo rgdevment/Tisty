@@ -1,5 +1,5 @@
 import { byteFrom, type Reckoned, unitFrom } from "../placing";
-import { placeOf } from "./pagePlaces";
+import { placeOf, TITLE_OF_SHEET } from "./pagePlaces";
 
 const PLACED = "[data-src]";
 const BLOCK = "[data-at]";
@@ -435,8 +435,11 @@ export const ghostAt = (
     if (placeOf(sheet.children[at])) after = sheet.children[at];
   }
   // A page with nothing written yet shows where its title goes, and that is where its first line begins.
-  const title = after ? null : sheet.querySelector<HTMLElement>(":scope > h1[data-title]");
-  if (title) return title;
+  const title = after ? null : sheet.querySelector<HTMLElement>(TITLE_OF_SHEET);
+  if (title) {
+    title.dataset.ghost = "";
+    return title;
+  }
   const ghost = page.createElement("p");
   ghost.dataset.ghost = "";
   ghost.append(page.createElement("br"));

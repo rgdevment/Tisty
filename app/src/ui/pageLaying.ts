@@ -153,6 +153,8 @@ export const layingOn = (
   const laidOut = (was: string, now: string, asked: Edit) => {
     // A task's page is small and dressed with its hints and buttons, which only a whole drawing lays again.
     if (page.documentElement.classList.contains("untitled")) writer.whole = true;
+    // A page left with nothing written waits at its title, which only a whole drawing lays.
+    if (!now.trim()) writer.whole = true;
     unlaid += 1;
     const step = laying.then(() => layOne(was, now, asked)).catch(recovered);
     laying = step.finally(() => {

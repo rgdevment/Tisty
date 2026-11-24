@@ -16,7 +16,7 @@ import {
   WHOLE,
   wholeBehind,
 } from "./pageNodes";
-import { placeOf, placeSaid } from "./pagePlaces";
+import { placeOf, placeSaid, TITLE_SLOT } from "./pagePlaces";
 import {
   endIn,
   endOf,
@@ -314,12 +314,15 @@ export const caretOn = (writer: Writer) => {
       : null;
     const found: [Node, number] | null = ghost ? [ghost, 0] : spotAt(writer.kept.at);
     if (!found) return;
+    const titled = ghost?.matches(TITLE_SLOT) ?? false;
+    if (titled && writer.kept.lead === undefined)
+      writer.kept = { ...writer.kept, lead: "# ", tail: "" };
     focused();
     const spot = summaryAt(found, writer.kept.at) ?? found;
     // A block drawn empty, as a heading just begun, holds no line for the caret, so it gets one.
     const [holder] = spot;
     const bare = holder.nodeType === Node.ELEMENT_NODE ? (holder as Element) : null;
-    if (bare && !bare.textContent && !bare.querySelector("br"))
+    if (bare && !titled && !bare.textContent && !bare.querySelector("br"))
       bare.append(page.createElement("br"));
     else if (bare?.matches("li") && elementOf(bare.childNodes[spot[1]])?.matches("ul, ol"))
       bare.insertBefore(page.createElement("br"), bare.childNodes[spot[1]] ?? null);

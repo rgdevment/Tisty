@@ -2777,6 +2777,42 @@ export const CASES = [
     was: "Uno *dos tres",
     now: "*Uno dos tres*",
   },
+  {
+    name: "titleErasedThenEnterStillWritesTheTitle",
+    doc: "",
+    run: async ({ typed, press }) => {
+      await typed("a");
+      await press("Backspace");
+      await press("Enter");
+      await typed("Ho");
+    },
+    was: "",
+    now: "# Ho",
+  },
+  {
+    name: "titleErasedThenWrittenAgainGoesOnBelowIt",
+    doc: "",
+    run: async ({ typed, press }) => {
+      await typed("a");
+      await press("Backspace");
+      await typed("Ho");
+      await press("Enter");
+      await typed("x");
+    },
+    was: "",
+    now: "# Ho\n\nx",
+  },
+  {
+    name: "titleUndoneToNothingStillWritesTheTitle",
+    doc: "",
+    run: async ({ typed, command }) => {
+      await typed("a");
+      await command("z");
+      await typed("Ho");
+    },
+    was: "",
+    now: "# Ho",
+  },
 ];
 
 const drawnWholeUnder = async (frame) => {

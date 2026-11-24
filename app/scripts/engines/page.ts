@@ -111,17 +111,18 @@ const answersLet = () => {
   for (const one of waiting) one();
 };
 
+const reaching = () => ({
+  body: text,
+  onDoc: () => {},
+  onBegin: (at: number, seed: string, near: Element) => writer?.begin(at, seed, near),
+  onHintWords: (at: [number, number], hint: HTMLElement) => writer?.hintWords(at, hint),
+});
+
 const dressedUp = (page: Document) => {
-  const reach = () => ({
-    body: text,
-    onDoc: () => {},
-    onBegin: (at: number, seed: string, near: Element) => writer?.begin(at, seed, near),
-    onHintWords: (at: [number, number], hint: HTMLElement) => writer?.hintWords(at, hint),
-  });
-  wired(page, reach);
+  wired(page, reaching);
   dressedAsWindow(page);
   fitted(page);
-  worn(page, () => true, reach());
+  worn(page, () => true, reaching());
   sheeting(page, () => undefined);
   void diagrams(page, false, () => true).catch(noted("diagrams"));
 };
@@ -138,6 +139,7 @@ const writtenIn = (page: Document) => {
         docPlaced(now).then((drawn) => {
           const sheet = page.querySelector(".page");
           if (sheet) freshen(sheet, drawn);
+          worn(page, () => true, reaching());
           writer?.drawn();
         }),
       );
