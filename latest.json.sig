@@ -1,4 +1,4 @@
 untrusted comment: signature from minisign secret key
-RUSHqxp5NyBhkP+rOdgzKf5HQ6Su1vxra+CQ88ANsrsLRAgk3enXY/kjQ+bQ3fZAixeOu3vNnfYSrUIof98ZKiutyNyezdqrrQg=
-trusted comment: file:latest.json tisty feed 1.49.0
-LZFf6ciA0cy/4yW9Y5pLJ5NWgLNOkzWB04Zc0+RTmo88InVdVvhGR4W3ke6z81WqNpVsV6KQDvGj6C8BltrpAQ==
+RUSHqxp5NyBhkHSHuFASouKv8NBsqs5yTPixMyH5YRJHwBbMUpbDTZgtVnnY9jFnnC7d8pJtVAHvRCYQxXyHBMa9tpmObnltqg0=
+trusted comment: file:latest.json tisty feed 1.50.0
+ZC1XPbLrUqmbNQrDuFMaG0sjlEY4amgmWdbFI2mSu0TynIOlrv9h7Hql4j9xD3oEjbI9EaPfCHXcZE6ffqfvAw==
