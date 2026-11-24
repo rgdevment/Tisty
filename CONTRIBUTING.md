@@ -39,6 +39,10 @@ Pull Requests, so those routes reach the codebase without passing it. If you
 have not signed, keep such snippets to a description of the fix rather than the
 patch itself, and a maintainer will write it.
 
+**Other people's work keeps its credit.** If what you send includes something
+you did not write, or a tool wrote it for you, the CLA asks you to say what it
+is and under what licence, and its notices stay with it.
+
 **In return, the project commits that:**
 
 - The community edition stays available under the AGPL-3.0.

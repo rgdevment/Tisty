@@ -1,0 +1,49 @@
+Tisty
+Copyright (C) 2026 Mario Hidalgo García (rgdevment)
+https://github.com/rgdevment/Tisty
+
+Other documents in this repository name the same copyright holder as
+Mario Hidalgo G. (rgdevment). Whoever contributes keeps the copyright on what
+they wrote, as CLA.md says, and the history of this repository says who wrote
+what.
+
+Tisty is licensed under the GNU Affero General Public License, version 3 only.
+The whole text is in LICENSE.
+
+
+Additional terms, under section 7 of that licence
+
+They apply to Tisty as a whole. They do not cover the third-party material
+listed in THIRD-PARTY.md, which keeps its own terms, nor the contract in
+contracts/, whose own file, ADDITIONAL-PERMISSION.md, stays as it is.
+
+1. Keep the notices. Whoever conveys Tisty, or a work based on it, keeps this
+   file, the copyright and licence notices it carries and, where the work shows
+   legal notices in its interface, the author's name and the link above among
+   them (section 7, letter b).
+
+2. Say what is yours. The origin of Tisty is not misrepresented, and a modified
+   version is marked, in a reasonable way, as different from the original
+   (letter c).
+
+3. No endorsement. The author's name is not used to publicise a work without
+   written permission; crediting it, as above, needs none (letter d).
+
+4. The name stays apart. This licence grants no rights over the names Tisty and
+   Folio by Tisty, nor over their logos and mascot, as trademarks or service
+   marks (letter e). Naming Tisty to say what something works with or is based
+   on is fine.
+
+
+The help, the guide's text and the screens
+
+They may also be used under Creative Commons Attribution 4.0, as
+docs/CONTENT-LICENCE.md says, with what it leaves out.
+
+
+How to give credit
+
+   Based on Tisty, by Mario Hidalgo García (rgdevment)
+   https://github.com/rgdevment/Tisty, AGPL-3.0-only
+
+If you changed it, say so beside it.
