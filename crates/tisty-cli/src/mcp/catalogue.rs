@@ -126,6 +126,14 @@ document repeating one of them is a duplicate: neither happens if you ask, befor
 All of this is advice to offer the person, never a reason to overrule them: when they ask for a \
 document, write the document, and say once where that work would otherwise live.
 
+## Keep whose it is
+
+What someone else wrote keeps its author, where it came from and its licence when you file it, \
+quote it or fold it into another document: one line saying who, where and under what terms. \
+Leave signatures, credits and copyright notices where they are when you edit, merge or compact, \
+and never hand someone's work over as the person's or as yours. Quote a little and link to the \
+rest, and where the licence is not said, say that instead of guessing.
+
 ## Update; do not pile up
 
 The default write is updating what exists, in place: `edit_doc` on the passage that is now \
