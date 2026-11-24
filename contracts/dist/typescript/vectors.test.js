@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, checkHtml, picturesIn, playableAs, referencesIn, VERSION } from "./index.js";
+import { check, checkHtml, CONTRACTS, picturesIn, playableAs, referencesIn, VERSION } from "./index.js";
 
 const VECTORS = JSON.parse(readFileSync(new URL("./vectors.json", import.meta.url), "utf8"));
 const { subtle } = globalThis.crypto;
@@ -660,4 +660,13 @@ for (const [says, at] of [["its last byte", -1], ["a byte of its manifest", 40]]
 
 test("cutting it does not open it", async () => {
   await assert.rejects(opened(hex(VECTORS.main.envelope).slice(0, -1), MAIN, linkKey));
+});
+
+test("every sheet of the designs holds, and what is worn is the document's and one this contract names", () => {
+  for (const { says, document, page, wears } of VECTORS.designs_worn) {
+    assert.deepEqual(check("sheet", document), [], says);
+    if (page) assert.deepEqual(check("sheet", page), [], says);
+    const named = CONTRACTS.sheet.enums.design;
+    assert.equal(named.includes(document.design) ? document.design : CONTRACTS.designs.values.default, wears, says);
+  }
 });

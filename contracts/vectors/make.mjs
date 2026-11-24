@@ -653,6 +653,14 @@ const hostileWidget = {
   body: `\`\`\`widget\n${WIDGET_CODE}\n\`\`\`\n`,
 };
 
+const designsWorn = [
+  ["a document without one", {}, undefined, "tisty"],
+  ["a document with one", { design: "bosque" }, undefined, "bosque"],
+  ["one this reader does not know", { design: "pergamino" }, undefined, "tisty"],
+  ["a page with another one, which is not read", { design: "bosque" }, { design: "coral" }, "bosque"],
+  ["a page with one, in a document without any", {}, { design: "coral" }, "tisty"],
+].map(([says, document, page, wears]) => ({ says, document, ...(page ? { page } : {}), wears }));
+
 const said = {
   link_key: b64(LINK_KEY),
   identity: { root: b64(root.public), fingerprint: fingerprintOf(root.public) },
@@ -745,6 +753,7 @@ const said = {
   pictures,
   playing,
   first_bytes: firstBytes,
+  designs_worn: designsWorn,
   hostile_widget: hostileWidget,
   revocation: revoked,
   main: { envelope: main.bytes.toString("hex"), document: whole, pictures: PICTURES.map((one) => one.toString("hex")), print: mainPrint },

@@ -6,6 +6,9 @@ says: >-
   and its tables. What a design does not say is what style says, so a document without one looks as it always did.
 values:
   default: tisty
+  pages: "A document wears one design and its pages wear it too, on screen, printed and shared. A design the sheet of a page says is not read. In several languages it is the one of the anchor: a writer writes it on the sheet of each, and a reader without the anchor wears the one its own sheet says."
+  chosen_by: "Whoever shares the document. A reader wears it and does not offer another."
+  own_colors: "Callouts, notes, code, diagrams and widgets look as they do in tisty, over any design: the tint of a callout lies over the sheet of tisty, and inside it every color is the one of tisty, accent-soft included. A heading inside a callout inherits its color, and a table inside it keeps its head as grid."
   theme: "The light colors or the dark ones, by the theme the reader shows the sheet in."
   colors:
     said: [sheet, ink, soft, line, accent, heading]
@@ -23,13 +26,13 @@ values:
     bar: { border_bottom: "4px solid accent" }
   tables:
     grid: "As style says."
-    tint: { head: { color: sheet, background: accent }, says: "Nothing else changes, and no measure does." }
+    tint: { head: { color: sheet, background: accent }, says: "The head is the th of its thead, and no other th. Nothing else changes, and no measure does." }
   cutting: "The type and the title of a design decide where a sheet is cut, so a reader wears them before it lays the sheets."
-  printing: "On paper it wears its light colors over white paper, in whatever theme it is read."
+  printing: "On paper it wears its light colors over white paper, in whatever theme it is read. Only the paper turns white: a head of tint keeps the light sheet of the design as its letters."
   diagrams: "A diagram travels drawn and keeps its own colors."
   designs:
     tisty:
-      names: { es: "Tisty", en: "Tisty" }
+      names: { es: "Default", en: "Default" }
       light: { sheet: "#ffffff", ink: "#1d1d1f", soft: "#57575c", line: "rgb(0 0 0 / 0.16)", accent: "#0060e3", heading: "#1d1d1f" }
       dark: { sheet: "#232326", ink: "#f2f2f7", soft: "#adadb4", line: "rgb(255 255 255 / 0.2)", accent: "#439bff", heading: "#f2f2f7" }
       type: { text: sans, headings: sans, size: "15px", line_height: 1.65, align: left }

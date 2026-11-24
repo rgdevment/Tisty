@@ -495,7 +495,7 @@ fields:
   paper: { type: paper, otherwise: a4, says: "Its size. A4 when it says none, or one this reader does not know." }
   on: { type: bool, says: "Whether it is drawn in sheets on screen. Off, the paper only says how it prints." }
   orientation: { type: orientation, otherwise: portrait, says: "Only while in sheets. Portrait when it says none, or one this reader does not know." }
-  design: { type: design, otherwise: tisty, says: "How it looks, by its name in designs. Tisty when it says none, or one this reader does not know. In sheets or not." }
+  design: { type: design, otherwise: tisty, says: "How it looks, by its name in designs. The default of designs when it says none, or one this reader does not know. In sheets or not. The sheet of a page is not read for it: its document says it." }
 values:
   millimetres:
     a4: [210, 297]
@@ -535,7 +535,7 @@ cases:
   - says: "A design."
     value: { design: "bosque" }
     holds: true
-  - says: "A design this reader does not know, which is read as Tisty."
+  - says: "A design this reader does not know, which is read as the default one."
     value: { design: "pergamino" }
     holds: true
   - says: "A design that is no word."
