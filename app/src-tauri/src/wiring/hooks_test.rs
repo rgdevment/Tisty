@@ -591,154 +591,18 @@ fn hooks_of_the_release_before_have_no_hook_that_asks_first() {
 }
 
 #[test]
-fn completing_adds_only_the_hook_that_asks_first_and_keeps_the_rest_as_it_was() {
-    for kind in ALL {
-        let (tmp, here) = linux();
-        let full = with(kind, "", &here).unwrap();
-        let old = as_of_1_49(kind, &full);
-        let changed = old.replacen("15", "99", 1);
-        assert_ne!(changed, old, "{kind:?}");
-
-        let now = completed(kind, &changed, &here).unwrap();
-
-        assert!(!lacks_before(kind, &now), "{kind:?}");
-        let (was, told) = (read(&changed), read(&now));
-        let others = was["hooks"].as_object().unwrap();
-        for (event, groups) in others {
-            assert_eq!(&told["hooks"][event], groups, "{kind:?} {event}");
-        }
-        for event in before_events(kind) {
-            assert!(!told["hooks"][*event].as_array().unwrap().is_empty());
-        }
-        assert!(now.contains("99"), "{kind:?}");
-        written(kind, tmp.path(), &now);
-        assert!(!seen(kind, &here).unwrap().lacks_before);
-    }
-}
-
-#[test]
-fn completing_gives_the_same_hooks_as_writing_them_all_at_once() {
+fn turning_hooks_of_the_release_before_off_and_on_brings_the_hook_that_asks_first() {
     for kind in ALL {
         let (_tmp, here) = linux();
         let full = with(kind, "", &here).unwrap();
         let old = as_of_1_49(kind, &full);
 
-        let now = completed(kind, &old, &here).unwrap();
+        let off = without(kind, &old).unwrap();
+        let on = with(kind, &off, &here).unwrap();
 
-        assert_eq!(read(&now), read(&full), "{kind:?}");
-    }
-}
-
-#[test]
-fn completing_twice_changes_nothing_and_a_complete_file_is_returned_as_it_is() {
-    for kind in ALL {
-        let (_tmp, here) = linux();
-        let full = with(kind, "", &here).unwrap();
-        let old = as_of_1_49(kind, &full);
-
-        let once = completed(kind, &old, &here).unwrap();
-        let twice = completed(kind, &once, &here).unwrap();
-
-        assert_eq!(twice, once, "{kind:?}");
-        assert_eq!(completed(kind, &full, &here).unwrap(), full, "{kind:?}");
-    }
-}
-
-#[test]
-fn completing_keeps_what_the_person_already_had_in_the_same_event() {
-    for kind in ALL {
-        let (_tmp, here) = linux();
-        let mut old = read(&as_of_1_49(kind, &with(kind, "", &here).unwrap()));
-        let event = before_events(kind)[0];
-        old["hooks"][event] = json!([person_entry(kind)]);
-
-        let now = read(&completed(kind, &as_text(&old), &here).unwrap());
-
-        let all = now["hooks"][event].as_array().unwrap();
-        assert_eq!(all.len(), 2, "{kind:?}");
-        assert_eq!(all[0], person_entry(kind), "{kind:?}");
-    }
-}
-
-#[test]
-fn completing_is_refused_when_nothing_of_tistys_is_there_or_it_is_run_apart_or_an_event_is_no_list()
-{
-    for kind in ALL {
-        let (_tmp, here) = linux();
-        let full = with(kind, "", &here).unwrap();
-        let old = as_of_1_49(kind, &full);
-        assert_eq!(completed(kind, "{}", &here), None, "{kind:?}");
-        assert_eq!(completed(kind, "", &here), None, "{kind:?}");
-
-        let mut apart = read(&old);
-        let event = match kind {
-            Kind::Claude => "Stop",
-            Kind::Cursor => "stop",
-            Kind::Gemini => "AfterAgent",
-            Kind::Copilot => "agentStop",
-        };
-        let wrapped = match kind {
-            Kind::Claude => {
-                json!({ "hooks": [{ "command": "quiet.exe tisty.exe hook claude-code stop" }] })
-            }
-            Kind::Cursor => json!({ "command": "quiet.exe tisty.exe hook cursor stop" }),
-            Kind::Gemini => {
-                json!({ "hooks": [{ "command": "quiet.exe tisty.exe hook gemini-cli stop" }] })
-            }
-            Kind::Copilot => json!({ "bash": "quiet.exe tisty.exe hook copilot stop" }),
-        };
-        apart["hooks"][event].as_array_mut().unwrap().push(wrapped);
-        assert!(super::apart(kind, &as_text(&apart)), "{kind:?}");
-        assert_eq!(completed(kind, &as_text(&apart), &here), None, "{kind:?}");
-
-        let mut broken = read(&old);
-        broken["hooks"][before_events(kind)[0]] = json!("not a list");
-        assert_eq!(completed(kind, &as_text(&broken), &here), None, "{kind:?}");
-    }
-}
-
-#[test]
-fn turning_the_hook_that_asks_first_off_takes_out_only_it() {
-    for kind in ALL {
-        let (_tmp, here) = linux();
-        let full = with(kind, "", &here).unwrap();
-        let mut mixed = read(&full);
-        let event = before_events(kind)[0];
-        mixed["hooks"][event]
-            .as_array_mut()
-            .unwrap()
-            .insert(0, person_entry(kind));
-        let mixed = as_text(&mixed);
-
-        let now = without_before(kind, &mixed).unwrap();
-        let told = read(&now);
-
-        assert!(hooked(kind, &now), "{kind:?}");
-        assert!(lacks_before(kind, &now), "{kind:?}");
-        assert_eq!(
-            told["hooks"][event],
-            json!([person_entry(kind)]),
-            "{kind:?}"
-        );
-        let mut expected = read(&full);
-        for event in before_events(kind) {
-            expected["hooks"].as_object_mut().unwrap().remove(*event);
-        }
-        for (event, groups) in expected["hooks"].as_object().unwrap() {
-            assert_eq!(&told["hooks"][event], groups, "{kind:?} {event}");
-        }
-        assert_eq!(without_before(kind, &now).unwrap(), now, "{kind:?}");
-    }
-}
-
-#[test]
-fn turning_the_hook_that_asks_first_off_where_there_is_none_changes_nothing() {
-    for kind in ALL {
-        let (_tmp, here) = linux();
-        let old = as_of_1_49(kind, &with(kind, "", &here).unwrap());
-
-        assert_eq!(without_before(kind, &old).unwrap(), old, "{kind:?}");
-        assert_eq!(without_before(kind, "{}").unwrap(), "{}", "{kind:?}");
+        assert!(!hooked(kind, &off), "{kind:?}");
+        assert!(!lacks_before(kind, &on), "{kind:?}");
+        assert_eq!(read(&on)["hooks"], read(&full)["hooks"], "{kind:?}");
     }
 }
 

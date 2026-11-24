@@ -547,8 +547,8 @@ const words = {
     "Este documento ya dice lo mismo que el archivo; solo cambia cómo termina el archivo. Sobrescríbelo con Tisty para que coincidan.",
   ],
   tistySkills: ["Tisty's skills", "Skills de Tisty"],
+  tistySkillsWhole: ["on this whole computer", "en todo este equipo"],
   tistySkillsOff: ["Off", "Apagadas"],
-  tistySkillsOn: ["On this computer", "En este equipo"],
   tistySkillsRowBehind: ["To bring up to date", "Por poner al día"],
   tistySkillsRowNone: ["Not here", "Aquí no"],
   tistySkillsRowNoFolder: [
@@ -644,27 +644,6 @@ const words = {
     "Tres skills que les enseñan a tus agentes a trabajar con Tisty. Tienen su propio sí, en este equipo.",
   ],
   tistySkillsVersion: ["From Tisty {name}", "De Tisty {name}"],
-  connectOfferTitle: [
-    "{name} is connected. This helps it work with Tisty:",
-    "{name} ya está conectado. Esto lo ayuda a trabajar con Tisty:",
-  ],
-  connectOfferPlugged: [
-    "The Tisty plugin already brings its hooks.",
-    "Sus hooks ya los trae el plugin de Tisty.",
-  ],
-  connectOfferSkills: [
-    "Tisty's skills teach {name} to pick up where it left off, tidy up and leave work ready for the next agent.",
-    "Las skills de Tisty le enseñan a {name} a retomar, ordenar y dejar el trabajo listo para el próximo agente.",
-  ],
-  connectOfferSkillsSee: ["See Tisty's skills", "Ver las skills de Tisty"],
-  connectOfferSkillsOn: [
-    "Tisty's skills are already on this computer.",
-    "Las skills de Tisty ya están en este equipo.",
-  ],
-  connectOfferSkillsPlugged: [
-    "{name} already has Tisty's skills through the Tisty plugin.",
-    "{name} ya tiene las skills de Tisty por el plugin de Tisty.",
-  ],
   tistyLanding_upToDate: ["In sync", "Al día"],
   tistyLanding_wrote: ["In sync", "Al día"],
   tistyLanding_write: ["About to be written", "Por escribir"],

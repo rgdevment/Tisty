@@ -216,7 +216,7 @@ describe("Tisty's own skills", () => {
     expect(sayings("someone-else")).toEqual([]);
   });
 
-  it("adds them on this computer and then offers to remove them", async () => {
+  it("turns them on and closes, and then offers to turn them off", async () => {
     const on = skills({
       on: true,
       landing: [
@@ -237,6 +237,8 @@ describe("Tisty's own skills", () => {
 
     await waitFor(() => expect(sent("agents_tisty_skills_take")).toHaveLength(1));
     expect(sent("agents_tisty_skills_take")[0].args).toEqual({ on: true });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills.*On/ }));
     expect(await screen.findByRole("button", { name: "Turn off on this computer" })).toBeTruthy();
     expect(screen.getByText("In sync")).toBeTruthy();
     expect(screen.getByText("A skill that is not Tisty's: left as it is")).toBeTruthy();

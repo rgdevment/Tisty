@@ -16,7 +16,7 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 **Connect the 3 found**, with however many wait, connects every one waiting in one go. If yours is not there, the search under the list finds it among the agents Tisty knows.
 
-When you connect Claude Code, Cursor, Gemini CLI or GitHub Copilot, its hooks come with it: Tisty shows you the files first, with a tick to leave them out. And the row of those and of Codex offers you, only once, **See Tisty's skills**, which this page tells further down. **Not now** closes it; the same stays on the usual rows. Codex, which has no hooks, sees only the skills.
+When you connect Claude Code, Cursor, Gemini CLI or GitHub Copilot, its hooks and Tisty's skills, which this page tells further down, come with it and stay on: Tisty shows you the files first, with a tick to leave each one out. What you untick stays off, with its switch under the agent's row. Codex, which has no hooks, sees only the skills.
 
 Then quit the agent completely and open it again: it reads its settings when it starts. If you would rather do it by hand, with a plugin or inside WSL, every way is in [agents and MCP](https://www.tisty.app/docs/agents-and-mcp/).
 
@@ -34,7 +34,7 @@ Nothing listens until you connect one: the agent starts Tisty when it needs it, 
 An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings › Agents › Door**:
 
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every agent, though only when it calls Tisty.
-- **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, **Add**, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. **Remove**, beside the hooks, takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
+- **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, the **Tisty's hooks** switch, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. Turning it off takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
 
 ## So it knows how to work: Tisty's skills
 
@@ -46,14 +46,14 @@ Tisty brings three skills that teach your agent to work with it. There are no co
 | `consolidate` | Tidying what is kept: it proposes each fix and never deletes | “Tidy up my Tisty” |
 | `writing-for-the-next-agent` | Writing so the next agent understands it without the conversation | “Make this page clear for the next agent” |
 
-You turn them on in **Settings › Agents › Connected**, on the **Tisty's skills** row, at the end of the list: **See** opens their card, which says where they go on this computer and what Tisty reads to write them, and **Turn on here** is their yes. They have their own yes and need no Agents folder: they reach `~/.claude/skills`, `~/.cursor/skills` and `~/.agents/skills`, the one Codex, Copilot and Gemini share.
+You turn them on when you connect an agent or in **Settings › Agents › Connected**, with the switch under each agent or on the **Tisty's skills** row, at the end of the list: **See** opens their card, which says where they go on this computer and what Tisty reads to write them, and **Turn on here** is their yes. They have their own yes and need no Agents folder: they reach `~/.claude/skills`, `~/.cursor/skills` and `~/.agents/skills`, the one Codex, Copilot and Gemini share.
 
 - **They update by themselves** with each Tisty version, and never write over a skill of yours with the same name or a copy you changed.
 - **They count only on this computer**: on another one you decide there. Pausing Agents does not reach them: they have their own switch.
 - **Turn off on this computer** takes them out of your agents' folders, with a backup, without deleting them: they stay in Tisty, ready to turn on again.
 - **With the Tisty plugin** in Claude Code, the plugin already brings the hooks and the skills: the hooks row says **The Tisty plugin brings them**, and Tisty does not copy its skills there.
 
-**An example.** Yisset connects Claude Code and, in the box that shows up under its row, adds its hooks and turns the skills on. The next day she writes “Pick up where we left off”: the agent asks for `catch_up`, opens the task it was on, «Export the monthly report to CSV», and carries on from its **State**. Before she goes, “Leave this ready for the next agent” leaves the steps ticked, the state up to date and a note with what it ruled out. That stays on the task: another day, in Codex, name the task by its title and Codex reads the state and the note right there. “Pick up where we left off”, instead, takes each agent to the last thing it left.
+**An example.** Yisset connects Claude Code and leaves its hooks and the skills ticked. The next day she writes “Pick up where we left off”: the agent asks for `catch_up`, opens the task it was on, «Export the monthly report to CSV», and carries on from its **State**. Before she goes, “Leave this ready for the next agent” leaves the steps ticked, the state up to date and a note with what it ruled out. That stays on the task: another day, in Codex, name the task by its title and Codex reads the state and the note right there. “Pick up where we left off”, instead, takes each agent to the last thing it left.
 
 All of it, case by case and with the agent's calls, is in [hooks and skills](https://www.tisty.app/docs/hooks-and-skills/).
 

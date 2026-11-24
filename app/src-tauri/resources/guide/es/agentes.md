@@ -16,7 +16,7 @@ Esta hoja es una página de la guía. Cuenta cómo trabajar con un agente de IA 
 
 **Conectar los 3 detectados**, con los que haya, conecta de una vez todos los que esperan. Si el tuyo no aparece, el buscador bajo la lista lo encuentra entre los que Tisty conoce.
 
-Al conectar Claude Code, Cursor, Gemini CLI o GitHub Copilot, sus hooks van incluidos: Tisty te muestra antes los archivos, con una casilla para dejarlos fuera. Y la fila de esos y de Codex te ofrece una sola vez **Ver las skills de Tisty**, que cuenta esta página más abajo. **Ahora no** lo cierra; lo mismo sigue en las filas de siempre. Codex, que no tiene hooks, ve solo las skills.
+Al conectar Claude Code, Cursor, Gemini CLI o GitHub Copilot, sus hooks y las skills de Tisty, que cuenta esta página más abajo, van incluidos y quedan encendidos: Tisty te muestra antes los archivos, con una casilla para dejar fuera cada uno. Lo que desmarcas queda apagado, con su interruptor bajo la fila del agente. Codex, que no tiene hooks, ve solo las skills.
 
 Después, cierra el agente del todo y ábrelo de nuevo: lee su configuración al abrirse. Si prefieres hacerlo a mano, con un plugin o dentro de WSL, cada forma está en [agentes y MCP](https://www.tisty.app/es/ayuda/agentes-y-mcp/).
 
@@ -34,7 +34,7 @@ Nada escucha hasta que conectas uno: el agente arranca Tisty cuando lo necesita,
 Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración › Agentes › Puerta**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los agentes, aunque solo cuando llaman a Tisty.
-- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, **Agregar**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. **Quitar**, junto a los hooks, los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
+- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, el interruptor **Hooks de Tisty**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. Apagarlo los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
 ## Que sepa cómo trabajar: las skills de Tisty
 
@@ -46,14 +46,14 @@ Tisty trae tres skills que le enseñan a tu agente a trabajar con él. No hace f
 | `consolidate` | Ordenar lo guardado: propone cada arreglo y nunca borra | «Ordena mi Tisty» |
 | `writing-for-the-next-agent` | Escribir para que el próximo agente lo entienda sin la conversación | «Deja esta página clara para el próximo agente» |
 
-Se encienden en **Configuración › Agentes › Conectados**, en la fila **Skills de Tisty**, al final de la lista: **Ver** abre su ficha, que dice dónde van en este equipo y qué lee Tisty para escribirlas, y **Encender en este equipo** es su sí. Tienen su propio sí y no necesitan la carpeta Agentes: llegan a `~/.claude/skills`, a `~/.cursor/skills` y a `~/.agents/skills`, la que comparten Codex, Copilot y Gemini.
+Se encienden al conectar un agente o en **Configuración › Agentes › Conectados**, con el interruptor bajo cada agente o en la fila **Skills de Tisty**, al final de la lista: **Ver** abre su ficha, que dice dónde van en este equipo y qué lee Tisty para escribirlas, y **Encender en este equipo** es su sí. Tienen su propio sí y no necesitan la carpeta Agentes: llegan a `~/.claude/skills`, a `~/.cursor/skills` y a `~/.agents/skills`, la que comparten Codex, Copilot y Gemini.
 
 - **Se actualizan solas** con cada versión de Tisty, y nunca pisan una skill tuya con el mismo nombre ni una copia que cambiaste.
 - **Valen solo en este equipo**: en otro lo decides allá. La pausa de Agentes no las alcanza: tienen su propio interruptor.
 - **Apagar en este equipo** las saca de las carpetas de tus agentes, con respaldo, sin eliminarlas: siguen en Tisty, listas para encenderlas otra vez.
 - **Con el plugin de Tisty** en Claude Code, el plugin ya trae los hooks y las skills: la fila de hooks dice **Los trae el plugin de Tisty**, y Tisty no copia ahí sus skills.
 
-**Un ejemplo.** Yisset conecta Claude Code y, en el recuadro que aparece bajo su fila, agrega sus hooks y enciende las skills. Al otro día le escribe «Retoma donde quedamos»: el agente pide `catch_up`, abre la tarea en que estaba, «Exportar el reporte mensual a CSV», y sigue desde su **Estado**. Antes de irse, «Deja esto listo para el próximo agente» deja los pasos marcados, el estado al día y una nota con lo que descartó. Eso queda en la tarea: otro día, en Codex, nombra la tarea por su título y Codex lee ahí mismo el estado y la nota. «Retoma donde quedamos», en cambio, lleva a cada agente a lo último que dejó él.
+**Un ejemplo.** Yisset conecta Claude Code y deja marcados sus hooks y las skills. Al otro día le escribe «Retoma donde quedamos»: el agente pide `catch_up`, abre la tarea en que estaba, «Exportar el reporte mensual a CSV», y sigue desde su **Estado**. Antes de irse, «Deja esto listo para el próximo agente» deja los pasos marcados, el estado al día y una nota con lo que descartó. Eso queda en la tarea: otro día, en Codex, nombra la tarea por su título y Codex lee ahí mismo el estado y la nota. «Retoma donde quedamos», en cambio, lleva a cada agente a lo último que dejó él.
 
 Todo, caso por caso y con las llamadas del agente, está en [hooks y skills](https://www.tisty.app/es/ayuda/hooks-y-skills/).
 

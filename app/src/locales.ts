@@ -3290,9 +3290,7 @@ const en = {
     "In {name}, Windows programs are turned off ([interop] enabled = false in /etc/wsl.conf), so its agents cannot start Tisty.",
   wslNone: "No agent Tisty knows in {name}.",
   noSuchAgent: "That agent is no longer on this computer",
-  hooksLabel: "Hooks: when a turn starts and ends",
-  hooksOn: "Added",
-  hooksOff: "Not added",
+  hooksLabel: "Tisty's hooks",
   hooksAstray: "They run another Tisty",
   hooksLost: "They run a Tisty that is gone",
   hooksUnread: "Could not be read",
@@ -3303,20 +3301,11 @@ const en = {
   hooksPointGone: "Its hooks point at {name}, which is no longer there",
   hooksAskPlugin:
     "For Claude Code, Tisty first reads its plugin's records (installed_plugins.json and settings.json) so as not to write hooks the plugin already brings.",
-  hooksAdd: "Add",
-  hooksOut: "Remove",
   hooksAsk:
-    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. Before it leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. The rest of that file stays as it is, and you can remove them here.",
+    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. Before it leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. The rest of that file stays as it is, and you can turn them off here.",
   hooksYes: "Add them",
-  hooksBefore: "Before it leaves something outside a repository",
-  hooksBeforeNew: "There is a new hook: before it leaves something outside a repository",
-  hooksBeforeAdd: "Add the new one",
-  hooksBeforeOut: "Remove this one",
-  hooksBeforeYes: "Add it",
-  hooksBeforeAsk:
-    "Tisty will add this hook to {name}, beside the ones already there. Before the agent leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. It looks at the path, at where a terminal command writes and at whether the card is the agent's own; it does not read the conversation or keep what it looks at. The rest of that file stays as it is.",
-  hooksBeforeFresh: "Added. It runs it from its next session.",
-  hooksBeforeGone: "Removed. The others stay.",
+  hooksMissOne:
+    "They lack the newest one, which asks before it leaves something outside a repository: turn them off and on to have it.",
   joinTitle: "Connect {name} to Tisty",
   joinTitleAll: "Connect {name} agents to Tisty",
   joinHooks: "With its hooks: {name}",
@@ -3327,7 +3316,7 @@ const en = {
   hooksGoneApart: "Tisty's own are removed. The ones written your own way stay.",
   hooksPlugged: "The Tisty plugin brings them",
   hooksTwice:
-    "The Tisty plugin brings them too, so they run twice. Remove these to keep the plugin's.",
+    "The Tisty plugin brings them too, so they run twice. Turn these off to keep the plugin's.",
   wslShut: "Windows programs are turned off in that distro, so nothing was written.",
   wslUnread: "{name} could not be read. Open it once in a terminal and look again.",
   settingsPuzzling:
@@ -7135,9 +7124,7 @@ const es: Catalog = {
     "En {name} los programas de Windows están apagados ([interop] enabled = false en /etc/wsl.conf), así que sus agentes no pueden abrir Tisty.",
   wslNone: "No hay agentes que Tisty conozca en {name}.",
   noSuchAgent: "Ese agente ya no está en este equipo",
-  hooksLabel: "Hooks: al empezar y al terminar cada turno",
-  hooksOn: "Agregados",
-  hooksOff: "Sin agregar",
+  hooksLabel: "Hooks de Tisty",
   hooksAstray: "Usan otro Tisty",
   hooksLost: "Usan un Tisty que ya no existe",
   hooksUnread: "No se pudo leer",
@@ -7148,20 +7135,11 @@ const es: Catalog = {
   hooksPointGone: "Sus hooks apuntan a {name}, que ya no existe",
   hooksAskPlugin:
     "En Claude Code, Tisty lee antes el registro de su plugin (installed_plugins.json y settings.json) para no escribir hooks que el plugin ya trae.",
-  hooksAdd: "Agregar",
-  hooksOut: "Quitar",
   hooksAsk:
-    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. Antes de dejar un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. El resto de ese archivo queda como está, y puedes quitarlos aquí.",
+    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. Antes de dejar un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. El resto de ese archivo queda como está, y puedes apagarlos aquí.",
   hooksYes: "Agregarlos",
-  hooksBefore: "Antes de dejar algo fuera de un repo",
-  hooksBeforeNew: "Hay un hook nuevo: antes de dejar algo fuera de un repo",
-  hooksBeforeAdd: "Agregar el nuevo",
-  hooksBeforeOut: "Quitar este",
-  hooksBeforeYes: "Agregarlo",
-  hooksBeforeAsk:
-    "Tisty agregará este hook en {name}, junto a los que ya están. Antes de que el agente deje un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. Mira la ruta, dónde escribe un comando de la terminal y si la tarjeta es cosa del agente; no lee la conversación ni guarda lo que mira. El resto de ese archivo queda como está.",
-  hooksBeforeFresh: "Agregado. Lo usa desde su próxima sesión.",
-  hooksBeforeGone: "Quitado. Los otros siguen.",
+  hooksMissOne:
+    "Les falta el más nuevo, el de antes de dejar algo fuera de un repo: apágalos y enciéndelos para tenerlo.",
   joinTitle: "Conectar {name} con Tisty",
   joinTitleAll: "Conectar {name} agentes con Tisty",
   joinHooks: "Con sus hooks: {name}",
@@ -7172,7 +7150,7 @@ const es: Catalog = {
   hooksGoneApart: "Quitados los de Tisty. Los escritos a tu manera quedan.",
   hooksPlugged: "Los trae el plugin de Tisty",
   hooksTwice:
-    "El plugin de Tisty también los trae, así que corren dos veces. Quita estos para dejar los del plugin.",
+    "El plugin de Tisty también los trae, así que corren dos veces. Apaga estos para dejar los del plugin.",
   wslShut: "En esa distro los programas de Windows están apagados, así que no se escribió nada.",
   wslUnread: "No se pudo leer {name}. Ábrela una vez en una terminal y vuelve a buscar.",
   settingsPuzzling:

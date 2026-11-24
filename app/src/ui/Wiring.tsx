@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { allParts, skillsBehind, some } from "../agentsAmiss";
 import { bringing, mendOne, mendSkills, type Outcome } from "../agentsMending";
-import { hooksToken, markOffered, offered, offers, SKILLED, takesHooks } from "../agentsOffered";
-import type { TistySkills } from "../agentsSync";
+import { hooksToken, markOffered, SKILLED, takesHooks } from "../agentsOffered";
+import { AGENTS_CHANGED, type TistySkills, tistySkillsTake } from "../agentsSync";
 import {
   type Assistant,
   copied,
   hooked,
-  hookedBefore,
   seenAgents,
   unwireAgent,
   type Wired,
@@ -19,10 +18,9 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Run, Word } from "./Card";
-import ConnectOffer from "./ConnectOffer";
 import Hooking, { type OnHook } from "./Hooking";
-import MendAsk, { JoinAsk, OutAsk } from "./MendAsk";
-import { foldersBehind, TistySkillsAgentLine } from "./TistySkills";
+import MendAsk, { JoinAsk, type JoinWith, OutAsk } from "./MendAsk";
+import { foldersBehind, TistySkillsAgentLine, teaches } from "./TistySkills";
 
 const LOOKED = "tisty.wsl.looked";
 
@@ -86,11 +84,9 @@ interface RowProps {
   one: Wired;
   hand?: string;
   held: boolean;
-  offering?: boolean;
-  onJoin: (one: Wired, withHooks?: boolean) => void;
+  onJoin: (one: Wired, withThem?: JoinWith) => void;
   onHook: OnHook;
   onFix: (one: Wired) => void;
-  onOffered?: (one: Wired) => void;
   skills?: TistySkills | null;
   onSkills?: (now: TistySkills) => void;
   behind?: string[];
@@ -104,10 +100,12 @@ function Extras({ one, held, onHook, onFix, skills, onSkills }: Readonly<RowProp
   if (!hooks && !taught) return null;
   return (
     <div className="mt-2 divide-y divide-hair rounded-[10px] border border-hair">
+      {taught && (
+        <TistySkillsAgentLine agent={agent} name={one.name} skills={skills} onTaken={onSkills} />
+      )}
       {hooks && (
         <Hooking one={one} held={held} onHook={onHook} onFix={one.astray ? undefined : onFix} />
       )}
-      {taught && <TistySkillsAgentLine agent={agent} skills={skills} onTaken={onSkills} />}
     </div>
   );
 }
@@ -119,7 +117,7 @@ const heldBack = (one: Wired): string | undefined => {
 };
 
 function Row(props: Readonly<RowProps>) {
-  const { one, hand, held, offering, onJoin, onHook, onFix, onOffered } = props;
+  const { one, hand, held, onJoin, onFix, skills } = props;
   const [open, setOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -129,13 +127,14 @@ function Row(props: Readonly<RowProps>) {
     if (one.wired) setJoining(false);
   }, [one.wired]);
   const holds = (one.wired || !!one.apart) && !one.astray;
+  const asks = takesHooks(one) || teaches([one], skills);
   const press = () => {
     if (one.astray) setAsking(!asking);
     else if (holds) setLeaving(!leaving);
-    else if (takesHooks(one)) setJoining(!joining);
+    else if (asks) setJoining(!joining);
     else onJoin(one);
   };
-  const leads = holds ? leaving : takesHooks(one) ? joining : undefined;
+  const leads = holds ? leaving : asks ? joining : undefined;
   const expanded = one.astray ? fixing : leads;
   const state = one.byHand
     ? "wiringStateHand"
@@ -213,11 +212,7 @@ function Row(props: Readonly<RowProps>) {
           {t(one.byHand || one.unread || one.apart ? "wiringHowShort" : "wiringStateHand")}
         </button>
       </div>
-      {offering && one.wired && !one.astray ? (
-        <ConnectOffer one={one} held={held} onHook={onHook} onDone={() => onOffered?.(one)} />
-      ) : (
-        <Extras {...props} onFix={() => setAsking(!asking)} />
-      )}
+      <Extras {...props} onFix={() => setAsking(!asking)} />
       {fixing && (
         <MendAsk
           one={one}
@@ -233,10 +228,11 @@ function Row(props: Readonly<RowProps>) {
       {joining && !holds && !one.astray && (
         <JoinAsk
           all={[one]}
+          skills={skills}
           held={held}
-          onYes={(withHooks) => {
+          onYes={(withThem) => {
             setJoining(false);
-            onJoin(one, withHooks);
+            onJoin(one, withThem);
           }}
           onNo={() => setJoining(false)}
         />
@@ -260,25 +256,17 @@ function Row(props: Readonly<RowProps>) {
 function Rows({
   all,
   hands,
-  fresh,
   ...rest
 }: Readonly<
-  Omit<RowProps, "one" | "hand" | "offering"> & {
+  Omit<RowProps, "one" | "hand"> & {
     all: Wired[];
     hands?: (one: Wired) => string | undefined;
-    fresh?: readonly string[];
   }
 >) {
   return (
     <div className="overflow-hidden rounded-[10px] border border-hair">
       {all.map((one) => (
-        <Row
-          key={one.id}
-          one={one}
-          hand={hands?.(one)}
-          offering={fresh?.includes(one.id)}
-          {...rest}
-        />
+        <Row key={one.id} one={one} hand={hands?.(one)} {...rest} />
       ))}
     </div>
   );
@@ -317,19 +305,7 @@ export default function Wiring({
   const [inside, setInside] = useState<Record<string, { shut: boolean; seen: Wired[] }>>({});
   const [known, setKnown] = useState<Wired[] | null>(null);
   const [asked, setAsked] = useState("");
-  const [fresh, setFresh] = useState<string[]>([]);
   const [joiningAll, setJoiningAll] = useState(false);
-  // Right after its first connection an agent is offered its hooks and Tisty's skills, once.
-  const offer = (joined: readonly Wired[]) => {
-    const now = joined
-      .filter((one) => offers(one) && !offered().includes(one.id))
-      .map((one) => one.id);
-    if (now.length === 0) return;
-    markOffered(now);
-    setFresh((was) => [...new Set([...was, ...now])]);
-  };
-  const offeredNow = (one: Wired) => setFresh((was) => was.filter((id) => id !== one.id));
-
   const lookHere = () => {
     seenAgents()
       .then(setAgents)
@@ -377,16 +353,31 @@ export default function Wiring({
       .catch((e) => ({ seen, why: [`${one.name}: ${saidPlainly(e)}`] }));
   };
 
+  // The yes to connect is the yes to Tisty's skills too, and what stops them never undoes the connection.
+  const taught = (wanted: boolean): Promise<string[]> =>
+    wanted
+      ? tistySkillsTake(true)
+          .then((now) => {
+            setSkills?.(now);
+            window.dispatchEvent(new Event(AGENTS_CHANGED));
+            return [];
+          })
+          .catch((e) => [`${t("tistySkills")}: ${saidPlainly(e)}`])
+      : Promise.resolve([]);
+
   const freshly = (why: string[]) =>
     tell({ card: "wiring", text: [t("wiringFresh"), ...why].join(" ") });
 
-  const join = (one: Wired, withHooks = false) => {
+  const join = (one: Wired, withThem: JoinWith = { hooks: false, skills: false }) => {
     const out = one.wired || !!one.apart;
     const work = async () => {
       try {
         return await (out
           ? unwireAgent(one.id).then((seen) => ({ seen, why: [] as string[] }))
-          : joined(one, withHooks));
+          : joined(one, withThem.hooks).then(async ({ seen, why }) => ({
+              seen,
+              why: [...why, ...(await taught(withThem.skills))],
+            })));
       } catch (e) {
         if (one.place) look(one.place);
         else lookHere();
@@ -399,7 +390,7 @@ export default function Wiring({
         tell({ card: "wiring", text: t("wiringGone") });
         return;
       }
-      offer(seen.filter((it) => it.id === one.id && it.wired));
+      markOffered([one.id]);
       freshly(why);
     });
   };
@@ -435,17 +426,7 @@ export default function Wiring({
       },
     );
 
-  const hookBefore = (one: Wired, on: boolean) =>
-    quietly("wiring", hookedBefore(one.id, on), (now) => {
-      place(one, now);
-      tell({ card: "wiring", text: t(on ? "hooksBeforeFresh" : "hooksBeforeGone") });
-    });
-
-  const hook: OnHook = (one, on, before) => {
-    if (before) {
-      hookBefore(one, on);
-      return;
-    }
+  const hook: OnHook = (one, on) => {
     quietly("wiring", hooked(one.id, on), (now) => {
       place(one, now);
       if (on) {
@@ -463,16 +444,18 @@ export default function Wiring({
     ...(agents ?? []).filter(ready),
     ...Object.values(inside).flatMap((one) => (one.shut ? [] : one.seen.filter(ready))),
   ];
-  const all = (withHooks = false) =>
+  const all = (withThem: JoinWith = { hooks: false, skills: false }) =>
     quietly(
       "wiring",
-      waiting.reduce<Promise<string[]>>(async (before, one) => {
-        const said = await before;
-        const { why } = await joined(one, withHooks);
-        return [...said, ...why];
-      }, Promise.resolve([])),
+      waiting
+        .reduce<Promise<string[]>>(async (before, one) => {
+          const said = await before;
+          const { why } = await joined(one, withThem.hooks);
+          return [...said, ...why];
+        }, Promise.resolve([]))
+        .then(async (said) => [...said, ...(await taught(withThem.skills))]),
       (why) => {
-        offer(waiting.filter((one) => !one.place));
+        markOffered(waiting.filter((one) => !one.place).map((one) => one.id));
         freshly(why);
         for (const one of waiting) {
           if (one.place) look(one.place);
@@ -480,6 +463,8 @@ export default function Wiring({
         if (waiting.some((one) => !one.place)) lookHere();
       },
     );
+
+  const asksAll = waiting.some(takesHooks) || teaches(waiting, skills);
 
   // Assistants installed or moved while the window was open show up without closing it.
   const lookAgain = () => {
@@ -508,8 +493,8 @@ export default function Wiring({
           <button
             type="button"
             disabled={held}
-            aria-expanded={waiting.some(takesHooks) ? joiningAll : undefined}
-            onClick={() => (waiting.some(takesHooks) ? setJoiningAll(!joiningAll) : all())}
+            aria-expanded={asksAll ? joiningAll : undefined}
+            onClick={() => (asksAll ? setJoiningAll(!joiningAll) : all())}
             className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[12.5px] text-bg disabled:bg-hair disabled:text-soft"
           >
             {fill("wiringAll", String(waiting.length))}
@@ -520,10 +505,11 @@ export default function Wiring({
       {joiningAll && waiting.length > 0 && (
         <JoinAsk
           all={waiting}
+          skills={skills}
           held={held}
-          onYes={(withHooks) => {
+          onYes={(withThem) => {
             setJoiningAll(false);
-            all(withHooks);
+            all(withThem);
           }}
           onNo={() => setJoiningAll(false)}
         />
@@ -538,11 +524,9 @@ export default function Wiring({
             all={agents}
             hands={hand}
             held={held}
-            fresh={fresh}
             onJoin={join}
             onHook={hook}
             onFix={fix}
-            onOffered={offeredNow}
             skills={skills}
             onSkills={setSkills}
             behind={skills && skillsBehind(skills) ? foldersBehind(skills) : undefined}
@@ -608,7 +592,15 @@ export default function Wiring({
         />
         {found.length > 0 && (
           <div className="mt-2">
-            <Rows all={found} held={held} onJoin={join} onHook={hook} onFix={fix} />
+            <Rows
+              all={found}
+              held={held}
+              onJoin={join}
+              onHook={hook}
+              onFix={fix}
+              skills={skills}
+              onSkills={setSkills}
+            />
           </div>
         )}
       </section>

@@ -1843,7 +1843,7 @@
       },
       {
         "title": "Todo al conectar un agente",
-        "said": "al conectar uno, sus hooks van incluidos, con una casilla para dejarlos fuera, y la misma pantalla ofrece las skills de Tisty, con su propio sí. A los que ya tenías se lo ofrece en un solo paso."
+        "said": "al conectar uno, sus hooks y las skills de Tisty van incluidos, con una casilla para dejar fuera cada uno. A los que ya tenías se lo ofrece en un solo paso."
       },
       {
         "title": "Pídeselo con tus palabras",
@@ -1913,7 +1913,7 @@
       },
       {
         "title": "Everything when you connect an agent",
-        "said": "when you connect one, its hooks come with it, with a tick to leave them out, and the same screen offers Tisty's skills, with their own yes. The ones you already had are offered both in one step."
+        "said": "when you connect one, its hooks and Tisty's skills come with it, with a tick to leave each one out. The ones you already had are offered both in one step."
       },
       {
         "title": "Ask in your own words",

@@ -1517,8 +1517,8 @@ needs. Say it picks up *Move payments to v2*: it asks what moved, opens that
 task and reads what it noted yesterday.
 
 Two optional helps make that a habit, each with its own yes in Settings ›
-Agents. The hooks come with an agent when you connect it there, with a tick to
-leave them out, and the skills are offered once; the agents you already had are
+Agents. Both come with an agent when you connect it there, with a tick to leave
+each one out, and one switch each after that; the agents you already had are
 offered both together, in one box.
 Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
 bring the agent its open tasks when a session starts, and hand the turn back

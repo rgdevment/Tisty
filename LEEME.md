@@ -1565,13 +1565,13 @@ y después solo la parte que necesita. Por ejemplo, retoma *Migrar pagos a v2*:
 pregunta qué cambió, abre esa tarea y lee lo que anotó ayer.
 
 Dos ayudas opcionales lo vuelven costumbre, cada una con su propio sí en
-Configuración › Agentes. Los hooks van incluidos al conectar ahí un agente, con
-una casilla para dejarlos fuera, y las skills se ofrecen una vez; para los que ya
-tenías, se ofrecen juntos, en un solo recuadro. Sus **hooks**, en Claude Code,
-Cursor, Gemini CLI y GitHub Copilot, le traen al agente sus tareas abiertas al
-empezar una sesión, le devuelven el turno una vez cuando editó archivos sin
-escribir nada aquí, y le preguntan una vez antes de dejar un archivo de texto
-fuera de un repo. Sus
+Configuración › Agentes. Los dos van incluidos al conectar ahí un agente, con una
+casilla para dejar fuera cada uno, y un interruptor para cada uno después; para
+los que ya tenías, se ofrecen juntos, en un solo recuadro. Sus **hooks**, en
+Claude Code, Cursor, Gemini CLI y GitHub Copilot, le traen al agente sus tareas
+abiertas al empezar una sesión, le devuelven el turno una vez cuando editó
+archivos sin escribir nada aquí, y le preguntan una vez antes de dejar un
+archivo de texto fuera de un repo. Sus
 **skills propias**, `tisty`, `consolidate` y `writing-for-the-next-agent`, le
 enseñan qué significa «Retoma donde quedamos», «Ordena mi Tisty» o «Deja esta
 página clara para el próximo agente», dicho con tus palabras. Y cuando dice que

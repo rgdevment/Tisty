@@ -15,8 +15,8 @@ Cómo conectar un agente está en [[Agentes y MCP|Agentes-y-MCP]]; una sesión l
 | **Qué agentes** | Claude Code, Cursor, Gemini CLI y GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot y Gemini CLI |
 | **Dónde se encienden** | **Configuración › Agentes › Conectados**, bajo la fila de cada agente | **Configuración › Agentes › Conectados**, bajo la fila de cada agente o en la fila **Skills de Tisty**, al final |
 | **Los dos a la vez** | **Hooks y skills para tus agentes**, sobre las pestañas | El mismo recuadro |
-| **El sí** | Uno por agente, con el archivo que se va a escribir nombrado | Uno para todo el equipo, con las carpetas que se van a escribir nombradas |
-| **Cómo se quitan** | **Quitar**, en la misma fila; **Quitar este** saca solo el último. Un interruptor apaga los tres en todos tus agentes | **Apagar en este equipo**, en su ficha. Nunca se eliminan: siguen en Tisty |
+| **El sí** | Uno por agente, al conectarlo o en su interruptor, con el archivo que se va a escribir nombrado | Uno para todo el equipo, al conectar o en su interruptor, con las carpetas que se van a escribir nombradas |
+| **Cómo se quitan** | El mismo interruptor: los saca todos de ese agente. Otro, en **Puerta**, los calla en todos tus agentes | El mismo interruptor, o **Apagar en este equipo**, en su ficha. Nunca se eliminan: siguen en Tisty |
 | **Con el plugin de Tisty** | En Claude Code, los trae el plugin | En Claude Code, las trae el plugin |
 
 Las dos valen solo en el equipo donde las enciendes: en otro equipo lo decides allá.
@@ -88,13 +88,13 @@ Tisty escribe solo sus propias entradas y deja el resto del archivo como está, 
 ### Agregarlos
 
 1. Abre **Configuración › Agentes › Conectados**.
-2. Bajo la fila de un agente conectado, como **Claude Code**, la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. Pulsa **Agregar**.
+2. Bajo la fila de un agente conectado, como **Claude Code**, la fila **Hooks de Tisty** tiene un interruptor. Enciéndelo.
 3. Tisty te dice qué va a hacer antes de tocar nada: «Tisty agregará sus hooks en `~/.claude/settings.json`. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió…», con **Agregarlos** y **Ahora no**. En Claude Code suma una línea: «En Claude Code, Tisty lee antes el registro de su plugin (installed_plugins.json y settings.json) para no escribir hooks que el plugin ya trae.».
-4. Con **Agregarlos**, la fila dice **Agregados**, y debajo «Agregados. Los usa desde su próxima sesión.».
+4. Con **Agregarlos**, el interruptor queda encendido, y debajo «Agregados. Los usa desde su próxima sesión.».
 
-**Si conectas el agente ahora, los hooks van incluidos**: [Al conectar un agente](#al-conectar-un-agente) lo cuenta.
+**Si conectas el agente ahora, los hooks van incluidos y encendidos**: [Al conectar un agente](#al-conectar-un-agente) lo cuenta.
 
-**Si los agregaste antes de la 1.50**, no se agrega nada solo. Debajo de la fila aparece «Hay un hook nuevo: antes de dejar algo fuera de un repo», con **Agregar el nuevo**. Tisty te dice qué archivo va a escribir, «Tisty agregará este hook en `~/.claude/settings.json`, junto a los que ya están…», con **Agregarlo** y **Ahora no**. Solo suma esa entrada: un tiempo o un filtro que les cambiaste a los otros queda igual. Con él puesto, **Quitar este** lo saca y deja los otros.
+**Si los agregaste antes de la 1.50**, no se agrega nada solo. Bajo la fila aparece «Les falta el más nuevo, el de antes de dejar algo fuera de un repo: apágalos y enciéndelos para tenerlo.». Al encenderlos otra vez se escriben todos como vienen: un tiempo o un filtro que les habías cambiado vuelve al de Tisty.
 
 No hace falta reiniciar el agente para los hooks: los toma en su próxima sesión.
 
@@ -104,12 +104,12 @@ Los hooks guardan la ruta del Tisty que los puso. Si mueves Tisty o cambias de i
 
 | La fila dice | Qué pasa |
 | :-- | :-- |
-| **Agregados** | Llaman a este Tisty, o a uno cuya ruta Tisty no puede comprobar, como `tisty` a secas |
-| **Escritos a tu manera** | «Corre Tisty con hooks escritos a tu manera. Tisty los deja como están y no agrega otros al lado.». Son los que llaman a Tisty desde un script tuyo o de otra forma que Tisty no sabe leer: no se corrigen, no se quitan y la fila no ofrece **Agregar** |
+| Interruptor encendido | Llaman a este Tisty, o a uno cuya ruta Tisty no puede comprobar, como `tisty` a secas |
+| **Escritos a tu manera** | «Corre Tisty con hooks escritos a tu manera. Tisty los deja como están y no agrega otros al lado.». Son los que llaman a Tisty desde un script tuyo o de otra forma que Tisty no sabe leer: no se corrigen, no se quitan y la fila no ofrece encenderlos |
 | **Usan un Tisty que ya no existe** | «Sus hooks apuntan a `C:\…\tisty.exe`, que ya no existe». **Corregir** los apunta aquí |
 | **Usan otro Tisty** | Ese otro sigue en este equipo. **Corregir** los apunta aquí, si quieres |
 | **No se pudo leer** | Tisty no pudo leer su archivo, así que no lo toca |
-| **Sin agregar** | No hay hooks de Tisty en ese archivo |
+| Interruptor apagado | No hay hooks de Tisty en ese archivo |
 | **Los trae el plugin de Tisty** | Los trae el plugin, en su propio archivo |
 
 **Corregir** te muestra el archivo y espera tu **Sí, corregir**. Cambia solo el programa al que llaman: los matchers, los tiempos y un envoltorio tuyo quedan como estaban. Los que ya no existen salen también en el aviso de la ventana y en **Corregir todo**, como cuenta [Cuando un agente deja de encontrar Tisty](Agentes-y-MCP#cuando-un-agente-deja-de-encontrar-tisty).
@@ -118,18 +118,17 @@ Los hooks guardan la ruta del Tisty que los puso. Si mueves Tisty o cambias de i
 
 ### Quitarlos o apagarlos
 
-- **Quitar**, en la misma fila, saca solo las entradas de Tisty: «Quitados. Su próxima sesión corre sin ellos.». Si además hay otros a tu manera: «Quitados los de Tisty. Los escritos a tu manera quedan.».
-- **Quitar este**, junto a **Antes de dejar algo fuera de un repo**, saca solo ese: «Quitado. Los otros siguen.».
+- Apagar el interruptor de la fila saca solo las entradas de Tisty: «Quitados. Su próxima sesión corre sin ellos.». Si además hay otros a tu manera: «Quitados los de Tisty. Los escritos a tu manera quedan.».
 - **Recordarle al empezar y al terminar cada turno**, en **Configuración › Agentes › Puerta**, apaga los tres para todos sin quitarlos de ningún archivo. Sirve para una tarde en que no quieres que te devuelvan turnos.
 - **Quitarle la voz**, en la misma **Puerta**, cierra la puerta: con ella cerrada, los hooks callan.
 
 ### Si el plugin de Tisty ya los trae
 
-El plugin de Tisty para Claude Code trae sus propios hooks, en su propio archivo, desde la versión 1.4.0. Trae los dos primeros: el de antes de dejar algo fuera todavía no viene con él, y en ese caso Claude Code corre sin ese. Si Tisty sabe que está instalado, sea cual sea su versión, la fila de hooks de Claude Code dice **Los trae el plugin de Tisty**, sin botón **Agregar**, para que no corran dos veces.
+El plugin de Tisty para Claude Code trae sus propios hooks, en su propio archivo, desde la versión 1.4.0. Trae los dos primeros: el de antes de dejar algo fuera todavía no viene con él, y en ese caso Claude Code corre sin ese. Si Tisty sabe que está instalado, sea cual sea su versión, la fila de hooks de Claude Code dice **Los trae el plugin de Tisty**, sin interruptor, para que no corran dos veces.
 
-Si ya tenías los de Tisty y después instalas el plugin, la fila te avisa: «El plugin de Tisty también los trae, así que corren dos veces. Quita estos para dejar los del plugin.», con **Quitar**.
+Si ya tenías los de Tisty y después instalas el plugin, la fila te avisa: «El plugin de Tisty también los trae, así que corren dos veces. Apaga estos para dejar los del plugin.», con su interruptor.
 
-El registro del plugin es un archivo de tu agente, así que Tisty lo lee solo con un sí tuyo. Con el de las [skills de Tisty](#las-skills-de-tisty) o el de la carpeta [[Agentes|Carpeta-AGENTS]], lo sabe al abrir **Configuración › Agentes**; para las skills lo mira también al abrir la app y cuando algo cambia en tus datos, aunque estén apagadas. Sin ninguno de los dos, la fila ofrece **Agregar** aunque el plugin esté, y Tisty lo lee justo al pulsar **Sí, conectar** con sus hooks, **Agregarlos**, **Agregarlo**, **Agregar hooks**, **Corregir**, **Corregir todo** o **Sí, corregir**, antes de escribir hooks de Claude Code. Si el plugin ya los trae, no escribe nada: «El plugin de Tisty ya trae los hooks de Claude Code, así que los de sus ajustes quedaron como estaban.». Si el registro no se puede leer, tampoco, y te dice qué archivo fue.
+El registro del plugin es un archivo de tu agente, así que Tisty lo lee solo con un sí tuyo. Con el de las [skills de Tisty](#las-skills-de-tisty) o el de la carpeta [[Agentes|Carpeta-AGENTS]], lo sabe al abrir **Configuración › Agentes**; para las skills lo mira también al abrir la app y cuando algo cambia en tus datos, aunque estén apagadas. Sin ninguno de los dos, la fila ofrece encenderlos aunque el plugin esté, y Tisty lo lee justo al pulsar **Sí, conectar** con sus hooks, **Agregarlos**, **Agregar hooks**, **Corregir**, **Corregir todo** o **Sí, corregir**, antes de escribir hooks de Claude Code. Si el plugin ya los trae, no escribe nada: «El plugin de Tisty ya trae los hooks de Claude Code, así que los de sus ajustes quedaron como estaban.». Si el registro no se puede leer, tampoco, y te dice qué archivo fue.
 
 Si Tisty sabe que el plugin los trae y los que quedaron de antes apuntan a un Tisty que ya no existe, **Corregir** los quita, porque con los del plugin correrían dos veces, y te lo dice antes: «El plugin de Tisty ya trae sus hooks, así que estos se quitan. Tisty lee antes su registro (installed_plugins.json y settings.json) para comprobarlo.». Ese registro se lee con tu clic, justo antes de quitarlos. Si el plugin ya no los trae, no se quita ninguno: «El plugin de Tisty ya no trae los hooks de Claude Code, así que estos no se quitaron. Busca de nuevo para ver cómo están.».
 
@@ -168,7 +167,7 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 3. Lee el sí, al pie: «Para encenderlas, Tisty escribe solo una carpeta por skill en las carpetas de arriba, y lee los archivos que ya hay en esas carpetas de skill para no escribir nunca sobre uno tuyo. En Claude Code lee además el registro de su plugin (installed_plugins.json y settings.json) para no copiarlas dos veces. No lee reglas, memoria ni otros archivos de tus agentes, y no necesita la carpeta Agentes.».
 4. Pulsa **Encender en este equipo**. Cada carpeta pasa a **Al día**, y la fila de Configuración dice **Encendidas**.
 
-Bajo cada agente conectado que las lee hay otra fila **Skills de Tisty**. Apagadas, **Encender skills** abre la misma ficha. Y si tienes agentes conectados sin ellas, el recuadro [Hooks y skills para tus agentes](#los-dos-a-la-vez) las enciende junto con los hooks, con el mismo sí escrito antes.
+Bajo cada agente conectado que las lee hay otra fila **Skills de Tisty**, con un interruptor que vale para todo este equipo: al encenderlo se abre la misma ficha, y al apagarlo se apagan en todos tus agentes. Y si tienes agentes conectados sin ellas, el recuadro [Hooks y skills para tus agentes](#los-dos-a-la-vez) las enciende junto con los hooks, con el mismo sí escrito antes.
 
 Al pie de la ficha, «De Tisty 1.50.0» dice de qué versión son las que tienes. Tu agente las ve desde su próxima sesión.
 
@@ -191,8 +190,8 @@ La fila bajo cada agente lo resume:
 
 | La fila dice | Qué pasa |
 | :-- | :-- |
-| **En este equipo** | Las tres están al día en la carpeta de ese agente |
-| **Apagadas** | No las encendiste en este equipo. **Encender skills** abre la ficha |
+| Interruptor encendido, sin más | Las tres están al día en la carpeta de ese agente |
+| Interruptor apagado | No las encendiste en este equipo. Al encenderlo se abre la ficha |
 | **Por poner al día** | Falta escribir la versión de este Tisty. Sale también en el recuadro de arriba, con **Corregir** |
 | **No todas al día** | Una copia no es de Tisty, la cambiaste o no se puede leer, o ya tienes en Agentes una skill con ese nombre; debajo dice qué pasa. Tisty no la toca, tampoco con **Corregir** |
 | **Aquí no** | «Tisty no encontró una carpeta de este agente donde ponerlas.», o «Ya tienes en Agentes skills con esos nombres, así que las de Tisty quedan fuera.» |
@@ -206,7 +205,7 @@ Cuando actualizas Tisty, la próxima vez que lo abres escribe la versión nueva 
 
 ### Apagarlas
 
-**Apagar en este equipo**, en la misma ficha. Antes te dice qué hace: «Apagarlas saca de las carpetas de tus agentes las copias intactas de Tisty, con respaldo, y las skills siguen en Tisty, listas para encenderlas otra vez. Una copia que cambiaste se queda en esta ficha.».
+El interruptor de la fila **Skills de Tisty**, bajo cualquier agente, o **Apagar en este equipo**, en la ficha, que antes te dice qué hace: «Apagarlas saca de las carpetas de tus agentes las copias intactas de Tisty, con respaldo, y las skills siguen en Tisty, listas para encenderlas otra vez. Una copia que cambiaste se queda en esta ficha.».
 
 - **Apagar no es borrar.** Las skills siguen dentro de Tisty, y **Encender en este equipo** las vuelve a poner.
 - **Una copia que cambiaste** no se saca, y con ella se queda su skill entera en esa carpeta, aunque solo cambie un archivo: queda listada en la ficha, para que la quites tú si quieres.
@@ -230,7 +229,7 @@ Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra un
 
 ## Los dos a la vez
 
-Si ya tienes agentes conectados y a alguno le faltan los hooks o las skills, **Configuración › Agentes** los ofrece juntos, sobre las pestañas. Entran los que no vieron el recuadro de [Al conectar un agente](#al-conectar-un-agente), porque ese ya se los ofreció:
+Si ya tienes agentes conectados y a alguno le faltan los hooks o las skills, **Configuración › Agentes** los ofrece juntos, sobre las pestañas. Entran los que no pasaron por [Al conectar un agente](#al-conectar-un-agente), porque ese ya se los ofreció:
 
 > **Hooks y skills para tus agentes**
 >
@@ -250,7 +249,7 @@ Si todos ya tienen los hooks, el recuadro ofrece solo las skills, y al revés. *
 
 ## Al conectar un agente
 
-Al conectar un agente desde **Configuración › Agentes › Conectados**, sus hooks van incluidos, con un solo sí. **Conectar**, o **Conectar igual**, en un agente que los corre, te muestra primero qué va a escribir:
+Al conectar un agente desde **Configuración › Agentes › Conectados**, sus hooks y las skills de Tisty van incluidos, con un solo sí, y quedan encendidos. **Conectar**, o **Conectar igual**, te muestra primero qué va a escribir:
 
 > **Conectar Claude Code con Tisty**
 >
@@ -261,41 +260,22 @@ Al conectar un agente desde **Configuración › Agentes › Conectados**, sus h
 > ☑ **Con sus hooks: Claude Code**
 > Tisty agregará sus hooks en `~/.claude/settings.json`. Al empezar una sesión…
 >
+> ☑ **Skills de Tisty en todo este equipo: Claude Code**
+> `~/.claude/skills`
+> Para encenderlas, Tisty escribe solo una carpeta por skill en las carpetas de arriba…
+>
 > **Sí, conectar** · **Ahora no**
 
-- **Sí, conectar** escribe los dos archivos. Con la casilla desmarcada, solo la conexión, y los hooks se agregan después en su fila.
+- **Sí, conectar** escribe lo que dejaste marcado. Lo que desmarcas queda apagado, con su interruptor bajo la fila del agente.
 - **Conectar los 3 detectados** muestra lo mismo para todos, con los archivos de cada uno. También los que están dentro de WSL.
 - **Si los hooks no se pueden agregar**, porque su archivo no se pudo leer o el plugin de Tisty ya los trae, el agente se conecta igual y Tisty te lo dice, sin hooks duplicados.
-- Un agente sin hooks, como Codex o Claude Desktop, se conecta con un clic, como siempre. **Corregir** no agrega nada nuevo.
+- **Si las skills no se pueden encender**, el agente se conecta igual y Tisty te dice por qué.
+- Las skills valen para todo el equipo: si ya están encendidas, no se preguntan otra vez. Codex, que no tiene hooks, muestra solo las skills; un agente sin hooks ni skills, como Claude Desktop, se conecta con un clic. **Corregir** no agrega nada nuevo.
 - Con **Recordarle al empezar y al terminar cada turno** apagado, quedan agregados y callados.
 
-Después, su fila muestra una vez un recuadro con las skills, que tienen su propio sí:
+Después, bajo su fila quedan los dos interruptores, **Skills de Tisty** y **Hooks de Tisty**, encendidos.
 
-> **Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:**
->
-> **Hooks: al empezar y al terminar cada turno** · Agregados · **Quitar**
->
-> Las skills de Tisty le enseñan a Claude Code a retomar, ordenar y dejar el trabajo listo para el próximo agente. **Ver las skills de Tisty**
->
-> **Ahora no**
-
-- La fila de hooks es la de siempre, para quitarlos o agregarlos.
-- **Ver las skills de Tisty** abre la ficha, con **Encender en este equipo**.
-- **Ahora no** cierra el recuadro.
-
-Se ofrece una vez por agente y por equipo: cuenta desde que aparece, aunque salgas de Configuración sin responder.
-
-Cambia según el agente y lo que ya tienes:
-
-| Si… | El recuadro |
-| :-- | :-- |
-| ya diste uno de los dos sí y el plugin de Tisty ya trae los hooks | dice «Sus hooks ya los trae el plugin de Tisty.» |
-| ya diste uno de los dos sí y el plugin ya trae las skills | dice «Claude Code ya tiene las skills de Tisty por el plugin de Tisty.», sin botón |
-| las skills ya están encendidas | dice «Las skills de Tisty ya están en este equipo.», sin botón |
-| el agente es Codex | trae solo la línea de las skills: Codex no tiene hooks |
-| el agente no tiene ni hooks ni skills, como Claude Desktop | no aparece |
-
-**Si ya tenías el agente conectado** antes de la 1.50, este recuadro no aparece: se ofrece solo al conectar. Para esos está [Hooks y skills para tus agentes](#los-dos-a-la-vez), sobre las pestañas, o las filas bajo el agente. Es el mismo sí.
+**Si ya tenías el agente conectado** antes de la 1.50, nada se enciende solo. Para esos está [Hooks y skills para tus agentes](#los-dos-a-la-vez), sobre las pestañas, o los interruptores bajo el agente. Es el mismo sí.
 
 ## Un caso de punta a punta
 
@@ -303,15 +283,15 @@ Yisset usa Codex, que tiene conectado a Tisty desde hace meses. Hoy actualiza Ti
 
 ### 1. Conecta Claude Code
 
-Abre **Configuración › Agentes**. Sobre las pestañas, **Hooks y skills para tus agentes** le ofrece encender las skills, porque Codex no las tiene; lo deja para después de conectar. En **Conectados**, Claude Code aparece **Sin conectar**. Yisset pulsa **Conectar**, y Tisty le muestra los dos archivos, `~/.claude.json` y `~/.claude/settings.json`.
+Abre **Configuración › Agentes**. Sobre las pestañas, **Hooks y skills para tus agentes** le ofrece encender las skills, porque Codex no las tiene; lo deja para después de conectar. En **Conectados**, Claude Code aparece **Sin conectar**. Yisset pulsa **Conectar**, y Tisty le muestra qué va a escribir: `~/.claude.json`, `~/.claude/settings.json` y las carpetas de las skills.
 
-### 2. Con sus hooks
+### 2. Con sus hooks y las skills
 
-Lee lo que harán los hooks, deja marcada **Con sus hooks: Claude Code** y pulsa **Sí, conectar**. La fila dice **Conectado** y, debajo, **Agregados**, con el recuadro «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:».
+Lee lo que harán los hooks y dónde van las skills, en la carpeta de Claude Code, `~/.claude/skills`, y en la compartida, `~/.agents/skills`, para Codex. Deja las dos casillas marcadas y pulsa **Sí, conectar**.
 
-### 3. Enciende las skills de Tisty
+### 3. Quedan encendidos
 
-Pulsa **Ver las skills de Tisty**. La ficha muestra las tres skills y dos carpetas en **Dónde van en este equipo**: la de Claude Code, `~/.claude/skills`, y la compartida, `~/.agents/skills`, para Codex. Lee el sí y pulsa **Encender en este equipo**. Las dos carpetas pasan a **Al día**. Cierra la ficha, y en el recuadro, **Ahora no**.
+La fila dice **Conectado** y, debajo, los dos interruptores están encendidos: **Skills de Tisty**, que valen también para Codex, y **Hooks de Tisty**.
 
 Como Claude Code lee su configuración al abrirse, lo cierra del todo y lo abre otra vez.
 
@@ -393,7 +373,7 @@ Si la tarea la hubiera escrito Yisset, y ella hubiera marcado el primer paso, la
 
 ### 9. Después, otro agente
 
-Yisset vuelve a Codex. Codex no tiene hooks, así que nada le llega al empezar, y como ya estaba conectado antes de la 1.50 nunca vio el recuadro de conectar; pero lee la skill `tisty`, que Yisset encendió en el paso 3 y quedó en `~/.agents/skills`. «Retoma donde quedamos», a secas, lo llevaría a lo último que dejó **él**, así que Yisset nombra la tarea: «Retoma la exportación del reporte mensual».
+Yisset vuelve a Codex. Codex no tiene hooks, así que nada le llega al empezar, y como ya estaba conectado antes de la 1.50 nunca se le preguntó al conectar; pero lee la skill `tisty`, que Yisset encendió en el paso 3 y quedó en `~/.agents/skills`. «Retoma donde quedamos», a secas, lo llevaría a lo último que dejó **él**, así que Yisset nombra la tarea: «Retoma la exportación del reporte mensual».
 
 ```json
 > brain {"query": "exportar reporte mensual"}
@@ -407,12 +387,12 @@ Lee el estado y la nota de Claude Code, sabe que no debe volver a probar la libr
 
 Yisset instala el plugin de Tisty en Claude Code. La próxima vez que abre **Configuración › Agentes**:
 
-- la fila de hooks de Claude Code dice «El plugin de Tisty también los trae, así que corren dos veces. Quita estos para dejar los del plugin.». Pulsa **Quitar**, y la fila queda en **Los trae el plugin de Tisty**;
+- la fila de hooks de Claude Code dice «El plugin de Tisty también los trae, así que corren dos veces. Apaga estos para dejar los del plugin.». Los apaga, y la fila queda en **Los trae el plugin de Tisty**;
 - la ficha de las skills dice «Claude Code ya las tiene por el plugin de Tisty, así que Tisty no las copia ahí.», y lista bajo **Copias que sobran** los archivos que Tisty había dejado en `~/.claude/skills`. Pulsa **Quitar el archivo** en cada uno, y quedan sus respaldos. La carpeta compartida de Codex sigue **Al día**.
 
 ## Casos que conviene conocer
 
-- **En otro equipo.** Los hooks y las skills se deciden en cada equipo: en el equipo del trabajo, la fila **Skills de Tisty** empieza **Apagadas** y los hooks **Sin agregar**, aunque en la casa estén encendidos. Un registro copiado de otro equipo no cuenta como sí de las skills.
+- **En otro equipo.** Los hooks y las skills se deciden en cada equipo: en el equipo del trabajo, la fila **Skills de Tisty** empieza **Apagadas** y los hooks apagados, aunque en la casa estén encendidos. Un registro copiado de otro equipo no cuenta como sí de las skills.
 - **Antes de cualquier sí**, el de las skills o el de Agentes, la ficha no abre nada dentro de las carpetas de tus agentes: solo mira cuáles existen y si siguen ahí las copias que Tisty escribió antes. Tampoco lee el registro del plugin, salvo que pulses agregar o corregir los hooks de Claude Code, y solo en ese momento. Con el sí de Agentes solo, lee ese registro y esas copias, para ver si cambiaron.
 - **Con la puerta cerrada.** Las skills siguen en las carpetas de tus agentes, y tu agente puede leerlas, pero cada llamada a Tisty se rechaza y los hooks callan. **Quitarle la voz** no toca ninguna de las dos piezas.
 - **Un agente en pausa en Agentes.** La pausa no alcanza a las skills de Tisty: siguen llegando y actualizándose en ese agente. Para que no las tenga ninguno, **Apagar en este equipo**.
@@ -428,7 +408,7 @@ Yisset instala el plugin de Tisty en Claude Code. La próxima vez que abre **Con
 
 - **Los hooks** escriben solo sus entradas en el archivo nombrado. Con la puerta abierta, Tisty lee ese archivo, y el de la conexión, al abrir su ventana y al abrir Configuración, para ver si apuntan a este Tisty, sin escribir nada hasta que haces clic. En Claude Code, al agregarlos o corregirlos, también cuando corregir es quitarlos porque el plugin los trae, lee además el registro de su plugin; sin el sí de las skills ni el de Agentes, solo entonces. Sus marcas de cada sesión se quedan en la caché de este equipo y no se sincronizan. Lo que le entregan al agente al empezar, los títulos de algunas tareas, viaja adonde viaja ese agente.
 - **Las skills** escriben solo una carpeta por skill. Leen los archivos de esas carpetas, para no pisar uno tuyo, y en Claude Code el registro de su plugin, solo para saber si ya las trae. Nada más de tus agentes se abre.
-- **El sí de las skills** se guarda en `data/agents/` dentro de la carpeta de Tisty, en este equipo, con los respaldos de lo que Tisty quitó. No viaja con la sincronización, los respaldos ni los paquetes. Los hooks no guardan un sí aparte: se agregan al pulsar **Agregarlos** o **Agregar hooks**, después de leer en qué archivo se escriben, se quitan con **Quitar**, y Tisty sabe si están, leyendo ese archivo.
+- **El sí de las skills** se guarda en `data/agents/` dentro de la carpeta de Tisty, en este equipo, con los respaldos de lo que Tisty quitó. No viaja con la sincronización, los respaldos ni los paquetes. Los hooks no guardan un sí aparte: se agregan al pulsar **Agregarlos** o **Agregar hooks**, después de leer en qué archivo se escriben, se quitan al apagar su interruptor, y Tisty sabe si están, leyendo ese archivo.
 
 Todo, archivo por archivo, está en [[Privacidad|Privacidad]].
 

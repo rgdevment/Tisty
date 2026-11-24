@@ -1024,7 +1024,6 @@ export interface MendAnswer {
 }
 export const mendAgent = (id: string, ask: MendAsked) => invoke<MendAnswer>("mend", { id, ask });
 export const hooked = (id: string, on: boolean) => invoke<Wired[]>(on ? "hook" : "unhook", { id });
-export const hookedBefore = (id: string, on: boolean) => invoke<Wired[]>("hook_before", { id, on });
 
 export interface Waking {
   offered: boolean;

@@ -2,9 +2,11 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { allParts, filesOf, filesOut, type Parts } from "../agentsAmiss";
 import { takesHooks } from "../agentsOffered";
 import { partsSaid, pathsSaid } from "../agentsSaid";
+import type { TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import { fill, t, type Word } from "../locales";
 import { mild, strong } from "./Rows";
+import { agentsTaught, skillFolders, teaches } from "./TistySkills";
 
 export function Files({ files }: Readonly<{ files: string[] }>) {
   return files.map((at) => (
@@ -99,18 +101,27 @@ export function OutAsk({ one, ...answered }: Readonly<Answered & { one: Wired }>
   );
 }
 
+export interface JoinWith {
+  hooks: boolean;
+  skills: boolean;
+}
+
 export function JoinAsk({
   all,
+  skills,
   held,
   onYes,
   onNo,
 }: Readonly<{
   all: Wired[];
+  skills?: TistySkills | null;
   held: boolean;
-  onYes: (withHooks: boolean) => void;
+  onYes: (withThem: JoinWith) => void;
   onNo: () => void;
 }>) {
   const [withHooks, setWithHooks] = useState(true);
+  const [withSkills, setWithSkills] = useState(true);
+  const taught = skills && teaches(all, skills) ? skills : undefined;
   const hooking = all.filter(takesHooks);
   const files = hooking.map((one) => one.hooks?.at ?? "");
   const written = [...all.map((one) => one.at), ...(withHooks ? files : [])];
@@ -122,7 +133,7 @@ export function JoinAsk({
       yes="joinYes"
       dress="border-accent/40"
       held={held}
-      onYes={() => onYes(withHooks)}
+      onYes={() => onYes({ hooks: withHooks, skills: withSkills && !!taught })}
       onNo={onNo}
     >
       <p className="mt-1.5 text-soft">{t("mendWrites")}</p>
@@ -138,6 +149,18 @@ export function JoinAsk({
             {hooking.some((one) => one.id.endsWith("claude-code")) && (
               <span className="block">{t("hooksAskPlugin")}</span>
             )}
+          </Ticked>
+        </div>
+      )}
+      {taught && (
+        <div className="mt-2">
+          <Ticked
+            on={withSkills}
+            onTurn={setWithSkills}
+            label={fill("extrasSkills", agentsTaught(taught).join(", "))}
+          >
+            <Files files={skillFolders(taught)} />
+            <span className="block">{t("tistySkillsAsk")}</span>
           </Ticked>
         </div>
       )}

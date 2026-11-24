@@ -728,11 +728,11 @@ and no agent can name or change them through the MCP. Only the bytes of the
 release, checked against a fingerprint built into the app, are written.
 
 - **They have their own yes, on this computer.** Settings › Agents › Connected
-  shows them in a row of their own, and **Turn on here** is that yes; so is
-  **Turn on skills**, or **Add hooks and turn on skills**, in the box Settings ›
-  Agents shows above its tabs, which says the same before you press it. It
-  needs no Agents folder, and a record copied from another computer does not
-  count.
+  shows them in a row of their own, and **Turn on here** is that yes; so are
+  **Yes, connect**, when you connect an agent with their tick on, and **Turn on
+  skills**, or **Add hooks and turn on skills**, in the box Settings › Agents
+  shows above its tabs, which say the same before you press them. It needs no
+  Agents folder, and a record copied from another computer does not count.
 - **Before that yes, and with no yes to Agents either, their card opens nothing
   inside your agents' folders.** It looks only at which agents' folders exist,
   as Settings › Agents already does, and, for copies Tisty wrote before, whether
@@ -792,7 +792,7 @@ this computer and sending nothing:
   kept.
 - **When you add or fix Claude Code's hooks**, even with neither of those two
   yeses, and without them only then — when you press **Yes, connect** with its
-  hooks ticked, **Add them**, **Add it**, **Add hooks**, **Fix**, **Fix all** or
+  hooks ticked, **Add them**, **Add hooks**, **Fix**, **Fix all** or
   **Yes, fix** and that writes them, or removes them because the Tisty plugin
   already brings them — it first reads
   `plugins/installed_plugins.json` in its folder (`~/.claude`, or the one

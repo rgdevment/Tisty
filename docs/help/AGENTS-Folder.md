@@ -435,7 +435,7 @@ The `SKILL.md`'s own properties stay out of the text: its `name` is the card's n
 
 Tisty brings three skills of its own, `tisty`, `consolidate` and `writing-for-the-next-agent`, that teach your agents to work with it. They are not Agents documents: they live inside the app and have their own yes, **Turn on here**, which needs no Agents folder. [[Hooks and skills|Hooks-and-Skills]] tells it whole.
 
-Here you see them as a fixed row at the end of **Agents › Global**, **Tisty's skills**, with their standing: **Off** or **On this computer**. A click opens their card, the same one as in **Settings › Agents › Connected**. What having Agents changes:
+Here you see them as a fixed row at the end of **Agents › Global**, **Tisty's skills**, with their standing: **Off** or **On**. A click opens their card, the same one as in **Settings › Agents › Connected**. What having Agents changes:
 
 - **They are not brought in.** In the first-time list, in **Bring another file** and in **Look again**, their copies in your agents' folders show as **Tisty's own**, and do not come in as documents.
 - **A skill of yours with the same name wins.** If you have your own `consolidate` in Agents, at any level, Tisty's is written to no agent, and its card says «You already have a skill named consolidate in Agents, so Tisty's is left out.».

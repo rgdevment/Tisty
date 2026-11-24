@@ -301,10 +301,6 @@ pub fn without(kind: Kind, text: &str) -> Option<String> {
     taken_out(kind, text, |run| run.all_read)
 }
 
-pub fn without_before(kind: Kind, text: &str) -> Option<String> {
-    taken_out(kind, text, |run| run.all_read && run.moment == BEFORE)
-}
-
 pub fn without_those(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
     taken_out(kind, text, |run| {
         run.all_read && run.programs.iter().all(|one| named(one, place, said))
@@ -350,22 +346,6 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
     }
     let now = pushed(now, kind.entries(place))?;
     (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
-}
-
-// Only the hook that asks first is added, so what the person changed in the others stays.
-pub fn completed(kind: Kind, text: &str, place: &Place) -> Option<String> {
-    if !lacks_before(kind, text) {
-        return Some(text.to_string());
-    }
-    let entries = kind.before_entries(place);
-    let fits = entries
-        .iter()
-        .all(|(event, _)| running::list_fits(text, event));
-    if !fits || apart(kind, text) || !hooked(kind, text) {
-        return None;
-    }
-    let now = pushed(text.to_string(), entries)?;
-    (sound(kind, text, &now) && !lacks_before(kind, &now)).then_some(now)
 }
 
 fn pushed(text: String, entries: Vec<(&'static str, Value)>) -> Option<String> {

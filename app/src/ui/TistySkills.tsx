@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { landingSaid, leftAsIs } from "../agentsAmiss";
-import { markOffered, SKILLS_DECLINED } from "../agentsOffered";
+import { markOffered, SKILLED, SKILLS_DECLINED } from "../agentsOffered";
 import {
   AGENTS_CHANGED,
   type TistySkills,
@@ -9,12 +9,14 @@ import {
   tistySkillsLeftover,
   tistySkillsTake,
 } from "../agentsSync";
+import type { Wired } from "../core";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import { button, primary } from "./AgentsReview";
 import { AssistantMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import Modal from "./Modal";
+import { Knob } from "./Rows";
 
 const NAMES: Record<string, string> = {
   claude: "Claude Code",
@@ -60,6 +62,16 @@ export const foldersBehind = (skills: TistySkills): string[] => [
   ),
 ];
 
+export const teaches = (all: readonly Wired[], skills: TistySkills | null | undefined): boolean =>
+  !!skills &&
+  !skills.on &&
+  skills.skills.length > 0 &&
+  skills.landing.length > 0 &&
+  all.some((one) => {
+    const agent = one.place ? undefined : SKILLED[one.id];
+    return !!agent && !skills.plugged.includes(agent);
+  });
+
 export const agentsTaught = (skills: TistySkills): string[] => [
   ...new Set(
     skills.landing.map((one) =>
@@ -83,6 +95,29 @@ export function useTistySkills() {
     return () => window.removeEventListener(AGENTS_CHANGED, ask);
   }, [ask]);
   return [held, setHeld] as const;
+}
+
+const turnedOff = () => {
+  markOffered([SKILLS_DECLINED]);
+  return tistySkillsTake(false);
+};
+
+function useTaking(onTaken: (now: TistySkills) => void) {
+  const [busy, setBusy] = useState(false);
+  const [trouble, setTrouble] = useState<string>();
+  const done = (work: Promise<TistySkills>, after?: (now: TistySkills) => void) => {
+    setBusy(true);
+    setTrouble(undefined);
+    work
+      .then((now) => {
+        onTaken(now);
+        window.dispatchEvent(new Event(AGENTS_CHANGED));
+        after?.(now);
+      })
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => setBusy(false));
+  };
+  return { busy, trouble, done };
 }
 
 function HowToUse({ skills }: Readonly<{ skills: TistySkills }>) {
@@ -157,25 +192,14 @@ export function TistySkillsCard({
   onTaken,
   onClose,
 }: Readonly<{ skills: TistySkills; onTaken: (now: TistySkills) => void; onClose: () => void }>) {
-  const [busy, setBusy] = useState(false);
-  const [trouble, setTrouble] = useState<string>();
+  const { busy, trouble, done } = useTaking(onTaken);
   const none = skills.skills.length === 0;
-  const take = (on: boolean) => {
-    if (!on) markOffered([SKILLS_DECLINED]);
-    done(tistySkillsTake(on));
-  };
+  // What was left behind when they were turned off is dealt with here, so the card stays for it.
+  const take = (on: boolean) =>
+    done(on ? tistySkillsTake(true) : turnedOff(), (now) => {
+      if (on || now.leftover.length === 0) onClose();
+    });
   const away = (at: string) => done(tistySkillsLeftover(at));
-  const done = (work: Promise<TistySkills>) => {
-    setBusy(true);
-    setTrouble(undefined);
-    work
-      .then((now) => {
-        onTaken(now);
-        window.dispatchEvent(new Event(AGENTS_CHANGED));
-      })
-      .catch((e) => setTrouble(saidPlainly(e)))
-      .finally(() => setBusy(false));
-  };
   return (
     <Modal title={t("tistySkills")} wide closable onClose={onClose}>
       <p className="text-[13px] leading-relaxed text-soft">{t("tistySkillsLead")}</p>
@@ -258,13 +282,11 @@ function Opener({
   skills,
   onTaken,
   className,
-  label,
   children,
 }: Readonly<{
   skills: TistySkills;
   onTaken: (now: TistySkills) => void;
   className: string;
-  label?: string;
   children: ReactNode;
 }>) {
   const [open, setOpen] = useState(false);
@@ -273,7 +295,6 @@ function Opener({
       <button
         type="button"
         data-row="tisty-skills"
-        aria-label={label}
         onClick={() => setOpen(true)}
         className={className}
       >
@@ -299,61 +320,75 @@ function Standing({ skills, className }: Readonly<{ skills: TistySkills; classNa
 
 export function TistySkillsAgentLine({
   agent,
+  name,
   skills,
   onTaken,
-}: Readonly<{ agent: string; skills: TistySkills; onTaken: (now: TistySkills) => void }>) {
+}: Readonly<{
+  agent: string;
+  name: string;
+  skills: TistySkills;
+  onTaken: (now: TistySkills) => void;
+}>) {
+  const [open, setOpen] = useState(false);
+  const { busy, trouble, done } = useTaking(onTaken);
   const said = lineSaid(agent, skills);
-  const off = said === "tistySkillsOff";
-  const act = t(off ? "extrasAddSkills" : "agentSee");
   const left = leftSaid(agent, skills, said);
+  const pill = said && LINE[said];
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2">
-      <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">{t("tistySkills")}</span>
-      <span
-        className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] whitespace-nowrap ${LINE[said]}`}
-      >
-        {t(said)}
+      <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">
+        {t("tistySkills")}
+        <span className="text-faint"> · {t("tistySkillsWhole")}</span>
       </span>
-      <Opener
-        skills={skills}
-        onTaken={onTaken}
-        label={off ? act : `${act} · ${t("tistySkills")}`}
-        className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] hover:border-accent hover:text-accent ${
-          off ? "border-accent text-accent" : "border-line text-soft"
-        }`}
-      >
-        {act}
-      </Opener>
+      {pill && (
+        <span
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] whitespace-nowrap ${pill}`}
+        >
+          {t(said)}
+        </span>
+      )}
+      {said !== "tistySkillsRowPlugged" && (
+        <Knob
+          on={skills.on}
+          label={`${t("tistySkills")} · ${name}`}
+          disabled={busy}
+          onPress={() => (skills.on ? done(turnedOff()) : setOpen(true))}
+        />
+      )}
       {left && <p className="w-full text-[12.5px] text-soft">{left}</p>}
+      {trouble && <p className="w-full text-[11.5px] text-urgent">{trouble}</p>}
+      {open &&
+        createPortal(
+          <TistySkillsCard skills={skills} onTaken={onTaken} onClose={() => setOpen(false)} />,
+          document.body,
+        )}
     </div>
   );
 }
 
 const LINE = {
-  tistySkillsOn: "border-hue-green/40 text-hue-green",
   tistySkillsRowPlugged: "border-hue-green/40 text-hue-green",
   tistySkillsRowBehind: "border-hue-amber/40 text-hue-amber",
   tistySkillsRowPartly: "border-line text-soft",
   tistySkillsRowNone: "border-line text-soft",
-  tistySkillsOff: "border-line text-soft",
 } as const;
 
 const landsFor = (agent: string) => (assistant: string) =>
   SHARED.has(agent) ? SHARED.has(assistant) : assistant === agent;
 
-function lineSaid(agent: string, skills: TistySkills): keyof typeof LINE {
+function lineSaid(agent: string, skills: TistySkills): keyof typeof LINE | undefined {
   if (skills.plugged.includes(agent)) return "tistySkillsRowPlugged";
-  if (!skills.on) return "tistySkillsOff";
+  if (!skills.on) return undefined;
   const here = skills.landing.filter((one) => landsFor(agent)(one.assistant));
   if (here.length === 0) return "tistySkillsRowNone";
   if (here.some((one) => one.standing === "write")) return "tistySkillsRowBehind";
   const whole = !leftAsIs(skills, landsFor(agent)) && !yours(skills);
-  return whole ? "tistySkillsOn" : "tistySkillsRowPartly";
+  return whole ? undefined : "tistySkillsRowPartly";
 }
 
 const yours = (skills: TistySkills) => skills.skills.some((one) => one.yours);
 
-function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE) {
+function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE | undefined) {
   if (said === "tistySkillsRowNone" && !yours(skills)) return t("tistySkillsRowNoFolder");
   if (said !== "tistySkillsRowNone" && said !== "tistySkillsRowPartly") return undefined;
   const left = leftAsIs(skills, landsFor(agent));

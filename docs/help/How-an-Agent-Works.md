@@ -18,10 +18,10 @@ This page follows a real agent session, step by step, with the calls it makes an
 In **Settings › Agents**:
 
 1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
-2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. If you connect the agent now, they come with **Connect**. From its next session, the agent uses them.
-3. Below it, that agent's **Tisty's skills** row says **Off**. **Turn on skills** opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
+2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Tisty's hooks** row has a switch. Turning it on tells you which file it will write; **Add them** puts them there. If you connect the agent now, they come with **Connect**. From its next session, the agent uses them.
+3. Right there, that agent's **Tisty's skills** row has another switch. Turning it on opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
 
-   If you connect the agent now, under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with **See Tisty's skills**. If it was already connected, steps 2 and 3 come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
+   If you connect the agent now, both come with **Connect** and stay on. If it was already connected, steps 2 and 3 come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
 4. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
    - **Remind it when a turn starts and ends**: the three hooks, without taking them out of the file.

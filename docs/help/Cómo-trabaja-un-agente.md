@@ -18,10 +18,10 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 En **Configuración › Agentes**:
 
 1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del agente. Mira [[Agentes y MCP|Agentes-y-MCP]].
-2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Si conectas el agente ahora, van incluidos en **Conectar**. Desde su próxima sesión, el agente los usa.
-3. Debajo, la fila **Skills de Tisty** de ese agente dice **Apagadas**. **Encender skills** abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
+2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks de Tisty** tiene un interruptor. Al encenderlo te dice qué archivo va a escribir; **Agregarlos** los pone. Si conectas el agente ahora, van incluidos en **Conectar**. Desde su próxima sesión, el agente los usa.
+3. Ahí mismo, la fila **Skills de Tisty** de ese agente tiene otro interruptor. Al encenderlo se abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
 
-   Si conectas el agente ahora, bajo su fila aparece una vez «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:», con **Ver las skills de Tisty**. Si ya lo tenías conectado, los pasos 2 y 3 llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
+   Si conectas el agente ahora, los dos van incluidos en **Conectar** y quedan encendidos. Si ya lo tenías conectado, los pasos 2 y 3 llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
 4. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
    - **Recordarle al empezar y al terminar cada turno**: los tres hooks, sin quitarlos del archivo.

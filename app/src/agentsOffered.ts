@@ -26,5 +26,3 @@ export const markOffered = (ids: readonly string[]) => {
 
 export const takesHooks = ({ hooks }: Wired): boolean =>
   !!hooks && !hooks.on && !hooks.unread && !hooks.apart && !hooks.plugged;
-
-export const offers = (one: Wired): boolean => !!one.hooks || one.id in SKILLED;

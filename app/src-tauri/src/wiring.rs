@@ -288,42 +288,6 @@ fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
     Writes::default().change(&at, &was, &now, place.moved_aside(&at))
 }
 
-pub fn hook_before(id: &str, on: bool) -> Result<Vec<Seen>, Stuck> {
-    let (client, place, _) = asked(id)?;
-    match on {
-        true => hook_before_at(&client, &place, homes_of(&place))?,
-        false => unhook_before_at(&client, &place)?,
-    }
-    Ok(seen_in(&place))
-}
-
-fn hook_before_at(
-    client: &Client,
-    place: &Place,
-    homes: Option<agents::Homes>,
-) -> Result<(), Stuck> {
-    if !place.open {
-        return Err(Stuck::Shut);
-    }
-    unplugged(client, homes)?;
-    let (kind, at) = hooks_of(client, place)?;
-    let was = files::text(&at)?;
-    if hooks::apart(kind, &was) {
-        return Err(Stuck::HooksApart(at.display().to_string()));
-    }
-    let now = hooks::completed(kind, &was, place)
-        .ok_or_else(|| Stuck::HooksPuzzling(at.display().to_string()))?;
-    Writes::default().change(&at, &was, &now, place.moved_aside(&at))
-}
-
-fn unhook_before_at(client: &Client, place: &Place) -> Result<(), Stuck> {
-    let (kind, at) = hooks_of(client, place)?;
-    let was = files::text(&at)?;
-    let now = hooks::without_before(kind, &was)
-        .ok_or_else(|| Stuck::HooksPuzzling(at.display().to_string()))?;
-    unhook_written(kind, place, &at, &was, &now, &mut Writes::default())
-}
-
 fn homes_of(place: &Place) -> Option<agents::Homes> {
     match place.distro {
         Some(_) => agents::Homes::of(&place.home),
