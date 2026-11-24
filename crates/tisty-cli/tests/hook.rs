@@ -327,3 +327,48 @@ fn the_switch_turned_off_in_the_settings_silences_a_start_through_the_binary() {
     assert!(said.status.success());
     assert!(said.stdout.is_empty(), "{said:?}");
 }
+
+fn outside_file() -> String {
+    match cfg!(windows) {
+        true => r"X:\Nowhere\Person\Docs\notes.md".to_string(),
+        false => "/nowhere/person/Docs/notes.md".to_string(),
+    }
+}
+
+#[test]
+fn a_new_text_file_outside_is_denied_once_through_the_binary() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let heard = json!({
+        "session_id": "s-before",
+        "tool_name": "Write",
+        "tool_input": { "file_path": outside_file(), "content": "x" },
+    });
+
+    let first = home.hook("claude-code", "before", &heard);
+    let second = home.hook("claude-code", "before", &heard);
+
+    assert!(first.status.success(), "{first:?}");
+    let denied: Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(denied["hookSpecificOutput"]["permissionDecision"], "deny");
+    assert!(
+        second.status.success() && second.stdout.is_empty(),
+        "{second:?}"
+    );
+}
+
+#[test]
+fn garbage_before_a_call_is_silent_through_the_binary() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    for raw in [&b"not json"[..], b"", b"{\"session_id\":\"s\"}"] {
+        let mut child = home
+            .tisty(&["hook", "claude-code", "before"])
+            .spawn()
+            .unwrap();
+        child.stdin.take().unwrap().write_all(raw).unwrap();
+        let said = child.wait_with_output().unwrap();
+        assert!(said.status.success(), "{raw:?}: {said:?}");
+        assert!(said.stdout.is_empty(), "{raw:?}: {said:?}");
+    }
+}

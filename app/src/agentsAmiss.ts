@@ -71,7 +71,6 @@ export interface Offering {
   agents: Wired[] | null;
   skills: TistySkills | null;
   declined: readonly string[];
-  skillsHidden: boolean;
 }
 
 export function extrasOf(all: Offering): Extras | null {
@@ -79,11 +78,7 @@ export function extrasOf(all: Offering): Extras | null {
   if (!agent?.on || !agents || inState(agents, "lost").length > 0) return null;
   const joined = agents.filter((one) => one.wired && !declined.includes(one.id));
   const teaches =
-    !!skills &&
-    !skills.on &&
-    !all.skillsHidden &&
-    skills.landing.length > 0 &&
-    !declined.includes(SKILLS_DECLINED);
+    !!skills && !skills.on && skills.landing.length > 0 && !declined.includes(SKILLS_DECLINED);
   const hooks = joined.filter(
     ({ id, hooks }) =>
       hooks &&

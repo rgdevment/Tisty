@@ -11,6 +11,9 @@ use super::running::{self, New, Program, Run, Spoken};
 const HOOKS: &str = "hooks";
 const START_SECONDS: u64 = 15;
 const TURN_SECONDS: u64 = 5;
+const BEFORE_SECONDS: u64 = 3;
+const BEFORE: &str = "before";
+const PROSE_WRITTEN: &str = r"\.(md|markdown|txt|rst|adoc|org)";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -31,6 +34,8 @@ pub struct Hooks {
     pub unread: bool,
     /// Run in a way of the person's own, so Tisty neither changes it nor adds hers beside it.
     pub apart: bool,
+    /// Added before the hook that asks first existed, or with it taken out by hand.
+    pub lacks_before: bool,
     pub stray: Vec<Stray>,
 }
 
@@ -75,14 +80,54 @@ impl Kind {
 
     fn events(self) -> &'static [&'static str] {
         match self {
-            Kind::Claude => &["SessionStart", "PostToolUse", "Stop"],
-            Kind::Cursor => &["sessionStart", "afterFileEdit", "afterMCPExecution", "stop"],
-            Kind::Gemini => &["SessionStart", "AfterTool", "AfterAgent"],
-            Kind::Copilot => &["sessionStart", "postToolUse", "agentStop"],
+            Kind::Claude => &["SessionStart", "PreToolUse", "PostToolUse", "Stop"],
+            Kind::Cursor => &[
+                "sessionStart",
+                "preToolUse",
+                "beforeShellExecution",
+                "afterFileEdit",
+                "afterMCPExecution",
+                "stop",
+            ],
+            Kind::Gemini => &["SessionStart", "BeforeTool", "AfterTool", "AfterAgent"],
+            Kind::Copilot => &["sessionStart", "preToolUse", "postToolUse", "agentStop"],
         }
     }
 
     fn entries(self, place: &Place) -> Vec<(&'static str, Value)> {
+        let mut all = self.turn_entries(place);
+        all.extend(self.before_entries(place));
+        all
+    }
+
+    fn before_entries(self, place: &Place) -> Vec<(&'static str, Value)> {
+        let run = self.run(place, BEFORE, BEFORE_SECONDS);
+        let matched = |matcher: &str| {
+            let mut run = run.clone();
+            run["matcher"] = json!(matcher);
+            run
+        };
+        match self {
+            Kind::Claude => vec![(
+                "PreToolUse",
+                json!({
+                    "matcher": "^(Write|Bash|PowerShell|mcp__ccd_session__start_session)$",
+                    "hooks": [run]
+                }),
+            )],
+            Kind::Cursor => vec![
+                ("preToolUse", matched("Write")),
+                ("beforeShellExecution", matched(PROSE_WRITTEN)),
+            ],
+            Kind::Gemini => vec![(
+                "BeforeTool",
+                json!({ "matcher": "^write_file$", "hooks": [run] }),
+            )],
+            Kind::Copilot => vec![("preToolUse", matched("create"))],
+        }
+    }
+
+    fn turn_entries(self, place: &Place) -> Vec<(&'static str, Value)> {
         let run = |moment: &str, seconds: u64| self.run(place, moment, seconds);
         let start = run("start", START_SECONDS);
         let tool = run("tool", TURN_SECONDS);
@@ -149,6 +194,17 @@ impl Kind {
                 "name": format!("tisty-{moment}"), "type": "command",
                 "command": spoken(place, &args), "timeout": seconds * 1_000
             }),
+            // Copilot refuses the call when this hook fails, so it goes through a shell that never does.
+            Kind::Copilot if moment == BEFORE => {
+                let said = spoken(place, &args);
+                let (shell, never_fails) = match windows(place) {
+                    true => ("powershell", format!("{said}; exit 0")),
+                    false => ("bash", format!("{said} || true")),
+                };
+                let mut run = json!({ "type": "command", "timeoutSec": seconds });
+                run[shell] = json!(never_fails);
+                run
+            }
             Kind::Copilot => json!({
                 "type": "command", "exec": place.command, "args": args, "timeoutSec": seconds
             }),
@@ -190,12 +246,16 @@ pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
     Some(Hooks {
         on: hooked(kind, &text),
         at: shown,
-        plugged: false,
-        plugin_unknown: false,
-        unread: false,
         apart: apart(kind, &text),
+        lacks_before: lacks_before(kind, &text),
         stray,
+        ..Hooks::default()
     })
+}
+
+fn lacks_before(kind: Kind, text: &str) -> bool {
+    let runs = runs(kind, text);
+    !runs.iter().any(|run| run.all_read && run.moment == BEFORE)
 }
 
 pub fn hooked(kind: Kind, text: &str) -> bool {
@@ -241,6 +301,10 @@ pub fn without(kind: Kind, text: &str) -> Option<String> {
     taken_out(kind, text, |run| run.all_read)
 }
 
+pub fn without_before(kind: Kind, text: &str) -> Option<String> {
+    taken_out(kind, text, |run| run.all_read && run.moment == BEFORE)
+}
+
 pub fn without_those(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
     taken_out(kind, text, |run| {
         run.all_read && run.programs.iter().all(|one| named(one, place, said))
@@ -284,7 +348,29 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
             Kind::Claude | Kind::Gemini => "{\n}\n".to_string(),
         };
     }
-    for (event, entry) in kind.entries(place) {
+    let now = pushed(now, kind.entries(place))?;
+    (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
+}
+
+// Only the hook that asks first is added, so what the person changed in the others stays.
+pub fn completed(kind: Kind, text: &str, place: &Place) -> Option<String> {
+    if !lacks_before(kind, text) {
+        return Some(text.to_string());
+    }
+    let entries = kind.before_entries(place);
+    let fits = entries
+        .iter()
+        .all(|(event, _)| running::list_fits(text, event));
+    if !fits || apart(kind, text) || !hooked(kind, text) {
+        return None;
+    }
+    let now = pushed(text.to_string(), entries)?;
+    (sound(kind, text, &now) && !lacks_before(kind, &now)).then_some(now)
+}
+
+fn pushed(text: String, entries: Vec<(&'static str, Value)>) -> Option<String> {
+    let mut now = text;
+    for (event, entry) in entries {
         let piece = serde_json::to_string_pretty(&entry).ok()?;
         now = match running::list(&now, event) {
             Some(at) => json::push(&now, at, &piece)?,
@@ -294,7 +380,7 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
             }
         };
     }
-    (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
+    Some(now)
 }
 
 fn sound(kind: Kind, was: &str, now: &str) -> bool {

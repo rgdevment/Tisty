@@ -1,4 +1,8 @@
+mod asking;
+mod call;
+mod command;
 mod marks;
+mod outside;
 mod said;
 
 use std::io::{Read, Write};
@@ -6,25 +10,26 @@ use std::process::ExitCode;
 
 use tisty_core::Paths;
 
+use call::Call;
 use marks::{Mark, Session, Verdict, verdict};
+use outside::Here;
 use said::{Client, Heard};
 
 const HEARD_AT_MOST: u64 = 32 * 1024 * 1024;
-const SWITCH: &str = "turn_hooks";
 
 // A hook never fails the assistant's turn: whatever goes wrong, it exits 0 and says nothing.
 pub fn run(args: &[String]) -> ExitCode {
     let [client, moment] = args else {
         return ExitCode::SUCCESS;
     };
-    let heard = heard();
+    let raw = heard();
     let Some(client) = Client::named(client) else {
         return ExitCode::SUCCESS;
     };
     let Ok(paths) = Paths::resolve() else {
         return ExitCode::SUCCESS;
     };
-    if let Some(said) = answered(&paths, client, moment, &heard, now()) {
+    if let Some(said) = answered(&paths, client, moment, &raw, now()) {
         let mut out = std::io::stdout().lock();
         let _ = out.write_all(said.as_bytes());
         let _ = out.flush();
@@ -32,93 +37,120 @@ pub fn run(args: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn heard() -> Heard {
+fn heard() -> Vec<u8> {
     let mut raw = Vec::new();
     let _ = std::io::stdin().take(HEARD_AT_MOST).read_to_end(&mut raw);
-    Heard::read(&raw)
+    raw
 }
 
 fn now() -> i128 {
     jiff::Timestamp::now().as_nanosecond()
 }
 
-fn answered(
-    paths: &Paths,
-    client: Client,
-    moment: &str,
-    heard: &Heard,
-    at: i128,
-) -> Option<String> {
-    let settings = settings(paths);
-    if !on(settings.as_ref()) {
-        return None;
-    }
-    let session = Session::of(paths.cache(), heard.session());
+fn answered(paths: &Paths, client: Client, moment: &str, raw: &[u8], at: i128) -> Option<String> {
+    let settings = Settings::of(paths);
+    let heard = Heard::read(raw);
     // Without its session a mark would mix with other sessions', so only the start speaks.
     if heard.session().is_empty() && moment != "start" {
         return None;
     }
+    let session = Session::of(paths.cache(), heard.session());
+    if moment == "start" {
+        marks::sweep(paths.cache(), std::time::SystemTime::now());
+    }
+    if settings.turn_hooks == Some(false) {
+        return None;
+    }
     match moment {
-        "start" => {
-            marks::sweep(paths.cache(), std::time::SystemTime::now());
-            let key = format!("start-{}-{}", heard.source(), at / 30_000_000_000);
-            if !heard.session().is_empty() && !session.claim(&key) {
-                return None;
-            }
-            let opening = crate::mcp::opening(paths, client.hand(heard))?;
-            Some(client.started(&opening))
-        }
+        "start" => started(paths, client, &heard, &session, at),
         "edit" => {
             session.mark(Mark::Edited, at);
             None
         }
         "tool" => {
-            if let Some(tool) = heard.tisty_tool() {
-                session.mark(Mark::Called, at);
-                if crate::mcp::writes(tool) {
-                    session.mark(Mark::Wrote, at);
-                }
-            } else if heard.edits() {
-                session.mark(Mark::Edited, at);
-            }
+            used(&heard, &session, at);
             None
         }
-        "stop" => {
-            let marks = session.marks();
-            let door_open = settings
-                .as_ref()
-                .and_then(|it| it.get("agent_id"))
-                .and_then(toml::Value::as_str)
-                .is_some_and(|agent| !agent.trim().is_empty());
-            match door_open && verdict(&marks, heard.again()) == Verdict::HandBack {
-                true => {
-                    let key = format!("stop-{}", marks.edited.unwrap_or_default());
-                    if !session.claim(&key) {
-                        return None;
-                    }
-                    session.mark(Mark::Handed, at);
-                    Some(client.handed_back(crate::mcp::TURN_LEFT_UNWRITTEN))
-                }
-                false => {
-                    session.mark(Mark::Ended, at);
-                    None
-                }
-            }
+        "stop" => ended(&settings, client, &heard, &session, at),
+        // Cursor runs Claude Code's hooks too, and shows their reason to the person, not to its agent.
+        "before" if settings.door_open() && !borrowed(client, &heard) => {
+            let call = Call::read(raw);
+            asking::asked(&session, &Here::now(), &call, heard.tool(), at)
+                .map(|question| client.denied(question))
         }
         _ => None,
     }
 }
 
-fn settings(paths: &Paths) -> Option<toml::Table> {
-    let text = std::fs::read_to_string(paths.config_file()).ok()?;
-    toml::from_str(&text).ok()
+fn borrowed(client: Client, heard: &Heard) -> bool {
+    client == Client::ClaudeCode && heard.in_cursor()
 }
 
-fn on(settings: Option<&toml::Table>) -> bool {
-    settings
-        .and_then(|it| it.get(SWITCH))
-        .and_then(toml::Value::as_bool)
-        != Some(false)
+fn started(
+    paths: &Paths,
+    client: Client,
+    heard: &Heard,
+    session: &Session,
+    at: i128,
+) -> Option<String> {
+    let key = format!("start-{}-{}", heard.source(), at / 30_000_000_000);
+    if !heard.session().is_empty() && !session.claim(&key) {
+        return None;
+    }
+    let opening = crate::mcp::opening(paths, client.hand(heard))?;
+    Some(client.started(&opening))
+}
+
+fn used(heard: &Heard, session: &Session, at: i128) {
+    if let Some(tool) = heard.tisty_tool() {
+        session.mark(Mark::Called, at);
+        if crate::mcp::writes(tool) {
+            session.mark(Mark::Wrote, at);
+        }
+    } else if heard.edits() {
+        session.mark(Mark::Edited, at);
+    }
+}
+
+fn ended(
+    settings: &Settings,
+    client: Client,
+    heard: &Heard,
+    session: &Session,
+    at: i128,
+) -> Option<String> {
+    let marks = session.marks();
+    if !settings.door_open() || verdict(&marks, heard.again()) == Verdict::LetGo {
+        session.mark(Mark::Ended, at);
+        return None;
+    }
+    if !session.claim(&format!("stop-{}", marks.edited.unwrap_or_default())) {
+        return None;
+    }
+    session.mark(Mark::Handed, at);
+    Some(client.handed_back(crate::mcp::TURN_LEFT_UNWRITTEN))
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct Settings {
+    #[serde(default)]
+    turn_hooks: Option<bool>,
+    #[serde(default)]
+    agent_id: Option<String>,
+}
+
+impl Settings {
+    fn of(paths: &Paths) -> Self {
+        std::fs::read_to_string(paths.config_file())
+            .ok()
+            .and_then(|text| toml::from_str(&text).ok())
+            .unwrap_or_default()
+    }
+
+    fn door_open(&self) -> bool {
+        let agent = self.agent_id.as_deref().unwrap_or_default();
+        !agent.trim().is_empty()
+    }
 }
 
 #[cfg(test)]

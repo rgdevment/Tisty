@@ -22,7 +22,7 @@ fn said(home: &Home, moment: &str, heard: Value, at: i128) -> Option<String> {
         &home.paths,
         Client::ClaudeCode,
         moment,
-        &Heard::read(heard.to_string().as_bytes()),
+        heard.to_string().as_bytes(),
         at,
     )
 }
@@ -87,7 +87,7 @@ fn a_closed_door_never_hands_a_turn_back() {
 
 #[test]
 fn the_switch_turned_off_silences_every_moment() {
-    let home = home(&format!("{LET_IN}{SWITCH} = false\n"));
+    let home = home(&format!("{LET_IN}turn_hooks = false\n"));
     edit(&home, 10);
 
     assert_eq!(stop(&home, 20), None);
@@ -145,4 +145,131 @@ fn a_call_without_its_session_leaves_no_mark_to_mix_with_others() {
     );
     assert_eq!(said(&home, "stop", json!({}), 20), None);
     assert!(!home.paths.cache().join("turns").exists());
+}
+
+fn nowhere() -> std::path::PathBuf {
+    match cfg!(windows) {
+        true => std::path::PathBuf::from(r"X:\Nowhere\Person"),
+        false => std::path::PathBuf::from("/nowhere/person"),
+    }
+}
+
+fn writing(session: &str, folder: &str) -> Value {
+    let at = nowhere().join(folder).join("notes.md");
+    json!({
+        "session_id": session,
+        "tool_name": "Write",
+        "tool_input": { "file_path": at.display().to_string(), "content": "x" },
+    })
+}
+
+fn before(home: &Home, heard: Value, at: i128) -> Option<String> {
+    said(home, "before", heard, at)
+}
+
+#[test]
+fn a_new_text_file_outside_is_asked_about_once() {
+    let home = home(LET_IN);
+
+    let first: Value =
+        serde_json::from_str(&before(&home, writing("s1", "Docs"), 1).unwrap()).unwrap();
+    let again = before(&home, writing("s1", "Docs"), 2);
+
+    let decision = &first["hookSpecificOutput"];
+    assert_eq!(decision["permissionDecision"], "deny");
+    assert_eq!(
+        decision["permissionDecisionReason"],
+        crate::mcp::FILE_LEFT_OUTSIDE
+    );
+    assert_eq!(again, None);
+    assert_eq!(Session::of(home.paths.cache(), "s1").marks().asked, Some(1));
+}
+
+#[test]
+fn a_file_that_needs_no_question_is_let_through_silently() {
+    let home = home(LET_IN);
+    let at = nowhere().join("Docs").join("main.rs");
+    let heard = json!({
+        "session_id": "s1",
+        "tool_name": "Write",
+        "tool_input": { "file_path": at.display().to_string() },
+    });
+
+    assert_eq!(before(&home, heard, 1), None);
+    assert_eq!(Session::of(home.paths.cache(), "s1").marks().asked, None);
+}
+
+#[test]
+fn a_closed_door_or_the_switch_off_never_asks() {
+    for settings in [
+        String::new(),
+        "agent_id = \"  \"\n".to_string(),
+        format!("{LET_IN}turn_hooks = false\n"),
+    ] {
+        let home = home(&settings);
+
+        assert_eq!(
+            before(&home, writing("s1", "Docs"), 1),
+            None,
+            "{settings:?}"
+        );
+        assert!(!home.paths.cache().join("turns").exists(), "{settings:?}");
+    }
+}
+
+#[test]
+fn claude_codes_entry_run_inside_cursor_is_silent_and_claims_nothing() {
+    let home = home(LET_IN);
+    let mut inside = writing("s1", "Docs");
+    inside["cursor_version"] = json!("3.2");
+
+    assert_eq!(before(&home, inside, 1), None);
+    assert_eq!(Session::of(home.paths.cache(), "s1").marks().asked, None);
+    assert!(before(&home, writing("s1", "Docs"), 2).is_some());
+}
+
+#[test]
+fn a_call_with_no_session_is_never_asked_about() {
+    let home = home(LET_IN);
+    let mut heard = writing("s1", "Docs");
+    heard.as_object_mut().unwrap().remove("session_id");
+
+    assert_eq!(before(&home, heard, 1), None);
+    assert!(!home.paths.cache().join("turns").exists());
+}
+
+#[test]
+fn settings_that_cannot_be_read_never_ask() {
+    for bytes in [
+        &b"not = [ toml"[..],
+        b"agent_id = \xff\xfe",
+        b"agent_id = 4\n",
+    ] {
+        let home = home("");
+        std::fs::write(home.paths.config_file(), bytes).unwrap();
+
+        assert_eq!(before(&home, writing("s1", "Docs"), 1), None, "{bytes:?}");
+    }
+}
+
+#[test]
+fn a_payload_that_cannot_be_read_never_asks_and_never_panics() {
+    let home = home(LET_IN);
+    for raw in [&b""[..], b"not json", b"[1]", b"{\"session_id\":\"s1\"}"] {
+        let said = answered(&home.paths, Client::ClaudeCode, "before", raw, 1);
+        assert_eq!(said, None, "{raw:?}");
+    }
+}
+
+#[test]
+fn a_turn_that_was_asked_about_is_not_handed_back_and_the_next_edited_turn_is() {
+    let home = home(LET_IN);
+    edit(&home, 10);
+    assert!(before(&home, writing("s1", "Docs"), 15).is_some());
+
+    assert_eq!(stop(&home, 20), None);
+
+    edit(&home, 30);
+    let handed: Value = serde_json::from_str(&stop(&home, 40).unwrap()).unwrap();
+    assert_eq!(handed["decision"], "block");
 }

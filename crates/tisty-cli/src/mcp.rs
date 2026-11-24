@@ -20,6 +20,7 @@ mod mistaken;
 mod moving;
 mod open_task;
 mod opening;
+mod outside;
 mod papers;
 mod placing;
 mod pressing;
@@ -62,6 +63,7 @@ use spoken::spoken;
 pub(crate) use catalogue::{is_tool, writes};
 pub(crate) use open_task::TURN_LEFT_UNWRITTEN;
 pub(crate) use opening::opening;
+pub(crate) use outside::{CARD_LEFT_OUTSIDE, COMMAND_LEAVES_OUTSIDE, FILE_LEFT_OUTSIDE};
 
 use jsonrpc::{
     Tally, discovered, fault, introduced, legacy_greeting, named_tool, reply, short,

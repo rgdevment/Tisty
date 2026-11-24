@@ -461,3 +461,389 @@ fn a_hook_with_one_way_of_running_it_wrapped_by_the_person_is_never_taken_out() 
     let fixed = repointed(Kind::Copilot, was, &here, &named).unwrap();
     assert_eq!(fixed, was.replace("/old/tisty", "/opt/new/tisty"));
 }
+
+const BEFORE_ONLY: [(Kind, &[&str]); 4] = [
+    (Kind::Claude, &["PreToolUse"]),
+    (Kind::Cursor, &["preToolUse", "beforeShellExecution"]),
+    (Kind::Gemini, &["BeforeTool"]),
+    (Kind::Copilot, &["preToolUse"]),
+];
+
+fn before_events(kind: Kind) -> &'static [&'static str] {
+    BEFORE_ONLY.iter().find(|one| one.0 == kind).unwrap().1
+}
+
+fn as_text(value: &Value) -> String {
+    serde_json::to_string_pretty(value).unwrap()
+}
+
+fn as_of_1_49(kind: Kind, text: &str) -> String {
+    let mut now = read(text);
+    for event in before_events(kind) {
+        now["hooks"].as_object_mut().unwrap().remove(*event);
+    }
+    as_text(&now)
+}
+
+fn person_entry(kind: Kind) -> Value {
+    match kind {
+        Kind::Claude | Kind::Gemini => {
+            json!({ "matcher": "Bash", "hooks": [ { "type": "command", "command": "say hi" } ] })
+        }
+        Kind::Cursor | Kind::Copilot => json!({ "command": "say hi" }),
+    }
+}
+
+fn linux() -> (tempfile::TempDir, Place) {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Linux, "/opt/tisty");
+    (tmp, here)
+}
+
+#[test]
+fn every_assistant_is_written_the_hook_that_asks_first_in_its_own_way() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Linux, "/opt/tisty");
+    let args = json!(["hook", "claude-code", "before"]);
+
+    let claude = read(&with(Kind::Claude, "", &here).unwrap());
+    let pre = &claude["hooks"]["PreToolUse"];
+    assert_eq!(pre.as_array().unwrap().len(), 1);
+    assert_eq!(
+        pre[0]["matcher"],
+        "^(Write|Bash|PowerShell|mcp__ccd_session__start_session)$"
+    );
+    assert_eq!(pre[0]["hooks"][0]["args"], args);
+    assert_eq!(pre[0]["hooks"][0]["command"], "/opt/tisty");
+    assert_eq!(pre[0]["hooks"][0]["timeout"], 3);
+
+    let cursor = read(&with(Kind::Cursor, "", &here).unwrap());
+    assert_eq!(cursor["hooks"]["preToolUse"][0]["matcher"], "Write");
+    assert_eq!(
+        cursor["hooks"]["preToolUse"][0]["command"],
+        "'/opt/tisty' hook cursor before"
+    );
+    assert_eq!(cursor["hooks"]["preToolUse"][0]["timeout"], 3);
+    let shell = &cursor["hooks"]["beforeShellExecution"][0];
+    assert!(shell["matcher"].as_str().unwrap().contains("md"), "{shell}");
+    assert_eq!(shell["command"], "'/opt/tisty' hook cursor before");
+
+    let gemini = read(&with(Kind::Gemini, "", &here).unwrap());
+    let before = &gemini["hooks"]["BeforeTool"][0];
+    assert_eq!(before["matcher"], "^write_file$");
+    assert_eq!(before["hooks"][0]["timeout"], 3_000);
+    assert_eq!(before["hooks"][0]["name"], "tisty-before");
+    assert_eq!(
+        before["hooks"][0]["command"],
+        "'/opt/tisty' hook gemini-cli before"
+    );
+}
+
+#[test]
+fn copilot_runs_the_hook_that_asks_first_through_a_shell_that_never_fails() {
+    let tmp = tempfile::tempdir().unwrap();
+    let windows = place(tmp.path(), Os::Windows, WINDOWS);
+    let elsewhere = place(tmp.path(), Os::Linux, "/opt/It's/tisty");
+
+    let on_windows = read(&with(Kind::Copilot, "", &windows).unwrap());
+    let before = &on_windows["hooks"]["preToolUse"][0];
+    assert_eq!(before["matcher"], "create");
+    assert_eq!(before["timeoutSec"], 3);
+    assert_eq!(
+        before["powershell"],
+        format!("& '{WINDOWS}' hook copilot before; exit 0")
+    );
+    assert!(before.get("exec").is_none() && before.get("bash").is_none());
+
+    let off_windows = read(&with(Kind::Copilot, "", &elsewhere).unwrap());
+    let before = &off_windows["hooks"]["preToolUse"][0];
+    assert_eq!(before["matcher"], "create");
+    assert_eq!(
+        before["bash"],
+        "'/opt/It'\\''s/tisty' hook copilot before || true"
+    );
+    assert!(before.get("exec").is_none() && before.get("powershell").is_none());
+}
+
+#[test]
+fn what_tisty_wrote_with_the_hook_that_asks_first_is_read_back_whole() {
+    for kind in ALL {
+        let (tmp, here) = linux();
+        written(kind, tmp.path(), &with(kind, "", &here).unwrap());
+
+        let found = seen(kind, &here).unwrap();
+
+        assert!(found.on && !found.lacks_before && !found.apart, "{kind:?}");
+    }
+}
+
+#[test]
+fn hooks_of_the_release_before_have_no_hook_that_asks_first() {
+    for kind in ALL {
+        let (tmp, here) = linux();
+        let old = as_of_1_49(kind, &with(kind, "", &here).unwrap());
+        written(kind, tmp.path(), &old);
+
+        let found = seen(kind, &here).unwrap();
+
+        assert!(found.on && found.lacks_before, "{kind:?}");
+    }
+}
+
+#[test]
+fn completing_adds_only_the_hook_that_asks_first_and_keeps_the_rest_as_it_was() {
+    for kind in ALL {
+        let (tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let old = as_of_1_49(kind, &full);
+        let changed = old.replacen("15", "99", 1);
+        assert_ne!(changed, old, "{kind:?}");
+
+        let now = completed(kind, &changed, &here).unwrap();
+
+        assert!(!lacks_before(kind, &now), "{kind:?}");
+        let (was, told) = (read(&changed), read(&now));
+        let others = was["hooks"].as_object().unwrap();
+        for (event, groups) in others {
+            assert_eq!(&told["hooks"][event], groups, "{kind:?} {event}");
+        }
+        for event in before_events(kind) {
+            assert!(!told["hooks"][*event].as_array().unwrap().is_empty());
+        }
+        assert!(now.contains("99"), "{kind:?}");
+        written(kind, tmp.path(), &now);
+        assert!(!seen(kind, &here).unwrap().lacks_before);
+    }
+}
+
+#[test]
+fn completing_gives_the_same_hooks_as_writing_them_all_at_once() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let old = as_of_1_49(kind, &full);
+
+        let now = completed(kind, &old, &here).unwrap();
+
+        assert_eq!(read(&now), read(&full), "{kind:?}");
+    }
+}
+
+#[test]
+fn completing_twice_changes_nothing_and_a_complete_file_is_returned_as_it_is() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let old = as_of_1_49(kind, &full);
+
+        let once = completed(kind, &old, &here).unwrap();
+        let twice = completed(kind, &once, &here).unwrap();
+
+        assert_eq!(twice, once, "{kind:?}");
+        assert_eq!(completed(kind, &full, &here).unwrap(), full, "{kind:?}");
+    }
+}
+
+#[test]
+fn completing_keeps_what_the_person_already_had_in_the_same_event() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let mut old = read(&as_of_1_49(kind, &with(kind, "", &here).unwrap()));
+        let event = before_events(kind)[0];
+        old["hooks"][event] = json!([person_entry(kind)]);
+
+        let now = read(&completed(kind, &as_text(&old), &here).unwrap());
+
+        let all = now["hooks"][event].as_array().unwrap();
+        assert_eq!(all.len(), 2, "{kind:?}");
+        assert_eq!(all[0], person_entry(kind), "{kind:?}");
+    }
+}
+
+#[test]
+fn completing_is_refused_when_nothing_of_tistys_is_there_or_it_is_run_apart_or_an_event_is_no_list()
+{
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let old = as_of_1_49(kind, &full);
+        assert_eq!(completed(kind, "{}", &here), None, "{kind:?}");
+        assert_eq!(completed(kind, "", &here), None, "{kind:?}");
+
+        let mut apart = read(&old);
+        let event = match kind {
+            Kind::Claude => "Stop",
+            Kind::Cursor => "stop",
+            Kind::Gemini => "AfterAgent",
+            Kind::Copilot => "agentStop",
+        };
+        let wrapped = match kind {
+            Kind::Claude => {
+                json!({ "hooks": [{ "command": "quiet.exe tisty.exe hook claude-code stop" }] })
+            }
+            Kind::Cursor => json!({ "command": "quiet.exe tisty.exe hook cursor stop" }),
+            Kind::Gemini => {
+                json!({ "hooks": [{ "command": "quiet.exe tisty.exe hook gemini-cli stop" }] })
+            }
+            Kind::Copilot => json!({ "bash": "quiet.exe tisty.exe hook copilot stop" }),
+        };
+        apart["hooks"][event].as_array_mut().unwrap().push(wrapped);
+        assert!(super::apart(kind, &as_text(&apart)), "{kind:?}");
+        assert_eq!(completed(kind, &as_text(&apart), &here), None, "{kind:?}");
+
+        let mut broken = read(&old);
+        broken["hooks"][before_events(kind)[0]] = json!("not a list");
+        assert_eq!(completed(kind, &as_text(&broken), &here), None, "{kind:?}");
+    }
+}
+
+#[test]
+fn turning_the_hook_that_asks_first_off_takes_out_only_it() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let mut mixed = read(&full);
+        let event = before_events(kind)[0];
+        mixed["hooks"][event]
+            .as_array_mut()
+            .unwrap()
+            .insert(0, person_entry(kind));
+        let mixed = as_text(&mixed);
+
+        let now = without_before(kind, &mixed).unwrap();
+        let told = read(&now);
+
+        assert!(hooked(kind, &now), "{kind:?}");
+        assert!(lacks_before(kind, &now), "{kind:?}");
+        assert_eq!(
+            told["hooks"][event],
+            json!([person_entry(kind)]),
+            "{kind:?}"
+        );
+        let mut expected = read(&full);
+        for event in before_events(kind) {
+            expected["hooks"].as_object_mut().unwrap().remove(*event);
+        }
+        for (event, groups) in expected["hooks"].as_object().unwrap() {
+            assert_eq!(&told["hooks"][event], groups, "{kind:?} {event}");
+        }
+        assert_eq!(without_before(kind, &now).unwrap(), now, "{kind:?}");
+    }
+}
+
+#[test]
+fn turning_the_hook_that_asks_first_off_where_there_is_none_changes_nothing() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let old = as_of_1_49(kind, &with(kind, "", &here).unwrap());
+
+        assert_eq!(without_before(kind, &old).unwrap(), old, "{kind:?}");
+        assert_eq!(without_before(kind, "{}").unwrap(), "{}", "{kind:?}");
+    }
+}
+
+#[test]
+fn taking_hooks_out_takes_the_one_that_asks_first_and_leaves_the_persons() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let mut mixed = read(&with(kind, "", &here).unwrap());
+        let event = before_events(kind)[0];
+        mixed["hooks"][event]
+            .as_array_mut()
+            .unwrap()
+            .insert(0, person_entry(kind));
+
+        let now = without(kind, &as_text(&mixed)).unwrap();
+        let told = read(&now);
+
+        assert!(!hooked(kind, &now), "{kind:?}");
+        assert_eq!(
+            told["hooks"][event],
+            json!([person_entry(kind)]),
+            "{kind:?}"
+        );
+        assert!(!now.contains("tisty"), "{kind:?} {now}");
+    }
+}
+
+#[test]
+fn taking_hooks_out_leaves_no_event_that_held_only_the_one_that_asks_first() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+
+        let now = read(&without(kind, &with(kind, "", &here).unwrap()).unwrap());
+
+        for event in before_events(kind) {
+            assert!(now["hooks"].get(*event).is_none(), "{kind:?} {event}");
+        }
+    }
+}
+
+#[test]
+fn fixing_the_program_repoints_the_hook_that_asks_first_too() {
+    for kind in ALL {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = place(tmp.path(), Os::Linux, "/opt/old/tisty");
+        let here = place(tmp.path(), Os::Linux, "/opt/new/tisty");
+        let was = with(kind, "", &old).unwrap();
+
+        let now = repointed(kind, &was, &here, &["/opt/old/tisty".to_string()]).unwrap();
+
+        assert!(!now.contains("/opt/old/"), "{kind:?} {now}");
+        assert_eq!(
+            now,
+            was.replace("/opt/old/tisty", "/opt/new/tisty"),
+            "{kind:?}"
+        );
+        let told = read(&now);
+        let event = before_events(kind)[0];
+        assert!(as_text(&told["hooks"][event]).contains("/opt/new/tisty"));
+    }
+}
+
+#[test]
+fn fixing_the_program_keeps_the_tail_of_copilots_shell_form_on_both_systems() {
+    let tmp = tempfile::tempdir().unwrap();
+    let elsewhere_old = place(tmp.path(), Os::Linux, "/opt/old/tisty");
+    let elsewhere = place(tmp.path(), Os::Linux, "/opt/new/tisty");
+    let was = with(Kind::Copilot, "", &elsewhere_old).unwrap();
+    let now = repointed(
+        Kind::Copilot,
+        &was,
+        &elsewhere,
+        &["/opt/old/tisty".to_string()],
+    )
+    .unwrap();
+    let before = &read(&now)["hooks"]["preToolUse"][0];
+    assert_eq!(
+        before["bash"],
+        "'/opt/new/tisty' hook copilot before || true"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn fixing_the_program_keeps_the_tail_of_copilots_powershell_form_on_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let old = place(tmp.path(), Os::Windows, "C:\\NoSuch\\Old\\tisty.exe");
+    let here = place(tmp.path(), Os::Windows, "C:\\New One\\tisty.exe");
+    let was = with(Kind::Copilot, "", &old).unwrap();
+
+    let now = repointed(
+        Kind::Copilot,
+        &was,
+        &here,
+        &["C:\\NoSuch\\Old\\tisty.exe".to_string()],
+    )
+    .unwrap();
+
+    let told = read(&now);
+    assert_eq!(
+        told["hooks"]["preToolUse"][0]["powershell"],
+        "& 'C:\\New One\\tisty.exe' hook copilot before; exit 0"
+    );
+    assert_eq!(
+        told["hooks"]["sessionStart"][0]["exec"],
+        "C:\\New One\\tisty.exe"
+    );
+}

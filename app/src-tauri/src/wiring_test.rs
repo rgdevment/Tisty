@@ -859,3 +859,134 @@ fn a_fix_leaves_claude_codes_hooks_alone_when_the_plugin_turns_out_to_bring_them
     assert!(hooks.is_none());
     assert!(!read_of(&settings).contains("/old/tisty"));
 }
+
+fn without_before_written(id: &str, home: &Path) -> (PathBuf, String) {
+    hooked_here(id, home, "/opt/tisty");
+    let here = place(home, "/opt/tisty");
+    let kind = hooks::kind(id).unwrap();
+    let at = kind.file(&here).unwrap();
+    let old = hooks::without_before(kind, &read_of(&at)).unwrap();
+    std::fs::write(&at, &old).unwrap();
+    (at, old)
+}
+
+fn lacks_before(id: &str, home: &Path) -> bool {
+    looked(id, home, "/opt/tisty").hooks.unwrap().lacks_before
+}
+
+#[test]
+fn the_hook_that_asks_first_is_added_to_hooks_already_there_with_the_file_kept_beside() {
+    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let (at, old) = without_before_written(id, tmp.path());
+        assert!(lacks_before(id, tmp.path()), "{id}");
+
+        hook_before_at(&client(id), &place(tmp.path(), "/opt/tisty"), None).unwrap();
+
+        assert!(!lacks_before(id, tmp.path()), "{id}");
+        assert_eq!(read_of(&beside(&at, "before-tisty")), old, "{id}");
+        assert_eq!(read_of(&beside(&at, "before-tisty-last")), old, "{id}");
+    }
+}
+
+#[test]
+fn the_hook_that_asks_first_is_left_alone_when_it_is_there_already() {
+    let tmp = tempfile::tempdir().unwrap();
+    hooked_here("claude-code", tmp.path(), "/opt/tisty");
+    let at = hooks::Kind::Claude
+        .file(&place(tmp.path(), "/opt/tisty"))
+        .unwrap();
+    let was = read_of(&at);
+
+    hook_before_at(
+        &client("claude-code"),
+        &place(tmp.path(), "/opt/tisty"),
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(read_of(&at), was);
+}
+
+#[test]
+fn the_hook_that_asks_first_is_never_written_beside_the_plugins() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (at, old) = without_before_written("claude-code", tmp.path());
+    let records = tmp.path().join(".claude").join("plugins");
+    std::fs::create_dir_all(&records).unwrap();
+    std::fs::write(
+        records.join("installed_plugins.json"),
+        r#"{"plugins":{"tisty@x":[{"scope":"user"}]}}"#,
+    )
+    .unwrap();
+
+    let refused = hook_before_at(
+        &client("claude-code"),
+        &place(tmp.path(), "/opt/tisty"),
+        agents::Homes::of(tmp.path()),
+    );
+
+    assert!(matches!(refused, Err(Stuck::Plugged)));
+    assert_eq!(read_of(&at), old);
+}
+
+#[test]
+fn the_hook_that_asks_first_is_never_written_where_a_hook_is_run_apart() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (at, old) = without_before_written("claude-code", tmp.path());
+    let mut value: serde_json::Value = serde_json::from_str(&old).unwrap();
+    value["hooks"]["Stop"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "hooks": [{ "command": "quiet.exe tisty.exe hook claude-code stop" }]
+        }));
+    let apart = serde_json::to_string_pretty(&value).unwrap();
+    std::fs::write(&at, &apart).unwrap();
+
+    let refused = hook_before_at(
+        &client("claude-code"),
+        &place(tmp.path(), "/opt/tisty"),
+        None,
+    );
+
+    assert!(matches!(refused, Err(Stuck::HooksApart(_))));
+    assert_eq!(read_of(&at), apart);
+}
+
+#[test]
+fn the_hook_that_asks_first_is_never_written_where_no_hooks_are() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = place(tmp.path(), "/opt/tisty");
+    let at = hooks::Kind::Claude.file(&at).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "{\n  \"model\": \"opus\"\n}\n").unwrap();
+
+    let refused = hook_before_at(
+        &client("claude-code"),
+        &place(tmp.path(), "/opt/tisty"),
+        None,
+    );
+
+    assert!(matches!(refused, Err(Stuck::HooksPuzzling(_))));
+    assert_eq!(read_of(&at), "{\n  \"model\": \"opus\"\n}\n");
+}
+
+#[test]
+fn turning_the_hook_that_asks_first_off_leaves_the_rest_of_the_hooks_and_the_file() {
+    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+        let tmp = tempfile::tempdir().unwrap();
+        hooked_here(id, tmp.path(), "/opt/tisty");
+        let here = place(tmp.path(), "/opt/tisty");
+        let at = hooks::kind(id).unwrap().file(&here).unwrap();
+
+        unhook_before_at(&client(id), &here).unwrap();
+
+        let now = read_of(&at);
+        let seen = looked(id, tmp.path(), "/opt/tisty").hooks.unwrap();
+        assert!(seen.on && seen.lacks_before && !seen.apart, "{id}");
+        assert!(now.contains("tisty") && now.contains("stop"), "{id}");
+        assert!(!now.contains("before"), "{id}: {now}");
+        assert!(beside(&at, "before-tisty-last").exists(), "{id}");
+    }
+}

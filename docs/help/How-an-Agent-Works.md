@@ -9,7 +9,7 @@ This page follows a real agent session, step by step, with the calls it makes an
 - **It finds and walks with a single tool, `brain`.** It finds tasks and documents by their words, with the archive beside the rest; brings a document's or a task's card with its neighbours; and shows a whole project grouped as blocked, under way, waiting for you and not started.
 - **It reads with a single tool, `read`.** A task or a document, whole or in parts, only what is highlighted, or an earlier version; and if nothing changed since its last read, only that.
 - **It leaves the task up to date in one call.** `tick` ticks the steps and writes the task's state, a «State» section of its page that is replaced whole each time. When it picks the task up, `read` brings that state first.
-- **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when each turn starts and ends.
+- **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when it starts, when each turn ends and before it leaves something outside.
 - **What it names gets linked.** A task or a document named by its id or by its exact title between quotes becomes a link when saved, just as if you had made it.
 - **It knows what to do when you say it in your own words.** With Tisty's skills on, “Pick up where we left off” or “Leave this ready for the next agent” is enough: the `tisty` skill tells it to start with `catch_up` and to leave the task up to date with `tick` and a note. [[Hooks and skills|Hooks-and-Skills]] tells it.
 
@@ -18,13 +18,13 @@ This page follows a real agent session, step by step, with the calls it makes an
 In **Settings › Agents**:
 
 1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
-2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. From its next session, the agent uses them.
+2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Hooks: when a turn starts and ends** row says **Not added**. **Add** tells you which file it will write; **Add them** puts them there. If you connect the agent now, they come with **Connect**. From its next session, the agent uses them.
 3. Below it, that agent's **Tisty's skills** row says **Off**. **Turn on skills** opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
 
-   If you connect the agent now, steps 2 and 3 come together: under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with its hooks and **See Tisty's skills**. If it was already connected, they come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
+   If you connect the agent now, under its row, once, «Claude Code is connected. This helps it work with Tisty:» appears, with **See Tisty's skills**. If it was already connected, steps 2 and 3 come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
 4. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
-   - **Remind it when a turn starts and ends**: the hooks, without taking them out of the file.
+   - **Remind it when a turn starts and ends**: the three hooks, without taking them out of the file.
 
 ## A session, step by step
 

@@ -9,7 +9,7 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 - **Busca y navega con una sola herramienta, `brain`.** Encuentra tareas y documentos por sus palabras, con el archivo junto a lo demás; trae la ficha de un documento o una tarea con sus vecinos; y muestra un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar.
 - **Lee con una sola herramienta, `read`.** Una tarea o un documento, entero o por partes, solo lo resaltado, o una versión anterior; y si nada cambió desde su última lectura, solo eso.
 - **Deja la tarea al día en una llamada.** `tick` marca los pasos y escribe el estado de la tarea, una sección «Estado» de su página que se reemplaza entera cada vez. Al retomar, `read` le trae ese estado primero.
-- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar y al terminar cada turno.
+- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar, al terminar cada turno y antes de dejar algo fuera.
 - **Lo que nombra queda enlazado.** Una tarea o un documento nombrado por su id o por su título exacto entre comillas se vuelve un enlace al guardar, igual que si lo hubieras hecho tú.
 - **Sabe qué hacer cuando se lo dices con tus palabras.** Con las skills de Tisty encendidas, «Retoma donde quedamos» o «Deja esto listo para el próximo agente» le bastan: la skill `tisty` le dice que empiece por `catch_up` y que deje la tarea al día con `tick` y una nota. Lo cuenta [[Hooks y skills|Hooks-y-skills]].
 
@@ -18,13 +18,13 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 En **Configuración › Agentes**:
 
 1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del agente. Mira [[Agentes y MCP|Agentes-y-MCP]].
-2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Desde su próxima sesión, el agente los usa.
+2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks: al empezar y al terminar cada turno** dice **Sin agregar**. **Agregar** te dice qué archivo va a escribir; **Agregarlos** los pone. Si conectas el agente ahora, van incluidos en **Conectar**. Desde su próxima sesión, el agente los usa.
 3. Debajo, la fila **Skills de Tisty** de ese agente dice **Apagadas**. **Encender skills** abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
 
-   Si conectas el agente ahora, los pasos 2 y 3 llegan juntos: bajo su fila aparece una vez «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:», con sus hooks y **Ver las skills de Tisty**. Si ya lo tenías conectado, llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
+   Si conectas el agente ahora, bajo su fila aparece una vez «Claude Code ya está conectado. Esto lo ayuda a trabajar con Tisty:», con **Ver las skills de Tisty**. Si ya lo tenías conectado, los pasos 2 y 3 llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
 4. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
-   - **Recordarle al empezar y al terminar cada turno**: los hooks, sin quitarlos del archivo.
+   - **Recordarle al empezar y al terminar cada turno**: los tres hooks, sin quitarlos del archivo.
 
 ## Una sesión, paso a paso
 

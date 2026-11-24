@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type Extras,
   extrasIds,
@@ -18,7 +18,7 @@ import type { Wired } from "../core";
 import type { KnownAgents } from "../knownAgents";
 import { fill, t, type Word } from "../locales";
 import type { Run } from "./Card";
-import { Files, PluginSaid } from "./MendAsk";
+import { Files, PluginSaid, Ticked } from "./MendAsk";
 import { mild, strong } from "./Rows";
 import { agentsTaught, foldersBehind, skillFolders } from "./TistySkills";
 import { useExtras } from "./useExtras";
@@ -327,36 +327,5 @@ function Offer({
         </button>
       </div>
     </section>
-  );
-}
-
-function Ticked({
-  on,
-  onTurn,
-  label,
-  children,
-}: Readonly<{
-  on: boolean;
-  onTurn: (on: boolean) => void;
-  label: string;
-  children: ReactNode;
-}>) {
-  const said = useId();
-  return (
-    <div>
-      <label className="flex cursor-pointer items-start gap-2 font-medium">
-        <input
-          type="checkbox"
-          checked={on}
-          aria-describedby={said}
-          onChange={(event) => onTurn(event.target.checked)}
-          className="mt-0.5"
-        />
-        <span className="min-w-0 [overflow-wrap:anywhere]">{label}</span>
-      </label>
-      <p id={said} className="mt-1 pl-[22px] leading-relaxed text-soft [overflow-wrap:anywhere]">
-        {children}
-      </p>
-    </div>
   );
 }

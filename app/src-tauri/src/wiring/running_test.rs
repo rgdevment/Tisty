@@ -121,3 +121,56 @@ fn a_group_that_is_not_an_object_or_a_list_is_passed_over() {
     assert!(programs(r#"{ "hooks": { "stop": "tisty hook cursor stop" } }"#).is_empty());
     assert!(programs(r#"{ "hooks": [] }"#).is_empty());
 }
+
+fn moments(text: &str, mark: &str, events: &[&'static str]) -> Vec<String> {
+    let spoken = Spoken { mark, posix: false };
+    found(text, events, &spoken)
+        .into_iter()
+        .map(|run| run.moment)
+        .collect()
+}
+
+#[test]
+fn the_moment_a_hook_runs_for_is_read_in_every_form_it_is_written() {
+    for (entry, mark, moment) in [
+        (
+            r#"{ "command": "/opt/tisty", "args": ["hook", "claude-code", "before"] }"#,
+            "hook claude-code",
+            "before",
+        ),
+        (
+            r#"{ "exec": "/opt/tisty", "args": ["hook", "copilot", "stop"] }"#,
+            "hook copilot",
+            "stop",
+        ),
+        (
+            r#"{ "command": "'/opt/tisty' hook cursor stop" }"#,
+            "hook cursor",
+            "stop",
+        ),
+        (
+            r#"{ "powershell": "& 'C:\\x\\tisty.exe' hook copilot before; exit 0" }"#,
+            "hook copilot",
+            "before",
+        ),
+        (
+            r#"{ "bash": "'/opt/tisty' hook copilot before || true" }"#,
+            "hook copilot",
+            "before",
+        ),
+        (
+            r#"{ "bash": "'/opt/tisty' hook copilot start" }"#,
+            "hook copilot",
+            "start",
+        ),
+    ] {
+        let text = format!(r#"{{ "hooks": {{ "ev": [ {entry} ] }} }}"#);
+        assert_eq!(moments(&text, mark, &["ev"]), [moment], "{entry}");
+    }
+}
+
+#[test]
+fn a_hook_with_no_moment_after_its_program_reads_an_empty_one() {
+    let text = r#"{ "hooks": { "ev": [ { "command": "'/opt/tisty' hook cursor" } ] } }"#;
+    assert_eq!(moments(text, "hook cursor", &["ev"]), [""]);
+}

@@ -54,7 +54,7 @@ impl Heard {
         .unwrap_or_default()
     }
 
-    fn tool(&self) -> Option<&str> {
+    pub fn tool(&self) -> Option<&str> {
         [&self.tool_name, &self.tool_name_camel]
             .into_iter()
             .find_map(|one| one.as_ref()?.as_str())
@@ -95,7 +95,7 @@ impl Heard {
         self.stop_hook_active.as_ref().and_then(Value::as_bool) == Some(true)
     }
 
-    fn in_cursor(&self) -> bool {
+    pub fn in_cursor(&self) -> bool {
         self.cursor_version.is_some()
     }
 }
@@ -150,6 +150,25 @@ impl Client {
             }),
             Client::Cursor => json!({ "additional_context": context }),
             Client::Copilot => json!({ "additionalContext": context }),
+        }
+        .to_string()
+    }
+
+    pub fn denied(self, reason: &str) -> String {
+        match self {
+            Client::ClaudeCode => json!({
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
+                }
+            }),
+            Client::Cursor => json!({ "permission": "deny", "agent_message": reason }),
+            Client::GeminiCli => json!({ "decision": "deny", "reason": reason }),
+            Client::Copilot => json!({
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+            }),
         }
         .to_string()
     }

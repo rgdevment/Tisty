@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 23, 2026
+**Last updated:** November 24, 2026
 
 ## The short version
 
@@ -791,9 +791,10 @@ this computer and sending nothing:
   only in Settings › Agents, or when you press the button. Nothing of them is
   kept.
 - **When you add or fix Claude Code's hooks**, even with neither of those two
-  yeses, and without them only then — when you press **Add them**, **Add
-  hooks**, **Fix**, **Fix all** or **Yes, fix** and that writes them, or removes
-  them because the Tisty plugin already brings them — it first reads
+  yeses, and without them only then — when you press **Yes, connect** with its
+  hooks ticked, **Add them**, **Add it**, **Add hooks**, **Fix**, **Fix all** or
+  **Yes, fix** and that writes them, or removes them because the Tisty plugin
+  already brings them — it first reads
   `plugins/installed_plugins.json` in its folder (`~/.claude`, or the one
   `CLAUDE_CONFIG_DIR` says; in WSL, that distro's) and, only if the Tisty
   plugin is there, looks at `settings.json` to know whether it is turned off.
@@ -860,16 +861,14 @@ happens on its own:
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.
-- **Its hooks, if you add them.** Settings › Agents › Connected can add Tisty's
-  hooks to an assistant's own settings file; it names the file and asks first,
-  and leaves the rest of that file as it is. If the file held anything, two
-  copies of it stay beside it: the first Tisty ever saw, as `.before-tisty`, and
-  the one from just before its last write, as `.before-tisty-last`. With them, a
-  session starts with the tasks it left open, what moved and how much is
-  pressing, and after each edit and each call to Tisty a mark is kept in Tisty's
-  cache on this computer, without reading the conversation. The marks never
-  leave it, and **Remove** takes the hooks out. When these files are read is in
-  [The agents you connect](#the-agents-you-connect).
+- **Tisty's hooks.** Tisty comes with hooks you can turn on and off whenever you
+  like and in the agent you choose. Each one helps your agents in its own way,
+  like reminding them to finish tasks, update documents or leave in Tisty what
+  someone else will read. For that they look, on your computer, at what the
+  agent does and where; they do not read the conversation or keep what it does,
+  and they only leave marks, which are deleted once seven days have passed, when
+  a session starts. What they hand the agent, such as the titles of your open
+  tasks, goes where that agent goes.
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
   never leaves this computer. A summary it leaves on a long document is an

@@ -12,6 +12,7 @@ pub enum Mark {
     Wrote,
     Ended,
     Handed,
+    Asked,
 }
 
 impl Mark {
@@ -22,6 +23,7 @@ impl Mark {
             Mark::Wrote => "wrote",
             Mark::Ended => "ended",
             Mark::Handed => "handed",
+            Mark::Asked => "asked",
         }
     }
 }
@@ -64,6 +66,7 @@ impl Session {
             wrote: read(Mark::Wrote),
             ended: read(Mark::Ended),
             handed: read(Mark::Handed),
+            asked: read(Mark::Asked),
         }
     }
 
@@ -74,9 +77,17 @@ impl Session {
         std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(self.at.join(format!("claim-{}", named(key))))
+            .open(self.claim_file(key))
             .and_then(|mut file| file.write_all(b"1"))
             .is_ok()
+    }
+
+    pub fn claimed(&self, key: &str) -> bool {
+        self.claim_file(key).exists()
+    }
+
+    fn claim_file(&self, key: &str) -> PathBuf {
+        self.at.join(format!("claim-{}", named(key)))
     }
 }
 
@@ -87,6 +98,7 @@ pub struct Marks {
     pub wrote: Option<i128>,
     pub ended: Option<i128>,
     pub handed: Option<i128>,
+    pub asked: Option<i128>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,6 +117,7 @@ pub fn verdict(marks: &Marks, again: bool) -> Verdict {
         && since_turn(marks.edited)
         && !since_turn(marks.wrote)
         && !since_turn(marks.handed)
+        && !since_turn(marks.asked)
         && !let_pass;
     match hands_back {
         true => Verdict::HandBack,

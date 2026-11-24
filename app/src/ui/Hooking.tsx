@@ -2,10 +2,12 @@ import { useState } from "react";
 import type { Wired } from "../core";
 import { fill, t, type Word } from "../locales";
 
+export type OnHook = (one: Wired, on: boolean, before?: boolean) => void;
+
 interface Props {
   one: Wired;
   held: boolean;
-  onHook: (one: Wired, on: boolean) => void;
+  onHook: OnHook;
   onFix?: (one: Wired) => void;
 }
 
@@ -30,6 +32,81 @@ const pillDress = (one: Wired): string => {
     ? "border-hue-green/40 text-hue-green"
     : "border-line text-soft";
 };
+
+const asks = (one: Wired, word: Word, at: string): string =>
+  [fill(word, at), ...(one.id.endsWith("claude-code") ? [t("hooksAskPlugin")] : [])].join(" ");
+
+function Asked({
+  said,
+  yes,
+  held,
+  onYes,
+  onNo,
+}: Readonly<{
+  said: string;
+  yes: Word;
+  held: boolean;
+  onYes: () => void;
+  onNo: () => void;
+}>) {
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <p className="text-[12.5px] leading-relaxed text-soft [overflow-wrap:anywhere]">{said}</p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={held}
+          onClick={onYes}
+          className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[12.5px] text-bg disabled:bg-hair disabled:text-soft"
+        >
+          {t(yes)}
+        </button>
+        <button type="button" onClick={onNo} className={`${button} border-line text-soft`}>
+          {t("hooksNo")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Before({ one, held, onHook }: Readonly<Props>) {
+  const [asking, setAsking] = useState(false);
+  const hooks = one.hooks;
+  if (!hooks?.on || hooks.plugged || hooks.apart || hooks.unread) return null;
+  const lacks = !!hooks.lacksBefore;
+  if (lacks && strayOf(one).length > 0) return null;
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span className="min-w-[9rem] flex-1 text-[12.5px] text-soft">
+          {t(lacks ? "hooksBeforeNew" : "hooksBefore")}
+        </span>
+        <button
+          type="button"
+          disabled={held}
+          aria-expanded={lacks ? asking : undefined}
+          aria-label={`${t(lacks ? "hooksBeforeAdd" : "hooksBeforeOut")} · ${one.name}`}
+          onClick={() => (lacks ? setAsking(!asking) : onHook(one, false, true))}
+          className={`${button} ${lacks ? "border-accent text-accent" : "border-line text-soft"}`}
+        >
+          {t(lacks ? "hooksBeforeAdd" : "hooksBeforeOut")}
+        </button>
+      </div>
+      {asking && lacks && (
+        <Asked
+          said={asks(one, "hooksBeforeAsk", hooks.at)}
+          yes="hooksBeforeYes"
+          held={held}
+          onYes={() => {
+            setAsking(false);
+            onHook(one, true, true);
+          }}
+          onNo={() => setAsking(false)}
+        />
+      )}
+    </>
+  );
+}
 
 export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
   const [asking, setAsking] = useState(false);
@@ -85,33 +162,18 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
       {hooks.plugged && hooks.on && (
         <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">{t("hooksTwice")}</p>
       )}
+      <Before one={one} held={held} onHook={onHook} />
       {asking && addable && (
-        <div className="mt-2 flex flex-col gap-2">
-          <p className="text-[12.5px] leading-relaxed text-soft [overflow-wrap:anywhere]">
-            {fill("hooksAsk", hooks.at)}
-            {one.id.endsWith("claude-code") && ` ${t("hooksAskPlugin")}`}
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={held}
-              onClick={() => {
-                setAsking(false);
-                onHook(one, true);
-              }}
-              className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[12.5px] text-bg disabled:bg-hair disabled:text-soft"
-            >
-              {t("hooksYes")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAsking(false)}
-              className={`${button} border-line text-soft`}
-            >
-              {t("hooksNo")}
-            </button>
-          </div>
-        </div>
+        <Asked
+          said={asks(one, "hooksAsk", hooks.at)}
+          yes="hooksYes"
+          held={held}
+          onYes={() => {
+            setAsking(false);
+            onHook(one, true);
+          }}
+          onNo={() => setAsking(false)}
+        />
       )}
     </div>
   );

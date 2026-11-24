@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { SKILLED } from "../agentsOffered";
 import type { Wired } from "../core";
 import { fill, t } from "../locales";
-import Hooking from "./Hooking";
+import Hooking, { type OnHook } from "./Hooking";
 import { TistySkillsCard, useTistySkills } from "./TistySkills";
 
 const small =
@@ -43,7 +43,7 @@ export default function ConnectOffer({
 }: Readonly<{
   one: Wired;
   held: boolean;
-  onHook: (one: Wired, on: boolean) => void;
+  onHook: OnHook;
   onDone: () => void;
 }>) {
   const hooks = one.hooks;
@@ -53,10 +53,8 @@ export default function ConnectOffer({
       className="mt-2 rounded-[10px] border border-accent/40 bg-panel px-3 py-2.5"
     >
       <p className="text-[12.5px] font-semibold">{fill("connectOfferTitle", one.name)}</p>
-      {hooks && !hooks.apart && (
-        <p className="mt-1.5 text-[12.5px] text-soft">
-          {fill(hooks.plugged && !hooks.on ? "connectOfferPlugged" : "connectOfferHooks", one.name)}
-        </p>
+      {hooks?.plugged && !hooks.on && (
+        <p className="mt-1.5 text-[12.5px] text-soft">{t("connectOfferPlugged")}</p>
       )}
       {hooks && (
         <div className="mt-2 rounded-[10px] border border-hair">

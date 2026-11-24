@@ -127,6 +127,17 @@ pub fn unhook(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<V
         .map_err(stuck)
 }
 
+#[tauri::command(async)]
+pub fn hook_before(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    on: bool,
+) -> Answer<Vec<wiring::Seen>> {
+    wiring::hook_before(&id, on)
+        .map(|seen| shown(&session, seen))
+        .map_err(stuck)
+}
+
 #[derive(serde::Serialize)]
 pub struct Mended {
     seen: Vec<wiring::Seen>,

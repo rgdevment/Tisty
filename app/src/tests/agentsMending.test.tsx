@@ -120,7 +120,6 @@ describe("what may be added", () => {
     agents: [wiredOne("claude-code", { wired: true, hooks: noHooks })],
     skills: skillsHere(),
     declined: [],
-    skillsHidden: false,
     ...over,
   });
   const named = (over?: Partial<Offering>) => {
@@ -152,7 +151,6 @@ describe("what may be added", () => {
     ).toBeNull();
     expect(named({ agents: agents({ unread: true }), skills: null })).toBeNull();
     expect(named({ skills: skillsFor() })).toEqual([["claude-code"], []]);
-    expect(named({ skillsHidden: true })).toEqual([["claude-code"], []]);
     expect(named({ declined: [SKILLS_DECLINED] })).toEqual([["claude-code"], []]);
     expect(named({ declined: ["claude-code#hooks"] })).toEqual([[], ["claude-code"]]);
     expect(named({ agent: { on: true, hooks: false } })).toEqual([[], ["claude-code"]]);
@@ -608,7 +606,6 @@ describe("what the window knows of the agents", () => {
       agents: result.current.agents,
       skills: null,
       declined: [],
-      skillsHidden: false,
     };
     expect(extrasOf(asked)).toBeNull();
   });

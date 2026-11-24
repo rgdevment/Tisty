@@ -392,6 +392,126 @@ describe("connecting assistants", () => {
     expect(sent("unhook")[0].args.id).toBe("gemini-cli");
   });
 
+  const added = { on: true, at: "/home/someone/settings.json" };
+
+  it("adds the newest hook to older ones only after the person reads where and agrees", async () => {
+    ipc.answer = (cmd) =>
+      Promise.resolve(
+        cmd === "hook_before"
+          ? [one("gemini-cli", { wired: true, hooks: { ...added, lacksBefore: false } })]
+          : [],
+      );
+    shown([one("gemini-cli", { wired: true, hooks: { ...added, lacksBefore: true } })]);
+    const add = screen.getByRole("button", { name: /^Add the new one/ });
+
+    await userEvent.click(add);
+    expect(screen.getByText(/Tisty will add this hook to \/home\/someone/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Not now" }));
+    expect(sent("hook_before")).toHaveLength(0);
+
+    await userEvent.click(add);
+    await userEvent.click(screen.getByRole("button", { name: "Add it" }));
+    await waitFor(() => expect(sent("hook_before")).toHaveLength(1));
+    expect(sent("hook_before")[0].args).toEqual({ id: "gemini-cli", on: true });
+  });
+
+  it("removes the newest hook alone", async () => {
+    ipc.answer = () => Promise.resolve([]);
+    shown([one("gemini-cli", { wired: true, hooks: added })]);
+
+    await userEvent.click(screen.getByRole("button", { name: /^Remove this one/ }));
+
+    await waitFor(() => expect(sent("hook_before")).toHaveLength(1));
+    expect(sent("hook_before")[0].args).toEqual({ id: "gemini-cli", on: false });
+    expect(sent("unhook")).toHaveLength(0);
+  });
+
+  it("offers no newest hook beside the plugin's or ones of the person's own", () => {
+    shown([
+      one("claude-code", { wired: true, hooks: { ...added, plugged: true, lacksBefore: true } }),
+      one("cursor", { wired: true, hooks: { ...added, apart: true, lacksBefore: true } }),
+      one("gemini-cli", {
+        wired: true,
+        hooks: { ...added, lacksBefore: true, stray: [{ said: "/old/tisty", gone: true }] },
+      }),
+    ]);
+    expect(screen.queryByRole("button", { name: /^Add the new one/ })).toBeNull();
+  });
+
+  const bare = { on: false, at: "/home/someone/hooks.json" };
+  const joinable = (hook: () => Promise<unknown>) => {
+    ipc.answer = (cmd, args) => {
+      if (cmd === "wire") return Promise.resolve([one(String(args.id), { wired: true })]);
+      if (cmd === "hook") return hook();
+      return Promise.resolve([]);
+    };
+  };
+
+  it("connects an agent with its hooks in one yes that shows both files first", async () => {
+    joinable(() => Promise.resolve([one("cursor", { wired: true, hooks: { ...bare, on: true } })]));
+    shown([one("cursor", { hooks: bare })]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    expect(sent("wire")).toHaveLength(0);
+    const asked = screen.getByRole("region", { name: "Connect cursor to Tisty" });
+    expect(within(asked).getByText("/home/someone/cursor.json")).toBeTruthy();
+    expect(within(asked).getByText("/home/someone/hooks.json")).toBeTruthy();
+
+    await userEvent.click(within(asked).getByRole("button", { name: "Yes, connect" }));
+    await waitFor(() => expect(sent("hook")).toHaveLength(1));
+    expect(sent("wire")).toHaveLength(1);
+  });
+
+  it("connects without hooks when the person unticks them", async () => {
+    joinable(() => Promise.resolve([]));
+    shown([one("cursor", { hooks: bare })]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(screen.queryByText("/home/someone/hooks.json")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, connect" }));
+
+    await waitFor(() => expect(sent("wire")).toHaveLength(1));
+    expect(sent("hook")).toHaveLength(0);
+  });
+
+  it("stays connected and says why when its hooks could not be added", async () => {
+    joinable(() => Promise.reject({ code: "hooksByPlugin" }));
+    const told: string[] = [];
+    shown([one("claude-code", { hooks: bare })], {
+      tell: (word) => void told.push(JSON.stringify(word)),
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await userEvent.click(screen.getByRole("button", { name: "Yes, connect" }));
+
+    await waitFor(() => expect(told).toHaveLength(1));
+    expect(told[0]).toContain("claude-code");
+    expect(told[0]).toContain("plugin");
+  });
+
+  it("connects one without hooks in a single click", async () => {
+    joinable(() => Promise.resolve([]));
+    shown([one("codex")]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    await waitFor(() => expect(sent("wire")).toHaveLength(1));
+  });
+
+  it("connects all the found ones with the hooks of those that run them", async () => {
+    joinable(() => Promise.resolve([]));
+    shown([one("cursor", { installed: true, hooks: bare }), one("codex", { installed: true })]);
+
+    await userEvent.click(screen.getByRole("button", { name: /^Connect the 2/ }));
+    expect(sent("wire")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Yes, connect" }));
+
+    await waitFor(() => expect(sent("wire")).toHaveLength(2));
+    await waitFor(() => expect(sent("hook")).toHaveLength(1));
+    expect(sent("hook")[0].args.id).toBe("cursor");
+  });
+
   it("says the Tisty plugin brings Claude Code's hooks and offers none of its own", async () => {
     shown([
       one("claude-code", {
@@ -560,20 +680,21 @@ const live = (first: Wired[]) => render(<Live first={first} />);
 describe("right after connecting an agent", () => {
   const hooks = { on: false, at: "/home/someone/.claude/settings.json" };
 
-  it("offers its hooks, still asking first, and Tisty's skills through their own card", async () => {
+  it("asks for its hooks no more, and offers Tisty's skills through their own card", async () => {
     joining(one("claude-code", { wired: true, hooks }), tistySkills());
     const first = vi.fn();
     window.addEventListener(AGENTS_FIRST, first);
     live([one("claude-code", { hooks })]);
     await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: "Yes, connect" }));
 
     expect(
       await screen.findByText("claude-code is connected. This helps it work with Tisty:"),
     ).toBeTruthy();
-    expect(screen.getByText(/With its hooks, claude-code tells Tisty/)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /^Add · Hooks/ }));
+    expect(screen.queryByText(/Tisty will add its hooks to/)).toBeNull();
+    expect(screen.getByRole("button", { name: /^Add · Hooks/ })).toBeTruthy();
     expect(sent("hook")).toHaveLength(0);
-    expect(screen.getByText(/Tisty will add its hooks to/)).toBeTruthy();
 
     await userEvent.click(await screen.findByRole("button", { name: "See Tisty's skills" }));
     expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
@@ -599,7 +720,7 @@ describe("right after connecting an agent", () => {
       one("claude-code", { wired: true, hooks: { ...hooks, plugged: true } }),
       tistySkills({ plugged: ["claude"] }),
     );
-    live([one("claude-code", { hooks })]);
+    live([one("claude-code", { hooks: { ...hooks, plugged: true } })]);
     await userEvent.click(screen.getByRole("button", { name: "Connect" }));
 
     expect(await screen.findByText("The Tisty plugin already brings its hooks.")).toBeTruthy();

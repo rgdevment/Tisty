@@ -86,7 +86,7 @@ Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el �
 
 Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes; lo que tu agente reemplazó queda además como una versión en su historial, que cuenta **Volver a lo que decía antes**, más abajo.
 
-Al conectarlo, Tisty te ofrece una sola vez dos ayudas, cada una con su propio sí: sus **hooks**, que le traen al empezar las tareas que dejó abiertas y le recuerdan anotar al terminar un turno, y las **skills de Tisty**, que le enseñan a retomar, ordenar y dejar el trabajo listo para el próximo agente cuando se lo pides con tus palabras, como «Retoma donde quedamos». Las dos son opcionales, y las enciendes o las quitas cuando quieras.
+Al conectarlo, Tisty te da dos ayudas, cada una con su propio sí: sus **hooks**, que le traen al empezar las tareas que dejó abiertas y le recuerdan anotar al terminar un turno, y las **skills de Tisty**, que le enseñan a retomar, ordenar y dejar el trabajo listo para el próximo agente cuando se lo pides con tus palabras, como «Retoma donde quedamos». Las dos son opcionales, y las enciendes o las quitas cuando quieras.
 
 Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
 

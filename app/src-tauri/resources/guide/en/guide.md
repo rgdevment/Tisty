@@ -86,7 +86,7 @@ From then on Tisty is its memory between sessions. Of a document it reads the ou
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before; what your agent replaced is also kept as a version in its history, which **Going back to what it said before** tells, further down.
 
-When you connect it, Tisty offers you, only once, two helps, each with its own yes: its **hooks**, which bring it the tasks it left open when it starts and remind it to write things down when a turn ends, and **Tisty's skills**, which teach it to pick up, tidy up and leave work ready for the next agent when you ask in your own words, like “Pick up where we left off”. Both are optional, and you turn them on or take them out whenever you like.
+When you connect it, Tisty gives you two helps, each with its own yes: its **hooks**, which bring it the tasks it left open when it starts and remind it to write things down when a turn ends, and **Tisty's skills**, which teach it to pick up, tidy up and leave work ready for the next agent when you ask in your own words, like “Pick up where we left off”. Both are optional, and you turn them on or take them out whenever you like.
 
 How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
 

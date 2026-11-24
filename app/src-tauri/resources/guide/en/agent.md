@@ -16,7 +16,7 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 **Connect the 3 found**, with however many wait, connects every one waiting in one go. If yours is not there, the search under the list finds it among the agents Tisty knows.
 
-When you connect Claude Code, Cursor, Codex, Gemini CLI or GitHub Copilot, its row offers you, only once, what helps it work with Tisty: «Claude Code is connected. This helps it work with Tisty:», with its hooks and **See Tisty's skills**, which this page tells further down. **Not now** closes it; the same stays on the usual rows. Codex, which has no hooks, sees only the skills.
+When you connect Claude Code, Cursor, Gemini CLI or GitHub Copilot, its hooks come with it: Tisty shows you the files first, with a tick to leave them out. And the row of those and of Codex offers you, only once, **See Tisty's skills**, which this page tells further down. **Not now** closes it; the same stays on the usual rows. Codex, which has no hooks, sees only the skills.
 
 Then quit the agent completely and open it again: it reads its settings when it starts. If you would rather do it by hand, with a plugin or inside WSL, every way is in [agents and MCP](https://www.tisty.app/docs/agents-and-mcp/).
 

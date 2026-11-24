@@ -44,6 +44,7 @@ fn a_write_in_tisty_before_this_turn_does_not_cover_it() {
         wrote: Some(3),
         ended: Some(10),
         handed: None,
+        asked: None,
     };
     assert_eq!(verdict(&then, false), Verdict::HandBack);
 }
@@ -65,6 +66,28 @@ fn a_turn_already_handed_back_is_never_handed_back_again() {
 }
 
 #[test]
+fn a_turn_that_was_asked_about_is_not_handed_back_but_an_earlier_question_does_not_cover_it() {
+    let asked_now = Marks {
+        edited: Some(12),
+        ended: Some(10),
+        asked: Some(14),
+        ..Marks::default()
+    };
+    assert_eq!(verdict(&asked_now, false), Verdict::LetGo);
+    let asked_before = Marks {
+        asked: Some(8),
+        ..asked_now
+    };
+    assert_eq!(verdict(&asked_before, false), Verdict::HandBack);
+    let first_turn = Marks {
+        edited: Some(12),
+        asked: Some(3),
+        ..Marks::default()
+    };
+    assert_eq!(verdict(&first_turn, false), Verdict::LetGo);
+}
+
+#[test]
 fn a_hand_back_let_pass_stays_quiet_until_the_agent_calls_tisty_again() {
     let let_pass = Marks {
         edited: Some(20),
@@ -72,6 +95,7 @@ fn a_hand_back_let_pass_stays_quiet_until_the_agent_calls_tisty_again() {
         wrote: None,
         ended: Some(10),
         handed: Some(8),
+        asked: None,
     };
     assert_eq!(verdict(&let_pass, false), Verdict::LetGo);
     let called_again = Marks {

@@ -29,6 +29,30 @@ fn each_client_is_told_its_context_in_its_own_shape() {
 }
 
 #[test]
+fn each_client_is_denied_the_call_in_its_own_shape() {
+    assert_eq!(
+        parsed(&Client::ClaudeCode.denied("why")),
+        json!({ "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "why",
+        } })
+    );
+    assert_eq!(
+        parsed(&Client::Cursor.denied("why")),
+        json!({ "permission": "deny", "agent_message": "why" })
+    );
+    assert_eq!(
+        parsed(&Client::GeminiCli.denied("why")),
+        json!({ "decision": "deny", "reason": "why" })
+    );
+    assert_eq!(
+        parsed(&Client::Copilot.denied("why")),
+        json!({ "permissionDecision": "deny", "permissionDecisionReason": "why" })
+    );
+}
+
+#[test]
 fn each_client_is_handed_its_turn_back_in_its_own_shape() {
     for blocking in [Client::ClaudeCode, Client::GeminiCli, Client::Copilot] {
         assert_eq!(

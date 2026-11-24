@@ -10,6 +10,7 @@ pub struct Run {
     pub event: &'static str,
     pub programs: Vec<Program>,
     pub all_read: bool,
+    pub moment: String,
     list: usize,
     span: Span,
     only_in_list: bool,
@@ -157,8 +158,19 @@ fn run(
             })
         })
         .collect();
+    let after_mark = programs.first().map(|program| match &program.dress {
+        Dress::Whole => args.as_deref().unwrap_or_default(),
+        Dress::Shell { rest, .. } => rest.trim_start(),
+    });
+    let moment = after_mark
+        .and_then(|it| it.strip_prefix(spoken.mark))
+        .and_then(|it| it.split_whitespace().next())
+        .unwrap_or_default()
+        .trim_end_matches(';')
+        .to_string();
     Run {
         event,
+        moment,
         all_read: !programs.is_empty() && programs.len() == fields.len(),
         programs,
         list,

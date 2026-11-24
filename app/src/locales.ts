@@ -3190,7 +3190,7 @@ const en = {
     "When it keeps working without writing on the task it opened, the next answer asks it once to tick what it did and, if it is finished, to say so with the proof",
   agentsHooks: "Remind it when a turn starts and ends",
   agentsHooksWhy:
-    "In the agents you give Tisty's hooks, under Connected: a session starts with the tasks it left open and what moved, and a turn that edited files without writing in Tisty is handed back to it once",
+    "In the agents you give Tisty's hooks, under Connected: a session starts with the tasks it left open and what moved, a turn that edited files without writing in Tisty is handed back to it once, and it is asked once before it leaves a text file outside a repository",
   agentsCanTitle: "What it can do",
   agentsCan:
     "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed · Work any task as it works a document: describe it, rename it, move it to another list, plan, reword and take off its open steps, correct its notes and rewrite its page · Say a step of yours is done, or a task done or not worth doing, as its word for you to take — closing stays yours · Write documents, add to them, correct them and their tables, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Jot ideas on the Ideas sheet and sort them out with you · Add to the end of today in your Diary, once you open it to agents · Make a folder, bring a Markdown file in or write a document out, write a document in another language, and leave a summary for the next agent · Search your lists, your archive and your documents",
@@ -3309,8 +3309,21 @@ const en = {
   hooksAdd: "Add",
   hooksOut: "Remove",
   hooksAsk:
-    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. The rest of that file stays as it is, and you can remove them here.",
+    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. Before it leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. The rest of that file stays as it is, and you can remove them here.",
   hooksYes: "Add them",
+  hooksBefore: "Before it leaves something outside a repository",
+  hooksBeforeNew: "There is a new hook: before it leaves something outside a repository",
+  hooksBeforeAdd: "Add the new one",
+  hooksBeforeOut: "Remove this one",
+  hooksBeforeYes: "Add it",
+  hooksBeforeAsk:
+    "Tisty will add this hook to {name}, beside the ones already there. Before the agent leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. It looks at the path, at where a terminal command writes and at whether the card is the agent's own; it does not read the conversation or keep what it looks at. The rest of that file stays as it is.",
+  hooksBeforeFresh: "Added. It runs it from its next session.",
+  hooksBeforeGone: "Removed. The others stay.",
+  joinTitle: "Connect {name} to Tisty",
+  joinTitleAll: "Connect {name} agents to Tisty",
+  joinHooks: "With its hooks: {name}",
+  joinYes: "Yes, connect",
   hooksNo: "Not now",
   hooksFresh: "Added. It runs them from its next session.",
   hooksGone: "Removed. Its next session runs without them.",
@@ -7022,7 +7035,7 @@ const es: Catalog = {
     "Cuando sigue trabajando sin escribir en la tarea que abrió, la siguiente respuesta le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba",
   agentsHooks: "Recordarle al empezar y al terminar cada turno",
   agentsHooksWhy:
-    "En los agentes a los que les agregas los hooks de Tisty, en Conectados: cada sesión empieza con las tareas que dejó abiertas y lo que se movió, y un turno en que editó archivos sin escribir en Tisty se le devuelve una vez",
+    "En los agentes a los que les agregas los hooks de Tisty, en Conectados: cada sesión empieza con las tareas que dejó abiertas y lo que se movió, un turno en que editó archivos sin escribir en Tisty se le devuelve una vez, y se le pregunta una vez antes de dejar un archivo de texto fuera de un repo",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
     "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día de lo que anotó él · Trabajar cualquier tarea como trabaja un documento: describirla, renombrarla, llevarla a otra lista, planear, reescribir y quitar sus pasos abiertos, corregir sus notas y reescribir su página · Decir que un paso tuyo está hecho, o que una tarea está hecha o no vale la pena, como su palabra para que tú la aceptes; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, también sus tablas, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Anotar ideas en la hoja Ideas y ordenarlas contigo · Añadir al final de hoy en tu Diario, una vez que lo abres a los agentes · Crear una carpeta, traer un archivo Markdown o sacar un documento, escribir un documento en otro idioma y dejar un resumen para el siguiente agente · Buscar en tus listas, tu archivo y tus documentos",
@@ -7143,8 +7156,21 @@ const es: Catalog = {
   hooksAdd: "Agregar",
   hooksOut: "Quitar",
   hooksAsk:
-    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. El resto de ese archivo queda como está, y puedes quitarlos aquí.",
+    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. Antes de dejar un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. El resto de ese archivo queda como está, y puedes quitarlos aquí.",
   hooksYes: "Agregarlos",
+  hooksBefore: "Antes de dejar algo fuera de un repo",
+  hooksBeforeNew: "Hay un hook nuevo: antes de dejar algo fuera de un repo",
+  hooksBeforeAdd: "Agregar el nuevo",
+  hooksBeforeOut: "Quitar este",
+  hooksBeforeYes: "Agregarlo",
+  hooksBeforeAsk:
+    "Tisty agregará este hook en {name}, junto a los que ya están. Antes de que el agente deje un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. Mira la ruta, dónde escribe un comando de la terminal y si la tarjeta es cosa del agente; no lee la conversación ni guarda lo que mira. El resto de ese archivo queda como está.",
+  hooksBeforeFresh: "Agregado. Lo usa desde su próxima sesión.",
+  hooksBeforeGone: "Quitado. Los otros siguen.",
+  joinTitle: "Conectar {name} con Tisty",
+  joinTitleAll: "Conectar {name} agentes con Tisty",
+  joinHooks: "Con sus hooks: {name}",
+  joinYes: "Sí, conectar",
   hooksNo: "Ahora no",
   hooksFresh: "Agregados. Los usa desde su próxima sesión.",
   hooksGone: "Quitados. Su próxima sesión corre sin ellos.",

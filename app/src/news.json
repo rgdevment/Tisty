@@ -1843,7 +1843,7 @@
       },
       {
         "title": "Todo al conectar un agente",
-        "said": "al conectar uno, Tisty te ofrece en la misma pantalla sus hooks y las skills de Tisty, cada uno con su sí. Ahora no lo deja para después, en las filas de siempre."
+        "said": "al conectar uno, sus hooks van incluidos, con una casilla para dejarlos fuera, y la misma pantalla ofrece las skills de Tisty, con su propio sí. A los que ya tenías se lo ofrece en un solo paso."
       },
       {
         "title": "Pídeselo con tus palabras",
@@ -1879,7 +1879,7 @@
       },
       {
         "title": "Tus agentes, a la vista",
-        "said": "si un agente o sus hooks apuntan a un Tisty que ya no está, la ventana te lo dice, y Corregir todo muestra los archivos antes de escribir, con dos copias de cada uno. Y a los agentes que ya tenías les ofrece, si quieres, sus hooks y las skills en un solo paso."
+        "said": "si un agente o sus hooks apuntan a un Tisty que ya no está, la ventana te lo dice, y Corregir todo muestra los archivos antes de escribir, con dos copias de cada uno. Un hook nuevo le pregunta a tu agente, una vez, si va en Tisty lo que iba a dejar en un archivo suelto."
       },
       {
         "title": "Volver a una nube cifrada, paso a paso",
@@ -1909,7 +1909,7 @@
       },
       {
         "title": "Everything when you connect an agent",
-        "said": "when you connect one, Tisty offers its hooks and Tisty's skills on the same screen, each with its own yes. Not now leaves it for later, on the usual rows."
+        "said": "when you connect one, its hooks come with it, with a tick to leave them out, and the same screen offers Tisty's skills, with their own yes. The ones you already had are offered both in one step."
       },
       {
         "title": "Ask in your own words",
@@ -1945,7 +1945,7 @@
       },
       {
         "title": "Your agents, in sight",
-        "said": "if an agent or its hooks point at a Tisty that is gone, the window tells you, and Fix all shows the files before writing, with two copies of each one. And it offers the agents you already had, if you like, their hooks and the skills in one step."
+        "said": "if an agent or its hooks point at a Tisty that is gone, the window tells you, and Fix all shows the files before writing, with two copies of each one. A new hook asks your agent, once, whether what it was about to leave in a loose file belongs in Tisty."
       },
       {
         "title": "Back into an encrypted cloud, step by step",

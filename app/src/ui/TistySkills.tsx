@@ -9,7 +9,6 @@ import {
   tistySkillsLeftover,
   tistySkillsTake,
 } from "../agentsSync";
-import { hide, show, useHidden } from "../hiding";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import { button, primary } from "./AgentsReview";
@@ -86,6 +85,34 @@ export function useTistySkills() {
   return [held, setHeld] as const;
 }
 
+function HowToUse({ skills }: Readonly<{ skills: TistySkills }>) {
+  return (
+    <section aria-label={t("tistySkillsHow")}>
+      <p className="mt-4 text-[13px] font-semibold">{t("tistySkillsHow")}</p>
+      <p className="mt-0.5 text-[12.5px] text-soft">{t("tistySkillsHowLine")}</p>
+      <ul className="mt-1.5 flex flex-col gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5">
+        {skills.skills.map((one) => (
+          <li key={one.name} className="text-[12.5px]">
+            {!one.yours &&
+              sayings(one.name).map((said) => (
+                <span key={said} className="block text-[13px] font-medium text-ink">
+                  {fill("tistySkillsQuote", said)}
+                </span>
+              ))}
+            <span className="block text-soft">
+              {one.yours ? fill("tistySkillsYours", one.name) : skillSaid(one.name, one.about)}
+            </span>
+            <span className="flex items-center gap-1 font-mono text-[11.5px] text-faint">
+              <Glyph name="puzzle" className="h-[11px] w-[11px]" />
+              {one.name}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Where({ skills }: Readonly<{ skills: TistySkills }>) {
   const folders = new Map<string, { at: string; standing: string[] }>();
   for (const one of skills.landing) {
@@ -155,29 +182,7 @@ export function TistySkillsCard({
       {none ? (
         <p className="mt-3 text-[12.5px] text-soft">{t("tistySkillsNone")}</p>
       ) : (
-        <ul className="mt-3 flex flex-col gap-2 rounded-[10px] border border-hair bg-panel px-3 py-2">
-          {skills.skills.map((one) => (
-            <li key={one.name} className="text-[12.5px]">
-              <span className="flex items-center gap-1.5 font-mono text-ink">
-                <Glyph name="puzzle" className="h-[13px] w-[13px] text-faint" />
-                {one.name}
-              </span>
-              <span className="block pl-[19px] text-soft">
-                {one.yours ? fill("tistySkillsYours", one.name) : skillSaid(one.name, one.about)}
-              </span>
-              {!one.yours && sayings(one.name).length > 0 && (
-                <span className="block pl-[19px] text-faint">
-                  {t("tistySkillsSay")}{" "}
-                  <span className="text-ink">
-                    {sayings(one.name)
-                      .map((said) => fill("tistySkillsQuote", said))
-                      .join(" · ")}
-                  </span>
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <HowToUse skills={skills} />
       )}
       {!none && skills.landing.length > 0 && (
         <>
@@ -283,10 +288,14 @@ function Opener({
   );
 }
 
-const standingOf = (skills: TistySkills) => t(skills.on ? "tistySkillsOn" : "tistySkillsOff");
-
-// Hiding is a way of looking, kept on this computer alone, and turns nothing off.
-export const TISTY_SKILLS_ROW = "tisty-skills";
+function Standing({ skills, className }: Readonly<{ skills: TistySkills; className: string }>) {
+  const color = skills.on ? "text-hue-green" : "text-faint";
+  return (
+    <span className={`shrink-0 whitespace-nowrap text-[11.5px] ${color} ${className}`}>
+      {t(skills.on ? "tistySkillsTurnedOn" : "tistySkillsOff")}
+    </span>
+  );
+}
 
 export function TistySkillsAgentLine({
   agent,
@@ -351,27 +360,12 @@ function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE) {
   return left ? landingSaid(left) : t("tistySkillsRowYours");
 }
 
-function HideRow() {
-  return (
-    <button
-      type="button"
-      onClick={() => hide(TISTY_SKILLS_ROW)}
-      aria-label={t("tistySkillsHideRow")}
-      title={t("tistySkillsHideRow")}
-      className="shrink-0 rounded-md px-1.5 py-0.5 text-[11.5px] text-faint opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 hover:text-ink"
-    >
-      {t("agentsHide")}
-    </button>
-  );
-}
-
 export function TistySkillsRow({ depth, step }: Readonly<{ depth: number; step: number }>) {
   const [skills, setSkills] = useTistySkills();
-  const hidden = useHidden().includes(TISTY_SKILLS_ROW);
-  if (!skills || hidden) return null;
+  if (!skills) return null;
   return (
     <li className="relative">
-      <div className="group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+      <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
         <span
           aria-hidden="true"
           className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
@@ -385,11 +379,8 @@ export function TistySkillsRow({ depth, step }: Readonly<{ depth: number; step: 
           className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
         >
           <span className="truncate">{t("tistySkills")}</span>
-          <span className="ml-auto shrink-0 pl-2 text-[11.5px] text-faint">
-            {standingOf(skills)}
-          </span>
+          <Standing skills={skills} className="ml-auto pl-2" />
         </Opener>
-        <HideRow />
       </div>
     </li>
   );
@@ -397,25 +388,22 @@ export function TistySkillsRow({ depth, step }: Readonly<{ depth: number; step: 
 
 export function TistySkillsEntry({ className }: Readonly<{ className: string }>) {
   const [skills, setSkills] = useTistySkills();
-  const hidden = useHidden().includes(TISTY_SKILLS_ROW);
-  if (!skills || hidden) return null;
+  if (!skills) return null;
   return (
-    <li className="group/row flex break-inside-avoid items-center">
+    <li className="flex break-inside-avoid items-center">
       <Opener skills={skills} onTaken={setSkills} className={className}>
         <span className="shrink-0 text-faint">
           <Glyph name="puzzle" className="h-3.5 w-3.5" />
         </span>
         <span className="truncate text-ink">{t("tistySkills")}</span>
-        <span className="ml-auto shrink-0 text-[11.5px] text-faint">{standingOf(skills)}</span>
+        <Standing skills={skills} className="ml-auto" />
       </Opener>
-      <HideRow />
     </li>
   );
 }
 
 export function TistySkillsSettingsRow() {
   const [skills, setSkills] = useTistySkills();
-  const hidden = useHidden().includes(TISTY_SKILLS_ROW);
   if (!skills) return null;
   return (
     <section
@@ -425,22 +413,8 @@ export function TistySkillsSettingsRow() {
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-semibold">{t("tistySkills")}</span>
         <span className="block text-[12.5px] text-soft">{t("tistySkillsSettingsLine")}</span>
-        {hidden && (
-          <span className="block text-[12.5px] text-faint">
-            {t("tistySkillsHidden")}{" "}
-            <button
-              type="button"
-              onClick={() => show(TISTY_SKILLS_ROW)}
-              className="cursor-pointer text-accent underline-offset-2 hover:underline"
-            >
-              {t("tistySkillsShowRow")}
-            </button>
-          </span>
-        )}
       </span>
-      <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[11.5px] whitespace-nowrap text-soft">
-        {standingOf(skills)}
-      </span>
+      <Standing skills={skills} className="rounded-full border border-line px-2 py-0.5" />
       <Opener skills={skills} onTaken={setSkills} className={button}>
         {t("agentSee")}
       </Opener>

@@ -1100,6 +1100,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::wired::unwire,
         answers::wired::hook,
         answers::wired::unhook,
+        answers::wired::hook_before,
         answers::wired::mend,
         answers::wired::waking,
         answers::wired::wake_for,

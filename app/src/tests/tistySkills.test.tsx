@@ -152,7 +152,7 @@ describe("Tisty's own skills", () => {
     answering(skills({ on: true }));
     render(<TistySkillsSettingsRow />);
     expect(await screen.findByRole("region", { name: "Tisty's skills" })).toBeTruthy();
-    expect(screen.getByText("On this computer")).toBeTruthy();
+    expect(screen.getByText("On")).toBeTruthy();
     expect(screen.getByText(/They have their own yes, on this computer/)).toBeTruthy();
   });
 
@@ -199,12 +199,11 @@ describe("Tisty's own skills", () => {
   it("tells what to ask the agent for each skill, in the person's language", async () => {
     render(<TistySkillsRow depth={1} step={12} />);
     await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills/ }));
-    expect(
-      screen.getByText("“Pick up where we left off” · “Leave this ready for the next agent”"),
-    ).toBeTruthy();
+    expect(screen.getByText("“Pick up where we left off”")).toBeTruthy();
+    expect(screen.getByText("“Leave this ready for the next agent”")).toBeTruthy();
     expect(screen.getByText("“Make this page clear for the next agent”")).toBeTruthy();
     expect(screen.queryByText("“Tidy up my Tisty”")).toBeNull();
-    expect(screen.getAllByText("Ask your agent:")).toHaveLength(2);
+    expect(screen.getByRole("region", { name: "How to use them" })).toBeTruthy();
   });
 
   it("says the lines in Spanish too", () => {
@@ -326,7 +325,7 @@ describe("Tisty's own skills in the folder view", () => {
   });
 });
 
-describe("Tisty's own skills are turned off and hidden, never deleted", () => {
+describe("Tisty's own skills are turned off, never deleted", () => {
   it("the card turns them on and off, and nowhere does it offer to delete them", async () => {
     const { container } = render(<TistySkillsRow depth={1} step={12} />);
     const row = await screen.findByRole("button", { name: /^Tisty's skills.*Off/ });
@@ -341,25 +340,12 @@ describe("Tisty's own skills are turned off and hidden, never deleted", () => {
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
   });
 
-  it("hides the row in Agents on this computer, and Settings › Agents shows it again", async () => {
-    const view = render(<TistySkillsRow depth={1} step={12} />);
-    await screen.findByRole("button", { name: /^Tisty's skills/ });
-    await userEvent.click(
-      screen.getByRole("button", { name: "Hide Tisty's skills from Agents on this computer" }),
-    );
-    expect(screen.queryByRole("button", { name: /^Tisty's skills/ })).toBeNull();
+  it("says in its row that they are off, and a click opens the card without turning anything", async () => {
+    render(<TistySkillsRow depth={1} step={12} />);
+    expect((await screen.findByText("Off")).className).toContain("text-faint");
+    await userEvent.click(screen.getByRole("button", { name: /Tisty's skills/ }));
+    expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
-    view.unmount();
-
-    const entry = inFolder(agents);
-    await waitFor(() => expect(sent("agents_tisty_skills").length).toBeGreaterThan(1));
-    expect(entry.container.querySelector("[data-row=tisty-skills]")).toBeNull();
-    entry.unmount();
-
-    render(<TistySkillsSettingsRow />);
-    expect(await screen.findByText(/Hidden from Agents on this computer/)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Show in Agents" }));
-    expect(screen.queryByText(/Hidden from Agents on this computer/)).toBeNull();
   });
 
   it("says in Spanish that they are off, and turning them off is not deleting", async () => {
@@ -367,7 +353,7 @@ describe("Tisty's own skills are turned off and hidden, never deleted", () => {
     answering(skills({ on: true }));
     render(<TistySkillsRow depth={1} step={12} />);
     await userEvent.click(
-      await screen.findByRole("button", { name: /^Skills de Tisty.*En este equipo/ }),
+      await screen.findByRole("button", { name: /^Skills de Tisty.*Encendidas/ }),
     );
     expect(screen.getByRole("button", { name: "Apagar en este equipo" })).toBeTruthy();
     expect(

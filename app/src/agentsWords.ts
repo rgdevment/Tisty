@@ -577,7 +577,11 @@ const words = {
     "Writing for the next agent. Adapted from mattpocock/skills, under the MIT licence, which travels with it.",
     "Escribir para el próximo agente. Adaptada de mattpocock/skills, con su licencia MIT, que viaja con ella.",
   ],
-  tistySkillsSay: ["Ask your agent:", "Pídele a tu agente:"],
+  tistySkillsHow: ["How to use them", "Cómo se usan"],
+  tistySkillsHowLine: [
+    "Write it to your agent in your own words; there is no need to call them by name.",
+    "Escríbeselo a tu agente con tus palabras; no hay que llamarlas por su nombre.",
+  ],
   tistySkillsQuote: ["“{name}”", "«{name}»"],
   tistySkillSay_tisty_1: ["Pick up where we left off", "Retoma donde quedamos"],
   tistySkillSay_tisty_2: [
@@ -633,15 +637,7 @@ const words = {
     "Copias que sobran: Tisty ya no las escribe ahí. Si quitas una, queda un respaldo.",
   ],
   tistySkillsLeftoverChanged: ["Changed outside Tisty", "Cambiada fuera de Tisty"],
-  tistySkillsHideRow: [
-    "Hide Tisty's skills from Agents on this computer",
-    "Ocultar Skills de Tisty de Agentes en este equipo",
-  ],
-  tistySkillsHidden: [
-    "Hidden from Agents on this computer; they stay as they are.",
-    "Ocultas de Agentes en este equipo; siguen como están.",
-  ],
-  tistySkillsShowRow: ["Show in Agents", "Mostrar en Agentes"],
+  tistySkillsTurnedOn: ["On", "Encendidas"],
   tistySkillsLeftoverAway: ["Remove {name}", "Quitar {name}"],
   tistySkillsSettingsLine: [
     "Three skills that teach your agents to work with Tisty. They have their own yes, on this computer.",
@@ -651,10 +647,6 @@ const words = {
   connectOfferTitle: [
     "{name} is connected. This helps it work with Tisty:",
     "{name} ya está conectado. Esto lo ayuda a trabajar con Tisty:",
-  ],
-  connectOfferHooks: [
-    "With its hooks, {name} tells Tisty when each turn starts and ends.",
-    "Con sus hooks, {name} le avisa a Tisty al empezar y al terminar cada turno.",
   ],
   connectOfferPlugged: [
     "The Tisty plugin already brings its hooks.",

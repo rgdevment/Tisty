@@ -63,7 +63,7 @@ This is the help for Tisty: how to use each thing, with examples, whether you wo
 Tisty is not AI and has none inside, and that is not going to change. But it speaks [MCP](https://modelcontextprotocol.io), so the agent you already use — GitHub Copilot, Claude Code, Codex, Cursor, any MCP client — keeps its memory here: it files tasks with steps and a journal, writes documents, and picks up where it left off, on this machine, with no account and nothing over the network.
 
 - [[Agents and MCP|Agents-and-MCP]] — connecting one, letting it in, a day with your agent and what it costs.
-- [[Hooks and skills|Hooks-and-Skills]] — the hooks that tell Tisty when each turn starts and ends, and Tisty's three skills that teach your agent to pick up, tidy up and leave work ready for the next one.
+- [[Hooks and skills|Hooks-and-Skills]] — the hooks that help your agent when it starts, when a turn ends and before it leaves something outside, and Tisty's three skills that teach your agent to pick up, tidy up and leave work ready for the next one.
 - [[What an agent may do|MCP-Permissions]] — the limits, its word on your own tasks, and **To confirm**.
 - [[MCP tools reference|MCP-Tools]] — every tool the server offers.
 - [[Agents: your agents' rules, skills and memory|AGENTS-Folder]] — one folder for the files Claude Code, Codex, Copilot, Gemini and Cursor read. Bring copies them to read and arrange; Sync has Tisty write them, with backups.

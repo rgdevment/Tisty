@@ -2,7 +2,7 @@
 
 Since 1.31, Tisty has no command line. The window is the way in, for your tasks and your documents alike.
 
-What remains of the `tisty` program is what your agent uses: **`tisty mcp`**, the door it comes through, and **`tisty hook`**, which the hooks Tisty adds to it call when a session starts, after a tool runs and when a turn ends (see [[Agents and MCP|Agents-and-MCP]]). `tisty hook` reads what the agent sends, answers in that agent's own shape and always ends without an error, so it never stops a turn. Any other command only prints a notice that the command line was retired and sends you to the window.
+What remains of the `tisty` program is what your agent uses: **`tisty mcp`**, the door it comes through, and **`tisty hook`**, which the hooks Tisty adds to it call when a session starts, before and after some tools and when a turn ends (see [[Agents and MCP|Agents-and-MCP]]). `tisty hook` reads what the agent sends, answers in that agent's own shape and always ends without an error, so it never stops a turn. Any other command only prints a notice that the command line was retired and sends you to the window.
 
 ## Where it lives
 
