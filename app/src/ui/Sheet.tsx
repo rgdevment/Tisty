@@ -288,6 +288,8 @@ export default function Sheet(props: Readonly<Props>) {
   const undrawn = useRef(false);
   const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
   const alreadyShown = useRef<string | null>(null);
+  const [arrived, setArrived] = useState(0);
+  const shownFile = useRef<string | null | undefined>(null);
   const shownBody = useRef<string | null>(null);
   const dresser = useRef<((blocks: readonly Element[]) => void) | null>(null);
   const [turned, setTurned] = useState(0);
@@ -399,6 +401,10 @@ export default function Sheet(props: Readonly<Props>) {
     putting.current = 0;
     setReady(false);
     setDrawn(value);
+    // The same words as the document before draw no page by themselves, and it would never be written on.
+    alreadyShown.current = null;
+    shownFile.current = null;
+    setArrived((many) => many + 1);
   }, [file, value, left]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only new words decide; the view and the file are read as they stand.
@@ -554,7 +560,8 @@ export default function Sheet(props: Readonly<Props>) {
     const stays = back === null ? undefined : (caretTop.current?.() ?? undefined);
     if (!markdown) left();
     if (onPage) {
-      pageWritten(shown.current?.document ?? null);
+      // A document just come in is written on once its own page is drawn, not over the one before.
+      if (shownFile.current === file) pageWritten(shown.current?.document ?? null);
       if (back !== null) pageWriter.current?.hands.placeAt(back, stays);
       return;
     }
@@ -1382,13 +1389,14 @@ export default function Sheet(props: Readonly<Props>) {
           onTask={(id) => said.current.onTask?.(id)}
           onTaskDone={props.onTaskDone && ((id, title) => said.current.onTaskDone?.(id, title))}
           onTaskStep={props.onTaskStep && ((...asked) => said.current.onTaskStep?.(...asked))}
-          again={props.again}
+          again={`${arrived}:${props.again ?? ""}`}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
           onPiece={piece}
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page, body, failed) => {
             shown.current = page;
+            shownFile.current = file;
             shownBody.current = body ?? null;
             undrawn.current = Boolean(failed);
             pageWritten(page?.document ?? null);
