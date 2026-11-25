@@ -23,6 +23,7 @@ mod open_task;
 mod opening;
 mod outside;
 mod papers;
+mod placed;
 mod placing;
 mod pressing;
 mod prompts;

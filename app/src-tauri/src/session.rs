@@ -869,7 +869,7 @@ impl Session {
         Ok(())
     }
 
-    fn droppable(&self, id: tisty_core::model::DocId) -> Answer<()> {
+    pub(crate) fn droppable(&self, id: tisty_core::model::DocId) -> Answer<()> {
         let kept = self
             .state
             .docs

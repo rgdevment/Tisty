@@ -1814,7 +1814,7 @@ const en = {
   rename: "Rename",
   renameIt: "Rename",
   dropFolderSure:
-    "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
+    "Delete «{name}»? What it holds, documents and folders, moves up to the folder above it, or to Unfiled when it has none. Nothing is lost.",
   updateAsk: "Do you want to update it?",
   updateInstall: "Update",
   updateGetting: "Getting it — {name}",
@@ -2104,6 +2104,18 @@ const en = {
   cannotRead: "{name} could not be read",
   pageOfAnother:
     "That document is someone else's writing, so it cannot become a page of a document that is not theirs.",
+  ideasHoldNoPages: "Ideas holds ideas, not pages. Hang it under the document of its subject.",
+  ideasHoldOnlyIdeas: "Ideas holds only ideas.",
+  ideasStayPut:
+    "Ideas stays pinned at the top of the library: it goes in no folder and is nobody's page.",
+  ideasAreOne: "There is only one Ideas sheet, so it is not duplicated.",
+  diaryHoldsOnlyDays: "The diary holds only its days. Write it in a document of its own.",
+  diaryStaysPut: "The diary stays under Diary: it goes in no folder and is nobody's page.",
+  diaryIsOne: "The diary is one, so a year of it is not duplicated.",
+  agentsHoldOnlyRules:
+    "Agents holds only your assistants' files: a new one here is a rule. Bring other files with «Bring another file».",
+  agentsFolderHolds:
+    "That folder of Agents still holds files. Move or delete them from their own menus first, so each agent knows.",
   importedFromTisty:
     "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
@@ -5643,7 +5655,7 @@ const es: Catalog = {
   rename: "Renombrar",
   renameIt: "Renombrar",
   dropFolderSure:
-    "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
+    "¿Borrar «{name}»? Lo que tiene, documentos y carpetas, sube a la carpeta de arriba, o a Sin carpeta si no tiene. No se pierde nada.",
   updateAsk: "¿Quieres actualizarla?",
   updateInstall: "Actualizar",
   updateGetting: "Descargando — {name}",
@@ -5938,6 +5950,18 @@ const es: Catalog = {
   cannotRead: "No se pudo leer {name}",
   pageOfAnother:
     "Ese documento lo escribió otra persona, así que no puede ser página de un documento que no es suyo.",
+  ideasHoldNoPages: "Ideas guarda ideas, no páginas. Cuélgala del documento de su tema.",
+  ideasHoldOnlyIdeas: "Ideas guarda solo ideas.",
+  ideasStayPut:
+    "Ideas queda fija arriba de la biblioteca: no va en ninguna carpeta ni es página de nadie.",
+  ideasAreOne: "La hoja de Ideas es una sola, así que no se duplica.",
+  diaryHoldsOnlyDays: "El diario guarda solo sus días. Escríbelo en un documento propio.",
+  diaryStaysPut: "El diario queda en Diario: no va en ninguna carpeta ni es página de nadie.",
+  diaryIsOne: "El diario es uno solo, así que un año suyo no se duplica.",
+  agentsHoldOnlyRules:
+    "Agentes guarda solo los archivos de tus asistentes: uno nuevo aquí es una regla. Trae otros con «Traer otro archivo».",
+  agentsFolderHolds:
+    "Esa carpeta de Agentes todavía tiene archivos. Muévelos o elimínalos primero desde sus menús, para que cada agente se entere.",
   importedFromTisty:
     "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",

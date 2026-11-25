@@ -179,6 +179,7 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         None => None,
     };
 
+    let places = tisty_core::places::Places::read(&paths.docs(), &state);
     let mut moving = Vec::new();
     let mut already = Vec::new();
     for which in &many {
@@ -193,8 +194,10 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 doc_named(&state, which)
             )));
         }
-        if folder.is_some() && super::super::ideas::sheet_named(paths, &state, which).is_some() {
-            return Err(super::super::ideas::sheet_stays_put(&state, which));
+        if folder.is_some()
+            && let Err(ruled) = places.may_file(&state, kept)
+        {
+            return Err(super::super::placed::filed_refused(&state, which, ruled));
         }
         if state.held_by_another(kept) {
             return Err(Refused::Tool(format!(

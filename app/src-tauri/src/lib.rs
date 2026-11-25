@@ -1327,6 +1327,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::diary::diary_unstick,
         answers::diary::diary_closed,
         answers::papers::doc_page,
+        answers::placing::doc_place,
+        answers::placing::places_rules,
         answers::tongues::doc_translate,
         answers::tongues::doc_tongue,
         answers::tongues::doc_dress,

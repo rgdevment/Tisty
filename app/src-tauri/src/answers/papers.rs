@@ -30,6 +30,7 @@ pub fn doc_file(
         Some(_) => {}
     }
     doc_out(&session.state, id)?;
+    super::placing::may_file(&session, id)?;
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
@@ -527,6 +528,7 @@ pub(crate) fn doc_made(
         None => None,
     };
     let folder = under.unwrap_or(folder);
+    super::placing::may_make(session, folder, page_of, tisty_core::places::Making::Doc)?;
     if existing
         && page_of.is_none()
         && let Some(kept) = super::agents_sync::one_rules_file(session, folder)
@@ -595,6 +597,7 @@ pub fn doc_page(
         return Err(Refusal::of("lockedStaysPut"));
     }
     doc_out(&session.state, id)?;
+    super::placing::may_hang(&session, id, page_of)?;
     if let Some(up) = page_of {
         if up == id {
             return Err(Refusal::of("pageOfPage"));

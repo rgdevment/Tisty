@@ -23,13 +23,6 @@ pub(super) fn sheet_named<'a>(
     brainstorm::sheet_of(&paths.docs(), kept)
 }
 
-pub(super) fn holds_ideas(state: &State, file: &str) -> bool {
-    state
-        .docs
-        .values()
-        .any(|one| one.file == file && one.brainstorm)
-}
-
 pub(super) fn no_pages_on_a_sheet(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Ideas, a sheet of ideas the window keeps pinned on its own: it holds no pages \

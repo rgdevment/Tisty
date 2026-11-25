@@ -199,6 +199,7 @@ pub fn folder_add(
             return Err(Refusal::of("noSuchFolder"));
         }
         folder_open(&session.state, at, true)?;
+        super::placing::may_make(&session, Some(at), None, tisty_core::places::Making::Folder)?;
         if session.state.depth(Some(at)) >= tisty_core::model::DEEPEST {
             return Err(Refusal::of("tooDeep"));
         }
@@ -287,13 +288,24 @@ pub fn folder_look(
 }
 
 #[tauri::command]
-pub fn folder_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+pub fn folder_drop(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    contents: Option<String>,
+    into: Option<String>,
+) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let into = into
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let contents = super::emptying::Contents::asked(contents.as_deref(), into)?;
     let mut session = held(&session);
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
     }
     folder_open(&session.state, id, false)?;
+    stays_hooked(&session.state, &[Op::FolderDelete { id }])?;
+    super::emptying::emptied(&mut session, id, contents)?;
     let op = Op::FolderDelete { id };
     stays_hooked(&session.state, std::slice::from_ref(&op))?;
     session.commit(op)?;
@@ -443,7 +455,7 @@ pub fn beside_folders(
 }
 
 // The core lets such an event go wherever it comes from; the window says so instead of seeming to do it.
-fn stays_hooked(state: &tisty_core::State, ops: &[Op]) -> Answer<()> {
+pub(crate) fn stays_hooked(state: &tisty_core::State, ops: &[Op]) -> Answer<()> {
     match ops.iter().any(|op| tisty_core::agents::unhooks(state, op)) {
         true => Err(Refusal::of("agentsRootStays")),
         false => Ok(()),

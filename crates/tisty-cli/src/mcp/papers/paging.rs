@@ -100,14 +100,13 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                      belongs to."
                 )));
             }
-            if up.brainstorm {
-                return Err(super::super::ideas::no_pages_on_a_sheet(&state, &said));
+            let places = tisty_core::places::Places::read(&paths.docs(), &state);
+            if let Err(ruled) = places.of_doc(&state, up).takes_pages() {
+                return Err(super::super::placed::refused(&state, &said, ruled));
             }
-            if let Some(sheet) = many
-                .iter()
-                .find(|one| super::super::ideas::holds_ideas(&state, one))
+            if let Some((kept, ruled)) = super::super::placed::first_staying(&state, &places, &many)
             {
-                return Err(super::super::ideas::no_pages_on_a_sheet(&state, sheet));
+                return Err(super::super::placed::refused(&state, &kept.file, ruled));
             }
             if state.held_away(up) {
                 return Err(Refused::Tool(format!(

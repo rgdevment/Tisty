@@ -53,6 +53,7 @@ pub mod parting;
 mod parts;
 pub mod paths;
 pub mod person;
+pub mod places;
 pub mod refs;
 mod repeating;
 pub mod review;
