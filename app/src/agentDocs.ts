@@ -74,6 +74,13 @@ export interface OwnFront {
   readonly raw: string | null;
 }
 
+export type Whose = { is: "everyone" } | { is: "mine" } | { is: "other"; name: string };
+
+export interface NamedDoc {
+  readonly title: string;
+  readonly of: Whose;
+}
+
 export interface AgentDoc {
   readonly kind: AgentKind;
   readonly level: string;
@@ -82,7 +89,8 @@ export interface AgentDoc {
   readonly label: string;
   readonly code: boolean;
   readonly folderOff: boolean;
-  readonly rivals: readonly string[];
+  readonly called: NamedDoc;
+  readonly rivals: readonly NamedDoc[];
   readonly here: Here;
   readonly print: string;
   readonly places: readonly Place[];

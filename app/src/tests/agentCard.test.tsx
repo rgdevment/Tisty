@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentDoc, Place, Said } from "../agentDocs";
+import type { AgentDoc, NamedDoc, Place, Said } from "../agentDocs";
 import { adopt } from "../locales";
 import AgentCard, { AgentButtons, AgentTrail } from "../ui/AgentCard";
 import { AGENTS_CHANGED } from "../ui/AgentsKeeper";
@@ -75,11 +75,14 @@ const card = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   here: "applied",
   print: "p1",
   proposal: null,
+  called: { title: "CLAUDE.md", of: { is: "mine" } },
   rivals: [],
   places,
   own: { about: null, fields: [], raw: null },
   ...more,
 });
+
+const mine = (title: string): NamedDoc => ({ title, of: { is: "mine" } });
 
 const BODY = "---\nagent: claude/rule/CLAUDE.md\n---\n# Rules\n";
 
@@ -382,7 +385,7 @@ describe("an agent document's card", () => {
   });
 
   it("says nothing of a twin once documents that write one file are asked as rivals", () => {
-    shown(card([], { rivals: ["Style"] }));
+    shown(card([], { rivals: [mine("Style")] }));
     expect(screen.queryByText(/already writes this file/)).toBeNull();
     expect(screen.getByText(/No agent on this computer reads this document yet/)).toBeTruthy();
   });
@@ -471,25 +474,51 @@ describe("an agent document's card", () => {
   });
 
   it("names the rival documents and asks which one rules here", async () => {
-    shown(card([], { here: "waiting", rivals: ["Style", "Tone"] }));
+    shown(card([], { here: "waiting", rivals: [mine("Style"), mine("Tone")] }));
     expect(screen.getByRole("status").textContent).toMatch(
-      /On this computer «Style», «Tone» already goes to the same file\. Which one rules here\?/,
+      /On this computer «Style» from this computer, «Tone» from this computer already goes to the same file\. Which one rules here\?/,
     );
     expect(screen.queryByRole("button", { name: "Apply here" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "The other" }));
+    await userEvent.click(screen.getByRole("button", { name: "Not on this computer" }));
     await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
     expect(sent("agent_doc")[0].args.asked).toEqual({ do: "take", here: false });
-    await userEvent.click(screen.getByRole("button", { name: "This one" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use «CLAUDE.md» from this computer" }),
+    );
     await waitFor(() => expect(sent("agent_doc")).toHaveLength(2));
     expect(sent("agent_doc")[1].args.asked).toEqual({ do: "take", here: true });
   });
 
+  it("names each button by its document and whose it is", () => {
+    const everyone: NamedDoc = { title: "Style", of: { is: "everyone" } };
+    const office: NamedDoc = { title: "Style", of: { is: "other", name: "Office" } };
+    shown(card([], { here: "contested", called: office, rivals: [everyone] }));
+    expect(screen.getByRole("button", { name: "Use «Style» from Office" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «Style» for all your computers" })).toBeTruthy();
+    cleanup();
+    shown(card([], { here: "contested", called: everyone, rivals: [mine("Style")] }));
+    expect(screen.getByRole("button", { name: "Use «Style» for all your computers" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «Style» from this computer" })).toBeTruthy();
+  });
+
+  it("offers no document to use instead when several rivals clash, only to leave this one out", () => {
+    shown(card([], { here: "contested", rivals: [mine("Style"), mine("Tone")] }));
+    expect(screen.getByRole("button", { name: "Not on this computer" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Use «Style» from this computer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Use «Tone» from this computer" })).toBeNull();
+  });
+
+  it("names a rival of another computer in the question too", () => {
+    const office: NamedDoc = { title: "Style", of: { is: "other", name: "Office" } };
+    shown(card([], { here: "waiting", rivals: [office] }));
+    expect(screen.getByRole("status").textContent).toMatch(/«Style» from Office/);
+  });
+
   it("asks which rules when words approved here collide with another document", () => {
-    shown(card([], { here: "approvedWaiting", rivals: ["Style"] }));
+    shown(card([], { here: "approvedWaiting", rivals: [mine("Style")] }));
     expect(screen.getByRole("status").textContent).toMatch(/Which one rules here\?/);
-    expect(screen.getByRole("button", { name: "This one" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "The other" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «CLAUDE.md» from this computer" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «Style» from this computer" })).toBeTruthy();
   });
 
   it("asks a contested document to take its place, and only offers the choice when a rival is named", () => {
@@ -497,19 +526,23 @@ describe("an agent document's card", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Does this one write it\?/);
     expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use «/ })).toBeNull();
     cleanup();
-    shown(card([], { here: "contested", rivals: ["Style"] }));
+    shown(card([], { here: "contested", rivals: [mine("Style")] }));
     expect(screen.getByRole("status").textContent).toMatch(/«Style»/);
-    expect(screen.getByRole("button", { name: "This one" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "The other" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «CLAUDE.md» from this computer" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use «Style» from this computer" })).toBeTruthy();
   });
 
   it("says who rules on a document put aside and offers to make this one rule", async () => {
-    shown(card([], { here: "aside", rivals: ["Style"] }));
-    expect(screen.getByRole("status").textContent).toMatch(/On this computer «Style» rules\./);
-    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "This one" }));
+    shown(card([], { here: "aside", rivals: [mine("Style")] }));
+    expect(screen.getByRole("status").textContent).toMatch(
+      /On this computer «Style» from this computer rules\./,
+    );
+    expect(screen.queryByRole("button", { name: "Not on this computer" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use «CLAUDE.md» from this computer" }),
+    );
     await waitFor(() => expect(sent("agent_doc")).toHaveLength(1));
     expect(sent("agent_doc")[0].args.asked).toEqual({ do: "take", here: true });
   });
@@ -524,11 +557,10 @@ describe("an agent document's card", () => {
   });
 
   it("keeps a declined document plain: it can only be applied, rivals or not", () => {
-    shown(card([], { here: "declined", rivals: ["Style"] }));
+    shown(card([], { here: "declined", rivals: [mine("Style")] }));
     expect(screen.getByRole("status").textContent).toMatch(/You chose not to apply it/);
     expect(screen.getByRole("button", { name: "Apply here" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use «/ })).toBeNull();
   });
 
   it("shows a document of another computer as only read, with no button to take it", () => {
@@ -556,10 +588,9 @@ describe("an agent document's card", () => {
   });
 
   it("keeps the plain wording of a state that is no choice even with rivals named", () => {
-    shown(card([], { here: "otherComputer", rivals: ["Style"] }));
+    shown(card([], { here: "otherComputer", rivals: [mine("Style")] }));
     expect(screen.getByRole("status").textContent).toMatch(/belongs to another of your computers/);
-    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "The other" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use «/ })).toBeNull();
   });
 
   it("keeps the plain wording of each state when no rival is named", () => {
@@ -567,7 +598,7 @@ describe("an agent document's card", () => {
     expect(screen.getByRole("status").textContent).toMatch(
       /You chose not to apply it on this computer/,
     );
-    expect(screen.queryByRole("button", { name: "This one" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use «/ })).toBeNull();
   });
 
   it("approves a text changed without the person only after saving the page and a yes", async () => {

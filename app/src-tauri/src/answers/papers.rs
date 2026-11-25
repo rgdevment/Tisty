@@ -41,7 +41,11 @@ pub fn doc_file(
         return Err(Refusal::of("intoItself"));
     }
     super::agents_homes::resolved(&session.state, id, folder)?;
-    let mut ops = beside_docs(&session.state, id, folder, before);
+    let (folder, before, mut ops) = match super::agents_homes::into_room(&session, id, folder) {
+        Some((room, made)) => (Some(room), None, made),
+        None => (folder, before, Vec::new()),
+    };
+    ops.extend(beside_docs(&session.state, id, folder, before));
     ops.extend(super::tongues::following(&session.state, id, folder));
     session.commit_all(ops)?;
     let went: Vec<String> = std::iter::once(id)

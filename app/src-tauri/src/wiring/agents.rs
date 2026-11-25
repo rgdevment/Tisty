@@ -527,22 +527,33 @@ fn within(at: &str, place: &str) -> bool {
         .is_some_and(|rest| rest.is_empty() || rest.starts_with(['/', '\\']))
 }
 
+// Two sides of one place ask, whichever came first, until the person chose between those very two.
 fn stand(ledger: &Ledger, written: &Written, place: &str, sources: &Sources) -> Stand {
-    if let Some(chosen) = ledger.chosen(place).filter(|it| sources.contains_key(*it)) {
+    let weighed = |chosen: &&str| {
+        sources
+            .keys()
+            .all(|one| one == chosen || ledger.chosen_over(place, one))
+    };
+    if let Some(chosen) = ledger
+        .chosen(place)
+        .filter(|it| sources.contains_key(*it))
+        .filter(weighed)
+    {
         return Stand::Goes(chosen.to_string());
     }
+    let mut all = sources.iter();
+    let (Some((source, files)), None) = (all.next(), all.next()) else {
+        return Stand::Asks;
+    };
     let credited: BTreeSet<&String> = written
         .iter()
         .filter(|(at, _)| within(at, place))
         .flat_map(|(_, files)| files.iter())
         .filter(|file| !agents::builtin(file))
         .collect();
-    let mut able = sources.iter().filter(|(_, files)| {
-        credited.is_empty() || files.iter().any(|file| credited.contains(file))
-    });
-    match (able.next(), able.next()) {
-        (Some((source, _)), None) => Stand::Goes(source.clone()),
-        _ => Stand::Asks,
+    match credited.is_empty() || files.iter().any(|file| credited.contains(file)) {
+        true => Stand::Goes(source.clone()),
+        false => Stand::Asks,
     }
 }
 

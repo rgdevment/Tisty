@@ -360,15 +360,126 @@ fn with_none_of_two_rivals_written_the_place_is_held_and_nothing_is_written() {
 }
 
 #[test]
-fn the_side_this_computer_already_wrote_goes_on_and_the_other_is_not_placed() {
+fn the_side_this_computer_already_wrote_asks_too_when_a_rival_arrives_and_the_file_stays() {
     let mut room = room();
     let (standing, rival) = rivals(&mut room);
-    assert!(!claude_target_held(&room));
-    assert_eq!(
-        shown(&room, &standing)["rivals"].as_array().unwrap().len(),
-        1
+    assert!(claude_target_held(&room));
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
+    for file in [&standing, &rival] {
+        assert_eq!(shown(&room, file)["here"], "contested", "{file}");
+        assert_eq!(shown(&room, file)["rivals"].as_array().unwrap().len(), 1);
+    }
+}
+
+#[test]
+fn an_own_document_made_after_an_everyone_one_was_applied_makes_both_ask_in_that_order() {
+    let mut room = room();
+    std::fs::remove_file(room.home.join(".claude/CLAUDE.md")).unwrap();
+    room.bring(&[]);
+    let everyone = doc_here(
+        &mut room,
+        "claude",
+        Kind::Rule,
+        "CLAUDE.md",
+        "For all.
+",
     );
-    assert_eq!(shown(&room, &rival)["places"].as_array().unwrap().len(), 0);
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "For all.
+"
+    );
+    assert!(!claude_target_held(&room));
+    let folder = my_folder(&room);
+    let own_body = body_for(
+        "claude",
+        "CLAUDE.md",
+        "Mine.
+",
+        Some(&me(&room)),
+    );
+    let own = mine_in(&mut room, folder, &own_body);
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "For all.
+"
+    );
+    assert!(claude_target_held(&room));
+    assert_eq!(shown(&room, &everyone)["here"], "contested");
+    assert_eq!(shown(&room, &own)["here"], "contested");
+
+    take(&room, &own, true);
+
+    assert_eq!(
+        room.read(".claude/CLAUDE.md"),
+        "Mine.
+"
+    );
+    assert_eq!(stance_of(&room, &own), places::Stance::Goes);
+    assert_eq!(stance_of(&room, &everyone), places::Stance::Aside);
+    assert_eq!(shown(&room, &everyone)["here"], "aside");
+}
+
+#[test]
+fn an_everyone_document_from_another_computer_waits_and_names_the_own_one_it_clashes_with() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let own = file_brought_from(&room, "CLAUDE.md");
+    let theirs = from_another_computer_for(
+        &mut room,
+        "claude",
+        Kind::Rule,
+        "CLAUDE.md",
+        "Theirs.
+",
+    );
+
+    round_here(&mut room.session, &room.homes, HERE).unwrap();
+
+    assert_eq!(room.read(".claude/CLAUDE.md"), MAIN);
+    let card = shown(&room, &theirs);
+    assert_eq!(card["here"], "waiting");
+    assert_eq!(card["called"]["of"], serde_json::json!({"is": "everyone"}));
+    assert_eq!(card["rivals"][0]["of"], serde_json::json!({"is": "mine"}));
+    assert!(card["rivals"][0]["title"].is_string(), "{card}");
+    assert!(
+        !claude_target_held(&room),
+        "the own side keeps writing while the other waits"
+    );
+    assert_eq!(
+        shown(&room, &own)["rivals"][0]["of"],
+        serde_json::json!({"is": "everyone"})
+    );
+}
+
+#[test]
+fn a_rival_of_another_computer_is_named_with_that_computers_name() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let own = file_brought_from(&room, "CLAUDE.md");
+    let other = laptop();
+    let folder = laptops_folder(&mut room, &other);
+    let theirs = body_for(
+        "claude",
+        "CLAUDE.md",
+        "Laptop.
+",
+        Some(&other),
+    );
+    let file = laptops_in(&mut room, &other, folder, &theirs);
+
+    let card = shown(&room, &file);
+
+    assert_eq!(card["called"]["of"]["is"], "other", "{card}");
+    assert!(card["called"]["of"]["name"].is_string());
+    assert_eq!(
+        shown(&room, &own)["called"]["of"],
+        serde_json::json!({"is": "mine"})
+    );
 }
 
 #[test]
@@ -1796,4 +1907,100 @@ fn folders_outside_a_computers_folder_say_nothing() {
     assert_eq!(looked_at(&room, plain), None);
     assert_eq!(looked_at(&room, global), None);
     assert_eq!(looked_at(&room, root(&room)), None);
+}
+
+fn into_room_of(room: &Room, file: &str, folder: FolderId) -> Option<(FolderId, usize)> {
+    let id = doc_of_file(room, file);
+    into_room(&room.session, id, Some(folder)).map(|(made, ops)| (made, ops.len()))
+}
+
+#[test]
+fn a_codex_document_dropped_at_the_root_goes_to_a_codex_folder_made_when_missing() {
+    let mut room = room();
+    room.bring(&[]);
+    let file = doc_here(&mut room, "codex", Kind::Rule, "AGENTS.md", "Codex.\n");
+    let root = root(&room);
+
+    let (made, ops) = into_room_of(&room, &file, root).unwrap();
+
+    assert_eq!(ops, 1, "the folder is made");
+    let id = doc_of_file(&room, &file);
+    let (_, ops) = into_room(&room.session, id, Some(root)).unwrap();
+    room.session.commit_all(ops).unwrap();
+    let state = &room.session.state;
+    let folder = state.folders.get(&made).unwrap();
+    assert_eq!(
+        (
+            folder.name.as_str(),
+            folder.parent,
+            folder.computer.as_ref()
+        ),
+        ("Codex", Some(root), None)
+    );
+}
+
+#[test]
+fn an_agents_folder_already_at_the_root_is_reused_not_made_again() {
+    let mut room = room();
+    room.bring(&[]);
+    let existing = crate::answers::agents_sync::tests::root_folder(&mut room, "Claude");
+    let file = doc_here(&mut room, "claude", Kind::Rule, "rules/all.md", "All.\n");
+
+    let (made, ops) = into_room_of(&room, &file, root(&room)).unwrap();
+
+    assert_eq!((made, ops), (existing, 0));
+}
+
+#[test]
+fn a_global_skill_dropped_at_the_root_goes_to_the_global_folder() {
+    let mut room = room();
+    room.bring(&[]);
+    let file = doc_here(&mut room, GLOBAL, Kind::Skill, "tidy/SKILL.md", "Tidy.\n");
+
+    let (made, _) = into_room_of(&room, &file, root(&room)).unwrap();
+
+    let state = &room.session.state;
+    assert_eq!(state.folders.get(&made).unwrap().name, "Global");
+    assert_eq!(made, sub_of(&room, "Global"));
+}
+
+#[test]
+fn a_plain_document_or_a_move_elsewhere_than_the_root_stays_where_it_was_put() {
+    let mut room = room();
+    room.bring(&[]);
+    let mine = my_folder(&room);
+    let plain = made_in(&mut room, mine);
+    let rule = doc_here(&mut room, "codex", Kind::Rule, "AGENTS.md", "Codex.\n");
+
+    assert_eq!(into_room_of(&room, &plain, root(&room)), None);
+    assert_eq!(into_room_of(&room, &rule, my_folder(&room)), None);
+}
+
+fn runs_of() -> String {
+    tisty_core::called::cleaned(tisty_core::VERSION)
+}
+
+#[test]
+fn another_device_on_this_very_build_is_not_an_earlier_tisty_whatever_its_number() {
+    let mut room = room();
+    let same = laptop();
+    runs(&mut room, &same, &runs_of());
+    let below = laptop();
+    runs(&mut room, &below, "1.50.1");
+    let unknown = laptop();
+    as_laptop(
+        &mut room,
+        &unknown,
+        vec![Op::DeviceJoin {
+            d: unknown.clone(),
+            k: None,
+            p: None,
+        }],
+    );
+
+    let earlier = earlier_elsewhere(&room.session);
+
+    assert!(!earlier.contains(&same), "{earlier:?}");
+    assert!(earlier.contains(&below) && earlier.contains(&unknown));
+    assert!(!earlier.contains(&me(&room)));
 }

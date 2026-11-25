@@ -240,7 +240,7 @@ After bringing, your Library has an **Agents** folder with **Global**, one folde
 
 ```text
 Agents
-├── Global                      skills only: Tisty's and your own, for all agents
+├── Global                      for all computers: rules per agent, skills and hooks
 ├── Codex                       only if you moved or made something here: it is for every computer
 ├── Home (this computer)
 │   ├── Claude
@@ -256,7 +256,7 @@ Agents
 
 - **One folder per computer.** Each computer reads and syncs only its own. What you bring (**Bring**, **Bring another file**, **Look again**) goes to this computer's folder, and each agent Tisty finds here has its subfolder in it, even an empty one. It is named as the computer is named in Sync, with «(this computer)» after it when it is the one you are on; the others go by name, last and faint. If two computers have the same name, a short code tells them apart.
 - **The root is for all computers.** A loose agent folder in **Agents**, like **Codex** in the drawing, exists only if you moved something there or made something there; Tisty does not make it. With nothing inside, it is not shown. What having a document at the root means is told in [On several computers](#on-several-computers).
-- **Global is for skills only.** Tisty's and your own, for all agents. [Global and your computer's folder](#global-and-your-computers-folder) tells it.
+- **Global keeps what is for all your computers: rules per agent, skills and hooks.** Skills, Tisty's and your own, reach all agents. [Global and your computer's folder](#global-and-your-computers-folder) tells it.
 - **Each agent's icon**: **Global** has a blue globe, and each agent a symbol of its own, which does not copy its logo, in the same colour as its label on the card: an orange chat bubble for Claude, a teal terminal for Codex, indigo code braces for Copilot, a green compass for Gemini and a brown pointer for Cursor. The same icons show in the first-time list and in **Settings › Agents › Agents folder**. A subfolder you gave an icon of your own keeps it.
 - **Each document's icon**: a book for a **rule**, a puzzle piece for a **skill** and a brain for **agent memory**.
 - **The name**: the document's first heading, such as «How I work» in a `CLAUDE.md` that starts with `# How I work`. A skill takes the `name` in its `SKILL.md`. A script, or a file with no headings, is named after the file: `MEMORY.md`, `extract.py`.
@@ -331,7 +331,7 @@ The page does not show that line: the document opens in its [card](#the-card-of-
 
 ## Global and your computer's folder
 
-**One document is one file, word for word.** Nothing is joined with anything else: what the document says is what the file your agent reads says. **Global** is for skills only, and rules belong to each agent, in your computer's folder.
+**One document is one file, word for word.** Nothing is joined with anything else: what the document says is what the file your agent reads says. **Global** keeps what is for all your computers: rules per agent, skills and hooks. An agent's rule placed in Global is written on each computer when you press **Apply here** on it; on the computer where you approved it, it applies, and on the others it waits for that button.
 
 ### One document is one file
 
@@ -353,7 +353,7 @@ Tisty writes `~/.claude/CLAUDE.md` with those lines, and nothing more. If you ch
 Codex reads one rules file, `AGENTS.md`, and so does Gemini, `tisty-rules.md`. Cursor receives no rules: its own live in its settings, not in a file.
 
 > [!IMPORTANT]
-> **A Global rule from 1.49 or 1.50 stays there for you to read.** It is no longer written to any agent: you can read it, copy it into your agent's folder or delete it. If you want it to keep reaching an agent, copy its text into a document in that agent's folder.
+> **A rule whose level is `global` (`agent: global/rule/…`), from 1.49 or 1.50, stays there for you to read.** It has no file in any agent, so it is not written: you can read it, copy it or delete it. If you want it to keep reaching an agent, copy its text into a document in that agent's folder, which may also be inside Global (for example, a Claude rule in Global).
 
 ### Adding rules to an agent
 
@@ -521,7 +521,7 @@ Two more notices can show under the facts box:
 - **«No agent on this computer reads this document yet.»** The agent is not on this computer, or the name is not a file that agent reads.
 - **«On this computer another document writes this file.»** Two documents, the one in your folder and one at the root, go to the same file: only one is written, and the other's card says so.
 
-And if the document is not applied on this computer yet, a notice says why, with the button that settles it: **Apply here** and **Not on this computer** if it waits for your yes; **This one** and **The other** if [two documents go to the same file](#if-two-documents-go-to-the-same-file); **Go by its folder** if its folder and its `agent:` line do not agree. [On several computers](#on-several-computers) tells it all.
+And if the document is not applied on this computer yet, a notice says why, with the button that settles it: **Apply here** and **Not on this computer** if it waits for your yes; one **Use** button per document, with its title and whose it is, if [two documents go to the same file](#if-two-documents-go-to-the-same-file); **Go by its folder** if its folder and its `agent:` line do not agree. [On several computers](#on-several-computers) tells it all.
 
 ## A change made outside: bring it in or overwrite
 
@@ -731,7 +731,7 @@ If you use Tisty on more than one computer, say the home one and the work one, y
 
 ```text
 Agents
-├── Global                      skills only
+├── Global                      for all computers: rules per agent, skills and hooks
 ├── Codex                       only if you moved or made something here: it is for every computer
 ├── Home (this computer)
 │   ├── Claude
@@ -791,13 +791,13 @@ What you choose holds for that document on that computer, and stays:
 
 ### If two documents go to the same file
 
-It happens when the document in your folder and one at the root write the same file, or the same skill. Until you choose, nothing changes on this computer: neither of the two is written. The card asks «On this computer «X» already goes to the same file. Which one rules here?» and offers two buttons, **This one** and **The other**.
+It happens when the document in your folder and one at the root write the same file, or the same skill. Until you choose, nothing changes on this computer: neither of the two is written. The card of both asks it, whichever came first: «On this computer «CLAUDE.md» for all your computers already goes to the same file. Which one rules here?». It offers one button for each, with its title and whose it is, such as **Use «CLAUDE.md» from this computer** and **Use «CLAUDE.md» for all your computers**, since the two are often named alike.
 
-**An example.** Marisol has her `CLAUDE.md` in **Home (this computer) › Claude**, and from home she moves to the root another document that also goes to `CLAUDE.md`. When it arrives, the work computer cannot tell which one should rule. Marisol opens either and presses **This one** on the one she wants: that one is written to `~/.claude/CLAUDE.md`, and the other stays in its folder, with the card «On this computer … rules.».
+**An example.** Marisol has her `CLAUDE.md` in **Home (this computer) › Claude**, and from home she moves to the root another document that also goes to `CLAUDE.md`. When it arrives, the work computer cannot tell which one should rule. Marisol opens either and presses the **Use** button of the one she wants: that one is written to `~/.claude/CLAUDE.md`, and the other stays in its folder, with the card «On this computer … rules.».
 
 - **A skill is chosen whole**, with all its files.
 - **It is chosen per file.** If you choose for Claude, a Global skill keeps working in the other agents.
-- **You can change your mind**: the one that does not rule stays in its folder, and **This one** on its card makes it rule.
+- **You can change your mind**: the one that does not rule stays in its folder, and its **Use** button makes it rule.
 - **If the one that ruled goes away**, Tisty does not write the other by itself: it asks again.
 
 ### Other computers' documents
@@ -842,11 +842,11 @@ An agent's memory is about what happened on that computer, so it is never writte
 Before, a document lived in **Claude**, **Codex** or **Global** for all computers at once, and Tisty joined into one file what was in Global and what was in your agent. Since 1.50.2 it is the other way round: each computer has its own folder, and a document is one file.
 
 - **What each computer brought or wrote moves by itself to its own folder**, once all your computers have 1.50.2 or later. No agent file changes by a byte.
-- **A `CLAUDE.md` that 1.50 had joined with a Global rule** becomes one document that says exactly what the file says.
+- **A `CLAUDE.md` that 1.50 had joined with a rule whose level is `global`** becomes one document that says exactly what the file says.
 - **While another computer is still on an earlier version**, nothing moves and the files stay as they are.
 - **If the file was changed outside**, it is left and asked about as always.
 - **On a computer still on 1.50.1**, you can edit another computer's document, but that text waits for your approval on the newer one.
-- **A Global rule from that time** stays in Global for you to read, copy or delete; it is no longer written to any agent.
+- **A rule whose level is `global` (`agent: global/rule/…`) from that time** stays in Global for you to read, copy or delete; it is no longer written to any agent.
 
 ### To approve
 
@@ -1055,7 +1055,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **And each repository's rules?** They stay where they are. Agents handles your user's files, not each project's `AGENTS.md` or `CLAUDE.md`.
 
-**Can I write a new rule from scratch?** Yes: right-click an agent's folder on your computer, such as **Claude**, and **New document**. The document already starts with its `agent:` line, and you only write the rule. Not in **Global**: only skills go there. If Agents syncs, Tisty writes it as soon as you write something. See [A new document is already a rule](#a-new-document-is-already-a-rule).
+**Can I write a new rule from scratch?** Yes: right-click an agent's folder on your computer, such as **Claude**, and **New document**. The document already starts with its `agent:` line, and you only write the rule. Not in **Global**: it is not a single agent's folder, so a new document there starts without an `agent:` line. If Agents syncs, Tisty writes it as soon as you write something. See [A new document is already a rule](#a-new-document-is-already-a-rule).
 
 **How many backups does it keep?** The original, backup #1, which is never deleted, and on top of it the last 20 of each file, on this computer.
 
@@ -1069,7 +1069,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **Can I keep a rule on one computer only?** Yes: leave it in that computer's folder, and nobody else writes it. For a root one you do not want on one of them, press **Not on this computer** on its card there.
 
-**Why does it ask «Which one rules here?»** Because on this computer two documents, the one in your folder and one at the root, go to the same file or the same skill. Choose **This one** or **The other**; until you do, nothing changes. See [If two documents go to the same file](#if-two-documents-go-to-the-same-file).
+**Why does it ask «Which one rules here?»** Because on this computer two documents, the one in your folder and one at the root, go to the same file or the same skill. Choose with one of the two **Use** buttons, which name each document; until you do, nothing changes. See [If two documents go to the same file](#if-two-documents-go-to-the-same-file).
 
 **Can I edit what is on my other computer?** Not from this one: you read it, move it, copy it as text and take it out. The card says «It belongs to another of your computers: on this one it is only read.». See [Other computers' documents](#other-computers-documents).
 
@@ -1105,7 +1105,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 - **Changed outside** or **Changed on both sides**: Tisty waits for your decision before writing.
 - **Nothing to write**, **The file is a link** or **The code block is broken**: the table of [each standing](#each-standing) says what to do.
 - **«No agent on this computer reads this document yet.»**: check the `agent:` line. The level must be an agent on this computer, and the name a file that agent reads.
-- **«On this computer another document writes this file.»** or **«Which one rules here?»**: two documents go to the same file. Choose with **This one** or **The other**, or keep one. See [If two documents go to the same file](#if-two-documents-go-to-the-same-file).
+- **«On this computer another document writes this file.»** or **«Which one rules here?»**: two documents go to the same file. Choose with the **Use** buttons, which name each document, or keep one. See [If two documents go to the same file](#if-two-documents-go-to-the-same-file).
 - **«It belongs to another of your computers»**: that document is written on that computer, not on this one.
 - **«It sits in one computer's folder and its text says another's»**: press **Go by its folder**.
 - **On hold**: the document's text waits for your approval. The card names it; [approve it](#to-approve).

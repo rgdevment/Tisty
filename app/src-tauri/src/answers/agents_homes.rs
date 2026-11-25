@@ -201,6 +201,22 @@ pub(crate) fn resolved(
     }
 }
 
+/// Dropped at the root of AGENTS, an agent's document goes into that agent's folder there, made if missing.
+pub(crate) fn into_room(
+    session: &Session,
+    id: tisty_core::model::DocId,
+    folder: Option<FolderId>,
+) -> Option<(FolderId, Vec<Op>)> {
+    let state = &session.state;
+    let root = root_of(state).filter(|root| folder == Some(*root))?;
+    let kept = state.docs.get(&id)?;
+    let card = Card::of(&read(session, &kept.file).ok()?)?;
+    let name = places::assistant(&card.level).map_or(GLOBAL_FOLDER, |one| one.name);
+    let mut ops = Vec::new();
+    let room = agents::room(state, &mut ops, root, name);
+    Some((room, ops))
+}
+
 pub(crate) fn moved_here(session: &mut Session, files: &[String]) -> Answer<()> {
     let here = super::agents_sync::here();
     moved(session, Homes::here().as_ref(), &here, files)
@@ -281,10 +297,21 @@ pub(crate) fn under(state: &State, folder: FolderId) -> Vec<String> {
         .collect()
 }
 
+/// The other computers on a Tisty before 1.50.2; one on this very build reads what it writes the same way, whatever its number.
+pub(crate) fn earlier_elsewhere(session: &Session) -> Vec<DeviceId> {
+    let me = session.store.device();
+    let mine = tisty_core::called::cleaned(tisty_core::VERSION);
+    session
+        .state
+        .not_yet_on(SINCE)
+        .into_iter()
+        .filter(|one| one != me && session.state.runs.get(one) != Some(&mine))
+        .collect()
+}
+
 // An earlier Tisty elsewhere would read the move as documents leaving and touch that computer's files.
 fn all_read_computers(session: &Session) -> bool {
-    let me = session.store.device();
-    session.state.not_yet_on(SINCE).iter().all(|one| one == me)
+    earlier_elsewhere(session).is_empty()
 }
 
 /// What an earlier Tisty left goes where it belongs now; whatever cannot go yet stays, and the round goes on.
@@ -598,7 +625,7 @@ pub(crate) fn chosen(
             }
         }
         for (place, side) in &sides.places {
-            ledger.choose(place, side);
+            ledger.choose(place, side, sides.rivals.keys().cloned());
         }
         return;
     }
@@ -610,8 +637,8 @@ pub(crate) fn chosen(
         .collect();
     match (gate.seen(file), standing.as_slice()) {
         (Some(Seen::Admitted), [rival]) => {
-            for (place, _) in &sides.places {
-                ledger.choose(place, rival);
+            for (place, side) in &sides.places {
+                ledger.choose(place, rival, [side.clone()]);
             }
         }
         _ => ledger.take(file, false),

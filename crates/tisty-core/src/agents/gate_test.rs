@@ -263,6 +263,77 @@ fn a_document_an_agent_moved_in_is_never_written() {
     assert_eq!(world.gate().seen(&file), Some(Seen::PlacedByAgent));
 }
 
+impl World {
+    fn global(&mut self) -> FolderId {
+        let (id, root) = (Ulid::generate(), self.root);
+        self.folder(HERE, id, "Global", Some(root));
+        id
+    }
+}
+
+#[test]
+fn a_claude_rule_in_global_approved_on_one_computer_waits_on_another_until_applied_there() {
+    let mut world = world();
+    let global = world.global();
+    let (_, file) = world.made_in(
+        THERE,
+        &rule(
+            "For all.
+",
+        ),
+        true,
+        Some(global),
+    );
+
+    assert_eq!(world.gate().seen(&file), Some(Seen::WaitingHere));
+    assert_eq!(world.gate_for(THERE).seen(&file), Some(Seen::Admitted));
+    assert!(world.gate().admitted().is_empty());
+
+    world.ledger.take(&file, true);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+}
+
+#[test]
+fn a_claude_rule_an_agent_moved_into_global_is_no_longer_applied() {
+    let mut world = world();
+    let global = world.global();
+    let (id, file) = world.made_in(
+        THERE,
+        &rule(
+            "For all.
+",
+        ),
+        true,
+        Some(global),
+    );
+    world.ledger.take(&file, true);
+    assert_eq!(world.gate().seen(&file), Some(Seen::Admitted));
+    let claude = world.claude;
+    world.apply(
+        AGENT,
+        Op::DocMove {
+            id,
+            d: Filed {
+                folder: Some(Some(claude)),
+                ..Default::default()
+            },
+        },
+    );
+    world.apply(
+        AGENT,
+        Op::DocMove {
+            id,
+            d: Filed {
+                folder: Some(Some(global)),
+                ..Default::default()
+            },
+        },
+    );
+
+    assert_eq!(world.gate().seen(&file), Some(Seen::PlacedByAgent));
+    assert!(world.gate().admitted().is_empty());
+}
+
 #[test]
 fn a_folder_an_agent_renamed_holds_back_everything_under_it() {
     let mut world = world();

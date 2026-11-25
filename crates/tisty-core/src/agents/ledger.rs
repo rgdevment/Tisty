@@ -37,6 +37,8 @@ pub struct Ledger {
     #[serde(default)]
     chosen: BTreeMap<String, String>,
     #[serde(default)]
+    chosen_over: BTreeMap<String, BTreeSet<String>>,
+    #[serde(default)]
     words: BTreeMap<String, String>,
     #[serde(default)]
     homing: Option<BTreeSet<String>>,
@@ -161,13 +163,22 @@ impl Ledger {
         self.waits.remove(file);
     }
 
-    /// Of those that would write one place, the person's choice on this computer.
-    pub fn choose(&mut self, place: &str, side: &str) {
+    /// Of those that would write one place, the person's choice on this computer, and the sides it was made over.
+    pub fn choose(&mut self, place: &str, side: &str, over: impl IntoIterator<Item = String>) {
         self.chosen.insert(place.to_string(), side.to_string());
+        self.chosen_over
+            .insert(place.to_string(), over.into_iter().collect());
     }
 
     pub fn chosen(&self, place: &str) -> Option<&str> {
         self.chosen.get(place).map(String::as_str)
+    }
+
+    /// A side that came after the choice was never weighed against it, so the choice does not cover it.
+    pub fn chosen_over(&self, place: &str, side: &str) -> bool {
+        self.chosen_over
+            .get(place)
+            .is_some_and(|over| over.contains(side))
     }
 
     /// The words of a document of this computer's own that were let in here, whoever approved them.

@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 use tisty_core::agents::{self, Card, Ledger, Refused, Seen, Standing, Target};
 
+use super::agents_moving::{Scope, scope};
 use super::agents_sync::{refused, unled};
 use crate::wiring::agents::{Homes, Placed, Stance, assistant, lead_of, sides, stance, targets};
 use crate::{Answer, Refusal, Session, held};
@@ -61,8 +62,9 @@ pub struct AgentDoc {
     code: bool,
     /// Sync is off for the whole AGENTS folder, so no single assistant can be turned back on here.
     folder_off: bool,
-    /// Documents that would write the same file here, by title: the person chooses which one does.
-    rivals: Vec<String>,
+    called: Named,
+    /// Documents that would write the same file here: the person chooses which one does.
+    rivals: Vec<Named>,
     /// Whether this computer writes it, and if not, why: the person's choice or approval waits.
     here: &'static str,
     /// The words the card was drawn from, so an approval names the text the person saw.
@@ -418,6 +420,27 @@ fn titled(state: &tisty_core::State, file: &str) -> String {
         .unwrap_or_else(|| file.to_string())
 }
 
+/// A document by its title and whose it is, so two of the same title still read apart.
+#[derive(serde::Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Named {
+    title: String,
+    of: Scope,
+}
+
+fn named_doc(session: &Session, file: &str) -> Named {
+    let state = &session.state;
+    let computer = state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .and_then(|one| agents::computer_of(state, one.folder));
+    Named {
+        title: titled(state, file),
+        of: scope(session, computer.as_ref()),
+    }
+}
+
 fn card(session: &Mutex<Session>, file: &str) -> Answer<Option<AgentDoc>> {
     let machine = tisty_core::machine::here().unwrap_or_default();
     let mut session = held(session);
@@ -449,10 +472,11 @@ pub(crate) fn card_of(
         named: (card.level != agents::GLOBAL).then(|| named(&card.level)),
         code: card.code(),
         folder_off: ledger.consented() && !ledger.syncs(""),
+        called: named_doc(session, file),
         rivals: opened
             .rivals
             .iter()
-            .map(|one| titled(&session.state, one))
+            .map(|one| named_doc(session, one))
             .collect(),
         here: here_word(opened.here, agreed_here(session, file), opened.stance),
         print: opened.print,

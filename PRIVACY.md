@@ -646,8 +646,10 @@ computer, and only these:
   only read here, and one at the root, which is for all of them, waits for
   **Apply here** on this one. A document is one file, word for word: nothing is
   joined with another. A skill in Global is written to every assistant Tisty
-  finds on this computer, even one whose files you did not tick; a rule in
-  Global is no longer written to any. A change made outside is never written
+  finds on this computer, even one whose files you did not tick; a rule whose
+  level is `global` (`agent: global/rule/…`) is written to none, but an
+  assistant's rule placed in Global is written on each computer after
+  **Apply here** on it. A change made outside is never written
   over; it stays marked until you bring it in or write Tisty's version over
   it. In Gemini CLI's `GEMINI.md`,
   which Gemini writes itself, Tisty only ever adds one line, `@tisty-rules.md`,

@@ -113,6 +113,7 @@ function Notices({ hands }: { hands: CardHands }) {
       {doc.folderOff && <p className="mt-3 text-[12.5px] text-soft">{t("agentFolderOff")}</p>}
       <HereNote
         here={doc.here}
+        called={doc.called}
         rivals={doc.rivals}
         agreeing={doc.agreeing}
         onTake={hands.take}

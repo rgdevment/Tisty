@@ -6,7 +6,7 @@ use tisty_core::agents::{self, Card, GLOBAL, Gate, Kind, Ledger, Seen};
 use tisty_core::event::DeviceId;
 use tisty_core::model::{DocId, FolderId, Kept};
 
-use super::agents_homes::{SINCE, approved, kept_of, read, under};
+use super::agents_homes::{approved, earlier_elsewhere, kept_of, read, under};
 use super::agents_sync::{docs_in, gated, here, root_of, tree};
 use crate::wiring::agents::Homes;
 use crate::{Answer, Refusal, Session, held};
@@ -231,7 +231,7 @@ fn skill_of(name: &str) -> &str {
     name.split('/').next().unwrap_or(name)
 }
 
-fn scope(session: &Session, computer: Option<&DeviceId>) -> Scope {
+pub(crate) fn scope(session: &Session, computer: Option<&DeviceId>) -> Scope {
     match computer {
         None => Scope::Everyone,
         Some(one) if one == session.store.device() => Scope::Mine,
@@ -242,12 +242,8 @@ fn scope(session: &Session, computer: Option<&DeviceId>) -> Scope {
 }
 
 fn older(session: &Session) -> Vec<String> {
-    let me = session.store.device();
-    let names: BTreeSet<String> = session
-        .state
-        .not_yet_on(SINCE)
+    let names: BTreeSet<String> = earlier_elsewhere(session)
         .iter()
-        .filter(|one| *one != me)
         .map(|one| session.state.called(one))
         .collect();
     names.into_iter().collect()

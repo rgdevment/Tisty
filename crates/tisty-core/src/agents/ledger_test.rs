@@ -247,11 +247,42 @@ fn two_spellings_are_one_file_only_where_the_file_system_folds_them() {
 fn a_choice_is_kept_per_place_and_replaced_by_the_next() {
     let mut ledger = Ledger::fresh("machine-a");
     assert_eq!(ledger.chosen("/h/CLAUDE.md"), None);
-    ledger.choose("/h/CLAUDE.md", "doc-a");
+    ledger.choose("/h/CLAUDE.md", "doc-a", ["doc-b".to_string()]);
     assert_eq!(ledger.chosen("/h/CLAUDE.md"), Some("doc-a"));
-    ledger.choose("/h/CLAUDE.md", "doc-b");
+    ledger.choose("/h/CLAUDE.md", "doc-b", ["doc-a".to_string()]);
     assert_eq!(ledger.chosen("/h/CLAUDE.md"), Some("doc-b"));
     assert_eq!(ledger.chosen("/h/other.md"), None);
+}
+
+#[test]
+fn a_choice_covers_only_the_sides_it_was_made_over_and_the_next_choice_replaces_them() {
+    let mut ledger = Ledger::fresh("machine-a");
+    assert!(!ledger.chosen_over("/h/CLAUDE.md", "doc-b"));
+    ledger.choose("/h/CLAUDE.md", "doc-a", ["doc-b".to_string()]);
+    assert!(ledger.chosen_over("/h/CLAUDE.md", "doc-b"));
+    assert!(!ledger.chosen_over("/h/CLAUDE.md", "doc-c"));
+    assert!(!ledger.chosen_over("/h/other.md", "doc-b"));
+    ledger.choose("/h/CLAUDE.md", "doc-b", ["doc-a".to_string()]);
+    assert!(ledger.chosen_over("/h/CLAUDE.md", "doc-a"));
+    assert!(!ledger.chosen_over("/h/CLAUDE.md", "doc-b"));
+}
+
+#[test]
+fn what_a_choice_was_made_over_is_kept_and_a_ledger_without_it_still_loads() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.consent(true);
+    ledger.choose("/h/CLAUDE.md", "doc-a", ["doc-b".to_string()]);
+    ledger.keep(data.path()).unwrap();
+    let again = Ledger::open(data.path(), "machine-a");
+    assert!(again.chosen_over("/h/CLAUDE.md", "doc-b"));
+
+    let old: Ledger = serde_json::from_str(
+        r#"{"machine":"machine-a","consented":true,"chosen":{"/h/CLAUDE.md":"doc-a"}}"#,
+    )
+    .unwrap();
+    assert_eq!(old.chosen("/h/CLAUDE.md"), Some("doc-a"));
+    assert!(!old.chosen_over("/h/CLAUDE.md", "doc-b"));
 }
 
 #[test]
@@ -259,7 +290,7 @@ fn a_choice_touches_neither_what_was_taken_nor_what_was_left() {
     let mut ledger = Ledger::fresh("machine-a");
     ledger.take("doc-a", true);
     ledger.take("doc-b", false);
-    ledger.choose("/h/CLAUDE.md", "doc-a");
+    ledger.choose("/h/CLAUDE.md", "doc-a", ["doc-b".to_string()]);
     assert!(ledger.took("doc-a") && ledger.left("doc-b"));
     assert!(!ledger.waits("doc-a"));
 }
@@ -297,7 +328,7 @@ fn homing_is_kept_and_read_back_and_is_done_when_the_set_is_empty() {
     assert_eq!(ledger.homing(), None);
     ledger.home_all(["doc-a".to_string(), "doc-b".to_string()].into());
     assert!(!ledger.homed());
-    ledger.choose("/h/CLAUDE.md", "doc-a");
+    ledger.choose("/h/CLAUDE.md", "doc-a", ["doc-b".to_string()]);
     ledger.let_in("doc-a", "p1");
     ledger.keep(data.path()).unwrap();
 

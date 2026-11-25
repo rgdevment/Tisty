@@ -43,6 +43,7 @@ const agent = (places: Place[], more: Partial<AgentDoc> = {}): AgentDoc => ({
   label: "Horario laboral",
   code: false,
   folderOff: false,
+  called: { title: "Horario laboral", of: { is: "mine" } },
   rivals: [],
   here: "applied",
   print: "p1",

@@ -3,7 +3,7 @@
   "files": {
     "en/agent.md": "c8c67092487a97ebd8824c39dcf4f0c73ab38afb948cb2dea1e14a74996bc1df",
     "en/agents-card.png": "9762604cd26870aede82bbe11dc077b0395d1aa2079e59145f75981738a10ccb",
-    "en/agents-folder.md": "b3d1fc1fc60b8e944e47aec6d490fd762ebc5ee087b15a33abbf01b70dc2e3cb",
+    "en/agents-folder.md": "275a552632c20a4ed6eb32461b5d90d2294645e4b71b23c3157ca5a6dd59a240",
     "en/agents-sidebar.png": "7f370b7aad30cb30bd83a2299dd68e2847d21a87d6c20309164e555ca63ecc98",
     "en/archive.png": "82bf3e265a37b74e70ff295041f768348b4c4a49570b32af694ec54d40e17137",
     "en/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
@@ -22,7 +22,7 @@
     "en/priorities.png": "990a66d4251da53debd3df36cea44b19f82581358e9fa78a4b78110d7364be84",
     "en/rina.jpg": "acce9605109bd0e6e43bbe7b3cafb6765fa6cc95269b3759f4fd8d4ad47ffc7a",
     "en/roger.jpg": "6e00cc22cadb538b5d89c080eb12f2f8d50fd9de22169d1eb6bcb99128bac35f",
-    "en/sample.md": "5a4a6c0267d4065520d89c0a91d034c0a5e70ec09dbb57c1ed175bf8972fd5f8",
+    "en/sample.md": "18f71811452870c1001e7cce1b8f71761d48191f1845a519d88ca4f1560beb03",
     "en/vet-card.pdf": "5902c26d194fcc5580c036ce56fcb98ef54154d214b3f5e989f1f2b0705393ed",
     "en/walk.mp4": "b5520ec4438714b02a612d7e108333c74cf46a9ed785a282dd740c1b475d0565",
     "en/walks.csv": "a3ed6dec159496854234fbd70110fcde8831f637b0dff3a0b7de2504dda4195d",
@@ -34,7 +34,7 @@
     "es/bark.mp3": "bba762f7b47a5ae1cfc963ebcd6609b9e4ebec2da9f2ce3d01d20ba297905b0e",
     "es/brainsty.md": "031b5198296177082c4628b060a4503e19e920f967f9abee35fba7a11696deee",
     "es/captura.png": "7913eb165ed6590c797821f1f5664737f9cef62ed2caa707b71bb8f403857a76",
-    "es/carpeta-agents.md": "468eeaa107db6b34ac3eaede999eb98d480950f07025b38ba22f2cacd7cc5447",
+    "es/carpeta-agents.md": "2e512d49b770cfa633d1b7b25791a8668e94633fe2a6f77e2a5d0c3b9b9170dd",
     "es/cartilla.pdf": "284c3eef816388b2062d7aa44c587529a978fa6d4a99ad8c268cd2b7e2b82682",
     "es/codigo.md": "1711dcc10d1f5a5346d8b345295b06d8ce111e5b402a8c8e1bcb08c5d14de5b4",
     "es/diagramas.png": "84846168283d57087a4eca4b141bfc87351e2dc5dc7db779a895ee9ac228beeb",
@@ -43,7 +43,7 @@
     "es/hill.jpg": "c20714d2eec225eb61b9f56f0bf1e3b0cb72c486514ea73d418a8e2d32851417",
     "es/ideas.png": "a15785d11ea2336c296e1900bc66feed9378797a815f68d2f9591ab1e8e07c19",
     "es/idiomas.png": "f6fab049744a51a6055b5dd092f7a2bbede6b26f58537ecacf5806d8533b7702",
-    "es/muestra.md": "392eb4522f1a671a104543ba23b6c124fc4e87eac0c551befe7fe9d3bffd2508",
+    "es/muestra.md": "015f84b8b659805189ab5643b2c9b2377ea154f03996e26eab891c2a935b04ae",
     "es/pagina.md": "f36faba1457a1dabbcb9b8ab5e5259c9b16f99d81d5a457893b89eae503585cd",
     "es/paseos.csv": "f997f09d292d415f3c74e9ed8f2ef21fa2b4e945cd7f9e2541afd2ecb002e2c4",
     "es/paseos.html": "2d78e2bf0fe8444537fdcad2a80d216fbb5ad7341116eeb2f4e91f38e12c69f0",
@@ -62,6 +62,6 @@
       "since": "2026-11-10T00:52:29Z",
       "sig": "HdUTmQ2TmV6_6AMUyB3IHv_ryzoPlDnBc7AFW1OnuKvbZ4cwp3pOe0WRwnII-W-kDgVSYOWKgiVKxEyrl2R8Bg"
     },
-    "sig": "20dlH3LsiJF1BgE2L46U3Ol5DA-c1fSumfoGpiikenQ9gzRi1v15MFdVyA-G__rv1zDf1FoCsHfvHWKtQiylAg"
+    "sig": "Av49T7rvZen7TeYPagrmBX2T7Z5QD1j7ePt6gPh5kFmbWLVqeltIMf2mnAAR_lHjGNbHw0QderIWVT-1M49CCA"
   }
 }

@@ -240,7 +240,7 @@ Después de traer, la Biblioteca tiene una carpeta **Agentes** con **Global**, u
 
 ```text
 Agentes
-├── Global                      solo skills: las de Tisty y las tuyas, para todos los agentes
+├── Global                      lo de todos: reglas por agente, skills y hooks
 ├── Codex                       solo si moviste o creaste algo aquí: es para todos tus equipos
 ├── Casa (este equipo)
 │   ├── Claude
@@ -256,7 +256,7 @@ Agentes
 
 - **Una carpeta por equipo.** Cada equipo lee y sincroniza solo la suya. Lo que traes (**Traer**, **Traer otro archivo**, **Buscar de nuevo**) va a la carpeta de este equipo, y cada agente que Tisty encuentra aquí tiene su subcarpeta en ella, aunque esté vacía. Se llama como el equipo se llama en la sincronización, con «(este equipo)» detrás cuando es el tuyo de ahora; los demás van por su nombre, al final y en gris tenue. Si dos equipos se llaman igual, un código corto los distingue.
 - **La raíz es para todos los equipos.** Una carpeta de agente suelta en **Agentes**, como **Codex** en el dibujo, solo existe si tú moviste algo ahí o creaste algo ahí; no la crea Tisty. Si no tiene nada adentro, no se ve. Qué significa tener un documento en la raíz lo cuenta [En varios equipos](#en-varios-equipos).
-- **Global es solo de skills.** Las de Tisty y las tuyas, para todos los agentes. Lo cuenta [Global y la carpeta de tu equipo](#global-y-la-carpeta-de-tu-equipo).
+- **Global guarda lo de todos: reglas por agente, skills y hooks.** Las skills, las de Tisty y las tuyas, llegan a todos los agentes. Lo cuenta [Global y la carpeta de tu equipo](#global-y-la-carpeta-de-tu-equipo).
 - **El icono de cada agente**: **Global** lleva un globo azul, y cada agente un símbolo propio, que no imita su logo, en el mismo color de su etiqueta en la ficha: un globo de conversación naranja para Claude, una terminal verde azulado para Codex, unas llaves de código índigo para Copilot, una brújula verde para Gemini y un puntero café para Cursor. Los mismos iconos aparecen en la lista de la primera vez y en **Configuración › Agentes › Carpeta Agentes**. Una subcarpeta a la que le pusiste un icono tuyo lo conserva.
 - **El icono de cada documento**: un libro para una **regla**, una pieza de rompecabezas para una **skill** y un cerebro para la **memoria del agente**.
 - **El nombre**: el primer título del documento, como «Cómo trabajo» en un `CLAUDE.md` que empieza con `# Cómo trabajo`. Una skill toma el `name` de su `SKILL.md`. Un script, o un archivo sin títulos, se llama como el archivo: `MEMORY.md`, `extraer.py`.
@@ -285,7 +285,7 @@ Las subcarpetas son para que encuentres las cosas, pero **dónde está un docume
 
 | Opción | Qué hace |
 | :-- | :-- |
-| **Documento nuevo** | Crea un documento en esa carpeta que ya nace con su línea `agent:`: en **Claude**, una regla de Claude. En **Global** crea un documento común, porque Global no escribe reglas. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla) |
+| **Documento nuevo** | Crea un documento en esa carpeta que ya nace con su línea `agent:`: en **Claude**, una regla de Claude. En **Global** crea un documento común, sin línea `agent:`, porque Global no es la carpeta de un solo agente. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla) |
 | **Traer otro archivo** | Abre la lista de los archivos de tus agentes que todavía no están en Agentes. Mira [Traer otro archivo](#traer-otro-archivo) |
 | **Pausar la sincronización con Claude** | Deja de escribir los archivos de Claude en este equipo, como el botón del mismo nombre en la ficha. En pausa, dice **Reanudar la sincronización con Claude**. Mira [Pausar, dejar de sincronizar y vaciar](#pausar-dejar-de-sincronizar-y-vaciar) |
 | **Ocultar de la barra** | La saca de la barra en este equipo. Si Agentes sincroniza, antes te pide dejar de sincronizar. Mira [Ocultarla de la barra](#ocultarla-de-la-barra) |
@@ -331,7 +331,7 @@ La página no muestra esa línea: el documento se abre en su [ficha](#la-ficha-d
 
 ## Global y la carpeta de tu equipo
 
-**Un documento es un archivo, palabra por palabra.** Nada se junta con otra cosa: lo que dice el documento es lo que dice el archivo que lee tu agente. **Global** es solo de skills, y las reglas son de cada agente, en la carpeta de tu equipo.
+**Un documento es un archivo, palabra por palabra.** Nada se junta con otra cosa: lo que dice el documento es lo que dice el archivo que lee tu agente. **Global** guarda lo de todos: reglas por agente, skills y hooks. Una regla de un agente puesta en Global se escribe en cada equipo cuando pulsas **Aplicar aquí** en él; en el equipo donde la aprobaste se aplica, y en los demás espera ese botón.
 
 ### Un documento es un archivo
 
@@ -353,7 +353,7 @@ Tisty escribe `~/.claude/CLAUDE.md` con esas líneas, y nada más. Si mañana ca
 Codex lee un solo archivo de reglas, `AGENTS.md`, y Gemini también, `tisty-rules.md`. Cursor no recibe reglas: las suyas viven en sus ajustes, no en un archivo.
 
 > [!IMPORTANT]
-> **Una regla de Global de la 1.49 o la 1.50 se queda para que la leas.** Ya no se escribe en ningún agente: puedes leerla, copiarla a la carpeta de tu agente o borrarla. Si quieres que siga llegando a un agente, copia su texto a un documento de la carpeta de ese agente.
+> **Una regla con nivel `global` (`agent: global/rule/…`), de la 1.49 o la 1.50, se queda para que la leas.** No tiene archivo en ningún agente, así que no se escribe: puedes leerla, copiarla o borrarla. Si quieres que siga llegando a un agente, copia su texto a un documento de la carpeta de ese agente, que también puede estar en Global (por ejemplo, una regla de Claude en Global).
 
 ### Sumar reglas a un agente
 
@@ -521,7 +521,7 @@ Dos avisos más pueden aparecer bajo el cuadro de datos:
 - **«Ningún agente de este equipo lee este documento todavía.»** El agente no está en este equipo, o el nombre no es un archivo que ese agente lea.
 - **«En este equipo otro documento escribe este archivo.»** Dos documentos, el de tu carpeta y uno de la raíz, van al mismo archivo: solo uno se escribe, y la ficha del otro lo dice.
 
-Y si el documento todavía no se aplica en este equipo, un aviso dice por qué, con el botón que lo resuelve: **Aplicar aquí** y **No en este equipo** si espera tu sí; **Este** y **El otro** si [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo); **Según su carpeta** si su carpeta y su línea `agent:` no se ponen de acuerdo. Todo eso lo cuenta [En varios equipos](#en-varios-equipos).
+Y si el documento todavía no se aplica en este equipo, un aviso dice por qué, con el botón que lo resuelve: **Aplicar aquí** y **No en este equipo** si espera tu sí; un botón **Usar** por cada documento, con su título y de quién es, si [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo); **Según su carpeta** si su carpeta y su línea `agent:` no se ponen de acuerdo. Todo eso lo cuenta [En varios equipos](#en-varios-equipos).
 
 ## Un cambio por fuera: traer o sobrescribir
 
@@ -731,7 +731,7 @@ Si usas Tisty en más de un equipo, por ejemplo el computador de la casa y el de
 
 ```text
 Agentes
-├── Global                      solo skills
+├── Global                      lo de todos: reglas por agente, skills y hooks
 ├── Codex                       solo si moviste o creaste algo aquí: es para todos tus equipos
 ├── Casa (este equipo)
 │   ├── Claude
@@ -791,13 +791,13 @@ Lo que eliges vale para ese documento en ese equipo, y queda:
 
 ### Si dos documentos van al mismo archivo
 
-Pasa cuando el documento de tu carpeta y uno de la raíz escriben el mismo archivo, o la misma skill. Mientras no elijas, en este equipo no cambia nada: ninguno de los dos se escribe. La ficha pregunta «En este equipo «X» ya va al mismo archivo. ¿Cuál manda aquí?» y ofrece dos botones, **Este** y **El otro**.
+Pasa cuando el documento de tu carpeta y uno de la raíz escriben el mismo archivo, o la misma skill. Mientras no elijas, en este equipo no cambia nada: ninguno de los dos se escribe. Lo pregunta la ficha de los dos, sin importar cuál llegó primero: «En este equipo «CLAUDE.md» de todos tus equipos ya va al mismo archivo. ¿Cuál manda aquí?». Ofrece un botón por cada uno, con su título y de quién es, como **Usar «CLAUDE.md» de este equipo** y **Usar «CLAUDE.md» de todos tus equipos**, porque los dos suelen llamarse igual.
 
-**Un ejemplo.** Marisol tiene en **Casa (este equipo) › Claude** su `CLAUDE.md`, y desde la casa mueve a la raíz otro documento que también va a `CLAUDE.md`. Al llegar, el trabajo no sabe cuál debe mandar. Marisol abre cualquiera de los dos y pulsa **Este** en el que quiere: ese se escribe en `~/.claude/CLAUDE.md`, y el otro sigue en su carpeta, con la ficha «En este equipo manda …».
+**Un ejemplo.** Marisol tiene en **Casa (este equipo) › Claude** su `CLAUDE.md`, y desde la casa mueve a la raíz otro documento que también va a `CLAUDE.md`. Al llegar, el trabajo no sabe cuál debe mandar. Marisol abre cualquiera de los dos y pulsa el botón **Usar** del que quiere: ese se escribe en `~/.claude/CLAUDE.md`, y el otro sigue en su carpeta, con la ficha «En este equipo manda …».
 
 - **Una skill se elige entera**, con todos sus archivos.
 - **Se elige por archivo.** Si eliges para Claude, una skill de Global sigue funcionando en los demás agentes.
-- **Puedes cambiar de idea**: el que no manda sigue en su carpeta, y **Este** en su ficha lo pone a mandar.
+- **Puedes cambiar de idea**: el que no manda sigue en su carpeta, y su botón **Usar** lo pone a mandar.
 - **Si el que mandaba se va**, Tisty no escribe el otro por su cuenta: vuelve a preguntar.
 
 ### Documentos de otros equipos
@@ -842,11 +842,11 @@ La memoria de un agente habla de lo que pasó en ese equipo, así que nunca se e
 Antes, un documento vivía en **Claude**, **Codex** o **Global** para todos los equipos a la vez, y Tisty juntaba en un mismo archivo lo de Global con lo de tu agente. Desde la 1.50.2 es al revés: cada equipo tiene su carpeta, y un documento es un archivo.
 
 - **Lo que cada equipo trajo o escribió pasa solo a su carpeta**, cuando todos tus equipos ya tienen la 1.50.2 o una más nueva. Ningún archivo de un agente cambia ni en un byte.
-- **Un `CLAUDE.md` que la 1.50 había juntado con una regla de Global** pasa a ser un documento que dice exactamente lo que dice el archivo.
+- **Un `CLAUDE.md` que la 1.50 había juntado con una regla con nivel `global`** pasa a ser un documento que dice exactamente lo que dice el archivo.
 - **Mientras otro equipo siga en una versión anterior**, nada se mueve y los archivos quedan como están.
 - **Si el archivo cambió por fuera**, se deja y se pregunta como siempre.
 - **En un equipo que todavía tiene la 1.50.1**, puedes editar un documento de otro equipo, pero ese texto espera tu aprobación en el equipo más nuevo.
-- **Una regla de Global de esa época** se queda en Global para que la leas, la copies o la borres; ya no se escribe en ningún agente.
+- **Una regla con nivel `global` (`agent: global/rule/…`) de esa época** se queda en Global para que la leas, la copies o la borres; ya no se escribe en ningún agente.
 
 ### Por aprobar
 
@@ -1055,7 +1055,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Y las reglas de cada repositorio?** Quedan donde están. Agentes maneja los archivos de tu usuario, no el `AGENTS.md` o el `CLAUDE.md` de cada proyecto.
 
-**¿Puedo escribir una regla nueva desde cero?** Sí: botón derecho sobre la carpeta de un agente de tu equipo, como **Claude**, y **Documento nuevo**. El documento ya empieza con su línea `agent:`, y tú solo escribes la regla. En **Global** no: ahí solo van skills. Si Agentes sincroniza, Tisty la escribe apenas escribes algo. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla).
+**¿Puedo escribir una regla nueva desde cero?** Sí: botón derecho sobre la carpeta de un agente de tu equipo, como **Claude**, y **Documento nuevo**. El documento ya empieza con su línea `agent:`, y tú solo escribes la regla. En **Global** no: no es la carpeta de un solo agente, así que el documento nuevo empieza sin línea `agent:`. Si Agentes sincroniza, Tisty la escribe apenas escribes algo. Mira [Un documento nuevo ya es una regla](#un-documento-nuevo-ya-es-una-regla).
 
 **¿Cuántos respaldos guarda?** El original, el respaldo n.º 1, que nunca se borra, y además los últimos 20 de cada archivo, en este equipo.
 
@@ -1069,7 +1069,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **¿Puedo tener una regla solo en un equipo?** Sí: déjala en la carpeta de ese equipo, y nadie más la escribe. Una de la raíz que no quieres en uno de ellos, ahí pulsa **No en este equipo** en su ficha.
 
-**¿Por qué me pregunta «¿Cuál manda aquí?»?** Porque en este equipo dos documentos, el de tu carpeta y uno de la raíz, van al mismo archivo o a la misma skill. Elige **Este** o **El otro**; mientras no lo hagas, no cambia nada. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
+**¿Por qué me pregunta «¿Cuál manda aquí?»?** Porque en este equipo dos documentos, el de tu carpeta y uno de la raíz, van al mismo archivo o a la misma skill. Elige con uno de los dos botones **Usar**, que nombran cada documento; mientras no lo hagas, no cambia nada. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
 
 **¿Puedo editar lo de mi otro equipo?** No desde este: lo lees, lo mueves, lo copias como texto y lo sacas. La ficha dice «Es de otro de tus equipos: en este solo se lee.». Mira [Documentos de otros equipos](#documentos-de-otros-equipos).
 
@@ -1105,7 +1105,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 - **Cambiado por fuera** o **Cambiado en los dos lados**: Tisty espera tu decisión antes de escribir.
 - **Nada que escribir**, **El archivo es un enlace** o **El bloque de código está roto**: la tabla de [cada estado](#cada-estado) dice qué hacer.
 - **«Ningún agente de este equipo lee este documento todavía.»**: revisa la línea `agent:`. El nivel debe ser un agente que esté en este equipo, y el nombre, un archivo que ese agente lea.
-- **«En este equipo otro documento escribe este archivo.»** o **«¿Cuál manda aquí?»**: dos documentos van al mismo archivo. Elige con **Este** o **El otro**, o deja uno. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
+- **«En este equipo otro documento escribe este archivo.»** o **«¿Cuál manda aquí?»**: dos documentos van al mismo archivo. Elige con los botones **Usar**, que nombran cada documento, o deja uno. Mira [Si dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo).
 - **«Es de otro de tus equipos»**: ese documento se escribe en ese equipo, no en este.
 - **«Está en la carpeta de un equipo y su texto dice otro»**: pulsa **Según su carpeta**.
 - **En espera**: el texto del documento espera tu aprobación. La ficha lo nombra; [apruébalo](#por-aprobar).

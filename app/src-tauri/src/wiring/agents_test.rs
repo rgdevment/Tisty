@@ -284,7 +284,8 @@ fn two_documents_for_the_same_file_hold_the_place_and_nothing_is_written() {
 }
 
 #[test]
-fn the_side_this_computer_already_wrote_goes_on_and_the_other_is_not_placed() {
+fn the_side_this_computer_already_wrote_no_longer_goes_on_when_another_arrives_and_the_place_is_held()
+ {
     let (_tmp, homes) = seeded();
     let docs = twice();
     let mut ledger = consented();
@@ -295,8 +296,10 @@ fn the_side_this_computer_already_wrote_goes_on_and_the_other_is_not_placed() {
         .iter()
         .find(|one| one.target.at == claude_main(&homes))
         .unwrap();
-    assert_eq!(gated.named(&claude.files), ["b"]);
-    assert!(!claude.target.held());
+    let mut named = gated.named(&claude.files);
+    named.sort_unstable();
+    assert_eq!(named, ["a", "b"]);
+    assert!(claude.target.held());
 }
 
 #[test]
@@ -727,7 +730,7 @@ fn side_of(
     gated: &super::gated::Gated,
     file: &str,
     other: &str,
-) -> (Vec<String>, String) {
+) -> (Vec<(String, String)>, String) {
     let sides = sides(homes, &gated.gate, gated.id(file));
     let wanted = gated.id(other).to_string();
     let side = sides
@@ -736,17 +739,12 @@ fn side_of(
         .find(|(_, files)| files.contains(&wanted))
         .map(|(side, _)| side.clone())
         .expect("the other document is a rival");
-    let places = sides
-        .places
-        .iter()
-        .map(|(place, _)| place.clone())
-        .collect();
-    (places, side)
+    (sides.places, side)
 }
 
-fn choose_over(ledger: &mut Ledger, places: &[String], side: &str) {
-    for place in places {
-        ledger.choose(place, side);
+fn choose_over(ledger: &mut Ledger, places: &[(String, String)], side: &str) {
+    for (place, over) in places {
+        ledger.choose(place, side, [over.clone()]);
     }
 }
 
@@ -829,7 +827,7 @@ fn with_nothing_written_one_side_goes_and_several_ask() {
 }
 
 #[test]
-fn a_written_side_that_is_still_credited_goes_and_the_other_is_put_aside() {
+fn a_written_side_with_a_newcomer_asks_on_both_sides_until_one_is_chosen() {
     let (_tmp, homes) = seeded();
     let docs = twice();
     let mut ledger = consented();
@@ -838,11 +836,43 @@ fn a_written_side_that_is_still_credited_goes_and_the_other_is_put_aside() {
 
     assert_eq!(
         stance(&homes, &gated.gate, &ledger, gated.id("b")),
-        Stance::Goes
+        Stance::Asks
     );
     assert_eq!(
         stance(&homes, &gated.gate, &ledger, gated.id("a")),
+        Stance::Asks
+    );
+}
+
+#[test]
+fn a_choice_made_over_the_other_side_stands_and_one_made_over_nobody_else_does_not() {
+    let (_tmp, homes) = seeded();
+    let docs = twice();
+    let mut ledger = consented();
+    let (place, side) = side_of(&homes, &gated(&ledger, &docs), "a", "b");
+    choose_over(&mut ledger, &place, &side);
+    let chosen = gated(&ledger, &docs);
+    assert_eq!(
+        stance(&homes, &chosen.gate, &ledger, chosen.id("b")),
+        Stance::Goes
+    );
+    assert_eq!(
+        stance(&homes, &chosen.gate, &ledger, chosen.id("a")),
         Stance::Aside
+    );
+
+    let mut forgotten = consented();
+    for (place, _) in &place {
+        forgotten.choose(place, &side, Vec::<String>::new());
+    }
+    let unweighed = gated(&forgotten, &docs);
+    assert_eq!(
+        stance(&homes, &unweighed.gate, &forgotten, unweighed.id("b")),
+        Stance::Asks
+    );
+    assert_eq!(
+        stance(&homes, &unweighed.gate, &forgotten, unweighed.id("a")),
+        Stance::Asks
     );
 }
 

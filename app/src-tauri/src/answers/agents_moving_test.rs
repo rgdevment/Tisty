@@ -1,4 +1,5 @@
 use super::*;
+use crate::answers::agents_homes::SINCE;
 use crate::answers::agents_homes::tests::{
     as_laptop, body_for, laptop, laptops_folder, laptops_in, ledger, made_for_me, me, my_folder,
     named, root, runs,
@@ -171,6 +172,29 @@ fn older_names_a_computer_below_the_release_until_it_reaches_it_and_never_this_o
     assert_eq!(before, ["Office"]);
     assert!(after.is_empty(), "{after:?}");
     assert!(!before.contains(&room.session.state.called(&me(&room))));
+}
+
+#[test]
+fn older_skips_a_computer_on_this_very_build_and_names_a_lower_or_unknown_one() {
+    let mut room = room();
+    let (same, lower, unknown) = (laptop(), laptop(), laptop());
+    let joined = tisty_core::Op::DeviceJoin {
+        d: unknown.clone(),
+        k: None,
+        p: None,
+    };
+    as_laptop(&mut room, &unknown, vec![joined]);
+    for (who, name) in [(&same, "Same"), (&lower, "Lower"), (&unknown, "Unknown")] {
+        named(&mut room, who, name);
+    }
+    runs(
+        &mut room,
+        &same,
+        &tisty_core::called::cleaned(tisty_core::VERSION),
+    );
+    runs(&mut room, &lower, "1.49.0");
+
+    assert_eq!(older(&room.session), ["Lower", "Unknown"]);
 }
 
 #[test]

@@ -24,6 +24,7 @@ const rule: AgentDoc = {
   here: "applied",
   print: "p1",
   proposal: null,
+  called: { title: "CLAUDE.md", of: { is: "mine" } },
   rivals: [],
   places: [],
   own: { about: null, fields: [], raw: null },

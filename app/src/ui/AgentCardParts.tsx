@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { type AgentDoc, type Agreeing, fencedFile, type Here, type Place } from "../agentDocs";
+import {
+  type AgentDoc,
+  type Agreeing,
+  fencedFile,
+  type Here,
+  type NamedDoc,
+  type Place,
+} from "../agentDocs";
 import { copied } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
@@ -93,17 +100,31 @@ function Unagreed({ agreeing }: { agreeing: Agreeing }) {
   );
 }
 
-const hereSaid = (here: Exclude<Here, "applied" | "away">, rivals: readonly string[]): string => {
+// Two documents often share a title, so each is named with whose it is.
+export const docNamed = ({ title, of }: NamedDoc): string => {
+  if (of.is === "mine") return fill("agentDocMine", title);
+  if (of.is === "everyone") return fill("agentDocEveryone", title);
+  return fill("agentDocOther", title, of.name);
+};
+
+const hereSaid = (here: Exclude<Here, "applied" | "away">, rivals: readonly NamedDoc[]): string => {
   if (rivals.length === 0) return t(HERE_SAID[here]);
-  const named = rivals.map((one) => `«${one}»`).join(", ");
+  const named = rivals.map(docNamed).join(", ");
   if (here === "aside") return fill("agentHereOtherRules", named);
   if (here === "waiting" || here === "approvedWaiting" || here === "contested")
     return fill("agentHereChoose", named);
   return t(HERE_SAID[here]);
 };
 
+const otherSaid = (choice: boolean, rivals: readonly NamedDoc[]): string => {
+  const [only] = rivals;
+  if (!choice || rivals.length > 1 || !only) return t("agentNotHere");
+  return fill("agentRulesHere", docNamed(only));
+};
+
 export function HereNote({
   here,
+  called,
   rivals,
   agreeing,
   onTake,
@@ -111,7 +132,8 @@ export function HereNote({
   onSettle,
 }: {
   here: Here;
-  rivals: readonly string[];
+  called: NamedDoc;
+  rivals: readonly NamedDoc[];
   agreeing?: Agreeing | null;
   onTake: (here: boolean) => void;
   onAgree: () => void;
@@ -120,6 +142,8 @@ export function HereNote({
   if (here === "applied" || here === "away") return null;
   const waits = here === "waiting" || here === "approvedWaiting" || here === "contested";
   const choice = rivals.length > 0;
+  const thisSaid =
+    choice && here !== "declined" ? fill("agentRulesHere", docNamed(called)) : t("agentApplyHere");
   return (
     <div
       role="status"
@@ -131,18 +155,10 @@ export function HereNote({
         {here === "notAgreed" && agreeing && <Unagreed agreeing={agreeing} />}
         <div className="mt-2 flex flex-wrap gap-2">
           {(waits || here === "declined" || here === "aside") && (
-            <Action
-              glyph="done"
-              label={t(choice && here !== "declined" ? "agentThisRules" : "agentApplyHere")}
-              onClick={() => onTake(true)}
-            />
+            <Action glyph="done" label={thisSaid} onClick={() => onTake(true)} />
           )}
           {waits && (here !== "contested" || choice) && (
-            <Action
-              glyph="close"
-              label={t(choice ? "agentOtherRules" : "agentNotHere")}
-              onClick={() => onTake(false)}
-            />
+            <Action glyph="close" label={otherSaid(choice, rivals)} onClick={() => onTake(false)} />
           )}
           {here === "apart" && <Action glyph="done" label={t("agentSettle")} onClick={onSettle} />}
           {here === "notAgreed" && (
