@@ -36,7 +36,8 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
             match state.tasks.get(&id).filter(|one| !one.folded()) {
                 Some(task) if !task.is_open() => Err(history(task)),
                 Some(_) => Ok(Beside::Task(id)),
-                None => Err(Refused::Tool(format!("no task here has the id {who}."))),
+                None => Err(super::dropped::refused(state, id)
+                    .unwrap_or_else(|| Refused::Tool(format!("no task here has the id {who}.")))),
             }
         }
         (None, Some(which)) => {

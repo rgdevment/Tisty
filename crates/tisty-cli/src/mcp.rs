@@ -5,6 +5,7 @@ mod brain;
 mod catalogue;
 mod chores;
 mod diary;
+mod dropped;
 mod each;
 mod gists;
 mod guide;
@@ -661,7 +662,7 @@ fn history(task: &Task) -> Refused {
         }
         _ => format!("was closed{ended} and"),
     };
-    let look = match task.folded() {
+    let look = match task.hidden {
         true => "it is put away, so `read` does not reach it; if the same work has come back",
         false => "if the same work has come back, `read` how this one ended and",
     };

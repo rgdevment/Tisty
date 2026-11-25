@@ -6,6 +6,7 @@ use tisty_core::model::{Priority, Step, Tag, Task, TaskId};
 use tisty_core::standing::Standing;
 
 use super::asked::{strings, text};
+use super::dropped::{self, decided_not_to_do};
 use super::jsonrpc::{mirrored, told};
 use super::lists;
 use super::mistaken::not_a_task_id;
@@ -58,6 +59,13 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, &said)));
     };
+    if let Some(task) = state.tasks.get(&id).filter(|one| decided_not_to_do(one)) {
+        let card = dropped::card(&state, task);
+        return Ok(told(
+            format!("{} {}", dropped::told(&card), dropped::ONLY_THIS),
+            card,
+        ));
+    }
     // Hidden is the person taking something out of sight. An agent reading its journal whole
     // would undo that decision on the one task most likely to deserve it.
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
@@ -608,6 +616,7 @@ pub(super) fn gone(state: &State, said: &str) -> Refused {
             "{said} was erased by the person, and stays erased. If the same work has come back, \
              propose it anew."
         )),
+        Ok(id) if let Some(refused) = dropped::refused(state, id) => refused,
         _ => Refused::Tool(format!(
             "no task here has the id {said}. It may have been deleted."
         )),
@@ -631,8 +640,8 @@ pub(super) fn standing(task: &Task) -> String {
     }
 }
 
-/// Done and dropped are not the same thing to tell the person who asks; and what they put
-/// away, `read` does not reach.
+/// Done and dropped are not the same thing to tell the person who asks; and what they hid,
+/// `read` does not reach.
 pub(super) fn how_it_ended(task: &Task) -> String {
     let mut said = match task.status {
         tisty_core::model::Status::Dropped => {
@@ -640,7 +649,7 @@ pub(super) fn how_it_ended(task: &Task) -> String {
         }
         _ => "It is done, and history".to_string(),
     };
-    if task.folded() {
+    if task.hidden {
         said.push_str(", put away by the person where `read` does not reach");
     }
     said

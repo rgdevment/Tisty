@@ -81,9 +81,12 @@ pub(super) fn propose(
                         fields.insert("title".into(), json!(text(one, "title")));
                     }
                 }
-                match kept.get("proposed") == Some(&json!(true)) {
-                    true => written += 1,
-                    false => already += 1,
+                if kept.get("proposed") == Some(&json!(true)) {
+                    written += 1;
+                } else if kept.get("dropped_alike").is_some() {
+                    turned += 1;
+                } else {
+                    already += 1;
                 }
                 done.push(kept);
             }
@@ -134,6 +137,11 @@ pub(super) fn propose(
                             ", already filed and put out of sight by the person".to_string()
                         } else if one.get("erased").is_some() {
                             ", already filed and erased by the person".to_string()
+                        } else if let Some(card) = one.get("dropped_alike") {
+                            format!(
+                                ", not written: {} `again` files it anyway",
+                                super::dropped::told(card)
+                            )
                         } else if one.get("collided").is_some() {
                             ", not written: a part's source was filed meanwhile".to_string()
                         } else if let Some(day) = one.get("closed") {
@@ -239,6 +247,17 @@ pub(super) fn proposed(
             ),
         };
         return Ok(told(said, kept));
+    }
+    if !again && let Some(task) = super::dropped::alike(&state, &title) {
+        let card = super::dropped::card(&state, task);
+        return Ok(told(
+            format!(
+                "Nothing was written: {} If this is other work, or the person asks for it back, \
+                 propose it once more with `again` set, saying in the description how it differs.",
+                super::dropped::told(&card)
+            ),
+            json!({ "id": null, "title": title, "proposed": false, "dropped_alike": card }),
+        ));
     }
 
     let whole = super::wholes::whole_named(&state, args)?;
@@ -1172,12 +1191,12 @@ pub(super) fn out_of_sight_again(task: &Task) -> &'static str {
     }
 }
 
-// A task the person put out of sight is no task to an agent: neither its title nor its words.
+// A task the person put out of sight is no task to an agent; one they dropped is their decision alone, as `gone` tells.
 pub(super) fn seen_task<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(state, said)));
     };
-    match state.tasks.get(&id).filter(|one| !one.hidden) {
+    match state.tasks.get(&id).filter(|one| !one.folded()) {
         Some(task) => Ok((id, task)),
         None => Err(gone(state, said)),
     }

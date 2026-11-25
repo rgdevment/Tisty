@@ -162,7 +162,8 @@ fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
 
 fn hung_under(state: &State, task: &Task, up: TaskId) -> Result<TaskId, Refused> {
     let Some(whole) = state.tasks.get(&up).filter(|one| !one.folded()) else {
-        return Err(Refused::Tool(format!("no task here has the id {up}.")));
+        return Err(super::dropped::refused(state, up)
+            .unwrap_or_else(|| Refused::Tool(format!("no task here has the id {up}."))));
     };
     let repeats = |one: &Task| one.repeat.is_some() || one.after.is_some();
     let why = if up == task.id {

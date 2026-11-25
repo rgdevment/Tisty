@@ -25,7 +25,8 @@ pub(super) fn whole_named(state: &State, args: &Value) -> Result<Option<TaskId>,
         return Err(Refused::Tool(not_a_task_id(state, &said)));
     };
     let Some(whole) = state.tasks.get(&id).filter(|one| !one.folded()) else {
-        return Err(Refused::Tool(format!("no task here has the id {said}.")));
+        return Err(super::dropped::refused(state, id)
+            .unwrap_or_else(|| Refused::Tool(format!("no task here has the id {said}."))));
     };
     let why = if !whole.is_open() {
         Some("is closed, and a closed task takes no new parts")
@@ -101,6 +102,14 @@ pub(super) fn parts_drafted(
                 "every part needs a `title`. Nothing was written.".into(),
             ));
         };
+        if !again && let Some(dropped) = super::dropped::alike(state, &title) {
+            let card = super::dropped::card(state, dropped);
+            return Err(Refused::Tool(format!(
+                "the part {title:?} reads as a task the person dropped: {} Nothing was written. \
+                 Leave it out, or set `again` on the task if it is other work.",
+                super::dropped::told(&card)
+            )));
+        }
         if let Some(source) = text(one, "source") {
             let spelled = alike(&source);
             let twice = whole

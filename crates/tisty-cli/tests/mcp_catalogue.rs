@@ -139,8 +139,8 @@ fn the_guides_weigh_what_the_rules_tool_says_they_do() {
     }
     let all = rules(Some("all")).chars().count();
     assert!(
-        all <= 34_600,
-        "`all` is {all} characters, and `rules` says 34,600: say the new size there"
+        all <= 34_800,
+        "`all` is {all} characters, and `rules` says 34,800: say the new size there"
     );
 }
 

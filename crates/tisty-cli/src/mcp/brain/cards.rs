@@ -4,6 +4,7 @@ use tisty_core::model::TaskId;
 use tisty_core::{Paths, State};
 
 use super::super::asked::{how_many, text};
+use super::super::dropped;
 use super::super::jsonrpc::mirrored;
 use super::super::looking::{brief, gone};
 use super::super::mistaken::{no_document_called, not_a_task_id};
@@ -159,6 +160,17 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
     let Ok(id) = which.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, which)));
     };
+    if let Some(task) = state
+        .tasks
+        .get(&id)
+        .filter(|one| dropped::decided_not_to_do(one))
+    {
+        let card = dropped::card(&state, task);
+        return Ok(mirrored(
+            format!("{} {}", dropped::told(&card), dropped::ONLY_THIS),
+            card,
+        ));
+    }
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         if state.is_erased(id) {
             return Err(gone(&state, which));

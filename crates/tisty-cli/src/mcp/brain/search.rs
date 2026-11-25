@@ -6,6 +6,7 @@ use tisty_core::docs::Sighting;
 use tisty_core::view::Scope;
 
 use super::super::asked::{how_many, text};
+use super::super::dropped;
 use super::super::jsonrpc::{mirrored, told};
 use super::super::looking::{
     UNPATHED, brief, how_it_ended, kept_here, placed, standing, standing_of,
@@ -214,6 +215,28 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
     if let Some(tally) = tally.filter(|one| one.worth_saying(found.len())) {
         whole["counts"] = tally.counts();
         lines.insert(0, tally.told());
+    }
+    let let_go = match &query {
+        Some(query) if sifted.none() && past == 0 && !matches!(scope, Scope::Open) => {
+            dropped::matching(&state, query)
+        }
+        _ => Vec::new(),
+    };
+    if !let_go.is_empty() {
+        let cards: Vec<Value> = let_go
+            .iter()
+            .take(dropped::SHOWN_AT_MOST)
+            .map(|task| dropped::card(&state, task))
+            .collect();
+        lines.push(DECIDED_NOT_TO_DO.to_string());
+        lines.extend(cards.iter().map(|card| {
+            format!(
+                "  {} [{}]",
+                dropped::told(card),
+                card["id"].as_str().unwrap_or_default()
+            )
+        }));
+        whole["dropped"] = json!(cards);
     }
     if all == 0 && papers_all == 0 {
         let anywhere = |one: &&Task| !one.folded() && sifted.keeps(one, &state);
@@ -490,6 +513,8 @@ const FOUND_AT_MOST: u64 = 100;
 const LINE_FOUND_AT_MOST: usize = 120;
 const NOT_EVERY_WORD: &str =
     "No task or document holds every word, so these hold the most of them.";
+const DECIDED_NOT_TO_DO: &str =
+    "Decided not to do — the person dropped these; propose them again only if they ask:";
 
 // Paths go before the cut, so none is left half shown; a word that was only in one is sought at its mark.
 fn quoted(line: &str, kept: String, by: &[String]) -> (String, bool) {

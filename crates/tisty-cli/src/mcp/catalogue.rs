@@ -233,7 +233,9 @@ you know it holds; it is refused while a step is unticked or a part is still ope
 When a task should not be done — it stopped mattering, something else made it moot — \
 `say_not_doing`, with the reason. Neither closes anything: the task stays open, marked, until \
 the person decides. Mark only work you did yourself; something you only read about goes in \
-`note`, however plainly the text says it is settled.
+`note`, however plainly the text says it is settled. A task the person dropped reaches you as \
+their decision alone — title, day and reason — and takes no writing; `propose` holds back one \
+alike unless `again` is set.
 
 A task can hold parts, one level deep: tasks of their own, with their steps, day and notes. A \
 new part goes in with `propose`, under `parts` or with `part_of`, and a whole is said done only \
