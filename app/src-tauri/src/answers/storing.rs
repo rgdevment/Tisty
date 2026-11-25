@@ -1370,6 +1370,10 @@ fn told(at: &std::path::Path) -> Told {
     }
 }
 
+#[path = "storing_arrived.rs"]
+mod arrived;
+use arrived::{read_stamped, retold};
+
 type Pushing = (tisty_carrier::Here, tisty_carrier::Shared, Vec<String>);
 
 async fn answering(
@@ -1381,18 +1385,12 @@ async fn answering(
     if files.is_empty() {
         return;
     }
-    let wrote = {
-        let mut session = held(session);
-        let docs = session.paths.docs();
-        files
-            .iter()
-            .filter(|file| {
-                tisty_core::docs::read(&docs, file)
-                    .is_ok_and(|body| session.retell(file, &body, None))
-            })
-            .count()
+    let docs = held(session).paths.docs();
+    let asked = files.to_vec();
+    let Ok(read) = elsewhere(move || read_stamped(&docs, &asked)).await else {
+        return;
     };
-    if wrote == 0 {
+    if retold(&mut held(session), read) == 0 {
         return;
     }
     let pushed = tauri::async_runtime::spawn_blocking(move || {

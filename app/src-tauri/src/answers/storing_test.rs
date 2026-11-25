@@ -587,3 +587,703 @@ fn a_round_sets_out_with_the_carrier_that_answered_though_another_was_built_mean
     );
     forgotten(&at);
 }
+
+fn id_of(session: &Session, file: &str) -> tisty_core::model::DocId {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .map(|one| one.id)
+        .unwrap()
+}
+
+fn long_body(n: usize, edition: usize) -> String {
+    let line = "una linea de texto que ocupa lugar en el documento y se repite\n";
+    format!(
+        "# Documento {n}\n\nedicion {edition}\n\n{}",
+        line.repeat(50)
+    )
+}
+
+fn kept_docs(session: &Mutex<Session>, many: usize) -> Vec<String> {
+    let mut session = held(session);
+    (0..many)
+        .map(|_| {
+            crate::answers::papers::doc_made(&mut session, None, None, false)
+                .unwrap()
+                .id
+        })
+        .collect()
+}
+
+fn rewritten_by_an_agent(session: &Mutex<Session>, files: &[String], edition: usize) {
+    let docs = held(session).paths.docs();
+    for (n, file) in files.iter().enumerate() {
+        tisty_core::docs::write(&docs, file, &long_body(n, edition)).unwrap();
+    }
+}
+
+fn round_before(session: &Mutex<Session>, files: &[String]) -> (usize, std::time::Duration) {
+    let mut session = held(session);
+    let started = std::time::Instant::now();
+    let docs = session.paths.docs();
+    let told = files
+        .iter()
+        .filter(|file| {
+            tisty_core::docs::read(&docs, file).is_ok_and(|body| session.retell(file, &body, None))
+        })
+        .count();
+    (told, started.elapsed())
+}
+
+fn round_after(session: &Mutex<Session>, files: &[String]) -> (usize, std::time::Duration) {
+    let docs = held(session).paths.docs();
+    let read = read_stamped(&docs, files);
+    let mut session = held(session);
+    let started = std::time::Instant::now();
+    let told = retold(&mut session, read);
+    (told, started.elapsed())
+}
+
+fn worst_wait_while<T>(
+    session: &Mutex<Session>,
+    probe: &str,
+    round: impl FnOnce() -> T,
+) -> (T, std::time::Duration) {
+    let over = std::sync::atomic::AtomicBool::new(false);
+    std::thread::scope(|scope| {
+        let waiter = scope.spawn(|| {
+            let mut worst = std::time::Duration::ZERO;
+            let mut n = 0;
+            while !over.load(std::sync::atomic::Ordering::Relaxed) {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                let asked = std::time::Instant::now();
+                let mut session = held(session);
+                worst = worst.max(asked.elapsed());
+                n += 1;
+                let body = format!("# Sonda\n\nescritura {n}\n");
+                crate::answers::papers::written_by_hand(
+                    &mut session,
+                    probe.to_string(),
+                    body,
+                    Some(true),
+                    None,
+                )
+                .unwrap();
+            }
+            worst
+        });
+        let done = round();
+        over.store(true, std::sync::atomic::Ordering::Relaxed);
+        (done, waiter.join().unwrap())
+    })
+}
+
+#[test]
+fn a_round_over_many_documents_lets_the_commands_of_the_window_through() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let files = kept_docs(&session, 400);
+    let spare = kept_docs(&session, 60);
+    let (writable, lockable) = spare.split_at(30);
+    let over = std::sync::atomic::AtomicBool::new(false);
+    let bound = std::time::Duration::from_secs(4);
+    let breath = || std::thread::sleep(std::time::Duration::from_millis(3));
+
+    let slowest = std::thread::scope(|scope| {
+        let writer = scope.spawn(|| {
+            let mut worst = std::time::Duration::ZERO;
+            let mut n = 0;
+            while !over.load(std::sync::atomic::Ordering::Relaxed) {
+                n += 1;
+                for file in writable {
+                    let asked = std::time::Instant::now();
+                    let mut session = held(&session);
+                    worst = worst.max(asked.elapsed());
+                    let body = format!(
+                        "# Escrito {n}
+
+{}",
+                        "palabra ".repeat(300)
+                    );
+                    crate::answers::papers::written_by_hand(
+                        &mut session,
+                        file.clone(),
+                        body,
+                        Some(true),
+                        None,
+                    )
+                    .unwrap();
+                    drop(session);
+                    breath();
+                }
+            }
+            worst
+        });
+        let locker = scope.spawn(|| {
+            let mut worst = std::time::Duration::ZERO;
+            let mut shut = true;
+            while !over.load(std::sync::atomic::Ordering::Relaxed) {
+                for file in lockable {
+                    let asked = std::time::Instant::now();
+                    let mut session = held(&session);
+                    worst = worst.max(asked.elapsed());
+                    let id = id_of(&session, file);
+                    let ops = crate::answers::tongues::with_kin(&session.state, id)
+                        .map(|id| match shut {
+                            true => tisty_core::Op::DocLock { id },
+                            false => tisty_core::Op::DocUnlock { id },
+                        })
+                        .collect();
+                    session.commit_all(ops).unwrap();
+                    drop(session);
+                    breath();
+                }
+                shut = !shut;
+            }
+            worst
+        });
+        let maker = scope.spawn(|| {
+            let mut worst = std::time::Duration::ZERO;
+            while !over.load(std::sync::atomic::Ordering::Relaxed) {
+                let asked = std::time::Instant::now();
+                let mut session = held(&session);
+                worst = worst.max(asked.elapsed());
+                crate::answers::papers::doc_made(&mut session, None, None, false).unwrap();
+                drop(session);
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            worst
+        });
+        for edition in 1..=2 {
+            rewritten_by_an_agent(&session, &files, edition);
+            let docs = held(&session).paths.docs();
+            let read = read_stamped(&docs, &files);
+            let mut session = held(&session);
+            retold(&mut session, read);
+        }
+        over.store(true, std::sync::atomic::Ordering::Relaxed);
+        [writer.join(), locker.join(), maker.join()].map(|one| one.expect("a command panicked"))
+    });
+
+    println!("worst wait for the session during the rounds: {slowest:?}");
+    assert!(
+        slowest.iter().all(|one| *one < bound),
+        "a command waited {slowest:?}"
+    );
+}
+
+#[test]
+fn the_round_holds_the_session_for_less_time_than_reading_every_file_under_it() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let many = 500;
+    let files = kept_docs(&session, many);
+    let probe = kept_docs(&session, 1).remove(0);
+
+    rewritten_by_an_agent(&session, &files, 1);
+    let ((told_before, before), waited_before) =
+        worst_wait_while(&session, &probe, || round_before(&session, &files));
+
+    rewritten_by_an_agent(&session, &files, 2);
+    let ((told_after, after), waited_after) =
+        worst_wait_while(&session, &probe, || round_after(&session, &files));
+
+    println!(
+        "news for every file, lock held: before {} ms, after {} ms, N={many}, doc {} bytes; worst wait of a save: before {} ms, after {} ms",
+        before.as_millis(),
+        after.as_millis(),
+        long_body(0, 1).len(),
+        waited_before.as_millis(),
+        waited_after.as_millis()
+    );
+    assert_eq!((told_before, told_after), (many, many));
+    assert!(after * 5 < before, "{after:?} is not a fifth of {before:?}");
+
+    let ((quiet_before, still_before), _) =
+        worst_wait_while(&session, &probe, || round_before(&session, &files));
+    let ((quiet_after, still_after), _) =
+        worst_wait_while(&session, &probe, || round_after(&session, &files));
+    println!(
+        "nothing new in any file, lock held: before {} ms, after {} ms, N={many}",
+        still_before.as_millis(),
+        still_after.as_millis()
+    );
+    assert_eq!((quiet_before, quiet_after), (0, 0));
+}
+
+fn a_book_of_two_pages(session: &Mutex<Session>) -> (String, [String; 2]) {
+    let mut session = held(session);
+    let book = crate::answers::papers::doc_made(&mut session, None, None, false)
+        .unwrap()
+        .id;
+    let up = id_of(&session, &book);
+    let pages = [(); 2].map(|()| {
+        crate::answers::papers::doc_made(&mut session, None, Some(up), false)
+            .unwrap()
+            .id
+    });
+    let body = book_naming(&pages, false, "base");
+    crate::answers::papers::written_by_hand(&mut session, book.clone(), body, Some(true), None)
+        .unwrap();
+    (book, pages)
+}
+
+fn book_naming(pages: &[String; 2], reversed: bool, note: &str) -> String {
+    let [first, second] = match reversed {
+        true => [&pages[1], &pages[0]],
+        false => [&pages[0], &pages[1]],
+    };
+    format!(
+        "# Libro\n\n{note}\n\n{}\n\n{}\n",
+        tisty_markdown::refs::card(first, "x"),
+        tisty_markdown::refs::card(second, "y")
+    )
+}
+
+fn order_of_pages(session: &Mutex<Session>, book: &str) -> Vec<String> {
+    let session = held(session);
+    let up = id_of(&session, book);
+    session
+        .state
+        .pages_of(up)
+        .into_iter()
+        .map(|one| one.file.clone())
+        .collect()
+}
+
+fn pause_for_the_clock() {
+    std::thread::sleep(std::time::Duration::from_millis(30));
+}
+
+#[test]
+fn a_book_saved_from_the_window_after_it_was_read_keeps_its_newest_page_order() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (book, pages) = a_book_of_two_pages(&session);
+    let docs = held(&session).paths.docs();
+    tisty_core::docs::write(&docs, &book, &book_naming(&pages, true, "vieja")).unwrap();
+    let read = read_stamped(&docs, std::slice::from_ref(&book));
+    pause_for_the_clock();
+
+    let newest = book_naming(&pages, false, "nueva y mas larga que la vieja");
+    crate::answers::papers::written_by_hand(
+        &mut held(&session),
+        book.clone(),
+        newest.clone(),
+        Some(true),
+        None,
+    )
+    .unwrap();
+    let told = retold(&mut held(&session), read);
+
+    assert_eq!(told, 0, "the stale body was told as news");
+    assert_eq!(
+        order_of_pages(&session, &book),
+        pages.to_vec(),
+        "the stale page order won"
+    );
+    assert_eq!(tisty_core::docs::read(&docs, &book).unwrap(), newest);
+}
+
+#[test]
+fn a_book_written_by_an_agent_after_it_was_read_is_told_by_its_newest_body() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (book, pages) = a_book_of_two_pages(&session);
+    let docs = held(&session).paths.docs();
+    tisty_core::docs::write(&docs, &book, &book_naming(&pages, true, "vieja")).unwrap();
+    let read = read_stamped(&docs, std::slice::from_ref(&book));
+    pause_for_the_clock();
+
+    let newest = book_naming(&pages, false, "la del agente, mas larga que la vieja");
+    tisty_core::docs::write(&docs, &book, &newest).unwrap();
+    let told = retold(&mut held(&session), read);
+
+    assert_eq!(told, 1, "the agent's body was never told");
+    assert_eq!(
+        order_of_pages(&session, &book),
+        pages.to_vec(),
+        "the stale page order won"
+    );
+    let session = held(&session);
+    let kept = &session.state.docs[&id_of(&session, &book)];
+    assert_eq!(kept.bytes, Some(newest.len() as u64));
+    assert_eq!(tisty_core::docs::read(&docs, &book).unwrap(), newest);
+}
+
+#[test]
+fn a_book_an_agent_wrote_before_the_round_is_told_in_the_order_it_names() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (book, pages) = a_book_of_two_pages(&session);
+    let docs = held(&session).paths.docs();
+    tisty_core::docs::write(&docs, &book, &book_naming(&pages, true, "del agente")).unwrap();
+
+    let read = read_stamped(&docs, std::slice::from_ref(&book));
+    let told = retold(&mut held(&session), read);
+
+    assert_eq!(told, 1);
+    let reversed = [pages[1].clone(), pages[0].clone()];
+    assert_eq!(order_of_pages(&session, &book), reversed.to_vec());
+}
+
+#[test]
+fn a_file_that_vanished_after_it_was_read_is_skipped_without_telling_anything() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let files = kept_docs(&session, 2);
+    rewritten_by_an_agent(&session, &files, 1);
+    let docs = held(&session).paths.docs();
+    let read = read_stamped(&docs, &files);
+    std::fs::remove_file(tisty_core::docs::resolve(&docs, &files[0]).unwrap()).unwrap();
+
+    assert_eq!(retold(&mut held(&session), read), 1);
+}
+
+fn carried_both_ways(setting: &Setting) -> tisty_carrier::Moved {
+    let mut quiet = |_: tisty_carrier::Reached| {};
+    setting
+        .carrier
+        .carry(
+            &setting.home,
+            tisty_carrier::Round {
+                way: tisty_carrier::Way::Both,
+                alive: &setting.alive,
+                holds: setting.holds,
+                saying: &mut quiet,
+            },
+        )
+        .unwrap()
+}
+
+#[test]
+fn a_document_changed_on_both_sides_stays_a_conflict_after_the_round_tells_what_arrived() {
+    let home = tempfile::tempdir().unwrap();
+    let shared = home.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let session = a_session(home.path());
+    held(&session)
+        .keep(|config| config.sync = Some(Sync::folder(&shared)))
+        .unwrap();
+    let file = kept_docs(&session, 1).remove(0);
+    let docs = held(&session).paths.docs();
+    tisty_core::docs::write(&docs, &file, "# Kit\n\nla introduccion\n\nel cierre\n").unwrap();
+    let setting = setting_out(&session).ok().unwrap();
+    carried_both_ways(&setting);
+    held(&session).retell(&file, "# Kit\n\nla introduccion\n\nel cierre\n", None);
+
+    let ours = "# Kit\n\nla introduccion del mac\n\nel cierre\n";
+    let theirs = "# Kit\n\nla introduccion de windows\n\nel cierre\n";
+    tisty_core::docs::write(&docs, &file, ours).unwrap();
+    tisty_core::docs::write(&shared.join("docs"), &file, theirs).unwrap();
+
+    let done = carried_both_ways(&setting);
+    assert_eq!(done.undecided.len(), 1, "{done:?}");
+    assert!(done.joined.is_empty(), "{done:?}");
+
+    let asked: Vec<String> = done
+        .to_answer()
+        .into_iter()
+        .chain(done.undecided_ids())
+        .collect();
+    let read = read_stamped(&docs, &asked);
+    retold(&mut held(&session), read);
+
+    assert_eq!(tisty_core::docs::read(&docs, &file).unwrap(), ours);
+    assert_eq!(
+        tisty_core::docs::read(&shared.join("docs"), &file).unwrap(),
+        theirs
+    );
+    let again = carried_both_ways(&setting);
+    assert_eq!(
+        again.undecided.len(),
+        1,
+        "the conflict was cleared: {again:?}"
+    );
+}
+
+#[test]
+fn one_round_with_news_in_many_files_makes_exactly_one_commit() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let files = kept_docs(&session, 50);
+    rewritten_by_an_agent(&session, &files, 1);
+    let docs = held(&session).paths.docs();
+    let read = read_stamped(&docs, &files);
+    let mut session = held(&session);
+    let before = session.writes();
+
+    let told = retold(&mut session, read);
+
+    assert_eq!(told, 50);
+    assert_eq!(session.writes(), before + 1);
+}
+
+fn written_at(docs: &std::path::Path, file: &str, body: &str, mtime: std::time::SystemTime) {
+    tisty_core::docs::write(docs, file, body).unwrap();
+    let at = tisty_core::docs::resolve(docs, file).unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(at)
+        .unwrap()
+        .set_modified(mtime)
+        .unwrap();
+}
+
+#[test]
+fn a_file_just_written_has_no_stamp_so_a_same_size_save_in_the_same_tick_is_still_seen() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (book, pages) = a_book_of_two_pages(&session);
+    let docs = held(&session).paths.docs();
+    let now = std::time::SystemTime::now() + std::time::Duration::from_secs(1);
+    written_at(&docs, &book, &book_naming(&pages, true, "misma"), now);
+    let read = read_stamped(&docs, std::slice::from_ref(&book));
+    assert!(read[0].stamp.is_none(), "a fresh file was stamped");
+
+    let newest = book_naming(&pages, false, "misma");
+    assert_eq!(newest.len(), book_naming(&pages, true, "misma").len());
+    written_at(&docs, &book, &newest, now);
+
+    assert_eq!(retold(&mut held(&session), read), 1);
+    assert_eq!(
+        order_of_pages(&session, &book),
+        pages.to_vec(),
+        "the stale page order won"
+    );
+}
+
+#[test]
+fn a_settled_file_keeps_its_stamp_so_the_body_read_outside_the_lock_is_the_one_told() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let (book, pages) = a_book_of_two_pages(&session);
+    let docs = held(&session).paths.docs();
+    let settled = std::time::SystemTime::now() - std::time::Duration::from_secs(5);
+    written_at(&docs, &book, &book_naming(&pages, true, "misma"), settled);
+    let read = read_stamped(&docs, std::slice::from_ref(&book));
+    assert!(read[0].stamp.is_some(), "a settled file was not stamped");
+
+    written_at(&docs, &book, &book_naming(&pages, false, "misma"), settled);
+    retold(&mut held(&session), read);
+
+    let reversed = [pages[1].clone(), pages[0].clone()];
+    assert_eq!(order_of_pages(&session, &book), reversed.to_vec());
+}
+
+fn window_saving_while<T>(
+    session: &Mutex<Session>,
+    file: &str,
+    round: impl FnOnce() -> T,
+) -> (T, std::time::Duration, String) {
+    let over = std::sync::atomic::AtomicBool::new(false);
+    std::thread::scope(|scope| {
+        let window = scope.spawn(|| {
+            let mut worst = std::time::Duration::ZERO;
+            let mut last = String::new();
+            let mut n = 0;
+            while !over.load(std::sync::atomic::Ordering::Relaxed) {
+                n += 1;
+                let asked = std::time::Instant::now();
+                let mut session = held(session);
+                worst = worst.max(asked.elapsed());
+                last = format!("# Ventana\n\nguardado {n}\n");
+                crate::answers::papers::written_by_hand(
+                    &mut session,
+                    file.to_string(),
+                    last.clone(),
+                    Some(true),
+                    None,
+                )
+                .unwrap();
+                drop(session);
+                std::thread::sleep(std::time::Duration::from_millis(2));
+            }
+            (worst, last)
+        });
+        let done = round();
+        over.store(true, std::sync::atomic::Ordering::Relaxed);
+        let (worst, last) = window.join().expect("the window panicked");
+        (done, worst, last)
+    })
+}
+
+fn the_state_tells(session: &Mutex<Session>, file: &str, body: &str) -> bool {
+    let session = held(session);
+    let kept = &session.state.docs[&id_of(&session, file)];
+    kept.bytes == Some(body.len() as u64)
+        && kept.print.as_deref() == Some(tisty_core::docs::print_of_text(body).as_str())
+}
+
+#[test]
+fn a_thousand_documents_changed_from_outside_never_cost_the_window_its_own_save() {
+    let home = tempfile::tempdir().unwrap();
+    let session = a_session(home.path());
+    let many = 1000;
+    let files = kept_docs(&session, many);
+    let docs = held(&session).paths.docs();
+    let saved = &files[0];
+
+    rewritten_by_an_agent(&session, &files, 1);
+    let ((told_before, before), waited_before, last) =
+        window_saving_while(&session, saved, || round_before(&session, &files));
+    assert_eq!(tisty_core::docs::read(&docs, saved).unwrap(), last);
+    assert!(the_state_tells(&session, saved, &last));
+
+    rewritten_by_an_agent(&session, &files, 2);
+    let ((told_after, after), waited_after, last) =
+        window_saving_while(&session, saved, || round_after(&session, &files));
+
+    println!(
+        "N={many} agent writes + a window save loop, lock held: before {} ms, after {} ms; worst wait of the window: before {} ms, after {} ms",
+        before.as_millis(),
+        after.as_millis(),
+        waited_before.as_millis(),
+        waited_after.as_millis()
+    );
+    let all_but_maybe_the_saved = |told: usize| (many - 1..=many).contains(&told);
+    assert!(all_but_maybe_the_saved(told_before) && all_but_maybe_the_saved(told_after));
+    assert_eq!(
+        tisty_core::docs::read(&docs, saved).unwrap(),
+        last,
+        "the last save of the window was lost"
+    );
+    assert!(
+        the_state_tells(&session, saved, &last),
+        "the state tells another body than the one of the window"
+    );
+    assert!(after * 5 < before, "{after:?} is not a fifth of {before:?}");
+}
+
+struct Conflict {
+    session: std::sync::Arc<Mutex<Session>>,
+    setting: Setting,
+    file: String,
+    docs: std::path::PathBuf,
+    theirs_at: std::path::PathBuf,
+    asked: Vec<String>,
+}
+
+const THEIRS: &str = "# Kit\n\nla introduccion de windows\n\nel cierre\n";
+const FROM_THE_WINDOW: &str = "# Kit\n\nla introduccion escrita en la ventana\n\nel cierre\n";
+
+fn a_conflict(home: &std::path::Path) -> Conflict {
+    let shared = home.join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let session = a_session(home);
+    held(&session)
+        .keep(|config| config.sync = Some(Sync::folder(&shared)))
+        .unwrap();
+    let file = kept_docs(&session, 1).remove(0);
+    let docs = held(&session).paths.docs();
+    let base = "# Kit\n\nla introduccion\n\nel cierre\n";
+    tisty_core::docs::write(&docs, &file, base).unwrap();
+    let setting = setting_out(&session).ok().unwrap();
+    carried_both_ways(&setting);
+    held(&session).retell(&file, base, None);
+    let ours = "# Kit\n\nla introduccion del mac\n\nel cierre\n";
+    tisty_core::docs::write(&docs, &file, ours).unwrap();
+    let theirs_at = shared.join("docs");
+    tisty_core::docs::write(&theirs_at, &file, THEIRS).unwrap();
+    let done = carried_both_ways(&setting);
+    assert_eq!(done.undecided.len(), 1, "{done:?}");
+    let asked = done
+        .to_answer()
+        .into_iter()
+        .chain(done.undecided_ids())
+        .collect();
+    Conflict {
+        session,
+        setting,
+        file,
+        docs,
+        theirs_at,
+        asked,
+    }
+}
+
+fn the_body_of_the_window_survives_and_the_conflict_stays(one: &Conflict) {
+    assert_eq!(
+        tisty_core::docs::read(&one.docs, &one.file).unwrap(),
+        FROM_THE_WINDOW,
+        "the body of the window was overwritten here"
+    );
+    assert_eq!(
+        tisty_core::docs::read(&one.theirs_at, &one.file).unwrap(),
+        THEIRS,
+        "the shared folder was overwritten"
+    );
+    assert!(the_state_tells(&one.session, &one.file, FROM_THE_WINDOW));
+    let again = carried_both_ways(&one.setting);
+    assert_eq!(
+        again.undecided.len(),
+        1,
+        "the conflict was cleared: {again:?}"
+    );
+}
+
+fn saved_from_the_window(one: &Conflict) {
+    crate::answers::papers::written_by_hand(
+        &mut held(&one.session),
+        one.file.clone(),
+        FROM_THE_WINDOW.to_string(),
+        Some(true),
+        None,
+    )
+    .unwrap();
+}
+
+#[test]
+fn a_conflict_saved_again_in_the_window_between_reading_and_telling_keeps_the_body_of_the_window() {
+    let home = tempfile::tempdir().unwrap();
+    let one = a_conflict(home.path());
+    let read = read_stamped(&one.docs, &one.asked);
+
+    saved_from_the_window(&one);
+    let started = std::time::Instant::now();
+    retold(&mut held(&one.session), read);
+    let after = started.elapsed();
+
+    println!(
+        "conflict saved in the window between reading and telling, lock held: after {} ms",
+        after.as_millis()
+    );
+    the_body_of_the_window_survives_and_the_conflict_stays(&one);
+}
+
+#[test]
+fn a_conflict_saved_in_the_window_during_the_old_round_keeps_the_body_of_the_window() {
+    let home = tempfile::tempdir().unwrap();
+    let one = a_conflict(home.path());
+
+    let ((_, before), _, _) = window_saving_while(&one.session, &one.file, || {
+        round_before(&one.session, &one.asked)
+    });
+    saved_from_the_window(&one);
+
+    println!(
+        "conflict, old round with the window saving, lock held: before {} ms",
+        before.as_millis()
+    );
+    the_body_of_the_window_survives_and_the_conflict_stays(&one);
+}
+
+#[test]
+fn a_conflict_saved_in_the_window_during_the_new_round_keeps_the_body_of_the_window() {
+    let home = tempfile::tempdir().unwrap();
+    let one = a_conflict(home.path());
+
+    let ((_, after), waited, _) = window_saving_while(&one.session, &one.file, || {
+        round_after(&one.session, &one.asked)
+    });
+    saved_from_the_window(&one);
+
+    println!(
+        "conflict, new round with the window saving, lock held: after {} ms; worst wait of the window {} ms",
+        after.as_millis(),
+        waited.as_millis()
+    );
+    the_body_of_the_window_survives_and_the_conflict_stays(&one);
+}
