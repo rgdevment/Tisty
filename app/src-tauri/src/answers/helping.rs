@@ -7,6 +7,8 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(20);
+/// The largest picture in the help weighs under 4 MB.
+const PICTURE_AT_MOST: u64 = 16 * 1024 * 1024;
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -80,22 +82,17 @@ fn standing(folder: &Path, spanish: bool) -> Pictures {
 }
 
 fn brought(client: &reqwest::blocking::Client, url: &str, to: &Path) -> Result<(), String> {
-    let asked = client.get(url).send().map_err(|why| why.to_string())?;
-    if !asked.status().is_success() {
-        return Err(asked.status().to_string());
+    let bytes = crate::bringing::brought(client, url, PICTURE_AT_MOST)?;
+    if !crate::bringing::is_picture(&bytes) {
+        return Err("not a picture".to_string());
     }
-    let bytes = asked.bytes().map_err(|why| why.to_string())?;
     tisty_core::store::write_atomic(to, &bytes).map_err(|why| why.to_string())
 }
 
 fn bring_all(folder: &Path, spanish: bool) -> (Pictures, usize) {
     let _ = std::fs::create_dir_all(folder);
     let wanted = tisty_help::pictures(spanish);
-    let Ok(client) = reqwest::blocking::Client::builder()
-        .timeout(PATIENCE)
-        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
-        .build()
-    else {
+    let Some(client) = crate::bringing::client(PATIENCE) else {
         return (standing(folder, spanish), wanted.len());
     };
     let mut failed = 0;

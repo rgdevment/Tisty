@@ -413,3 +413,66 @@ fn a_guide_nobody_answers_for_is_not_taken_as_the_guide() {
             .all(|at| at.starts_with("https://markdown.tisty.app/"))
     );
 }
+
+fn serving_guide(said: usize, body: &[u8]) -> String {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let at = format!(
+        "http://127.0.0.1:{}/guide.md",
+        listener.local_addr().unwrap().port()
+    );
+    let answer = [
+        format!("HTTP/1.1 200 OK\r\nContent-Length: {said}\r\nConnection: close\r\n\r\n")
+            .into_bytes(),
+        body.to_vec(),
+    ]
+    .concat();
+    std::thread::spawn(move || {
+        if let Ok((mut stream, _)) = listener.accept() {
+            let mut asked = [0u8; 2048];
+            let _ = stream.read(&mut asked);
+            let _ = stream.write_all(&answer);
+        }
+    });
+    at
+}
+
+#[test]
+fn a_published_guide_is_read_as_it_is() {
+    let body = b"# Guide\n\nHello.\n";
+
+    assert_eq!(
+        super::published(&serving_guide(body.len(), body)).as_deref(),
+        Some("# Guide\n\nHello.\n")
+    );
+}
+
+#[test]
+fn a_guide_past_a_mebibyte_is_not_taken() {
+    let mut body = b"# Guide\n".to_vec();
+    body.resize(1024 * 1024 + 1, b'x');
+
+    assert_eq!(super::published(&serving_guide(body.len(), &body)), None);
+}
+
+#[test]
+fn a_page_that_is_not_a_guide_is_not_taken() {
+    let body = b"<html>not found</html>";
+
+    assert_eq!(super::published(&serving_guide(body.len(), body)), None);
+}
+
+#[test]
+fn a_guide_cut_off_mid_way_is_not_taken() {
+    assert_eq!(super::published(&serving_guide(1000, b"# Guide\n")), None);
+}
+
+#[test]
+fn a_guide_saved_with_a_byte_order_mark_is_taken_without_it() {
+    let body = "\u{feff}# Guide\n\nHello.\n".as_bytes();
+
+    assert_eq!(
+        super::published(&serving_guide(body.len(), body)).as_deref(),
+        Some("# Guide\n\nHello.\n")
+    );
+}

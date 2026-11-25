@@ -4,6 +4,7 @@ mod admitting;
 mod answers;
 mod asked;
 mod booking;
+mod bringing;
 mod command;
 mod desktop;
 mod diagramming;

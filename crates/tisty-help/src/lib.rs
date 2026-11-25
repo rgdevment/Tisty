@@ -199,7 +199,7 @@ fn pictured(url: &str) -> bool {
         .next()
         .unwrap_or(url)
         .to_ascii_lowercase();
-    [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
+    [".png", ".jpg", ".jpeg", ".gif", ".webp"]
         .iter()
         .any(|one| path.ends_with(one))
 }

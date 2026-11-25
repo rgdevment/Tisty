@@ -197,6 +197,8 @@ const GUIDE: [&str; 2] = [
     "https://markdown.tisty.app/es/llms-full.txt",
 ];
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(4);
+/// The guide weighs about 45 KB.
+const GUIDE_AT_MOST: u64 = 1024 * 1024;
 
 // The guide is read where it is published, so a change to it reaches the window without a release.
 #[tauri::command]
@@ -215,18 +217,11 @@ pub fn help_reference_here(spanish: bool) -> String {
 }
 
 pub(crate) fn published(at: &str) -> Option<String> {
-    let asked = reqwest::blocking::Client::builder()
-        .timeout(PATIENCE)
-        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .ok()?
-        .get(at)
-        .send()
-        .ok()?;
-    if !asked.status().is_success() {
-        return None;
-    }
-    asked.text().ok().filter(|text| text.starts_with("# "))
+    let client = crate::bringing::client(PATIENCE)?;
+    let bytes = crate::bringing::brought(&client, at, GUIDE_AT_MOST).ok()?;
+    let text = String::from_utf8(bytes).ok()?;
+    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    text.starts_with("# ").then(|| text.to_string())
 }
 
 // The guide is drawn past the page cache, which holds the person's own documents and would lose them to it.
