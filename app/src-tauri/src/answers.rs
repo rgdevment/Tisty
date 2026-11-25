@@ -61,4 +61,5 @@ pub mod turns;
 pub mod twinning;
 pub mod updating;
 pub mod vouching;
+pub mod weaving;
 pub mod wired;

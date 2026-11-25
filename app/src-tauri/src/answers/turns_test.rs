@@ -1,5 +1,6 @@
 use super::*;
-use crate::answers::papers::{merged, written_by_hand};
+use crate::answers::papers::written_by_hand;
+use crate::answers::weaving::merged;
 use tisty_core::Op;
 
 fn session() -> (tempfile::TempDir, Session) {
