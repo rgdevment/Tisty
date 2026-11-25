@@ -194,11 +194,11 @@ export default function Frame(props: Readonly<Props>) {
   useLayoutEffect(() => swap.current(html), [html, turn]);
 
   useEffect(() => {
-    frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);
+    frame.current?.contentDocument?.documentElement?.classList.toggle("shaping", shaping);
   }, [shaping]);
 
   useEffect(() => {
-    frame.current?.contentDocument?.documentElement.classList.toggle("agent", agent);
+    frame.current?.contentDocument?.documentElement?.classList.toggle("agent", agent);
   }, [agent]);
 
   useEffect(() => {

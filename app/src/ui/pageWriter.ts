@@ -68,6 +68,16 @@ export const recorded = (turns: Turns, turn: Turn) => {
   else turns.undone.push(turn);
 };
 
+// A line opened only to take a paste comes back with it on one Ctrl+Z, as long as the paste landed inside it.
+export const foldedInto = (turns: Turns, opening: Turn, now: string) => {
+  const [before, last] = turns.undone.slice(-2);
+  if (before !== opening || !last) return;
+  const end = opening.from + opening.added.length;
+  if (last.from < opening.from || last.from + last.removed.length > end) return;
+  const added = now.slice(opening.from, end + last.added.length - last.removed.length);
+  turns.undone.splice(-2, 2, { ...opening, added, after: last.after });
+};
+
 export type Point = { readonly x: number; readonly y: number; readonly top?: number };
 
 export type Seat = { current: ((next: (now: string) => string | null) => boolean) | null };

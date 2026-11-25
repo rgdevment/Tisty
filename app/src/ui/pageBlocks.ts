@@ -78,6 +78,10 @@ const BLOCK_START = /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|```|~~~|\|)/;
 const ITEM_START = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
 const QUOTED = /^[ \t]*(?:>[ \t]?)+/;
 
+// A line begun as a heading gives its mark up to a paste that brings blocks or lines of its own.
+export const begunOpening = (lead: string, said: string): string =>
+  BLOCK_START.test(said) || said.trim().includes("\n") ? lead.replace(/#{1,6} $/, "") : lead;
+
 // Words pasted that open with a heading, a list, a quote, code or a table start a block of their own, never mid-line,
 // and words pasted in a quote or a note stay in it, line after line.
 export const pastedAround = (text: string, from: number, to: number, said: string): string => {

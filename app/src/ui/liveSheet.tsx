@@ -36,8 +36,10 @@ export const useFrameScroll = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: each drawing may bring the frame anew, and the callbacks read refs.
   useEffect(() => {
     const inner = frame();
-    inner?.document.documentElement.classList.toggle("lively", lively);
-    if (!lively || !inner) return;
+    // A frame still navigating to its next page has no root yet; the next drawing runs this again.
+    const root = inner?.document.documentElement;
+    root?.classList.toggle("lively", lively);
+    if (!lively || !inner || !root) return;
     const rolled = () => {
       const sheet = inner.document.scrollingElement;
       if (!sheet) return;

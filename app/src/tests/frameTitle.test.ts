@@ -73,3 +73,58 @@ describe("the ribbon naming the page", () => {
     expect(onTitleGone).toHaveBeenLastCalledWith(true);
   });
 });
+
+describe("a frame that is still navigating", () => {
+  it("is watched without throwing while its document has no root yet", () => {
+    const navigating = {
+      frameElement: {},
+      document: { documentElement: null, scrollingElement: null },
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    } as unknown as Window;
+    expect(() => watched(navigating)).not.toThrow();
+  });
+});
+
+describe("a frame whose document gains its root later", () => {
+  it("gets the lively class and its scroll listener once the root is there", () => {
+    const inner = framed("<p>Pan</p>");
+    const root = inner.document.documentElement;
+    let present: HTMLElement | null = null;
+    const added = vi.fn();
+    const frame = {
+      frameElement: {},
+      get document() {
+        return {
+          get documentElement() {
+            return present;
+          },
+          scrollingElement: inner.document.scrollingElement,
+        };
+      },
+      addEventListener: (...args: unknown[]) => added(...args),
+      removeEventListener: () => {},
+    } as unknown as Window;
+    const props = (turned: number) => ({
+      lively: true,
+      frame: () => frame,
+      putting: { current: 0 },
+      onStuck: vi.fn(),
+      onTitleGone: vi.fn(),
+      onSeen: vi.fn(),
+      ready: true,
+      turned,
+    });
+    const { rerender } = renderHook((turned: number) => useFrameScroll(props(turned)), {
+      initialProps: 0,
+    });
+    expect(root.classList.contains("lively")).toBe(false);
+    expect(added).not.toHaveBeenCalledWith("scroll", expect.anything(), expect.anything());
+
+    present = root;
+    rerender(1);
+
+    expect(root.classList.contains("lively")).toBe(true);
+    expect(added.mock.calls.map(([kind]) => kind)).toContain("scroll");
+  });
+});

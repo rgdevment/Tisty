@@ -4,7 +4,7 @@ import { byteFrom, unitFrom } from "../placing";
 import { aloneOnLine, EMBED, embedGone, embedPlace, spacedOut } from "./embeds";
 import type { Begun } from "./pageBegun";
 import { behindOn } from "./pageBehind";
-import { blank, blockPlaced, pastedAround } from "./pageBlocks";
+import { begunOpening, blank, blockPlaced, pastedAround } from "./pageBlocks";
 import type { Caret, Standing } from "./pageCaret";
 import { colonsKept } from "./pageColons";
 import {
@@ -70,7 +70,15 @@ import {
 import { placeOf } from "./pagePlaces";
 import { endIn, indexOf, ownsWords, startIn, startOf } from "./pageSpots";
 import { mendOf, wholeReach } from "./pageWholes";
-import { choiceKept, composingKey, compositionOpened, keptUnlaid, type Writer } from "./pageWriter";
+import {
+  choiceKept,
+  composingKey,
+  compositionOpened,
+  foldedInto,
+  type Kept,
+  keptUnlaid,
+  type Writer,
+} from "./pageWriter";
 
 const PAIRS: Record<string, string> = {
   formatBold: "**",
@@ -301,6 +309,34 @@ export const inputOn = (
       .translated(html, plain)
       .then((said) => landed((now, at) => pastedAround(now, at.from, at.to, said)))
       .catch(() => landed(() => plain));
+  };
+
+  // A line begun and not yet written is written first, as a first key writes it, so a key typed meanwhile finds it there.
+  const pastedOnBegun = (line: Kept, data: DataTransfer | null) => {
+    const html = data?.getData("text/html") || null;
+    const plain = data?.getData("text/plain") ?? "";
+    if (!plain.trim() && !html?.trim()) return;
+    const was = writer.turns.undone[writer.turns.undone.length - 1];
+    begun.firstKey(line, "");
+    const last = writer.turns.undone[writer.turns.undone.length - 1];
+    const opening = last !== was ? last : undefined;
+    const at = writer.kept?.lead === undefined ? (writer.kept?.at ?? line.at) : line.at;
+    const asked = wordsAsked(hands.text(), { from: at, to: at });
+    const folded = () => opening && foldedInto(writer.turns, opening, hands.text());
+    const landed = (said: string) => {
+      const laid = (now: string, here: Span): Laid => {
+        const mark = /(?:^|\n)(#{1,6} )$/.exec(now.slice(0, here.from))?.[1] ?? "";
+        if (!mark || begunOpening(mark, said))
+          return laidOver(now, here, pastedAround(now, here.from, here.to, said), false);
+        const edit = { from: here.from - mark.length, to: here.to, insert: said };
+        return { edit, caret: edit.from + said.length };
+      };
+      if (!late(asked, laid, folded)) hands.lost?.(t("pastedLost"));
+    };
+    hands
+      .translated(html, plain)
+      .then(landed)
+      .catch(() => landed(plain));
   };
 
   // A slash opens the blocks where a word could start, as it always did; inside code it is only a slash.
@@ -591,6 +627,7 @@ export const inputOn = (
     const one = coded ? kept : escapeTaken(text, kept);
     const typed = data ?? carried?.getData("text/plain") ?? "";
     const line = begunNow ? writer.kept : null;
+    if (line && kind === "insertFromPaste") return pastedOnBegun(line, carried);
     if (line && kind !== "insertText" && kind !== "insertReplacementText") return;
     if (line && kind === "insertText" && typed === "/")
       return hands.blocks(caret.caretPoint(), true);
