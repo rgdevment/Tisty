@@ -78,7 +78,10 @@ describe("a new task's page pasted on while its first words make its file", () =
     const page = await loaded(view.container);
 
     asked(page, "insertFromPaste", {
-      dataTransfer: { getData: (kind: string) => (kind === "text/html" ? "<b>y</b>" : "y") },
+      dataTransfer: {
+        getData: (kind: string) =>
+          kind === "text/html" ? "<b>y</b>" : kind === "text/plain" ? "y" : "",
+      },
     });
     await waitFor(() => expect(ipc.translating).toHaveLength(1));
     asked(page, "insertText", { data: "x" });

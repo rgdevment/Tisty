@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { TISTY_MARKDOWN } from "../ui/clipboarding";
 import { besideBox, brokenBy, letterAhead, opened } from "../ui/pageNodes";
 import { writtenOn } from "../ui/pageWriting";
 
@@ -79,7 +80,7 @@ describe("a page opened for writing", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -90,7 +91,9 @@ describe("a page opened for writing", () => {
     const put: string[] = [];
     const copying = new Event("copy", { bubbles: true, cancelable: true });
     Object.defineProperty(copying, "clipboardData", {
-      value: { setData: (_: string, said: string) => put.push(said) },
+      value: {
+        setData: (type: string, said: string) => type === TISTY_MARKDOWN && put.push(said),
+      },
     });
     document.querySelector(".page")?.dispatchEvent(copying);
     writing.stop();
@@ -171,7 +174,7 @@ describe("a piece drawn whole at the end of its line", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -182,7 +185,9 @@ describe("a piece drawn whole at the end of its line", () => {
     const put: string[] = [];
     const copying = new Event("copy", { bubbles: true, cancelable: true });
     Object.defineProperty(copying, "clipboardData", {
-      value: { setData: (_: string, said: string) => put.push(said) },
+      value: {
+        setData: (type: string, said: string) => type === TISTY_MARKDOWN && put.push(said),
+      },
     });
     document.querySelector(".page")?.dispatchEvent(copying);
     expect(document.querySelector('[data-src="6-9"]')?.lastChild?.textContent).toBe("\u200B");
@@ -237,7 +242,7 @@ describe("a piece that ends a line broken by a break or a nested list", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -352,7 +357,7 @@ describe("a piece that ends an item's line before a nested block drawn from its 
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -422,7 +427,7 @@ describe("the letter that shows nothing", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -444,7 +449,7 @@ describe("the letter that shows nothing", () => {
       sheet.dispatchEvent(asked);
     }
     writing.stop();
-    expect(clipped).toHaveLength(2);
+    expect(clipped).toHaveLength(6);
     expect(written.length).toBeGreaterThan(0);
     for (const said of [...clipped, ...written]) expect(said).not.toContain("\u200B");
   });
@@ -458,7 +463,7 @@ describe("the letter that shows nothing", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -473,7 +478,7 @@ describe("the letter that shows nothing", () => {
     });
     sheet.dispatchEvent(asked);
     expect(asked.defaultPrevented).toBe(true);
-    expect(clipped).toEqual([""]);
+    expect(clipped).toEqual(["", "", ""]);
     writing.stop();
     expect(sheet.textContent).not.toContain("\u200B");
   });

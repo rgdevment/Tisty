@@ -96,7 +96,19 @@ const rich = (event: ClipboardEvent, { view, lost }: Landing): boolean => {
   return true;
 };
 
+// The page writes its own Markdown under this type when it copies, so a copy comes back here as written, marks and all.
+const TISTY_MARKDOWN = "text/x-tisty-markdown";
+
+const own = (event: ClipboardEvent, view: EditorView): boolean => {
+  const said = event.clipboardData?.getData(TISTY_MARKDOWN)?.replace(/\r\n?/g, "\n");
+  if (!said) return false;
+  event.preventDefault();
+  landing(view)(said, !coded(view.state, view.state.selection.main.head));
+  return true;
+};
+
 const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
+  if (own(event, view)) return true;
   const files = Array.from(event.clipboardData?.files ?? []);
   const pasted = asking?.()?.pasted;
   // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.

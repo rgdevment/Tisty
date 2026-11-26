@@ -90,7 +90,7 @@ const opened = (html = PLACED, body = BODY, said: string | null = "on") => {
       return core(sent, from, to);
     },
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: () => {},
     acts: () => {},

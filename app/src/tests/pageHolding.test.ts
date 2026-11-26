@@ -51,7 +51,7 @@ const pageOf = (words: string, scrollTop: number) => {
     },
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: () => {},
     acts: () => {},

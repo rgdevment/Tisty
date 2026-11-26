@@ -109,7 +109,10 @@ const wordsPasted = (page: Document) => {
   });
   Object.defineProperty(paste, "getTargetRanges", { value: () => [] });
   Object.defineProperty(paste, "dataTransfer", {
-    value: { getData: (kind: string) => (kind === "text/html" ? "<b>y</b>" : "y") },
+    value: {
+      getData: (kind: string) =>
+        kind === "text/html" ? "<b>y</b>" : kind === "text/plain" ? "y" : "",
+    },
   });
   page.querySelector(".page")?.dispatchEvent(paste);
 };

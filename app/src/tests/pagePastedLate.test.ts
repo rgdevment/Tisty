@@ -42,7 +42,7 @@ const onPage = () => {
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: () => translating.asked,
+    translator: { fromHtml: () => translating.asked, fromText: () => translating.asked },
     pasted: () => attaching.asked,
     ask: (_kind, _at, given) => {
       put = given;
@@ -65,7 +65,10 @@ const wordsPasted = () => {
   });
   Object.defineProperty(event, "getTargetRanges", { value: () => [] });
   Object.defineProperty(event, "dataTransfer", {
-    value: { getData: (kind: string) => (kind === "text/html" ? "<b>y</b>" : "y") },
+    value: {
+      getData: (kind: string) =>
+        kind === "text/html" ? "<b>y</b>" : kind === "text/plain" ? "y" : "",
+    },
   });
   document.querySelector(".page")?.dispatchEvent(event);
 };

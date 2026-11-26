@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { arrival, TISTY_MARKDOWN } from "../ui/clipboarding";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
 const BODY = "# T\n\nHola mundo bonito\n";
@@ -30,7 +31,7 @@ const onPage = (body = BODY, placed = PLACED) => {
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: () => {},
     acts: () => {},
@@ -58,7 +59,10 @@ const wordsPasted = () => {
   });
   Object.defineProperty(event, "getTargetRanges", { value: () => [] });
   Object.defineProperty(event, "dataTransfer", {
-    value: { getData: (kind: string) => (kind === "text/html" ? "<b>y</b>" : "**y**") },
+    value: {
+      getData: (kind: string) =>
+        kind === "text/html" ? "<b>y</b>" : kind === "text/plain" ? "**y**" : "",
+    },
   });
   document.querySelector(".page")?.dispatchEvent(event);
 };
@@ -97,7 +101,7 @@ const copied = () => {
 };
 
 describe("words copied from the page", () => {
-  it.fails("carry their formatting as text/html for other apps", () => {
+  it("carry their formatting as text/html for other apps", () => {
     onPage(BOLD, BOLD_PLACED);
     const first = document.querySelector('[data-src="0-5"]')?.firstChild as Text;
     const last = document.querySelector('[data-src="7-12"]')?.firstChild as Text;
@@ -109,5 +113,22 @@ describe("words copied from the page", () => {
     const set = copied();
     expect(Object.keys(set)).toContain("text/html");
     expect(set["text/html"]).toMatch(/<(strong|b)>mundo<\/(strong|b)>/);
+  });
+});
+
+describe("words copied from one page and pasted on another", () => {
+  it("come back as the same Markdown, the Tisty type outranking the other faces", () => {
+    onPage(BOLD, BOLD_PLACED);
+    const first = document.querySelector('[data-src="0-5"]')?.firstChild as Text;
+    const last = document.querySelector('[data-src="7-12"]')?.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(first, 0);
+    range.setEnd(last, last.length);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    const set = copied();
+    expect(set[TISTY_MARKDOWN]).toBe("Hola **mundo**");
+    const clipboard = { getData: (kind: string) => set[kind] ?? "" };
+    expect(arrival(clipboard)).toEqual({ kind: "own", text: "Hola **mundo**" });
   });
 });

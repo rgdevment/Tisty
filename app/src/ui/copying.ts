@@ -1,7 +1,5 @@
 import { copiedHtml } from "../core";
-
-/** Tisty's own words exactly as written, so pasting from one page to another loses nothing. */
-export const TISTY_MARKDOWN = "text/x-tisty-markdown";
+import { TISTY_MARKDOWN } from "./clipboarding";
 
 /** Words copied from a page in each face another app may take. */
 export interface Copied {

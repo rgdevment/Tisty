@@ -86,7 +86,7 @@ describe("the core told each key alone, whatever the page goes through", () => {
       redraw: seeded,
       near,
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},

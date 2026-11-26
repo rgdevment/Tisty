@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { TISTY_MARKDOWN } from "../ui/clipboarding";
 import { colonsKept, colonsMoved } from "../ui/pageColons";
 import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
@@ -22,7 +23,7 @@ const opened = (body: string, placed: string) => {
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: () => {},
     acts: () => {},
@@ -188,7 +189,9 @@ const clipped = (kind: "copy" | "cut") => {
   const put: string[] = [];
   const event = new Event(kind, { bubbles: true, cancelable: true });
   Object.defineProperty(event, "clipboardData", {
-    value: { setData: (_: string, said: string) => put.push(said) },
+    value: {
+      setData: (type: string, said: string) => type === TISTY_MARKDOWN && put.push(said),
+    },
   });
   document.querySelector(".page")?.dispatchEvent(event);
   return put;

@@ -39,6 +39,7 @@ import { settled as savedAll } from "../saving";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { LANGUAGES, languageAt, spokenIn } from "./codeLanguages";
+import { copiedWords } from "./copying";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { type Anchor, nthAt } from "./dressing";
 import { embedGone } from "./embeds";
@@ -68,6 +69,7 @@ import {
 } from "./pageWriting";
 import type { Went } from "./paging";
 import { laid } from "./parting";
+import { usePlainPasting } from "./plainPasting";
 import type { Formatting, Menued } from "./quickly";
 import { type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -301,6 +303,9 @@ export default function Sheet(props: Readonly<Props>) {
   const turnedNow = useRef(0);
   turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
+  usePlainPasting(() =>
+    shown.current?.document.hasFocus() ? (pageWriter.current?.hands ?? null) : null,
+  );
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<MenuShown | null>(null);
   const askedOn = useRef("");
@@ -774,6 +779,8 @@ export default function Sheet(props: Readonly<Props>) {
   const pageMenu = (at: { x: number; y: number }, asked: Menued) => {
     const writer = pageWriter.current?.hands;
     const words = writer?.chosen() ?? null;
+    // The menu takes the focus, and with it the selection, so what it copies is caught as it opens.
+    const seen = writer?.shownChosen() ?? document.createDocumentFragment();
     const back = () => shown.current?.focus();
     const choices: Choice[] = [...pictures.offered(shown.current?.document, asked.picture)];
     const embed = asked.embed;
@@ -798,12 +805,12 @@ export default function Sheet(props: Readonly<Props>) {
           label: t("cutIt"),
           apart: choices.length > 0,
           onPick: () =>
-            void copied(words).then(() => {
+            void copiedWords(words, seen).then(() => {
               liveWriter(writer).cut();
               back();
             }),
         },
-        { key: "copy", label: t("copyIt"), onPick: () => void copied(words).then(back) },
+        { key: "copy", label: t("copyIt"), onPick: () => void copiedWords(words, seen).then(back) },
         ...(writer.formattable() ? FORMATS : []).map(([word, , mark, close], index) => ({
           key: `format-${word}`,
           label: t(word),
@@ -1053,8 +1060,7 @@ export default function Sheet(props: Readonly<Props>) {
     pasted: (files) => said.current.asking?.pasted?.(files) ?? Promise.resolve(""),
     seat: () => seated.current,
     lost,
-    translated: (html, plain) =>
-      html ? HOST.fromHtml(html) : HOST.fromText(plain).then((said) => said ?? plain),
+    translator: HOST,
   };
   // The page is drawn anew after every key, so its listeners stay and only the caret is laid again.
   const pageWritten = (shownPage: Document | null) => {

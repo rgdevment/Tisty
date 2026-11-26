@@ -10,7 +10,8 @@ vi.mock("../core", () => ({
   },
 }));
 
-import { clippedWords, copiedAs, copiedWords, TISTY_MARKDOWN } from "../ui/copying";
+import { TISTY_MARKDOWN } from "../ui/clipboarding";
+import { clippedWords, copiedAs, copiedWords } from "../ui/copying";
 
 const WORDS = "==amarillo== y ==azul=={blue}";
 

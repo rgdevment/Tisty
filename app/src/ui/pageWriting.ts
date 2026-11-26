@@ -1,8 +1,10 @@
 import type { Slashed } from "tisty-editor/edit";
+import { escapedMarks } from "./clipboarding";
+import { chosenContents, chosenWhole, clippedWords } from "./copying";
 import { begunOn } from "./pageBegun";
 import { besideOn } from "./pageBeside";
 import { caretOn, type Taken } from "./pageCaret";
-import { choosingOn } from "./pageChoosing";
+import { CHOSEN, choosingOn } from "./pageChoosing";
 import { colonsCarried, colonsCrossed } from "./pageColons";
 import { draggingOn } from "./pageDragging";
 import type { Edit } from "./pageEdits";
@@ -31,6 +33,8 @@ export type PageWriting = {
   readonly rewrite: (next: string) => void;
   readonly outside: (was: string, next: string) => void;
   readonly chosen: () => string | null;
+  readonly shownChosen: () => DocumentFragment;
+  readonly plainNext: () => void;
   readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
   readonly typed: (said: string) => void;
@@ -195,26 +199,35 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     keys.takenOut(taken());
   };
   const cut = () => takenAway(caret.taken);
-  const unseenChosen = () => {
+  // What a choice reads as; a choice of the unseen letter alone reads as nothing, so nothing of it leaves.
+  const seenChosen = () => {
     const said = page.getSelection()?.toString() ?? "";
-    const shown = shownWords(said);
-    return shown === said ? null : shown;
+    return said ? shownWords(said) : null;
+  };
+  // What the page shows of the words chosen, which other apps take as html and readable words.
+  const shownChosen = (): DocumentFragment => {
+    if (choosing.choosing())
+      return chosenWhole([...page.querySelectorAll(`.page .${CHOSEN}`)], page);
+    const held = page.getSelection();
+    return held?.rangeCount ? chosenContents(held.getRangeAt(0)) : page.createDocumentFragment();
   };
   // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
   const clipped = (event: ClipboardEvent) => {
     if (!onSheet(page, event) || !event.clipboardData) return;
     const blocks = blocksChosen();
     const taken = blocks === null ? caret.taken() : null;
-    const words = blocks ?? carriedOut(taken) ?? unseenChosen();
-    if (words === null) return;
-    event.preventDefault();
-    event.clipboardData.setData("text/plain", words);
-    if (event.type === "cut") takenAway(() => taken);
+    const carried = blocks ?? carriedOut(taken);
+    // Words drawn whole, as a table's cells, carry no words of their own: they go as they read, their marks as letters.
+    const seen = carried ? null : seenChosen();
+    if (!carried && seen === null) return;
+    clippedWords(event, carried || escapedMarks(seen ?? ""), shownChosen());
+    if (event.type === "cut" && carried) takenAway(() => taken);
   };
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.outOfSolids, true);
   page.addEventListener("keydown", chooser);
   page.addEventListener("keydown", keys.keyed);
+  page.addEventListener("keydown", input.plainAsked, true);
   page.addEventListener("keydown", input.markHeld);
   page.addEventListener("keydown", input.lineBroken);
   page.addEventListener("mousedown", unchosen);
@@ -242,6 +255,8 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     rewrite: fromHost(history.rewrite),
     outside: fromHost(history.outside),
     chosen,
+    shownChosen,
+    plainNext: input.plainNext,
     slashed: fromHost(beside.slashed),
     unitActed: fromHost(beside.unitActed),
     begin: fromHost(begun.begin),
@@ -273,6 +288,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       watching?.disconnect();
       page.removeEventListener("selectionchange", keys.noted);
       page.removeEventListener("keydown", keys.keyed);
+      page.removeEventListener("keydown", input.plainAsked, true);
       page.removeEventListener("keydown", input.markHeld);
       page.removeEventListener("keydown", input.lineBroken);
       page.removeEventListener("keydown", chooser);

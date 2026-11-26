@@ -99,6 +99,11 @@ export const begunOpening = (lead: string, said: string): string => {
   return own || said.trim().includes("\n") ? lead.slice(0, -mark.length) : lead;
 };
 
+const FENCED = /^[ \t]*(`{3,}|~{3,})[^\n]*\n([\s\S]*?)\n?[ \t]*\1[ \t]*$/;
+
+/** Words copied as a whole fenced block are its lines when they land inside code, which is fenced already. */
+export const unfenced = (said: string): string => FENCED.exec(said.trim())?.[2] ?? said;
+
 // Words pasted that open with a heading, a list, a quote, code or a table start a block of their own, never mid-line,
 // and words pasted in a quote or a note stay in it, line after line.
 export const pastedAround = (text: string, from: number, to: number, said: string): string => {

@@ -2,6 +2,7 @@ import { render, waitFor } from "@testing-library/react";
 import { sheetFor } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { caughtBy } from "../dropped";
+import { TISTY_MARKDOWN } from "../ui/clipboarding";
 import { closed, laid, parting } from "../ui/parting";
 import Sheet from "../ui/Sheet";
 
@@ -688,17 +689,45 @@ describe("the menus of a document written on as its page", () => {
     return { page, words, writes };
   };
 
-  it("cuts and copies the Markdown of the words chosen, and formats them", async () => {
+  // The copy the menu raises, with what the page writes into it.
+  const clipboard = () => {
+    const put: Record<string, string> = {};
+    const raised = vi.fn(() => {
+      const event = new Event("copy", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", {
+        value: { setData: (type: string, said: string) => (put[type] = said) },
+      });
+      window.dispatchEvent(event);
+      return true;
+    });
+    document.execCommand = raised;
+    return { put, raised };
+  };
+
+  it("copies the words chosen in every face, and formats them", async () => {
+    const { put, raised } = clipboard();
     const { words, writes } = await opened();
     words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
     await waitFor(() => expect(offered()).toContain("Copy"));
     expect(offered()).toEqual(expect.arrayContaining(["Cut", "Copy", "Bold", "Italic"]));
     chosen("Copy");
-    await waitFor(() => expect(ipc.copied).toContain("lec"));
+    await waitFor(() => expect(raised).toHaveBeenCalledWith("copy"));
+    expect(put).toEqual({ [TISTY_MARKDOWN]: "lec", "text/plain": "lec", "text/html": "lec" });
     words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
     await waitFor(() => expect(offered()).toContain("Bold"));
     chosen("Bold");
     await waitFor(() => expect(writes[writes.length - 1]).toBe("# Compras\n\n**lec**he\n\npan\n"));
+  });
+
+  it("copies what was chosen when the menu opened, even if the choice changed before the click", async () => {
+    const { put, raised } = clipboard();
+    const { page, words } = await opened();
+    words.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    await waitFor(() => expect(offered()).toContain("Copy"));
+    page.getSelection()?.removeAllRanges();
+    chosen("Copy");
+    await waitFor(() => expect(raised).toHaveBeenCalledWith("copy"));
+    expect(put).toEqual({ [TISTY_MARKDOWN]: "lec", "text/plain": "lec", "text/html": "lec" });
   });
 
   it("offers the blocks, and no formats, with Ctrl and a slash, searched by name", async () => {

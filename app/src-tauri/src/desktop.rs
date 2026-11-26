@@ -285,6 +285,23 @@ pub(crate) fn fitted(window: &tauri::WebviewWindow) {
     }
 }
 
+/// What an item of a Mac's menu bar asks: leaving, or a word the window hears.
+#[cfg(target_os = "macos")]
+pub(crate) fn menu_heard(app: &tauri::AppHandle, event: &tauri::menu::MenuEvent) {
+    if event.id() == "leave" {
+        parting(app);
+    }
+    if event.id() == "help" {
+        let _ = tauri::Emitter::emit_to(app, "main", "help", ());
+    }
+    if event.id() == "whole" {
+        let _ = tauri::Emitter::emit_to(app, "main", "whole", ());
+    }
+    if event.id() == "pastePlain" {
+        let _ = tauri::Emitter::emit_to(app, "main", "paste-plainly", ());
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub(crate) fn menued(
     app: &tauri::AppHandle,
@@ -314,6 +331,13 @@ pub(crate) fn menued(
             &leave,
         ],
     )?;
+    let plain = MenuItem::with_id(
+        app,
+        "pastePlain",
+        worded(locale, "pastePlain"),
+        true,
+        Some("Cmd+Alt+Shift+V"),
+    )?;
     let edit = Submenu::with_items(
         app,
         worded(locale, "edit"),
@@ -325,6 +349,7 @@ pub(crate) fn menued(
             &PredefinedMenuItem::cut(app, None)?,
             &PredefinedMenuItem::copy(app, None)?,
             &PredefinedMenuItem::paste(app, None)?,
+            &plain,
             &PredefinedMenuItem::select_all(app, None)?,
             &PredefinedMenuItem::separator(app)?,
             &whole,
@@ -436,6 +461,38 @@ pub(crate) struct Departed(std::sync::atomic::AtomicBool);
 #[tauri::command]
 pub fn parted(app: tauri::AppHandle) {
     leave(&app);
+}
+
+/// The menu's paste without formatting: the page asked first, and the window pastes for it as its own Edit menu would.
+#[tauri::command]
+pub fn pasted_plainly(app: tauri::AppHandle) {
+    #[cfg(target_os = "macos")]
+    if let Err(e) = app.run_on_main_thread(pasted_here) {
+        witness::warn(
+            channel::WINDOW,
+            "the paste without formatting never reached the window",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = &app;
+}
+
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+fn pasted_here() {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send, sel};
+
+    // The responder chain holds the page that has the focus, so the paste lands there with every type the clipboard has.
+    unsafe {
+        let shared: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        if shared.is_null() {
+            return;
+        }
+        let nobody: *mut AnyObject = std::ptr::null_mut();
+        let _: bool = msg_send![shared, sendAction: sel!(paste:), to: nobody, from: nobody];
+    }
 }
 
 #[derive(Default)]

@@ -1,8 +1,10 @@
 import { SLASHED, type Slashed } from "tisty-editor/edit";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { TISTY_MARKDOWN } from "../ui/clipboarding";
 import { movedWords } from "../ui/pageDragging";
 import { sourceAt, spotOf } from "../ui/pageSpots";
 import { type Hands, type PageWriting, turnsAnew, writtenOn } from "../ui/pageWriting";
+import { tabled } from "../ui/tabled";
 
 const BODY = "# Hola\n\nUno **dos** tres\n\n- primero\n- segundo\n";
 const PLACED =
@@ -62,7 +64,7 @@ const writer = (body = BODY, more: Partial<Hands> = {}) => {
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: (_kind, _at, put) => {
       const answer = answers.shift();
       if (answer !== undefined) put(answer);
@@ -273,10 +275,10 @@ describe("writing on the page the core draws", () => {
 
   describe("Ctrl+C and Ctrl+X", () => {
     const clip = (kind: "copy" | "cut", on: Element | null = document.querySelector(".page")) => {
-      const put: string[] = [];
+      const put: Record<string, string> = {};
       const event = new Event(kind, { bubbles: true, cancelable: true });
       Object.defineProperty(event, "clipboardData", {
-        value: { setData: (_: string, said: string) => put.push(said) },
+        value: { setData: (type: string, said: string) => (put[type] = said) },
       });
       on?.dispatchEvent(event);
       return { put, taken: event.defaultPrevented };
@@ -289,17 +291,23 @@ describe("writing on the page the core draws", () => {
       document.getSelection()?.addRange(range);
     };
 
-    it("copies the Tisty Markdown of the words chosen, leaving the page as it is", () => {
+    const FACES = {
+      [TISTY_MARKDOWN]: "Uno **dos**",
+      "text/plain": "Uno dos",
+      "text/html": "Uno <strong>dos</strong>",
+    };
+
+    it("copies the words chosen as Tisty Markdown, readable words and html, leaving the page as it is", () => {
       const said = writer();
       choose();
-      expect(clip("copy")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(clip("copy")).toEqual({ put: FACES, taken: true });
       expect(said).toEqual([]);
     });
 
-    it("cuts the Tisty Markdown of the words chosen and takes them away", () => {
+    it("cuts the words chosen in the same three faces and takes them away", () => {
       const said = writer();
       choose();
-      expect(clip("cut")).toEqual({ put: ["Uno **dos**"], taken: true });
+      expect(clip("cut")).toEqual({ put: FACES, taken: true });
       expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
     });
 
@@ -307,7 +315,70 @@ describe("writing on the page the core draws", () => {
       writer();
       caretIn("dos", 1);
       document.dispatchEvent(new Event("selectionchange"));
-      expect(clip("copy")).toEqual({ put: [], taken: false });
+      expect(clip("copy")).toEqual({ put: {}, taken: false });
+    });
+
+    describe("inside a table dressed as the window dresses it", () => {
+      const TABLE_BODY = "| a | b |\n|---|---|\n| a*b | dos |\n| tres | cuatro |\n";
+      const TABLE =
+        '<div class="table" data-at="0-52"><table><thead><tr><th scope="col">a</th><th scope="col">b</th></tr></thead>' +
+        "<tbody><tr><td>a*b</td><td>dos</td></tr><tr><td>tres</td><td>cuatro</td></tr></tbody></table></div>";
+
+      const inTable = () => {
+        const said = writer(TABLE_BODY);
+        document.body.innerHTML = `<article class="page">${TABLE}</article>`;
+        tabled(document);
+        return said;
+      };
+      const cell = (row: number, column: number) =>
+        document.querySelectorAll("tbody tr")[row]?.querySelectorAll("td")[column] as Element;
+      const words = (on: Element) => on.lastChild as Text;
+      const chooseFrom = (from: Text, start: number, to: Text, end: number) => {
+        const range = document.createRange();
+        range.setStart(from, start);
+        range.setEnd(to, end);
+        document.getSelection()?.removeAllRanges();
+        document.getSelection()?.addRange(range);
+      };
+
+      it("copies a word of one cell as itself, with its marks escaped for Tisty and no furniture", () => {
+        const said = inTable();
+        const one = words(cell(0, 0));
+        chooseFrom(one, 0, one, 3);
+        const { put, taken } = clip("copy");
+        expect(taken).toBe(true);
+        expect(put["text/plain"]).toBe("a*b");
+        expect(put[TISTY_MARKDOWN]).toBe("a\\*b");
+        expect(put["text/html"]).not.toContain("button");
+        expect(put["text/html"]).not.toContain("data-row");
+        expect(said).toEqual([]);
+      });
+
+      it("copies two cells as a table with no buttons, grips or row marks", () => {
+        inTable();
+        chooseFrom(words(cell(0, 0)), 0, words(cell(1, 1)), 6);
+        const { put, taken } = clip("copy");
+        expect(taken).toBe(true);
+        expect(put["text/plain"]).toContain("a*b");
+        expect(put["text/plain"]).toContain("dos");
+        expect(put["text/plain"]).toContain("tres");
+        expect(put["text/plain"]).toContain("cuatro");
+        expect(put["text/html"]).toContain("<table");
+        expect(put["text/html"]).not.toContain("button");
+        expect(put["text/html"]).not.toContain("row-grip");
+        expect(put["text/html"]).not.toContain("data-row");
+      });
+
+      it("cuts nothing from a cell's word, though it takes the copy", () => {
+        const said = inTable();
+        const one = words(cell(0, 0));
+        chooseFrom(one, 0, one, 3);
+        const { put, taken } = clip("cut");
+        expect(taken).toBe(true);
+        expect(put["text/plain"]).toBe("a*b");
+        expect(said).toEqual([]);
+        expect(cell(0, 0).textContent).toContain("a*b");
+      });
     });
   });
 
@@ -599,7 +670,10 @@ describe("more of writing on the page the core draws", () => {
       cancelable: true,
     });
     Object.defineProperty(event, "dataTransfer", {
-      value: { getData: (kind: string) => (kind === "text/html" ? (html ?? "") : plain) },
+      value: {
+        getData: (kind: string) =>
+          kind === "text/html" ? (html ?? "") : kind === "text/plain" ? plain : "",
+      },
     });
     document.querySelector(".page")?.dispatchEvent(event);
   };
@@ -617,7 +691,7 @@ describe("more of writing on the page the core draws", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (html, plain) => Promise.resolve(html ? "**pegado**" : plain),
+      translator: { fromHtml: async () => "**pegado**", fromText: async (plain) => plain },
       ask: () => {},
       blocks: () => {},
       acts: () => {},
@@ -1266,17 +1340,42 @@ describe("blocks chosen with Escape", () => {
     expect(said[said.length - 1]).toBe(BODY);
   });
 
-  it("copies the Tisty Markdown of the chosen blocks whole", () => {
+  const copiedNow = () => {
+    const put: Record<string, string> = {};
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: { setData: (type: string, said: string) => (put[type] = said) },
+    });
+    document.querySelector(".page")?.dispatchEvent(event);
+    return put;
+  };
+
+  it("copies the chosen blocks whole as Tisty Markdown, readable words and html", () => {
     writer();
     caretIn("Uno ", 1);
     press("Escape");
-    const put: string[] = [];
-    const event = new Event("copy", { bubbles: true, cancelable: true });
-    Object.defineProperty(event, "clipboardData", {
-      value: { setData: (_: string, said: string) => put.push(said) },
+    expect(copiedNow()).toEqual({
+      [TISTY_MARKDOWN]: "Uno **dos** tres",
+      "text/plain": "Uno dos tres",
+      "text/html": "<p>Uno <strong>dos</strong> tres</p>",
     });
-    document.querySelector(".page")?.dispatchEvent(event);
-    expect(put).toEqual(["Uno **dos** tres"]);
+  });
+
+  it("copies a chosen heading and list item as the page draws them, their Markdown whole", () => {
+    writer();
+    caretIn("Hola", 1);
+    press("Escape");
+    const heading = copiedNow();
+    expect(heading[TISTY_MARKDOWN]).toBe("# Hola");
+    expect(heading["text/html"]).toBe("<h1>Hola</h1>");
+    expect(heading["text/plain"]).toBe("Hola");
+    writer();
+    caretIn("segundo", 1);
+    press("Escape");
+    const item = copiedNow();
+    expect(item[TISTY_MARKDOWN]).toBe("- segundo");
+    expect(item["text/html"]).toBe("<ul><li>segundo</li></ul>");
+    expect(item["text/plain"]).toBe("- segundo");
   });
 
   it("chooses a list's item first, and the whole list on Escape again", () => {

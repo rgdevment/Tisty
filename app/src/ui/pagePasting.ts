@@ -1,6 +1,8 @@
 import { t } from "../locales";
+import { type Arrival, arrival, evenLines, pastedWords, TISTY_MARKDOWN } from "./clipboarding";
+import { letterOf } from "./macKeys";
 import type { Begun } from "./pageBegun";
-import { blockPlaced, markedLanding, pastedAround } from "./pageBlocks";
+import { blockPlaced, markedLanding, pastedAround, unfenced } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
 import { applied, type Span } from "./pageEdits";
 import { laidOver } from "./pageLaidOver";
@@ -11,9 +13,45 @@ import type { Mend } from "./pageMends";
 import { onSheet } from "./pageNodes";
 import { foldedInto, type Kept, type Writer } from "./pageWriter";
 
+const wordsIn = (coming: Arrival) =>
+  coming.kind === "own" || coming.kind === "literal"
+    ? coming.text
+    : coming.kind === "html"
+      ? coming.html
+      : coming.plain;
+
+const MENU_PASTE_MS = 1500;
+
 export const pastingOn = (writer: Writer, caret: Caret, laying: Laying, begun: Begun) => {
   const { page, hands } = writer;
   const { late } = laying;
+
+  let plainly = false;
+
+  // The browser sends the same paste for both shortcuts, so asking for no formatting is told by its keys, and lasts only for the paste they raise.
+  const plainAsked = (event: KeyboardEvent) => {
+    plainly = (event.ctrlKey || event.metaKey) && event.shiftKey && letterOf(event) === "v";
+    if (plainly)
+      page.defaultView?.setTimeout(() => {
+        plainly = false;
+      });
+  };
+
+  // The menu's paste without formatting comes back by way of the host, later than a key's, so the ask waits for it longer.
+  const plainNext = () => {
+    plainly = true;
+    page.defaultView?.setTimeout(() => {
+      plainly = false;
+    }, MENU_PASTE_MS);
+  };
+
+  const lostPaste = () => hands.lost?.(t("pastedLost"));
+
+  const arrived = (data: DataTransfer | null): Arrival => {
+    const literally = plainly;
+    plainly = false;
+    return arrival(data, literally);
+  };
 
   // A line holding only its mark keeps it for words of one line, and gives it up to lines or a block of their own.
   const pastedOn = (
@@ -31,24 +69,29 @@ export const pastingOn = (writer: Writer, caret: Caret, laying: Laying, begun: B
   };
 
   const pasted = (one: Span, data: DataTransfer | null, coded: boolean, mend: Mend | null) => {
-    const html = data?.getData("text/html") || null;
-    const plain = data?.getData("text/plain") ?? "";
     const asked = wordsAsked(hands.text(), one);
-    const landed = (said: string) => {
-      if (!late(asked, (now, at) => pastedOn(now, at, said, coded, mend)))
-        hands.lost?.(t("pastedLost"));
-    };
-    hands
-      .translated(html, plain)
-      .then(landed)
-      .catch(() => landed(plain));
+    // Code takes the letters as they were copied: no translation, no block moved to its own line.
+    if (coded) {
+      plainly = false;
+      // A whole block of code copied from a page gives its own lines; anything else, the letters it reads as.
+      const own = evenLines(data?.getData(TISTY_MARKDOWN) || "");
+      const block = own && unfenced(own) !== own ? unfenced(own) : null;
+      const letters = evenLines(block ?? data?.getData("text/plain") ?? "");
+      if (letters && !late(asked, (now, at) => laidOver(now, at, letters, true, mend))) lostPaste();
+      return;
+    }
+    // A paste that brings no words leaves the chosen ones where they are.
+    void pastedWords(arrived(data), hands.translator)
+      .then((said) => {
+        if (said && !late(asked, (now, at) => pastedOn(now, at, said, coded, mend))) lostPaste();
+      })
+      .catch(lostPaste);
   };
 
   // A line begun and not yet written is written first, as a first key writes it, so a key typed meanwhile finds it there.
   const pastedOnBegun = (line: Kept, data: DataTransfer | null) => {
-    const html = data?.getData("text/html") || null;
-    const plain = data?.getData("text/plain") ?? "";
-    if (!plain.trim() && !html?.trim()) return;
+    const coming = arrived(data);
+    if (!wordsIn(coming).trim()) return;
     const was = writer.turns.undone[writer.turns.undone.length - 1];
     begun.firstKey(line, "");
     const last = writer.turns.undone[writer.turns.undone.length - 1];
@@ -73,13 +116,10 @@ export const pastingOn = (writer: Writer, caret: Caret, laying: Laying, begun: B
       if (!said.trim()) return takenBack();
       if (!late(asked, (now, here) => pastedOn(now, here, said, false, null), folded)) {
         takenBack();
-        hands.lost?.(t("pastedLost"));
+        lostPaste();
       }
     };
-    hands
-      .translated(html, plain)
-      .then(landed)
-      .catch(() => landed(plain));
+    void pastedWords(coming, hands.translator).then(landed).catch(lostPaste);
   };
 
   const pastedFiles = (event: ClipboardEvent) => {
@@ -118,5 +158,5 @@ export const pastingOn = (writer: Writer, caret: Caret, laying: Laying, begun: B
       .catch(() => {});
   };
 
-  return { pasted, pastedOnBegun, pastedFiles };
+  return { pasted, pastedOnBegun, pastedFiles, plainAsked, plainNext };
 };

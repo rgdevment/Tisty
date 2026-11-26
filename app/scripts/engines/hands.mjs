@@ -118,7 +118,8 @@ export const handsOn = (page, frame) => {
       const held = new DataTransfer();
       const sheet = document.querySelector(".page");
       sheet.dispatchEvent(new ClipboardEvent(type, { clipboardData: held, bubbles: true, cancelable: true }));
-      return held.getData("text/plain");
+      // The page carries its own Markdown under its own type, and readable words as plain text.
+      return held.getData("text/x-tisty-markdown") || held.getData("text/plain");
     }, kind);
     await page.waitForTimeout(KEY_MS);
     return carried;

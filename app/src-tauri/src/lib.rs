@@ -505,6 +505,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("windowMenu", false) => "Window".into(),
         ("help", true) => "Ayuda".into(),
         ("help", false) => "Help".into(),
+        ("pastePlain", true) => "Pegar sin formato".into(),
+        ("pastePlain", false) => "Paste and Match Style".into(),
         ("wholeDoc", true) => "Editar todo el documento".into(),
         ("wholeDoc", false) => "Edit the whole document".into(),
         ("helpGuide", true) => "Guía de Tisty Markdown".into(),
@@ -906,17 +908,7 @@ pub(crate) fn opened(
         match desktop::menued(app, &locale) {
             Ok(menu) => {
                 let _ = app.set_menu(menu);
-                app.on_menu_event(|app, event| {
-                    if event.id() == "leave" {
-                        desktop::parting(app);
-                    }
-                    if event.id() == "help" {
-                        let _ = tauri::Emitter::emit_to(app, "main", "help", ());
-                    }
-                    if event.id() == "whole" {
-                        let _ = tauri::Emitter::emit_to(app, "main", "whole", ());
-                    }
-                });
+                app.on_menu_event(|app, event| desktop::menu_heard(app, &event));
             }
             Err(e) => witness::warn(
                 channel::WINDOW,
@@ -1355,6 +1347,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_away,
         answers::papers::doc_lock,
         desktop::parted,
+        desktop::pasted_plainly,
         desktop::parting_waits,
         desktop::parting_stays,
         desktop::kept_for_the_end,

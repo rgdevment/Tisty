@@ -71,7 +71,10 @@ const onPage = (body: string, placed: string, translated?: (plain: string) => Pr
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => (translated ? translated(plain) : Promise.resolve(plain)),
+    translator: {
+      fromHtml: async () => "",
+      fromText: (plain) => (translated ? translated(plain) : Promise.resolve(plain)),
+    },
     ask: () => {},
     blocks: () => {},
     acts: () => {},
@@ -92,7 +95,9 @@ const pasted = (plain: string, html = "") => {
   });
   Object.defineProperty(event, "getTargetRanges", { value: () => [] });
   Object.defineProperty(event, "dataTransfer", {
-    value: { getData: (kind: string) => (kind === "text/html" ? html : plain) },
+    value: {
+      getData: (kind: string) => (kind === "text/html" ? html : kind === "text/plain" ? plain : ""),
+    },
   });
   sheet().dispatchEvent(event);
 };

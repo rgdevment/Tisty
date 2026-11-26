@@ -222,6 +222,8 @@ export const inputOn = (
     started: typing.started,
     ended: typing.ended,
     pastedFiles: pasting.pastedFiles,
+    plainAsked: pasting.plainAsked,
+    plainNext: pasting.plainNext,
     markHeld,
     lineBroken,
     caughtUp: behind.caughtUp,

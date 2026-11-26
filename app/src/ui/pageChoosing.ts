@@ -10,7 +10,7 @@ import { placeOf } from "./pagePlaces";
 import { endIn } from "./pageSpots";
 import type { Writer } from "./pageWriter";
 
-const CHOSEN = "chosen-block";
+export const CHOSEN = "chosen-block";
 
 export type Choosing = ReturnType<typeof choosingOn>;
 

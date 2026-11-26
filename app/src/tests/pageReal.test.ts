@@ -35,7 +35,7 @@ const opened = (name: string) => {
     redraw: () => {},
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: (_kind, _at, put) => {
       const answer = answers.shift();
       if (answer !== undefined) put(answer);
@@ -211,7 +211,7 @@ describe("a caret laid where the page draws nothing to write in", () => {
       redraw: () => {},
       near: () => Promise.reject(new Error("no core here")),
       dressed: () => {},
-      translated: (_, plain) => Promise.resolve(plain),
+      translator: { fromHtml: async () => "", fromText: async () => null },
       ask: () => {},
       blocks: () => {},
       acts: () => {},

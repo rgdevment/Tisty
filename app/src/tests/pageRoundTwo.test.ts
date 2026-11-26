@@ -134,7 +134,7 @@ const writer = (body: string, more: Partial<Hands> = {}) => {
     },
     near: () => Promise.reject(new Error("no core here")),
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: (_at, slash) => menus.push(slash),
     acts: () => {},

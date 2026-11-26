@@ -27,7 +27,7 @@ const opened = (near: Hands["near"], redraw: Hands["redraw"] = () => {}) => {
     redraw,
     near,
     dressed: () => {},
-    translated: (_, plain) => Promise.resolve(plain),
+    translator: { fromHtml: async () => "", fromText: async () => null },
     ask: () => {},
     blocks: () => {},
     acts: () => {},
