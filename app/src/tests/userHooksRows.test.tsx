@@ -257,7 +257,7 @@ describe("Global's Hooks group", () => {
     await waitFor(() => expect(screen.getByText(/10000 ms/)).toBeTruthy());
   });
 
-  it("takes a registered hook out of the agents from verify", async () => {
+  it("takes a registered hook out of the agents from verify, once confirmed", async () => {
     ipc.answer = (cmd) =>
       Promise.resolve(
         cmd === "agent_hook_unregister" ? look() : look({ state: "registered", kept: true }),
@@ -267,6 +267,8 @@ describe("Global's Hooks group", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     await waitFor(() => screen.getByRole("button", { name: "Take it out of the agents" }));
     fireEvent.click(screen.getByRole("button", { name: "Take it out of the agents" }));
+    expect(sent("agent_hook_unregister")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Yes, take it out" }));
     await waitFor(() => expect(sent("agent_hook_unregister")).toHaveLength(1));
     expect(sent("agent_hook_unregister")[0].args).toEqual({ file: "guard" });
   });

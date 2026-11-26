@@ -50,6 +50,7 @@ const words = {
   agentHookRegister: ["Register", "Registrar"],
   agentHookVerify: ["Verify", "Verificar"],
   agentHookUnregister: ["Take it out of the agents", "Quitarlo de los agentes"],
+  agentHookUnregisterYes: ["Yes, take it out", "Sí, quitarlo"],
   agentHookRegistered: ["Registered", "Registrado"],
   agentHookWaiting: ["Not registered here", "Sin registrar aquí"],
   agentHookChanged: [

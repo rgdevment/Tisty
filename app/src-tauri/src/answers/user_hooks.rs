@@ -8,7 +8,6 @@ use crate::wiring::user_hooks::{self, AgentHook, Hook};
 use crate::{Answer, Refusal, Session, held};
 
 const TRY_AS: &str = "tisty-try";
-const NEW_SCRIPT: &str = "";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -125,7 +124,32 @@ fn seed(
     if !agents::hook_name(name) {
         return Err(Refusal::of("agentHookNameBad"));
     }
-    agents::hook_doc(name, here_only, trigger, NEW_SCRIPT).map_err(super::agents_sync::refused)
+    agents::hook_doc(name, here_only, trigger, starter(name)).map_err(super::agents_sync::refused)
+}
+
+// A script that only lets the call through, so the page never opens on an empty code block.
+fn starter(name: &str) -> &'static str {
+    match agents::extension(name) {
+        Some("sh") => {
+            "#!/bin/sh
+exit 0
+"
+        }
+        Some("py") => {
+            "import sys
+
+sys.exit(0)
+"
+        }
+        Some("js") => {
+            "process.exit(0);
+"
+        }
+        _ => {
+            "exit 0
+"
+        }
+    }
 }
 
 fn named_free(session: &Session, name: &str) -> bool {

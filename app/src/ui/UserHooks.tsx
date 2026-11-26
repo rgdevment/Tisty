@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Filed } from "../core";
 import { fill, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -120,6 +121,8 @@ function VerifyPanel({
       .catch((problem) => setTrouble(saidPlainly(problem)));
   };
   const registered = look.state === "registered";
+  const held = registered || look.state === "changed";
+  const [dropping, setDropping] = useState(false);
   return (
     <Modal title={`${t("agentHookVerify")} · ${look.name}`} wide closable onClose={onClose}>
       <p className="text-[13px] font-medium">{t(STATE_WORD[look.state])}</p>
@@ -163,10 +166,20 @@ function VerifyPanel({
       )}
       {trouble && <p className="mt-2 text-[12.5px] text-urgent">{trouble}</p>}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {registered && (
-          <button type="button" onClick={onUnregister} className={button}>
+        {held && !dropping && (
+          <button type="button" onClick={() => setDropping(true)} className={button}>
             {t("agentHookUnregister")}
           </button>
+        )}
+        {dropping && (
+          <>
+            <button type="button" onClick={() => setDropping(false)} className={button}>
+              {t("agentHookNotNow")}
+            </button>
+            <button type="button" onClick={onUnregister} className={primary}>
+              {t("agentHookUnregisterYes")}
+            </button>
+          </>
         )}
         {registrable(look) && !asking && (
           <button type="button" onClick={() => setAsking(true)} className={button}>
@@ -223,17 +236,23 @@ function HookActions({ doc, rowOf }: Readonly<{ doc: Filed; rowOf: RowOf }>) {
         {t("agentHookVerify")}
       </button>
       {trouble && <span className="basis-full text-urgent">{trouble}</span>}
-      {look && open === "register" && (
-        <RegisterAsk look={look} onYes={() => register(look)} onClose={() => setOpen(null)} />
-      )}
-      {look && open === "verify" && (
-        <VerifyPanel
-          look={look}
-          onTry={() => hookTry(look.file, look.print).finally(looked)}
-          onUnregister={() => unregister(look)}
-          onClose={() => setOpen(null)}
-        />
-      )}
+      {look &&
+        open === "register" &&
+        createPortal(
+          <RegisterAsk look={look} onYes={() => register(look)} onClose={() => setOpen(null)} />,
+          document.body,
+        )}
+      {look &&
+        open === "verify" &&
+        createPortal(
+          <VerifyPanel
+            look={look}
+            onTry={() => hookTry(look.file, look.print).finally(looked)}
+            onUnregister={() => unregister(look)}
+            onClose={() => setOpen(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }
@@ -257,7 +276,7 @@ export default function UserHookRows({
           <ul>
             {paper(doc, depth)}
             <li>
-              <HookActions doc={doc} rowOf={rowOf} />
+              <HookActions key={`${doc.file}:${doc.wrote ?? ""}`} doc={doc} rowOf={rowOf} />
             </li>
           </ul>
         </li>
