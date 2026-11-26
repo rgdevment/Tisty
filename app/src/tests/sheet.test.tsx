@@ -738,3 +738,77 @@ describe("the Markdown view of a document", () => {
     expect(ipc.left).toBe(1);
   });
 });
+
+describe("an agent's file left for another document with the blocks menu used", () => {
+  const FIRST = '<p data-at="0-5"><span data-src="0-4">Uno </span></p>';
+  const NEXT = '<p data-at="0-5"><span data-src="0-4">Dos </span></p>';
+  const THIRD = '<p data-at="0-6"><span data-src="0-5">Tres </span></p>';
+
+  it("switches without throwing while the next page has no root yet, and draws what comes next", async () => {
+    const thrown: unknown[] = [];
+    const caught = (event: ErrorEvent) => {
+      thrown.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", caught);
+    ipc.drawn = FIRST;
+    const sheet = (file: string, value: string) => (
+      <Sheet file={file} value={value} label="AGENTS" agent wholeable onWrite={() => {}} />
+    );
+    const view = render(sheet("a3f1-0001", "Uno \n"));
+    const frame = await shown(view.container);
+    const page = await loaded(frame);
+    await waitFor(() =>
+      expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+    );
+    expect(page.documentElement.classList.contains("agent")).toBe(true);
+
+    const measured = page.defaultView?.Range.prototype as unknown as {
+      getBoundingClientRect?: () => unknown;
+    };
+    measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, bottom: 0, width: 0, height: 0 });
+    page.getSelection()?.collapse(page.querySelector("[data-src]")?.firstChild as Text, 4);
+    page.querySelector(".page")?.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "/",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await waitFor(() => expect(offered().length).toBeGreaterThan(0));
+    page.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    // Only the frame and the scroll hook see the navigating page without a root; the writer bound to the old one still sees it.
+    const root = page.documentElement;
+    let rootlessReads = 0;
+    const navigate = (rootless: boolean) => {
+      if (!rootless) return void delete (page as { documentElement?: unknown }).documentElement;
+      Object.defineProperty(page, "documentElement", {
+        configurable: true,
+        get: () => {
+          if (!/Frame\.tsx|liveSheet\.tsx/.test(new Error().stack ?? "")) return root;
+          rootlessReads += 1;
+          return null;
+        },
+      });
+    };
+    ipc.drawn = NEXT;
+    navigate(true);
+    try {
+      view.rerender(sheet("a3f1-0002", "Dos \n"));
+      await new Promise((done) => setTimeout(done, 50));
+    } finally {
+      navigate(false);
+    }
+    expect(rootlessReads).toBeGreaterThan(0);
+    ipc.drawn = THIRD;
+    view.rerender(sheet("a3f1-0002", "Tres \n"));
+    await waitFor(() => expect(page.querySelector(".page")?.textContent).toContain("Tres"));
+    window.removeEventListener("error", caught);
+
+    expect(thrown).toEqual([]);
+    expect(page.documentElement.classList.contains("agent")).toBe(true);
+  });
+});

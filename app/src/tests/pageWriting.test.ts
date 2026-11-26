@@ -366,6 +366,42 @@ describe("the blocks put on the page written in place", () => {
     expect(menus).toEqual([true]);
   });
 
+  describe("with the caret set the way a person sets it, by a click in the middle of a line", () => {
+    const LINES = "uno dos tres\n\notra\n";
+    const LINES_PLACED =
+      '<p data-at="0-12"><span data-src="0-12">uno dos tres</span></p>' +
+      '<p data-at="14-18"><span data-src="14-18">otra</span></p>';
+
+    const clickedAt = (offset: number) => {
+      const said = writer(LINES);
+      pageOf(LINES_PLACED);
+      writing?.drawn();
+      caretIn("otra", 4);
+      asked("insertText", "x");
+      document
+        .querySelector(".page")
+        ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      caretIn("uno dos tres", offset);
+      document.querySelector(".page")?.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      menus.length = 0;
+      said.length = 0;
+      asked("insertText", "/");
+      return said;
+    };
+
+    it("offers the blocks at a slash right after a space in the middle of a paragraph", () => {
+      const said = clickedAt(8);
+      expect(menus).toEqual([true]);
+      expect(said).toEqual([]);
+    });
+
+    it("writes the slash into the words right after a letter, and offers nothing", () => {
+      const said = clickedAt(6);
+      expect(menus).toEqual([]);
+      expect(said[said.length - 1]).toBe("uno do/s tres\n\notrax\n");
+    });
+  });
+
   it("turns the line the caret stands in into a title, its list mark gone", () => {
     const said = writer();
     caretIn("primero", 3);

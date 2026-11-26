@@ -6,6 +6,7 @@ import { type PageWriting, writtenOn } from "../ui/pageWriting";
 
 let writing: PageWriting | null = null;
 const writes: string[] = [];
+let swap: (next: string) => void = () => {};
 
 afterEach(() => {
   writing?.stop();
@@ -23,6 +24,22 @@ describe("the opening kept for a paste on a line just begun", () => {
     ["# ", "uno\ndos", ""],
     ["\n\n", "- a\n- b", "\n\n"],
     ["- ", "texto", "- "],
+    ["- ", "uno\ndos", ""],
+    ["- ", "- a", ""],
+    ["* ", "uno\ndos", ""],
+    ["- [ ] ", "dos", "- [ ] "],
+    ["- [ ] ", "- dos\n- tres", ""],
+    ["- [x] ", "uno\ndos", ""],
+    ["1. ", "texto", "1. "],
+    ["1. ", "uno\ndos", ""],
+    ["1) ", "- a", ""],
+    ["# ", "1. Introducción", "# "],
+    ["# ", "- algo", "# "],
+    ["# ", "> cita", "# "],
+    ["# ", "## Sub", ""],
+    ["# ", "Título\n\nTexto", ""],
+    ["Antes\n- [ ] ", "- dos\n- tres", "Antes\n"],
+    ["Antes\n", "- a", "Antes\n"],
   ])("keeps «%j» for the paste «%j» as «%j»", (lead, said, expected) => {
     expect(begunOpening(lead, said)).toBe(expected);
   });
@@ -32,6 +49,9 @@ type Held = { answer: (said: string) => void };
 
 const onPage = (body: string, placed: string, translated?: (plain: string) => Promise<string>) => {
   let text = body;
+  swap = (next) => {
+    text = next;
+  };
   writes.length = 0;
   document.body.innerHTML = `<article class="page">${placed}</article>`;
   const reach = {
@@ -230,6 +250,122 @@ describe("a paste on a line just begun, taken back and brought back", () => {
     expect(writes).toEqual([]);
     key("historyUndo");
     expect(writes).toEqual([]);
+  });
+});
+
+const STEP = "- [ ] uno\n";
+const STEP_PLACED =
+  '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span><span data-src="6-9">uno</span></li></ul>';
+
+const begunAfter = (
+  body: string,
+  placed: string,
+  src: string,
+  translated?: (plain: string) => Promise<string>,
+) => {
+  const text = onPage(body, placed, translated);
+  const words = document.querySelector(`[data-src="${src}"]`)?.firstChild as Text;
+  document.getSelection()?.collapse(words, words.length);
+  key("insertParagraph");
+  return text;
+};
+
+describe("a paste on a step just begun", () => {
+  it("leaves no empty step before pasted items", async () => {
+    const text = begunAfter(STEP, STEP_PLACED, "6-9");
+    pasted("- dos\n- tres");
+    await settled();
+    expect(text()).toBe("- [ ] uno\n- dos\n- tres\n");
+  });
+
+  it("keeps the step's mark for a single line", async () => {
+    const text = begunAfter(STEP, STEP_PLACED, "6-9");
+    pasted("dos");
+    await settled();
+    expect(text()).toBe("- [ ] uno\n- [ ] dos\n");
+  });
+});
+
+describe("a paste of lines on an item just begun", () => {
+  it("leaves no empty item behind", async () => {
+    const text = begunAfter(ITEM, ITEM_PLACED, "2-3");
+    pasted("uno\ndos");
+    await settled();
+    expect(text()).not.toMatch(/^- $/m);
+    expect(text()).toContain("uno\ndos");
+  });
+});
+
+describe("a paste on an empty new page that opens like a block", () => {
+  it.each([
+    ["1. Introducción", "# 1. Introducción"],
+    ["- algo", "# - algo"],
+    ["> cita", "# > cita"],
+    ["# Título", "# Título"],
+  ])("lands «%j» as «%j»", async (said, expected) => {
+    const text = emptyPage();
+    pasted(said);
+    await settled();
+    expect(text()).toBe(expected);
+  });
+
+  it("keeps no empty heading before a title and its text", async () => {
+    const text = emptyPage();
+    pasted("Título\n\nTexto");
+    await settled();
+    expect(text()).toBe("Título\n\nTexto");
+  });
+});
+
+describe("a paste whose translation comes back empty", () => {
+  it("leaves the text as it was on an empty page, with no step to undo", async () => {
+    const text = emptyPage(() => Promise.resolve(""));
+    pasted("Hola");
+    await settled();
+    expect(text()).toBe("");
+    key("historyUndo");
+    expect(text()).toBe("");
+  });
+
+  it("changes nothing on an item that Enter already wrote", async () => {
+    const text = begunAfter(ITEM, ITEM_PLACED, "2-3", () => Promise.resolve(""));
+    const before = text();
+    pasted("dos");
+    await settled();
+    expect(text()).toBe(before);
+  });
+});
+
+describe("a paste answered after the text changed under it", () => {
+  it("does not take the opening back when the translation is empty", async () => {
+    const held: Held = { answer: () => {} };
+    const text = emptyPage(
+      () =>
+        new Promise((done) => {
+          held.answer = done;
+        }),
+    );
+    pasted("dos");
+    swap("Otro");
+    held.answer("");
+    await settled();
+    expect(text()).toBe("Otro");
+  });
+
+  it("lands where its words were, keeping what was written meanwhile", async () => {
+    const held: Held = { answer: () => {} };
+    const text = emptyPage(
+      () =>
+        new Promise((done) => {
+          held.answer = done;
+        }),
+    );
+    pasted("dos");
+    swap("# Otro");
+    held.answer("dos");
+    await settled();
+    expect(text()).toContain("Otro");
+    expect(text()).toContain("dos");
   });
 });
 

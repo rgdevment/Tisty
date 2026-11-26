@@ -30,3 +30,37 @@ describe("the frame an agent's file is drawn in", () => {
     expect(frame.contentDocument?.documentElement.classList.contains("agent")).toBe(false);
   });
 });
+
+describe("a frame left for the next document, whose root is not there yet", () => {
+  const props = (agent: boolean, shaping: boolean) => (
+    <Frame
+      html=""
+      turn={0}
+      label="page"
+      tall={false}
+      hidden={false}
+      agent={agent}
+      shaping={shaping}
+      reach={() => ({}) as Reaching}
+      onReady={() => {}}
+    />
+  );
+
+  it("takes the agent and shaping marks without throwing, and wears the next ones once the root comes", () => {
+    const view = render(props(false, false));
+    const frame = view.container.querySelector("iframe") as HTMLIFrameElement;
+    const page = frame.contentDocument as Document;
+    const root = page.documentElement;
+    Object.defineProperty(page, "documentElement", { configurable: true, get: () => null });
+    try {
+      expect(() => view.rerender(props(true, true))).not.toThrow();
+    } finally {
+      delete (page as { documentElement?: unknown }).documentElement;
+    }
+    expect(page.documentElement).toBe(root);
+    view.rerender(props(false, false));
+    view.rerender(props(true, true));
+    expect(root.classList.contains("agent")).toBe(true);
+    expect(root.classList.contains("shaping")).toBe(true);
+  });
+});

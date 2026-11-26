@@ -78,9 +78,26 @@ const BLOCK_START = /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|```|~~~|\|)/;
 const ITEM_START = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s/;
 const QUOTED = /^[ \t]*(?:>[ \t]?)+/;
 
-// A line begun as a heading gives its mark up to a paste that brings blocks or lines of its own.
-export const begunOpening = (lead: string, said: string): string =>
-  BLOCK_START.test(said) || said.trim().includes("\n") ? lead.replace(/#{1,6} $/, "") : lead;
+const BEGUN_MARK = /(#{1,6} |[-*+] (?:\[[ xX]\] )?|\d{1,9}[.)] )$/;
+const MARK_ONLY = /^[ \t>]*(?:#{1,6} |[-*+] (?:\[[ xX]\] )?|\d{1,9}[.)] )$/;
+
+/** Where a paste lands on a line that holds only its mark, the mark kept or given up as `begunOpening` says. */
+export const markedLanding = (text: string, from: number, to: number, said: string) => {
+  const head = /[^\n]*$/.exec(text.slice(0, from))?.[0] ?? "";
+  const end = text.indexOf("\n", to);
+  const rest = text.slice(to, end < 0 ? text.length : end);
+  if (rest.trim() || !MARK_ONLY.test(head)) return null;
+  const kept = begunOpening(head, said);
+  return { from: from - (head.length - kept.length), kept: kept === head };
+};
+
+// A begun heading, item or step gives its mark up to a paste of lines or its own block; a heading keeps it for one line, as typed.
+export const begunOpening = (lead: string, said: string): string => {
+  const mark = BEGUN_MARK.exec(lead)?.[1];
+  if (!mark) return lead;
+  const own = mark.startsWith("#") ? /^#{1,6}[ \t]/.test(said) : BLOCK_START.test(said);
+  return own || said.trim().includes("\n") ? lead.slice(0, -mark.length) : lead;
+};
 
 // Words pasted that open with a heading, a list, a quote, code or a table start a block of their own, never mid-line,
 // and words pasted in a quote or a note stay in it, line after line.

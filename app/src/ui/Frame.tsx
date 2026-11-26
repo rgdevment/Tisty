@@ -109,7 +109,7 @@ export default function Frame(props: Readonly<Props>) {
     };
     const retheme = () => {
       const page = held.contentDocument;
-      if (!page) return;
+      if (!page?.documentElement) return;
       dressedAsWindow(page, said.current.design);
       const mine = drawing;
       void diagrams(
@@ -165,7 +165,7 @@ export default function Frame(props: Readonly<Props>) {
     swap.current = (next) => {
       const page = held.contentDocument;
       const sheet = page?.querySelector(".page");
-      if (!page?.documentElement.hasAttribute("data-wired") || !sheet) return;
+      if (!page?.documentElement?.hasAttribute("data-wired") || !sheet) return;
       undressed();
       // The document is built once, so the language and look it was built with are brought up to date.
       page.documentElement.lang = document.documentElement.lang;
@@ -209,7 +209,7 @@ export default function Frame(props: Readonly<Props>) {
   const { design } = props;
   useLayoutEffect(() => {
     const page = frame.current?.contentDocument;
-    if (page?.documentElement.dataset.wired === undefined) return;
+    if (page?.documentElement?.dataset.wired === undefined) return;
     dressedAsWindow(page, design);
     laid.current();
     let gone = false;
