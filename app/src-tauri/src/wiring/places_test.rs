@@ -232,3 +232,56 @@ fn an_assistant_that_is_nowhere_in_a_distro_is_not_found() {
     assert!(!place.runs("claude"));
     assert_eq!(place.on_path("claude"), None);
 }
+
+fn store_copy(bins: Vec<PathBuf>, command: &str) -> Place {
+    Place {
+        distro: None,
+        os: Os::Windows,
+        home: PathBuf::from("C:/Users/Mario"),
+        config: PathBuf::from("C:/Users/Mario/.config"),
+        dsh: PathBuf::from("C:/Users/Mario/.dsh"),
+        appdata: None,
+        local: None,
+        bins,
+        command: command.into(),
+        open: true,
+        packaged: true,
+        mount: String::new(),
+    }
+}
+
+#[test]
+fn a_store_copy_with_the_bare_name_and_nothing_on_the_path_has_its_alias_off() {
+    let empty = tempfile::tempdir().unwrap();
+    assert!(store_copy(Vec::new(), "tisty").alias_off());
+    assert!(store_copy(vec![empty.path().to_path_buf()], "tisty").alias_off());
+}
+
+#[test]
+fn the_alias_is_not_off_when_the_name_is_found_or_the_command_is_something_else() {
+    let bin = tempfile::tempdir().unwrap();
+    std::fs::write(bin.path().join("tisty.exe"), b"").unwrap();
+    let found = store_copy(vec![bin.path().to_path_buf()], "tisty");
+    assert!(!found.alias_off());
+
+    let unpackaged = Place {
+        packaged: false,
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!unpackaged.alias_off());
+
+    assert!(!store_copy(Vec::new(), r"C:\Apps\tisty.exe").alias_off());
+    assert!(!store_copy(Vec::new(), "C:/Apps/tisty.exe").alias_off());
+
+    let in_distro = Place {
+        distro: Some("Ubuntu".into()),
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!in_distro.alias_off());
+
+    let linux = Place {
+        os: Os::Linux,
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!linux.alias_off());
+}

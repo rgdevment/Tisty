@@ -3412,6 +3412,8 @@ const en = {
     "The Tisty plugin brings them too, so they run twice. Turn these off to keep the plugin's.",
   wslShut: "Windows programs are turned off in that distro, so nothing was written.",
   wslUnread: "{name} could not be read. Open it once in a terminal and look again.",
+  aliasOff:
+    "Tisty's command alias is turned off, so no agent could start it and nothing was written. Turn on «tisty.exe» in Settings › Apps › Advanced app settings › App execution aliases, then try again.",
   settingsPuzzling:
     "{name} is written in a way Tisty would not know how to change without spoiling it. Add to it the lines its row shows under «By hand».",
   settingsUnread: "{name} could not be read, so nothing was written to it.",
@@ -7341,6 +7343,8 @@ const es: Catalog = {
     "El plugin de Tisty también los trae, así que corren dos veces. Apaga estos para dejar los del plugin.",
   wslShut: "En esa distro los programas de Windows están apagados, así que no se escribió nada.",
   wslUnread: "No se pudo leer {name}. Ábrela una vez en una terminal y vuelve a buscar.",
+  aliasOff:
+    "El alias del comando de Tisty está apagado, así que ningún agente podría arrancarlo y no se escribió nada. Enciende «tisty.exe» en Configuración › Aplicaciones › Configuración avanzada de aplicaciones › Alias de ejecución de aplicaciones y vuelve a intentarlo.",
   settingsPuzzling:
     "{name} está escrito de una forma que Tisty no sabría cambiar sin estropearla. Agrégale las líneas que muestra su fila en «A mano».",
   settingsUnread: "{name} no se pudo leer, así que no se escribió nada en él.",

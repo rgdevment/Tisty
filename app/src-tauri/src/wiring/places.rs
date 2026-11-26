@@ -122,6 +122,15 @@ impl Place {
                 .any(|base| at.starts_with(base))
     }
 
+    /// Packaged for the Store with its alias turned off, the bare name it falls back on runs nowhere.
+    pub fn alias_off(&self) -> bool {
+        self.os == Os::Windows
+            && self.distro.is_none()
+            && self.packaged
+            && !self.command.contains(['/', '\\'])
+            && self.on_path(&self.command).is_none()
+    }
+
     pub fn runs(&self, name: &str) -> bool {
         self.on_path(name).is_some()
     }

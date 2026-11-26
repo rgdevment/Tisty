@@ -353,6 +353,7 @@ const KNOWN = [
   "settingsUnborn",
   "wslShut",
   "wslUnread",
+  "aliasOff",
   "tableRefused",
   "tableRefusedMoved",
   "tableRefusedLastColumn",

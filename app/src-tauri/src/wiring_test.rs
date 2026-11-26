@@ -1135,3 +1135,71 @@ fn only_the_persons_own_hook_left_behind_still_asks_for_a_fix() {
         );
     }
 }
+
+fn store_alias_off(room: &Path) -> Place {
+    Place {
+        packaged: true,
+        ..windows(room)
+    }
+    .bare("tisty")
+}
+
+impl Place {
+    fn bare(self, command: &str) -> Place {
+        Place {
+            command: command.into(),
+            ..self
+        }
+    }
+}
+
+#[test]
+fn a_store_copy_with_its_alias_off_is_never_written_connected_or_hooked() {
+    let tmp = tempfile::tempdir().unwrap();
+    let claude = client("claude-code");
+    let place = store_alias_off(tmp.path());
+    let at = claude.file(&place).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "{\"keep\":true}\n").unwrap();
+
+    assert!(matches!(
+        wire_at(&claude, &place, &at),
+        Err(Stuck::AliasOff)
+    ));
+    assert!(matches!(hook_at(&claude, &place), Err(Stuck::AliasOff)));
+    assert_eq!(read_of(&at), "{\"keep\":true}\n");
+}
+
+#[test]
+fn a_fix_with_the_alias_off_says_so_for_the_connection_and_the_hooks_and_writes_nothing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let claude = client("claude-code");
+    let place = store_alias_off(tmp.path());
+    let at = claude.file(&place).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, "{\"keep\":true}\n").unwrap();
+
+    let (connection, hooks) = mend_at(&claude, &place, &at, &both());
+
+    assert!(matches!(connection, Some(Stuck::AliasOff)));
+    assert!(matches!(hooks, Some(Stuck::AliasOff)));
+    assert_eq!(read_of(&at), "{\"keep\":true}\n");
+}
+
+#[test]
+fn a_store_copy_whose_alias_is_on_the_path_is_written() {
+    let tmp = tempfile::tempdir().unwrap();
+    let bin = tmp.path().join("WindowsApps");
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::write(bin.join("tisty.exe"), b"").unwrap();
+    let claude = client("claude-code");
+    let place = Place {
+        bins: vec![bin],
+        ..store_alias_off(tmp.path())
+    };
+    let at = claude.file(&place).unwrap();
+
+    wire_at(&claude, &place, &at).unwrap();
+
+    assert!(at.exists());
+}

@@ -94,6 +94,9 @@ pub struct InDistro {
 /// Reading a distro's files starts it, so it is looked into only when the person asks.
 #[tauri::command(async)]
 pub fn wsl_seen(name: String) -> Answer<InDistro> {
+    if wiring::alias_off() {
+        return Err(Refusal::of("aliasOff"));
+    }
     let (distro, seen) =
         wiring::seen_in_distro(&name).ok_or_else(|| Refusal::about("wslUnread", name))?;
     Ok(InDistro { distro, seen })
@@ -152,6 +155,7 @@ pub(crate) fn stuck(why: wiring::Stuck) -> Refusal {
     match why {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
         wiring::Stuck::Shut => Refusal::of("wslShut"),
+        wiring::Stuck::AliasOff => Refusal::of("aliasOff"),
         wiring::Stuck::Unread(at) => Refusal::about("settingsUnread", at),
         wiring::Stuck::Moved(at) => Refusal::about("settingsMoved", at),
         wiring::Stuck::Plugged => Refusal::of("hooksByPlugin"),
