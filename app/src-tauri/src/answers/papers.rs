@@ -31,6 +31,7 @@ pub fn doc_file(
     }
     doc_out(&session.state, id)?;
     super::placing::may_file(&session, id)?;
+    super::placing::may_lodge(&session, id, folder)?;
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));

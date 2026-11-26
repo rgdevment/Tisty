@@ -4,7 +4,6 @@ import { agentGroups } from "../agentGroups";
 import {
   agentsDrawn,
   agentsPaint,
-  agentsTree,
   askAgents,
   folderShown,
   holdsTistySkills,
@@ -12,6 +11,7 @@ import {
   ofAnother,
 } from "../agentsSync";
 import type { Filed, Folded, Papers, Wired } from "../core";
+import { wallFor } from "../folders";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
@@ -225,8 +225,7 @@ export default function Tree({
   const grab = (e: React.PointerEvent, id: string, kind: Kind) => {
     if (e.button !== 0 || e.ctrlKey) return;
     const tall = kind === "folder" ? tallOf(id) : 0;
-    const walled =
-      kind === "folder" && !inAgents(id, papers.folders) ? agentsTree(papers.folders) : undefined;
+    const walled = kind === "folder" ? wallFor(papers.folders, id) : undefined;
     holding.current = { id, kind, tall, walled, x: e.clientX, y: e.clientY, on: false };
     took.current = false;
     setLifted(null);

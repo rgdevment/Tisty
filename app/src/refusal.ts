@@ -167,6 +167,7 @@ const KNOWN = [
   "diaryIsOne",
   "agentsHoldOnlyRules",
   "agentsFolderHolds",
+  "agentsKeepTheirFolders",
   "cloudMarkDamaged",
   "sealingNoCloud",
   "sealingPhrase",
