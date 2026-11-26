@@ -183,19 +183,34 @@ describe("a paste the window cannot make for the page", () => {
 
 describe("a paste asked of the window", () => {
   it("is heard when the page's own paste comes", async () => {
-    const heard = pasteHeard(document, Promise.resolve(true));
-    document.dispatchEvent(new Event("paste"));
+    document.body.innerHTML = '<article class="page" contenteditable="true"></article>';
+    const sheet = document.querySelector(".page") as Element;
+    const heard = pasteHeard(sheet, Promise.resolve(true));
+    sheet.dispatchEvent(new Event("paste", { bubbles: true }));
     await expect(heard).resolves.toBe(true);
   });
 
+  it("is not heard from a paste that lands beside the sheet", async () => {
+    vi.useFakeTimers();
+    try {
+      document.body.innerHTML = '<article class="page" contenteditable="true"></article>';
+      const heard = pasteHeard(document.querySelector(".page") as Element, Promise.resolve(true));
+      document.body.dispatchEvent(new Event("paste", { bubbles: true }));
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(heard).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("is told as not heard when the window could not send it", async () => {
-    await expect(pasteHeard(document, Promise.resolve(false))).resolves.toBe(false);
+    await expect(pasteHeard(document.body, Promise.resolve(false))).resolves.toBe(false);
   });
 
   it("is told as not heard when no paste comes in time", async () => {
     vi.useFakeTimers();
     try {
-      const heard = pasteHeard(document, Promise.resolve(true));
+      const heard = pasteHeard(document.body, Promise.resolve(true));
       await vi.advanceTimersByTimeAsync(2000);
       await expect(heard).resolves.toBe(false);
     } finally {

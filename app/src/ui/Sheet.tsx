@@ -848,11 +848,13 @@ export default function Sheet(props: Readonly<Props>) {
             copy: carried(back),
             paste: (plain) => {
               back();
-              const into = shown.current?.document;
+              // The menu took the frame's focus, and a paste lands only on the sheet that holds it again.
+              const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
+              sheet?.focus({ preventScroll: true });
               const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? "Shift V" : "V")));
-              if (!into?.hasFocus()) return byKeys();
+              if (!sheet || sheet.ownerDocument.activeElement !== sheet) return byKeys();
               if (plain) liveWriter(writer).plainNext();
-              void pasteHeard(into, menuPasted(plain)).then((heard) => heard || byKeys());
+              void pasteHeard(sheet, menuPasted(plain)).then((heard) => heard || byKeys());
             },
             format: (mark, close) => {
               back();

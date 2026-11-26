@@ -62,17 +62,17 @@ const pastesOf = (asked: PageMenuAsked, acts: PageMenuActs): Choice[] =>
 
 const PASTE_HEARD_MS = 1500;
 
-// The host's keys come back as the page's own paste, so a paste that never comes is told rather than lost.
-export const pasteHeard = (page: Document, sent: Promise<boolean>): Promise<boolean> =>
+// The host's keys come back as the sheet's own paste, so one that lands elsewhere or never comes is told, not lost.
+export const pasteHeard = (sheet: Element, sent: Promise<boolean>): Promise<boolean> =>
   new Promise((done) => {
     const ended = (heard: boolean) => {
       clearTimeout(waiting);
-      page.removeEventListener("paste", heardIt, true);
+      sheet.removeEventListener("paste", heardIt, true);
       done(heard);
     };
     const heardIt = () => ended(true);
     const waiting = setTimeout(() => ended(false), PASTE_HEARD_MS);
-    page.addEventListener("paste", heardIt, true);
+    sheet.addEventListener("paste", heardIt, true);
     void sent.then((ok) => {
       if (!ok) ended(false);
     });
