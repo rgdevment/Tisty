@@ -106,6 +106,17 @@ describe("the ⟳ button in the Agents folder", () => {
     expect(screen.queryByText(/new$/)).toBeNull();
   });
 
+  it("opening Agents again within the minute does not list the folders again", async () => {
+    vi.resetModules();
+    const { default: AgentsRefresh } = await import("../ui/AgentsRefresh");
+    const first = render(<AgentsRefresh />);
+    await act(async () => {});
+    first.unmount();
+    render(<AgentsRefresh />);
+    await act(async () => {});
+    expect(ipc.calls).toBe(1);
+  });
+
   it("asks nothing when the agents change while no count is shown", async () => {
     await mount();
     await act(async () => {

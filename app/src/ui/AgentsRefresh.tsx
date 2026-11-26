@@ -27,18 +27,19 @@ const newOf = (now: string[]) => {
   return now.filter((one) => !known.has(one)).length;
 };
 
+// Kept across visits to Agents, so opening the page again does not list the folders again within the minute.
+const lastLook = { at: 0, list: null as string[] | null };
+
 export default function AgentsRefresh() {
   const [fresh, setFresh] = useState(0);
-  const latest = useRef<string[] | null>(null);
-  const lastLook = useRef(0);
   const counting = useRef(false);
 
   // Without this computer's yes there is nothing to compare, so what was seen stays as it was.
   const look = useCallback(() => {
-    lastLook.current = Date.now();
+    lastLook.at = Date.now();
     return agentsTakeable()
       .then((now) => {
-        latest.current = now;
+        lastLook.list = now;
         const many = now ? newOf(now) : 0;
         counting.current = many > 0;
         setFresh(many);
@@ -48,9 +49,15 @@ export default function AgentsRefresh() {
   }, []);
 
   useEffect(() => {
-    look();
+    const due = () => Date.now() - lastLook.at >= LOOK_EVERY_MS;
+    if (due()) look();
+    else {
+      const many = lastLook.list ? newOf(lastLook.list) : 0;
+      counting.current = many > 0;
+      setFresh(many);
+    }
     const focused = () => {
-      if (Date.now() - lastLook.current >= LOOK_EVERY_MS) look();
+      if (due()) look();
     };
     // Only a count already shown can go stale; anything new waits for the next focus.
     const changed = () => {
