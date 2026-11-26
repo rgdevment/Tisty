@@ -198,7 +198,7 @@ describe("carrying on its own", () => {
     let first = true;
     ipc.answer = (cmd) => {
       if (cmd === "sync_state") return Promise.resolve({ ...state });
-      if (!first) return Promise.resolve({ carried: "none", undecided: [] });
+      if (!first || cmd !== "sync_now") return Promise.resolve({ carried: "none", undecided: [] });
       first = false;
       return Promise.resolve({
         carried: "none",
@@ -744,5 +744,101 @@ describe("a machine waiting to be confirmed", () => {
     await settle();
 
     expect(knocking().waiting).toHaveLength(0);
+  });
+});
+
+describe("the mark the glance weighs", () => {
+  const carriedAnswer = { carried: "same", undecided: [] };
+
+  const folderAt = (
+    marks: { now: string },
+    round: (nth: number, way: unknown) => Promise<unknown> = () => Promise.resolve(carriedAnswer),
+  ) => {
+    let rounds = 0;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(marks.now);
+      if (cmd === "sync_now") return round(++rounds, args.way);
+      return Promise.resolve(carriedAnswer);
+    };
+  };
+
+  it("pulls at the first glance what landed after the startup pull", async () => {
+    const marks = { now: "m1" };
+    folderAt(marks);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    marks.now = "m2";
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    const rounds = sent("sync_now");
+    expect(rounds).toHaveLength(before + 1);
+    expect(rounds[rounds.length - 1].args.way).toBe("pull");
+  });
+
+  it("sends no round while the mark stays as the last round found it", async () => {
+    const marks = { now: "m1" };
+    folderAt(marks);
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    expect(sent("folder_astir").length).toBeGreaterThan(1);
+    expect(sent("sync_now")).toHaveLength(before);
+  });
+
+  it("does not move the mark on a round that met a busy cloud, so the glance still pulls", async () => {
+    const marks = { now: "m1" };
+    const busy = { carried: "none", undecided: [], deferred: { reason: "busy", left: 0 } };
+    folderAt(marks, (nth) =>
+      nth === 1
+        ? Promise.resolve(carriedAnswer)
+        : nth === 2
+          ? Promise.resolve(busy)
+          : new Promise(() => {}),
+    );
+    carried = carrying(() => {});
+    await settle();
+
+    marks.now = "m2";
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+    // The retry after the busy round hangs until it is called slow at 64 s, so only a glance after that can pull.
+    await vi.advanceTimersByTimeAsync(80_000);
+    const before = sent("sync_now").length;
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    const rounds = sent("sync_now");
+    expect(rounds).toHaveLength(before + 1);
+    expect(rounds[rounds.length - 1].args.way).toBe("pull");
+  });
+
+  it("does not read the mark for a push, which leaves the glance to find what stirred", async () => {
+    const marks = { now: "m1" };
+    folderAt(marks);
+    carried = carrying(() => {});
+    await settle();
+    ipc.calls = [];
+
+    marks.now = "m2";
+    carried.changed();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["push"]);
+    expect(sent("folder_astir")).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["push", "pull"]);
   });
 });

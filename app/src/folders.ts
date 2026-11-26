@@ -27,6 +27,13 @@ export function trail(folders: Folded[], at: string): string {
   return names.join(" / ");
 }
 
+/// Where a folder may not land: a plain one stays out of Agents, and one of Agents stays inside it.
+export function wallFor(folders: readonly Folded[], moving: string): Set<string> {
+  const agents = agentsTree(folders);
+  if (!inAgents(moving, folders)) return agents;
+  return new Set(folders.filter((one) => !agents.has(one.id)).map((one) => one.id));
+}
+
 export function destinations(
   folders: Folded[],
   skip: string | null,
@@ -44,14 +51,15 @@ export function destinations(
       .filter((one) => one.parent === at)
       .reduce((most, one) => Math.max(most, tallest(one.id)), 0);
   const tall = moving ? tallest(moving.id) : 0;
-  const walled = moving && !inAgents(moving.id, folders) ? agentsTree(folders) : new Set<string>();
+  const walled = moving ? wallFor(folders, moving.id) : new Set<string>();
+  const kept = moving && inAgents(moving.id, folders) && moving.parent !== null;
 
   return [
     {
       key: "unfiled",
       icon: "↥",
       label: t("unfiled"),
-      off: skip === null,
+      off: skip === null || Boolean(kept),
       onPick: () => land(undefined),
     },
     ...folders

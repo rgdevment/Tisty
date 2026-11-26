@@ -129,6 +129,9 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         beside_ready(paths, &state, over, &many[0], held.spot())?;
     }
 
+    if up.is_none() {
+        super::super::placed::pages_let_go(paths, &state, &many)?;
+    }
     let (moving, already) = which_ones_move(&state, &many, up)?;
 
     let under = up.and_then(|one| named_doc(&state, one));

@@ -789,9 +789,10 @@ fn spend(root: &Path, device: &DeviceId, number: u64) {
 
 fn next(root: &Path, device: &DeviceId) -> u64 {
     let mine = format!("{}-", stem(device));
-    let on_disk = all(root)
+    // Only the names are weighed: opening every body for its title cost a big library a pause per new document.
+    let on_disk = names(root)
         .iter()
-        .filter_map(|doc| doc.id.strip_prefix(&mine))
+        .filter_map(|id| id.strip_prefix(&mine))
         .filter_map(|number| number.parse::<u64>().ok())
         .max()
         .unwrap_or(0);

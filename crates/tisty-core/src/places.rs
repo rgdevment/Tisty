@@ -150,6 +150,37 @@ impl Places {
     pub fn may_copy(&self, state: &State, kept: &Kept) -> Result<(), Ruled> {
         self.of_doc(state, kept).copies()
     }
+
+    /// AGENTS takes in from outside only an agent's own file, one with its `agent:` card.
+    pub fn may_lodge(
+        &self,
+        state: &State,
+        kept: &Kept,
+        into: Place,
+        agents_own: bool,
+    ) -> Result<(), Ruled> {
+        let from = self.of_doc(state, kept);
+        match into == Place::Agents && from != Place::Agents && !agents_own {
+            true => Err(Ruled("agentsHoldOnlyRules")),
+            false => Ok(()),
+        }
+    }
+
+    /// A folder of AGENTS stays inside it, and only one already its own moves in; AGENTS itself moves only among the top folders.
+    pub fn may_shelve(
+        &self,
+        state: &State,
+        folder: FolderId,
+        into: Option<FolderId>,
+    ) -> Result<(), Ruled> {
+        let root = crate::agents::roots(state).contains(&folder);
+        match (self.of_folder(Some(folder)), self.of_folder(into)) {
+            (Place::Agents, Place::Agents) => Ok(()),
+            (Place::Agents, _) if root && into.is_none() => Ok(()),
+            (Place::Agents, _) => Err(Ruled("agentsKeepTheirFolders")),
+            _ => self.may_make(into, Making::Folder),
+        }
+    }
 }
 
 #[cfg(test)]
