@@ -15220,7 +15220,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 242
 
-Carried by `zip` 9.7.2.
+Carried by `zip` 9.7.3.
 
 ```text
 The MIT License (MIT)
