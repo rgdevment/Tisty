@@ -28,7 +28,8 @@ Desde la 1.32.1, un Tisty estable también responde a `tisty` a secas desde cual
 
 - **Conectado**: abre este Tisty. **Quitar** te pregunta antes: «Quitar Tisty de Claude Code», con los archivos que va a escribir bajo **Escribe en:**, y con **Sí, quitar** saca su entrada y los hooks que Tisty puso.
 - **Sin conectar**: **Conectar** escribe Tisty en su configuración, con la forma que ese agente lee. Si corre hooks, te muestra antes los archivos y los incluye, con una casilla para dejarlos fuera.
-- **Apunta a otro Tisty**: una copia vieja, o una que ya no está. La fila dice cuál: «Apunta a `C:\…\tisty.exe`, que ya no existe». **Corregir** te muestra qué va a escribir y, con **Sí, corregir**, lo apunta aquí.
+- **Apunta a otro Tisty**: una copia que ya no está, como al pasar de la Microsoft Store a winget. La fila dice cuál: «Apunta a `C:\…\tisty.exe`, que ya no existe». **Corregir** te muestra qué va a escribir y, con **Sí, corregir**, lo apunta aquí.
+- **Usa tu otra instalación de Tisty**: otra copia que sigue en este equipo, como con la Store y winget a la vez. Las dos funcionan, así que nada cambia solo y nada te lo pide; **Corregir** lo trae a esta si quieres.
 - **Puede que esté**: solo quedó su carpeta, así que quizás se desinstaló.
 - **Escrito a tu manera**: ya tiene una entrada de Tisty que Tisty no puede comprobar, como `npx`, un script tuyo o una ruta con una variable: «Su entrada de Tisty dice npx. Tisty la deja como la escribiste.». **Quitar** la saca, con la misma pregunta, si la quieres cambiar.
 - **No se pudo leer**: Tisty no pudo leer su archivo, así que no lo toca.
@@ -57,7 +58,7 @@ Un agente guarda la ruta del Tisty que conectaste. Si mueves Tisty o cambias de 
 3. Tisty cambia solo el programa de cada entrada: los argumentos, `env`, los matchers y los tiempos de los hooks quedan como estaban. Si uno falla, sigue con los demás y te dice el motivo.
 4. Sal del todo de cada agente corregido y ábrelo otra vez.
 
-Hay tres cosas que **Corregir todo** deja como están: un agente que apunta a otro Tisty que sigue en este equipo, porque quizás lo quieres así; una entrada o unos hooks que escribiste a tu manera; y una skill que Tisty no reconoce como suya. Un agente que desinstalaste tampoco sale en el aviso, aunque su archivo siga ahí. Claude Code y Codex son la excepción, porque otras apps usan su archivo: Claude Code sigue contando mientras esté Claude Desktop, VS Code o Cursor, y Codex, mientras esté ChatGPT, Warp, VS Code o Cursor. Si en ninguna lo usas, **Ahora no** calla el aviso. Y si una ruta está en un disco externo o en la red, Tisty no dice que ya no existe: puede que solo esté desconectado.
+Hay tres cosas que **Corregir todo** deja como están: un agente que usa tu otra instalación de Tisty, porque quizás lo quieres así; una entrada o unos hooks que escribiste a tu manera; y una skill que Tisty no reconoce como suya. Un agente que desinstalaste tampoco sale en el aviso, aunque su archivo siga ahí. Claude Code y Codex son la excepción, porque otras apps usan su archivo: Claude Code sigue contando mientras esté Claude Desktop, VS Code o Cursor, y Codex, mientras esté ChatGPT, Warp, VS Code o Cursor. Si en ninguna lo usas, **Ahora no** calla el aviso. Y si una ruta está en un disco externo o en la red, Tisty no dice que ya no existe: puede que solo esté desconectado.
 
 **Ejemplo.** Marisol tiene las skills de Tisty encendidas, Claude Code con el plugin de Tisty y, de antes, los hooks que agregó desde Configuración, que apuntan a una carpeta que borró. El recuadro dice **Claude Code · hooks** y «El plugin de Tisty ya trae sus hooks, así que estos se quitan. Tisty lee antes su registro (installed_plugins.json y settings.json) para comprobarlo.». Pulsa **Corregir**, y el resultado lo confirma: **Claude Code** · hooks quitados, los trae el plugin. Así no corren dos veces.
 
@@ -93,13 +94,13 @@ Tisty también está en los directorios donde los agentes buscan servidores: el 
 
 ### Agentes dentro de WSL
 
-En Windows, un agente que corre en una distro de Linux bajo WSL lee su configuración en Linux, donde una ruta `C:\...` no existe. **Configuración › Agentes › Conectados** muestra tus distros; **Buscar en Ubuntu** lee los archivos de esa distro (y la enciende si estaba apagada) y conecta sus agentes al mismo Tisty, con su ruta de Linux. Una distro que ya buscaste se vuelve a mirar sola cuando pulsas la pestaña **Conectados**, nunca al abrir la ventana ni Configuración. Sus agentes se corrigen uno por uno, en su fila:
+En Windows, un agente que corre en una distro de Linux bajo WSL lee su configuración en Linux, donde una ruta `C:\...` no existe. **Configuración › Agentes › Conectados** muestra tus distros; **Buscar en Ubuntu** lee los archivos de esa distro (y la enciende si estaba apagada) y conecta sus agentes al mismo Tisty, con su ruta de Linux. Una distro que ya buscaste se vuelve a mirar sola cuando pulsas la pestaña **Conectados**, y al abrir la ventana solo si ya está encendida: Tisty nunca enciende una distro para mirarla, y un agente suyo que quedó apuntando a un Tisty que ya no está entra en el aviso, con el nombre de su distro, «Claude Code (Ubuntu · WSL)». Tisty también encuentra un agente instalado en la distro con npm (bajo nvm o `~/.npm-global`), bun, volta o cargo. Sus agentes se corrigen uno por uno, en su fila:
 
 ```console
 $ claude mcp add --scope user tisty -- /mnt/c/Users/<tú>/AppData/Local/Programs/Tisty/tisty.exe mcp
 ```
 
-Es el mismo Tisty y las mismas tareas y documentos que en Windows. Si una distro tiene apagados los programas de Windows (`[interop] enabled = false` en `/etc/wsl.conf`), Tisty lo dice y no escribe nada ahí.
+Es el mismo Tisty y las mismas tareas y documentos que en Windows. Si una distro tiene apagados los programas de Windows (`[interop] enabled = false` en `/etc/wsl.conf`), Tisty lo dice y no escribe nada ahí. Lo mismo con una copia de la Microsoft Store que tiene apagado su alias `tisty.exe` en **Configuración › Aplicaciones › Configuración avanzada de aplicaciones › Alias de ejecución de aplicaciones**: ningún agente podría arrancarla, así que Tisty te pide encenderlo y no escribe nada.
 
 ### A mano
 

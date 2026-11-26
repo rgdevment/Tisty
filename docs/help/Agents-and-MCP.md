@@ -28,7 +28,8 @@ Since 1.32.1 a stable Tisty also answers to plain `tisty` from any terminal, so 
 
 - **Connected** — it starts this Tisty. **Remove** asks you first: «Remove Tisty from Claude Code», with the files it will write under **It writes in:**, and with **Yes, remove** it takes out its entry and the hooks Tisty put there.
 - **Not connected** — **Connect** writes Tisty into its settings, in the shape that agent reads. If it runs hooks, it shows you the files first and includes them, with a tick to leave them out.
-- **Points at another Tisty** — an older copy, or one that is gone. The row says which: «Points at `C:\…\tisty.exe`, which is no longer there». **Fix** shows you what it will write and, with **Yes, fix**, points it here.
+- **Points at another Tisty** — a copy that is gone, as after moving from the Microsoft Store to winget. The row says which: «Points at `C:\…\tisty.exe`, which is no longer there». **Fix** shows you what it will write and, with **Yes, fix**, points it here.
+- **Uses your other Tisty install** — another copy still on this computer, as with the Store and winget side by side. Both work, so nothing changes on its own and nothing asks for you; **Fix** brings it to this one if you want.
 - **May be here** — only its folder is left, so it may have been uninstalled.
 - **Set up your own way** — it already holds a Tisty entry that Tisty cannot check, such as `npx`, a script of yours or a path with a variable: «Its Tisty entry says npx. Tisty leaves it as you wrote it.». **Remove** takes it out, with the same question, if you want to change it.
 - **Could not be read** — Tisty could not read its file, so it does not touch it.
@@ -57,7 +58,7 @@ An agent keeps the path of the Tisty you connected. If you move Tisty or switch 
 3. Tisty changes only the program of each entry: the arguments, `env`, and the hooks' matchers and times stay as they were. If one fails, it goes on with the rest and tells you why.
 4. Quit each fixed agent completely and open it again.
 
-There are three things **Fix all** leaves as they are: an agent that points to another Tisty still on this computer, since you may want it that way; an entry or hooks you set up your own way; and a skill Tisty does not recognise as its own. An agent you uninstalled is not in the notice either, even if its file is still there. Claude Code and Codex are the exception, because other apps use their file: Claude Code still counts while Claude Desktop, VS Code or Cursor is there, and Codex, while ChatGPT, Warp, VS Code or Cursor is. If you use it in none of them, **Not now** quiets the notice. And if a path is on an external drive or on the network, Tisty does not say it is gone: it may only be disconnected.
+There are three things **Fix all** leaves as they are: an agent that uses your other Tisty install, since you may want it that way; an entry or hooks you set up your own way; and a skill Tisty does not recognise as its own. An agent you uninstalled is not in the notice either, even if its file is still there. Claude Code and Codex are the exception, because other apps use their file: Claude Code still counts while Claude Desktop, VS Code or Cursor is there, and Codex, while ChatGPT, Warp, VS Code or Cursor is. If you use it in none of them, **Not now** quiets the notice. And if a path is on an external drive or on the network, Tisty does not say it is gone: it may only be disconnected.
 
 **Example.** Marisol has Tisty's skills on, Claude Code with the Tisty plugin and, from before, the hooks added from Settings, which point at a folder that was deleted. The box says **Claude Code · hooks** and «The Tisty plugin already brings its hooks, so these are removed. Tisty first reads its records (installed_plugins.json and settings.json) to make sure.». Marisol presses **Fix**, and the result confirms it: **Claude Code** · hooks removed, the plugin brings them. That way they do not run twice.
 
@@ -93,13 +94,13 @@ Tisty is also listed where agents look for servers: the official MCP Registry as
 
 ### Agents inside WSL
 
-On Windows, an agent that runs in a Linux distro under WSL reads its settings in Linux, where a `C:\...` path does not exist. **Settings › Agents › Connected** lists your distros; **Look in Ubuntu** reads that distro's files (starting it if it was stopped) and connects its agents to the same Tisty, through its Linux path. A distro you already looked in is looked at again by itself when you press the **Connected** tab, never when the window or Settings opens. Its agents are fixed one by one, on their row:
+On Windows, an agent that runs in a Linux distro under WSL reads its settings in Linux, where a `C:\...` path does not exist. **Settings › Agents › Connected** lists your distros; **Look in Ubuntu** reads that distro's files (starting it if it was stopped) and connects its agents to the same Tisty, through its Linux path. A distro you already looked in is looked at again by itself when you press the **Connected** tab, and when the window opens only if it is already running: Tisty never starts a distro to look, and one of its agents left pointing at a Tisty that is gone joins the notice, named with its distro, «Claude Code (Ubuntu · WSL)». Tisty also finds an agent installed in the distro with npm (under nvm or `~/.npm-global`), bun, volta or cargo. Its agents are fixed one by one, on their row:
 
 ```console
 $ claude mcp add --scope user tisty -- /mnt/c/Users/<you>/AppData/Local/Programs/Tisty/tisty.exe mcp
 ```
 
-It is the same Tisty and the same tasks and documents as on Windows. If a distro has Windows programs turned off (`[interop] enabled = false` in `/etc/wsl.conf`), Tisty says so and writes nothing there.
+It is the same Tisty and the same tasks and documents as on Windows. If a distro has Windows programs turned off (`[interop] enabled = false` in `/etc/wsl.conf`), Tisty says so and writes nothing there. The same goes for a Microsoft Store copy whose `tisty.exe` alias is turned off in **Settings › Apps › Advanced app settings › App execution aliases**: no agent could start it, so Tisty asks you to turn it on and writes nothing.
 
 ### By hand
 
