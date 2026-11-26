@@ -468,12 +468,13 @@ fn hooks_repointed(
     let (kind, at) = hooks_of(client, place)?;
     let shown = at.display().to_string();
     let was = files::text(&at)?;
-    let now = match ask.hooks_out {
+    let own = match ask.hooks_out {
         true => hooks::without_those(kind, &was, place, &ask.hooks),
         false => hooks::repointed(kind, &was, place, &ask.hooks),
     }
-    .and_then(|now| user_hooks::repointed(kind, &now, place, &ask.hooks))
     .ok_or_else(|| Stuck::HooksPuzzling(shown.clone()))?;
+    // The person's hooks that cannot move cleanly stay as they were and keep asking; Tisty's own are fixed anyway.
+    let now = user_hooks::repointed(kind, &own, place, &ask.hooks).unwrap_or(own);
     match now == was {
         true => Err(Stuck::Moved(shown)),
         false if ask.hooks_out => unhook_written(kind, place, &at, &was, &now, writes),

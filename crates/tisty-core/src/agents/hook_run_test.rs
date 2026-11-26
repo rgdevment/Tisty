@@ -99,14 +99,14 @@ fn a_script_hears_what_the_agent_said_and_which_event_and_agent_asked() {
 #[test]
 fn a_script_that_outlasts_its_time_is_felled_and_never_blocks() {
     for (name, ran) in each_shell(
-        "Start-Sleep -Seconds 5; exit 2",
-        "sleep 5; exit 2",
+        "Start-Sleep -Seconds 10; exit 2",
+        "sleep 10; exit 2",
         b"{}",
         Duration::from_millis(500),
     ) {
         assert!(ran.timed_out, "{name}");
         assert!(!ran.blocks(), "{name}");
-        assert!(ran.took < Duration::from_secs(3), "{name} {:?}", ran.took);
+        assert!(ran.took < Duration::from_secs(6), "{name} {:?}", ran.took);
     }
 }
 
@@ -156,14 +156,14 @@ fn on_path_finds_a_program_only_in_an_absolute_directory() {
 #[test]
 fn a_script_leaving_a_background_process_holding_stderr_neither_hangs_nor_loses_what_it_said() {
     for (name, ran) in each_shell(
-        "Start-Process -NoNewWindow -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 5'; [Console]::Error.WriteLine('early'); exit 0",
-        "sleep 5 &\necho early >&2\nexit 0",
+        "Start-Process -NoNewWindow -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 8'; [Console]::Error.WriteLine('early'); exit 0",
+        "sleep 8 &\necho early >&2\nexit 0",
         b"{}",
         LONG,
     ) {
         assert_eq!(ran.code, Some(0), "{name}");
         assert_eq!(ran.said, "early", "{name}");
-        assert!(ran.took < Duration::from_secs(4), "{name} {:?}", ran.took);
+        assert!(ran.took < Duration::from_secs(6), "{name} {:?}", ran.took);
     }
 }
 

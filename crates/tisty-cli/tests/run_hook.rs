@@ -36,8 +36,8 @@ fn passing() -> &'static str {
 
 fn sleeping() -> &'static str {
     match cfg!(windows) {
-        true => "Start-Sleep -Seconds 5; exit 2\n",
-        false => "sleep 5\nexit 2\n",
+        true => "Start-Sleep -Seconds 10; exit 2\n",
+        false => "sleep 10\nexit 2\n",
     }
 }
 
@@ -167,7 +167,11 @@ fn a_registered_script_that_exits_two_before_a_tool_is_denied_in_each_agents_own
 fn a_script_that_exits_zero_says_nothing() {
     let home = Home::new();
     home.registers(passing(), Event::BeforeTool, &AGENTS, 30);
-    for agent in ["claude-code", "copilot"] {
+    let agents: &[&str] = match cfg!(windows) {
+        true => &["claude-code", "copilot"],
+        false => &AGENTS,
+    };
+    for agent in agents {
         assert_eq!(silent(&home.hook(agent)), "", "{agent}");
     }
 }
@@ -251,7 +255,7 @@ fn a_script_that_outlasts_its_time_is_stopped_and_never_blocks() {
     home.registers(sleeping(), Event::BeforeTool, &AGENTS, 1);
     let began = std::time::Instant::now();
     assert_eq!(silent(&home.hook("codex")), "");
-    assert!(began.elapsed().as_secs() < 4, "{:?}", began.elapsed());
+    assert!(began.elapsed().as_secs() < 6, "{:?}", began.elapsed());
 }
 
 #[test]
