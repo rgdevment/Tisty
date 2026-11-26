@@ -541,7 +541,7 @@ written once with the crates that carry it.
 | `zeroize` | 1.9.2 | Apache-2.0 OR MIT |
 | `zerotrie` | 0.2.5 | Unicode-3.0 |
 | `zerovec` | 0.11.9 | Unicode-3.0 |
-| `zip` | 9.7.0 | MIT |
+| `zip` | 9.7.2 | MIT |
 | `zlib-rs` | 0.6.8 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.4 | Apache-2.0 |

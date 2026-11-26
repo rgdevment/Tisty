@@ -15199,7 +15199,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 241
 
-Carried by `zip` 9.7.0.
+Carried by `zip` 9.7.2.
 
 ```text
 The MIT License (MIT)
