@@ -99,22 +99,22 @@ fn a_script_hears_what_the_agent_said_and_which_event_and_agent_asked() {
 #[test]
 fn a_script_that_outlasts_its_time_is_felled_and_never_blocks() {
     for (name, ran) in each_shell(
-        "Start-Sleep -Seconds 60; exit 2",
-        "sleep 60; exit 2",
+        "Start-Sleep -Seconds 5; exit 2",
+        "sleep 5; exit 2",
         b"{}",
         Duration::from_millis(500),
     ) {
         assert!(ran.timed_out, "{name}");
         assert!(!ran.blocks(), "{name}");
-        assert!(ran.took < Duration::from_secs(30), "{name} {:?}", ran.took);
+        assert!(ran.took < Duration::from_secs(3), "{name} {:?}", ran.took);
     }
 }
 
 #[test]
 fn what_a_script_says_on_stderr_is_cut_at_the_cap() {
     for (name, ran) in each_shell(
-        "$text = 'a' * 100000; [Console]::Error.Write($text)",
-        "head -c 100000 /dev/zero | tr '\\000' a >&2",
+        "$text = 'a' * 70000; [Console]::Error.Write($text)",
+        "head -c 70000 /dev/zero | tr '\\000' a >&2",
         b"{}",
         LONG,
     ) {
@@ -125,7 +125,7 @@ fn what_a_script_says_on_stderr_is_cut_at_the_cap() {
 
 #[test]
 fn a_script_that_does_not_read_a_big_input_still_ends() {
-    let heard = vec![b'x'; 4 * 1024 * 1024];
+    let heard = vec![b'x'; 512 * 1024];
     for (name, ran) in each_shell("exit 0", "exit 0", &heard, LONG) {
         assert_eq!(ran.code, Some(0), "{name}");
     }
@@ -156,14 +156,14 @@ fn on_path_finds_a_program_only_in_an_absolute_directory() {
 #[test]
 fn a_script_leaving_a_background_process_holding_stderr_neither_hangs_nor_loses_what_it_said() {
     for (name, ran) in each_shell(
-        "Start-Process -NoNewWindow -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 8'; [Console]::Error.WriteLine('early'); exit 0",
-        "sleep 8 &\necho early >&2\nexit 0",
+        "Start-Process -NoNewWindow -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 5'; [Console]::Error.WriteLine('early'); exit 0",
+        "sleep 5 &\necho early >&2\nexit 0",
         b"{}",
         LONG,
     ) {
         assert_eq!(ran.code, Some(0), "{name}");
         assert_eq!(ran.said, "early", "{name}");
-        assert!(ran.took < Duration::from_secs(6), "{name} {:?}", ran.took);
+        assert!(ran.took < Duration::from_secs(4), "{name} {:?}", ran.took);
     }
 }
 
