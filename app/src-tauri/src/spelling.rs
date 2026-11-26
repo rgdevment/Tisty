@@ -61,26 +61,25 @@ pub async fn word_learned(app: tauri::AppHandle, word: String, tongue: Option<St
         .unwrap_or(false)
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(windows, target_os = "macos"))]
 async fn asked_of_system<T: Send + 'static>(
     app: tauri::AppHandle,
     ask: impl FnOnce() -> T + Send + 'static,
 ) -> Option<T> {
     let (tx, rx) = std::sync::mpsc::channel();
-    app.run_on_main_thread(move || {
+    system::run_there(&app, move || {
         let _ = tx.send(ask());
-    })
-    .ok()?;
+    })?;
     tauri::async_runtime::spawn_blocking(move || rx.recv_timeout(SYSTEM_ANSWERS_WITHIN).ok())
         .await
         .ok()
         .flatten()
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(windows, target_os = "macos"))]
 const SYSTEM_ANSWERS_WITHIN: std::time::Duration = std::time::Duration::from_secs(2);
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(windows, target_os = "macos")))]
 async fn asked_of_system<T: Send + 'static>(
     _app: tauri::AppHandle,
     ask: impl FnOnce() -> T + Send + 'static,
@@ -92,6 +91,9 @@ async fn asked_of_system<T: Send + 'static>(
 #[allow(unsafe_code)]
 mod system {
     use super::{Spelled, tongue_chosen};
+    use std::cell::RefCell;
+    use std::sync::OnceLock;
+    use std::sync::mpsc::{Sender, channel};
     use windows::Win32::Globalization::{
         GetUserDefaultLocaleName, ISpellChecker, ISpellCheckerFactory, SpellCheckerFactory,
     };
@@ -128,15 +130,49 @@ mod system {
         String::from_utf16(&name[..len]).ok()
     }
 
+    type Job = Box<dyn FnOnce() + Send>;
+
+    // Loading a language's dictionary takes a fifth of a second, so one thread keeps the speller between right-clicks.
+    static SPELLER: OnceLock<Option<Sender<Job>>> = OnceLock::new();
+
     thread_local! {
-        // A thread already in an apartment answers S_FALSE or a changed mode, and the speller works in either.
-        static JOINED: () = {
-            let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
-        };
+        static HELD: RefCell<Option<(Option<String>, ISpellChecker)>> = const { RefCell::new(None) };
+    }
+
+    pub(super) fn run_there(
+        _app: &tauri::AppHandle,
+        job: impl FnOnce() + Send + 'static,
+    ) -> Option<()> {
+        let speller = SPELLER.get_or_init(|| {
+            let (tx, rx) = channel::<Job>();
+            std::thread::Builder::new()
+                .name("speller".into())
+                .spawn(move || {
+                    let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
+                    for job in rx {
+                        job();
+                    }
+                })
+                .ok()
+                .map(|_| tx)
+        });
+        speller.as_ref()?.send(Box::new(job)).ok()
     }
 
     fn checker(asked: Option<&str>) -> Option<ISpellChecker> {
-        JOINED.with(|()| ());
+        HELD.with_borrow_mut(|held| {
+            if let Some((tongue, one)) = held.as_ref()
+                && tongue.as_deref() == asked
+            {
+                return Some(one.clone());
+            }
+            let made = made_checker(asked)?;
+            *held = Some((asked.map(str::to_owned), made.clone()));
+            Some(made)
+        })
+    }
+
+    fn made_checker(asked: Option<&str>) -> Option<ISpellChecker> {
         unsafe {
             let factory: ISpellCheckerFactory =
                 CoCreateInstance(&SpellCheckerFactory, None, CLSCTX_INPROC_SERVER).ok()?;
@@ -183,6 +219,13 @@ mod system {
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
     use objc2_foundation::{NSArray, NSRange, NSString};
+
+    pub(super) fn run_there(
+        app: &tauri::AppHandle,
+        job: impl FnOnce() + Send + 'static,
+    ) -> Option<()> {
+        app.run_on_main_thread(job).ok()
+    }
 
     fn checker() -> Option<Retained<AnyObject>> {
         unsafe { msg_send![class!(NSSpellChecker), sharedSpellChecker] }
