@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import type { NodeChange } from "@xyflow/react";
+import { type NodeChange, NodeChangeset } from "@xyflow/react";
 import { describe, expect, it, vi } from "vitest";
 import { type Flow, readFlow, writeFlow } from "../src/flow";
 import type { FlowAltered, FlowPicked } from "../src/flowing";
@@ -96,5 +96,28 @@ describe("moving and sizing on the canvas", () => {
 
     act(() => one.hook.result.current.moved([{ type: "select", id: "group:cli", selected: true }]));
     expect(one.pick).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes a changeset from the canvas as it takes an array", () => {
+    const made = (changes: Iterable<NodeChange>) => {
+      const one = moving({ kind: "node", id: "B" });
+      act(() => one.hook.result.current.moved(changes));
+      return one;
+    };
+    const changes: NodeChange[] = [
+      { type: "select", id: "C", selected: true },
+      { type: "position", id: "A", position: { x: 30, y: 25 }, dragging: false },
+    ];
+
+    const changeset = new NodeChangeset();
+    changeset.add(changes);
+
+    const fromArray = made(changes);
+    const fromChangeset = made(changeset);
+
+    expect(fromChangeset.pick).toHaveBeenLastCalledWith({ kind: "nodes", ids: ["B", "C"] });
+    expect(fromChangeset.pick.mock.calls).toEqual(fromArray.pick.mock.calls);
+    expect(fromChangeset.text()).toContain("%% tisty: A 130 25");
+    expect(fromChangeset.text()).toBe(fromArray.text());
   });
 });

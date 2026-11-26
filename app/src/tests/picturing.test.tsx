@@ -158,7 +158,7 @@ describe("handling a picture in the viewer", () => {
     render(<PictureViewer shots={shots} start={0} onClose={() => {}} />);
     fireEvent.mouseDown(picture(), { clientX: 10, clientY: 10 });
     fireEvent.mouseMove(picture(), { clientX: 60, clientY: 10 });
-    expect(picture().style.transform).toContain("translate(0px, 0px)");
+    expect(picture().style.transform).toMatch(/translate\(0px(, 0px)?\)/);
 
     fireEvent.doubleClick(picture());
     fireEvent.mouseDown(picture(), { clientX: 10, clientY: 10 });

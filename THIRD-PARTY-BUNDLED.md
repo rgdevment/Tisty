@@ -93,8 +93,8 @@ written once with the crates that carry it.
 | `@types/trusted-types` | 2.0.7 | MIT |
 | `@types/unist` | 3.0.3 | MIT |
 | `@upsetjs/venn.js` | 2.0.0 | MIT |
-| `@xyflow/react` | 12.12.0 | MIT |
-| `@xyflow/system` | 0.0.83 | MIT |
+| `@xyflow/react` | 13.0.2 | MIT |
+| `@xyflow/system` | 1.0.0 | MIT |
 | `chevrotain` | 13.2.0 | Apache-2.0 |
 | `classcat` | 5.0.5 | MIT |
 | `commander` | 7.2.0 | MIT |
@@ -166,6 +166,7 @@ written once with the crates that carry it.
 | `points-on-curve` | 0.2.0 | MIT |
 | `points-on-path` | 0.2.1 | MIT |
 | `react` | 19.3.1 | MIT |
+| `react-compiler-runtime` | 1.0.0 | MIT |
 | `react-dom` | 19.3.1 | MIT |
 | `robust-predicates` | 3.0.3 | Unlicense |
 | `roughjs` | 4.6.6 | MIT |
@@ -180,9 +181,8 @@ written once with the crates that carry it.
 | `stylis` | 4.4.0 | MIT |
 | `tinyexec` | 1.3.1 | MIT |
 | `ts-dedent` | 2.3.0 | MIT |
-| `use-sync-external-store` | 1.7.0 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
-| `zustand` | 4.5.7 | MIT |
+| `zustand` | 5.1.0 | MIT |
 
 ## In the core (359 crates)
 
@@ -5480,6 +5480,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### `react-compiler-runtime` — MIT
+
+```text
+MIT License
+
+Copyright (c) the react-compiler-runtime authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The package ships no licence file. Its text is at https://github.com/facebook/react
+```
+
 ### `react-dom` — MIT
 
 ```text
@@ -5795,32 +5823,6 @@ SOFTWARE.
 MIT License
 
 Copyright (c) 2018 Tamino Martinius
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-### `use-sync-external-store` — MIT
-
-```text
-MIT License
-
-Copyright (c) Meta Platforms, Inc. and affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

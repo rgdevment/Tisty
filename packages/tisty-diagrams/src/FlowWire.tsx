@@ -3,9 +3,10 @@ import {
   type Edge,
   EdgeLabelRenderer,
   type EdgeProps,
+  useEdgesStore,
   useInternalNode,
-  useStore,
-  useStoreApi,
+  useNodesStore,
+  useReactFlowStoreApi,
 } from "@xyflow/react";
 import { endWordAt, routeOf } from "./flowroutes";
 import { linesSaid } from "./picture";
@@ -41,9 +42,9 @@ export function Wire({
 }: EdgeProps<WireEdge>) {
   const from = useInternalNode(source);
   const to = useInternalNode(target);
-  const edges = useStore((store) => store.edges);
-  const said = useStore(shapesSaidOnce);
-  const store = useStoreApi();
+  const edges = useEdgesStore((store) => store.edges);
+  const said = useNodesStore(shapesSaidOnce);
+  const { nodesStore: store } = useReactFlowStoreApi();
   if (!from || !to || !data) return null;
   const route =
     routesIn(edges, said, store.getState().nodeLookup).get(id) ?? routeOf(rectOf(from), rectOf(to));
