@@ -47,7 +47,7 @@ jobs:
           echo "every workflow parses"
 
       # Parsing says nothing of a needs that names a job that is gone, or of input expanded into a shell.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: zizmor@1.30.1
       # Offline, so a pull request is judged on its own lines and never on whether GitHub's API answered.
@@ -144,7 +144,7 @@ jobs:
         with:
           shared-key: workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: nextest
 

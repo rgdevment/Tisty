@@ -147,8 +147,10 @@ export const handsOn = (page, frame) => {
 };
 
 export const opened = async (page, url) => {
-  await page.goto(url);
+  // replaces the entry instead of adding one: the app window has no page behind it for a Back to walk to
+  await Promise.all([page.waitForEvent("load"), page.evaluate((to) => location.replace(to), url)]);
   await page.waitForFunction(() => window.enginesReady === true, null, { timeout: 120_000 });
+  if ((await page.evaluate(() => history.length)) !== 1) throw new Error("the page has a page behind it, which the app window does not");
 };
 
 // With `native` the page lets the browser write plain words itself, as the switch does in the app.
