@@ -563,7 +563,7 @@ Las copias del archivo y las versiones del documento se ven juntas en **Historia
 
 Si todavía no hay nada, el historial dice «Todavía nada: ni versiones ni copias del archivo». Que haya una copia y ninguna versión es normal: las versiones duran el plazo que eliges en [[Versiones anteriores|Documentos#versiones-anteriores]], 30 días si no lo cambiaste, y las copias se guardan por número. **Vaciar el historial** borra las versiones del documento; las copias del archivo se quedan.
 
-![El historial de la regla Reglas de Claude: a la izquierda, una sola lista con versiones del documento y copias del archivo mezcladas por fecha, y al final Archivo original de Claude, antes de que Tisty lo escribiera por primera vez, con no vence; la copia elegida a la derecha, con el archivo completo y el botón Devolver al archivo arriba](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-historial-light.webp)
+<!-- screenshot: assets/screens/app/es-agentes-historial-light.webp — alt: El historial de la regla Reglas de Claude: a la izquierda, una sola lista con versiones del documento y copias del archivo mezcladas por fecha, y al final Archivo original de Claude, antes de que Tisty lo escribiera por primera vez, con no vence; la copia elegida a la derecha, con el archivo completo y el botón Devolver al archivo arriba -->
 
 **Una copia devuelta no cambia tu documento.** El archivo vuelve a decir lo que decía la copia, y la ficha pasa a **Cambiado por fuera**: eliges **Traer el cambio**, para que el documento diga lo mismo, o **Sobrescribir con Tisty**, si te arrepentiste. Así nunca pierdes ninguno de los dos lados.
 

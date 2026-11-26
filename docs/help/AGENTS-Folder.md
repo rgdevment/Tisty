@@ -563,7 +563,7 @@ The file's copies and the document's versions show together in **History**, at t
 
 When there is nothing yet, the history says «Nothing yet: no versions and no file copies». One copy and no versions is normal: versions last the period you choose in [[Earlier versions|Documents#earlier-versions]], 30 days unless you changed it, and copies are kept by number. **Empty the history** removes the document's versions; the file copies stay.
 
-![The history of Claude's rule Rules: on the left, one list with the document's versions and the file's copies mixed by date, and at the end Claude's original file, before Tisty first wrote it, with never expires; the chosen copy on the right, with the whole file and the Put back in the file button at the top](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-agents-history-light.webp)
+<!-- screenshot: assets/screens/app/en-agents-history-light.webp — alt: The history of Claude's rule Rules: on the left, one list with the document's versions and the file's copies mixed by date, and at the end Claude's original file, before Tisty first wrote it, with never expires; the chosen copy on the right, with the whole file and the Put back in the file button at the top -->
 
 **A copy put back does not change your document.** The file says again what the copy said, and the card turns to **Changed outside**: you choose **Bring the change in**, so the document says the same, or **Overwrite with Tisty**, if you changed your mind. That way you never lose either side.
 
