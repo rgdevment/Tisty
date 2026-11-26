@@ -819,6 +819,15 @@ this computer and sending nothing:
   changes only its own entry or its own hooks. If the file changed since it was
   shown to you for fixing, could not be read, or is written in a way Tisty
   would not know how to change without spoiling it, nothing is written.
+- **Your own hooks.** A hook you write in Agents reaches an agent's file only
+  when you press **Register** on this computer and say **Yes, register**,
+  after seeing the whole script and the files it touches. Tisty keeps a copy
+  of the script in `agents/hooks` in its data folder on this computer, which
+  is not synced, backed up, put in a parcel or shared by link, and writes in
+  the agent's file only the line that calls it, `tisty run-hook`. It reads
+  those files again for **Verify**. The script runs when the agent reaches
+  its moment, or when you press **Try it once**, with your permissions; Tisty
+  keeps neither what goes in nor what comes out.
 - **What stays.** Beside each file it changes, two copies: the first it ever
   saw, ending in `.before-tisty`, and the one from just before, ending in
   `.before-tisty-last`. And in the window's own storage on this computer: which
