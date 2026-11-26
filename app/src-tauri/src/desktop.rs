@@ -480,30 +480,35 @@ pub fn pasted_plainly(app: tauri::AppHandle) {
 
 /// The page's own menu pastes as the keys would, so the clipboard lands by the page's paste with every type it holds.
 #[tauri::command]
-pub fn menu_pasted(app: tauri::AppHandle, plainly: bool) {
+pub fn menu_pasted(app: tauri::AppHandle, plainly: bool) -> bool {
     #[cfg(target_os = "macos")]
     {
         let _ = plainly;
-        if let Err(e) = app.run_on_main_thread(pasted_here) {
+        let sent = app.run_on_main_thread(pasted_here);
+        if let Err(e) = &sent {
             witness::warn(
                 channel::WINDOW,
                 "the menu's paste never reached the window",
                 &[("why", Fact::Why(e.to_string()))],
             );
         }
+        sent.is_ok()
     }
     #[cfg(windows)]
     {
         let _ = app;
-        keyed_paste(plainly);
+        keyed_paste(plainly)
     }
     #[cfg(not(any(windows, target_os = "macos")))]
-    let _ = (&app, plainly);
+    {
+        let _ = (&app, plainly);
+        false
+    }
 }
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
-fn keyed_paste(plainly: bool) {
+fn keyed_paste(plainly: bool) -> bool {
     use windows::Win32::System::Threading::GetCurrentProcessId;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput,
@@ -518,7 +523,7 @@ fn keyed_paste(plainly: bool) {
         owner == GetCurrentProcessId()
     };
     if !ours {
-        return;
+        return false;
     }
     let key = |vk: VIRTUAL_KEY, up: bool| INPUT {
         r#type: INPUT_KEYBOARD,
@@ -546,9 +551,8 @@ fn keyed_paste(plainly: bool) {
         .chain(held.iter().rev().map(|&one| key(one, true)))
         .collect();
     let size = i32::try_from(std::mem::size_of::<INPUT>()).unwrap_or(i32::MAX);
-    unsafe {
-        SendInput(&keys, size);
-    }
+    let sent = unsafe { SendInput(&keys, size) };
+    usize::try_from(sent).is_ok_and(|sent| sent == keys.len())
 }
 
 #[cfg(target_os = "macos")]

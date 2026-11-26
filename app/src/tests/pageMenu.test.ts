@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
-import { type PageMenuActs, type PageMenuAsked, pageChoices } from "../ui/pageMenu";
+import { type PageMenuActs, type PageMenuAsked, pageChoices, pasteHeard } from "../ui/pageMenu";
 
 const asking = (more: Partial<PageMenuAsked> = {}): PageMenuAsked => ({
   words: null,
@@ -11,6 +11,7 @@ const asking = (more: Partial<PageMenuAsked> = {}): PageMenuAsked => ({
   limited: false,
   block: false,
   pasting: false,
+  pasteByKeys: false,
   ...more,
 });
 
@@ -164,5 +165,41 @@ describe("a choice that cannot be taken out", () => {
     );
     expect(keys).toContain("copy");
     expect(keys).not.toContain("cut");
+  });
+});
+
+describe("a paste the window cannot make for the page", () => {
+  it("is shown off, with the keys that paste instead", () => {
+    const acts = acting();
+    const rows = pageChoices(asking({ pasting: true, pasteByKeys: true }), acts);
+    expect(rows.map((one) => [one.key, one.off])).toEqual([
+      ["paste", true],
+      ["paste-plain", true],
+    ]);
+    expect(rows[0].hint).toContain("V");
+    expect(rows[0].onPick).toBeUndefined();
+  });
+});
+
+describe("a paste asked of the window", () => {
+  it("is heard when the page's own paste comes", async () => {
+    const heard = pasteHeard(document, Promise.resolve(true));
+    document.dispatchEvent(new Event("paste"));
+    await expect(heard).resolves.toBe(true);
+  });
+
+  it("is told as not heard when the window could not send it", async () => {
+    await expect(pasteHeard(document, Promise.resolve(false))).resolves.toBe(false);
+  });
+
+  it("is told as not heard when no paste comes in time", async () => {
+    vi.useFakeTimers();
+    try {
+      const heard = pasteHeard(document, Promise.resolve(true));
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(heard).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

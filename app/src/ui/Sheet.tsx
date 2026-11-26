@@ -17,6 +17,7 @@ import {
   formatButtons,
   MARKED_FOR,
   markLately,
+  pressed,
   putBlock,
   stagesIn,
   type Widths,
@@ -58,11 +59,11 @@ import type { CardsShown } from "./liveCards";
 import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, TitleRow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
-import { MOVE_KEYS } from "./macKeys";
+import { MOVE_KEYS, onMac, onWindows } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { seatedNow } from "./pageLate";
-import { pageChoices } from "./pageMenu";
+import { pageChoices, pasteHeard } from "./pageMenu";
 import type { Act } from "./pageMoving";
 import { placedAt, placeOf } from "./pagePlaces";
 import type { Seat } from "./pageWriter";
@@ -826,6 +827,7 @@ export default function Sheet(props: Readonly<Props>) {
             limited: Boolean(props.agent),
             block: block !== null,
             pasting: true,
+            pasteByKeys: !onMac && !onWindows,
           },
           {
             guessed: (guess) => {
@@ -846,9 +848,11 @@ export default function Sheet(props: Readonly<Props>) {
             copy: carried(back),
             paste: (plain) => {
               back();
-              if (!shown.current?.document.hasFocus()) return;
+              const into = shown.current?.document;
+              const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? "Shift V" : "V")));
+              if (!into?.hasFocus()) return byKeys();
               if (plain) liveWriter(writer).plainNext();
-              void menuPasted(plain);
+              void pasteHeard(into, menuPasted(plain)).then((heard) => heard || byKeys());
             },
             format: (mark, close) => {
               back();

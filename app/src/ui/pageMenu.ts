@@ -16,6 +16,8 @@ export type PageMenuAsked = {
   readonly limited: boolean;
   readonly block: boolean;
   readonly pasting: boolean;
+  /** A system whose window cannot paste for the page leaves the paste to the keys, and says which. */
+  readonly pasteByKeys: boolean;
 };
 
 export type PageMenuActs = {
@@ -43,18 +45,38 @@ const spellingOf = (asked: PageMenuAsked, acts: PageMenuActs): Choice[] => {
   ];
 };
 
+const pasteOf = (asked: PageMenuAsked, acts: PageMenuActs, plain: boolean): Choice => {
+  const keys = pressed(plain ? "Shift V" : "V");
+  return {
+    key: plain ? "paste-plain" : "paste",
+    label: t(plain ? "pastePlain" : "pasteIt"),
+    keys,
+    ...(asked.pasteByKeys
+      ? { off: true, hint: fill("pasteByKeys", keys) }
+      : { onPick: () => acts.paste(plain) }),
+  };
+};
+
 const pastesOf = (asked: PageMenuAsked, acts: PageMenuActs): Choice[] =>
-  asked.pasting
-    ? [
-        { key: "paste", label: t("pasteIt"), keys: pressed("V"), onPick: () => acts.paste(false) },
-        {
-          key: "paste-plain",
-          label: t("pastePlain"),
-          keys: pressed("Shift V"),
-          onPick: () => acts.paste(true),
-        },
-      ]
-    : [];
+  asked.pasting ? [pasteOf(asked, acts, false), pasteOf(asked, acts, true)] : [];
+
+const PASTE_HEARD_MS = 1500;
+
+// The host's keys come back as the page's own paste, so a paste that never comes is told rather than lost.
+export const pasteHeard = (page: Document, sent: Promise<boolean>): Promise<boolean> =>
+  new Promise((done) => {
+    const ended = (heard: boolean) => {
+      clearTimeout(waiting);
+      page.removeEventListener("paste", heardIt, true);
+      done(heard);
+    };
+    const heardIt = () => ended(true);
+    const waiting = setTimeout(() => ended(false), PASTE_HEARD_MS);
+    page.addEventListener("paste", heardIt, true);
+    void sent.then((ok) => {
+      if (!ok) ended(false);
+    });
+  });
 
 const clipboardOf = (asked: PageMenuAsked, acts: PageMenuActs): Choice[] => [
   ...(asked.words

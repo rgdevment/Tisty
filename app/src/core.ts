@@ -1119,8 +1119,8 @@ export const spelledWord = (word: string, tongue: string): Promise<Spelled | nul
   invoke<Spelled>("word_spelled", { word, tongue }).catch(() => null);
 export const learnedWord = (word: string, tongue: string): Promise<boolean> =>
   invoke<boolean>("word_learned", { word, tongue }).catch(() => false);
-export const menuPasted = (plainly: boolean): Promise<void> =>
-  invoke<void>("menu_pasted", { plainly }).catch(() => undefined);
+export const menuPasted = (plainly: boolean): Promise<boolean> =>
+  invoke<boolean>("menu_pasted", { plainly }).catch(() => false);
 
 export const weighs = (reference: string): Promise<number> => invoke("weighs", { reference });
 
