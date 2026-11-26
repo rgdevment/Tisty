@@ -54,9 +54,16 @@ export const nothingPast = (edge: Range, back: boolean) => {
 export const titleAloneLeft = (was: string, left: string) =>
   /^#[ \t]*\r?\n?$/.test(left) || (/^#[ \t]/.test(was) && !left.trim());
 
+// A caret the browser leaves on a code block's figure, beside its lines, still writes in them.
+const preOf = (node: Node) => {
+  const element = elementOf(node);
+  const own = element?.matches("figure.code") ? element.querySelector(":scope > pre") : null;
+  return own ?? element?.closest("pre");
+};
+
 export const inOneCodeBlock = (range: AbstractRange) => {
-  const block = elementOf(range.startContainer)?.closest("pre");
-  return Boolean(block) && block === elementOf(range.endContainer)?.closest("pre");
+  const block = preOf(range.startContainer);
+  return Boolean(block) && block === preOf(range.endContainer);
 };
 
 export const elementIn = (node: Node | undefined) =>
