@@ -87,11 +87,11 @@ La lista trae solo lo que tu agente lee de verdad. Lo demás no aparece, ni aten
 | Agente | Carpeta de skills | Dónde puede estar una skill |
 | :-- | :-- | :-- |
 | Claude Code | `~/.claude/skills` | justo adentro, como `skills/pr/` |
-| Codex | `~/.agents/skills`, que comparte con Copilot, Gemini y DeepSeek Harness | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
-| DeepSeek Harness | `~/.agents/skills`, que comparte con Codex, Copilot y Gemini | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| Codex | `~/.agents/skills`, que comparte con Copilot, Gemini, DeepSeek Harness y Cursor | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
+| DeepSeek Harness | `~/.agents/skills`, que comparte con Codex, Copilot, Gemini y Cursor | hasta seis carpetas más abajo, como `skills/trabajo/pr/` |
 | GitHub Copilot CLI | `~/.copilot/skills` | justo adentro |
 | Gemini CLI | `~/.gemini/skills` | justo adentro |
-| Cursor | `~/.cursor/skills` | en cualquier carpeta de categoría |
+| Cursor | `~/.cursor/skills`, y `~/.agents/skills` con Codex y los demás | en cualquier carpeta de categoría |
 
 Una carpeta sin `SKILL.md` que su agente no lee más abajo no es una skill y no aparece. Tisty nunca busca una skill dentro de otra: un `SKILL.md` más adentro de `pr/` es un archivo más de **pr**. Cada skill es **una fila**, como **pr · Skill · 3 archivos**, con una casilla que la trae entera: cada archivo de la skill queda como un documento, y en la barra lateral se ve como una sola fila, **pr**, con **3 archivos** a la derecha. Un archivo de credenciales dentro de una skill, como una llave `.pem`, sigue sin entrar.
 
