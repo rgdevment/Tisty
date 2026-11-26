@@ -333,6 +333,19 @@ pub fn distro_root(name: &str) -> PathBuf {
     PathBuf::from(format!(r"\\wsl.localhost\{name}"))
 }
 
+/// An assistant installed with npm, bun, volta or cargo lives under the home, as on any Linux.
+fn distro_bins(root: &Path, home: &Path) -> Vec<PathBuf> {
+    ["usr/bin", "usr/local/bin", "bin"]
+        .iter()
+        .map(|dir| {
+            dir.split('/')
+                .fold(root.to_path_buf(), |at, step| at.join(step))
+        })
+        .chain(usual_bins(Os::Linux, home))
+        .chain([home.join("bin")])
+        .collect()
+}
+
 /// A distro as a place: reading its files over `\\wsl.localhost` starts it when it was stopped.
 pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
     let root = distro_root(name);
@@ -346,11 +359,7 @@ pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
         .trim_start_matches('/')
         .split('/')
         .fold(root.clone(), |at, step| at.join(step));
-    let bins = ["usr/bin", "usr/local/bin", "bin"]
-        .iter()
-        .map(|dir| dir.split('/').fold(root.clone(), |at, step| at.join(step)))
-        .chain([home.join(".local").join("bin"), home.join("bin")])
-        .collect();
+    let bins = distro_bins(&root, &home);
     Some(Place {
         distro: Some(name.to_string()),
         os: Os::Linux,

@@ -145,3 +145,90 @@ fn a_bare_path_on_a_mac_is_widened_to_where_commands_are_installed() {
     assert!(found.contains(&home.path().join(".nvm/versions/node/v22.1.0").join("bin")));
     assert!(usual_bins(Os::Windows, home.path()).is_empty());
 }
+
+fn distro_with_bins_under(root: &Path) -> Place {
+    let home = root.join("home").join("mario");
+    Place {
+        distro: Some("Ubuntu".into()),
+        os: Os::Linux,
+        config: home.join(".config"),
+        dsh: home.join(".dsh"),
+        appdata: None,
+        local: None,
+        bins: distro_bins(root, &home),
+        home,
+        command: "/mnt/c/tisty.exe".into(),
+        open: true,
+        packaged: false,
+        mount: "/mnt/".into(),
+    }
+}
+
+fn install(root: &Path, dir: &str, name: &str) {
+    let bin = dir
+        .split('/')
+        .fold(root.to_path_buf(), |at, step| at.join(step));
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::write(bin.join(name), "").unwrap();
+}
+
+#[test]
+fn an_assistant_installed_with_npm_under_nvm_counts_as_installed_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(
+        root.path(),
+        "home/mario/.nvm/versions/node/v22.1.0/bin",
+        "codex",
+    );
+
+    assert!(distro_with_bins_under(root.path()).runs("codex"));
+}
+
+#[test]
+fn an_assistant_installed_under_the_homes_package_managers_counts_as_installed_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(root.path(), "home/mario/.npm-global/bin", "gemini");
+    install(root.path(), "home/mario/.bun/bin", "bunny");
+    install(root.path(), "home/mario/.volta/bin", "volty");
+    install(root.path(), "home/mario/.cargo/bin", "crabby");
+    let place = distro_with_bins_under(root.path());
+
+    for name in ["gemini", "bunny", "volty", "crabby"] {
+        assert!(place.runs(name), "{name} is on the distro's usual path");
+    }
+}
+
+#[test]
+fn the_systems_and_the_homes_own_bins_are_still_searched_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(root.path(), "usr/bin", "from-usr-bin");
+    install(root.path(), "usr/local/bin", "from-usr-local-bin");
+    install(root.path(), "bin", "from-bin");
+    install(root.path(), "home/mario/.local/bin", "from-local-bin");
+    install(root.path(), "home/mario/bin", "from-home-bin");
+    let place = distro_with_bins_under(root.path());
+
+    for name in [
+        "from-usr-bin",
+        "from-usr-local-bin",
+        "from-bin",
+        "from-local-bin",
+        "from-home-bin",
+    ] {
+        assert!(place.runs(name), "{name} is on the distro's path");
+    }
+}
+
+#[test]
+fn an_assistant_that_is_nowhere_in_a_distro_is_not_found() {
+    let root = tempfile::tempdir().unwrap();
+    install(
+        root.path(),
+        "home/mario/.nvm/versions/node/v22.1.0/bin",
+        "codex",
+    );
+    let place = distro_with_bins_under(root.path());
+
+    assert!(!place.runs("claude"));
+    assert_eq!(place.on_path("claude"), None);
+}
