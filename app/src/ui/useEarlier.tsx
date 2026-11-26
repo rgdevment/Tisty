@@ -16,6 +16,7 @@ interface Asked {
   before: () => Promise<unknown>;
   onWentBack: (said: Doc, when: string) => void | Promise<void>;
   onEmptied?: () => void;
+  agentFile?: { restores: boolean };
   onError: (problem: unknown) => void;
 }
 
@@ -55,6 +56,7 @@ export const useEarlier = (asked: Asked) => {
           await settled();
         }}
         onEmptied={asked.onEmptied}
+        agentFile={asked.agentFile}
         onClose={() => setShown(null)}
         onError={asked.onError}
       />

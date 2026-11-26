@@ -9,7 +9,7 @@ I use more than one AI agent, and each one reads its rules from a different file
 
 ## What it is and when it helps
 
-**Agents** is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, in grey, until you bring something in. Each document inside it is one of an agent's files: a rule, a skill or its memory. You read it and edit it in Tisty, with its search and its earlier versions, but it does not look like one more document: it opens on its own [card](#the-card-of-an-agent-document), which tells you who reads it, where it is written and how many backups it has, with the agent's text just as you wrote it. If you sync it, Tisty writes the file that agent reads, byte for byte.
+**Agents** is a folder in your Library, at the top, with a robot icon. It sits in your sidebar from day one, in grey, until you bring something in. Each document inside it is one of an agent's files: a rule, a skill or its memory. You read it and edit it in Tisty, with its search and its earlier versions, but it does not look like one more document: it opens on its own [card](#the-card-of-an-agent-document), which tells you who reads it, where it is written and how many copies of the file it keeps, with the agent's text just as you wrote it. If you sync it, Tisty writes the file that agent reads, byte for byte.
 
 It helps when:
 
@@ -226,7 +226,7 @@ This happens while syncing: brought but not synced, Tisty writes no file and has
 
 **An example.** You have `~/.codex/AGENTS.md` with your Codex rules, and the first time you left it unticked. Later you write, in **Agents › Home (this computer) › Codex**, a document that goes to that same file. Tisty cannot tell which part of the file is yours, so it does not write over it: it asks **It exists on both sides**, when you go into Agents or through **Review** in Settings › Agents › Agents folder. Since it never brought that file, the box adds «Tisty has never brought this file. Bring it into Agents and it stays as it is, as a document of this computer.» and the button **Bring it into Agents**.
 
-With **Bring it into Agents**, the file comes in as a document in **Agents › Home (this computer) › Codex**, with its words exactly as they are. One document is one file, word for word: Tisty adds nothing to it. What it held before stays in its [backups](#backups).
+With **Bring it into Agents**, the file comes in as a document in **Agents › Home (this computer) › Codex**, with its words exactly as they are. One document is one file, word for word: Tisty adds nothing to it. What it held before stays in its [file copies](#file-copies).
 
 **Bring another file** does the same: that `AGENTS.md` shows in its list, unticked, and once brought it ends up the same as the file.
 
@@ -458,7 +458,7 @@ An agent counts on each computer separately: Tisty writes an agent's files only 
 
 A document in Agents does not look like one more document. It opens **for reading**, on a single card: at the top, what it is and where it goes; in the middle, the agent's text; at the foot, what you can do. There is no column beside it: everything useful is on the card.
 
-![The card of the rule Rules in Agents / Claude: the labels Rule, Claude and In sync; the facts box with Read by Claude, Written to with its copy button, Size, Backups with See, Format Markdown · LF, Last written, Original kept and Syncs on this computer Yes; the rule's text below it, and at the foot Edit, Backups, History, Copy link and Pause sync with Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-agents-rule-light.webp)
+![The card of the rule Rules in Agents / Claude: the labels Rule, Claude and In sync; the facts box with Read by Claude, Written to with its copy button, Size, File copies with 1 on this computer, with the original · See, Format Markdown · LF, Last written and Syncs on this computer Yes; the rule's text below it, and at the foot Edit, History, Copy link and Pause sync with Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-agents-rule-light.webp)
 
 **At the very top, the folder path**: «Agents / Home (this computer) / Claude». A click on a folder opens it.
 
@@ -474,10 +474,9 @@ A document in Agents does not look like one more document. It opens **for readin
 | **Read by** | Which agents on this computer read the file | Claude, Codex |
 | **Written to** | The file's full path, with a button to copy it. A Global skill has one per agent: **Claude file**, **Codex file**. It is always one document per file: nothing is written «together with another» | `~/.claude/CLAUDE.md` |
 | **Size** | How much the file the agent reads weighs | 12.7 kB |
-| **Backups** | How many this computer keeps, and **See** to open them | 3 backups · See, or None yet |
+| **File copies** | How many this computer keeps, whether the original is there, and **See** to open them in the **History** | 3 on this computer, with the original · See, or None yet |
 | **Format** | Markdown, or the script's kind; how its lines end, and the marks it keeps | Markdown · LF, or PY · CRLF · BOM |
 | **Last written** | When the file last changed | today, 19:37 |
-| **Original kept** | Whether backup #1 is there, the file as it was before Tisty touched it | Yes, before Tisty's first write |
 | **Syncs on this computer** | Whether Tisty keeps it up to date here | Yes; Yes, except Codex (paused); Tisty only reads it; No, Agents does not sync; No: it waits for «Apply here»; No: its text waits for your approval; No: another computer's; Waits for you to choose, or No: another one rules here, when [two documents go to the same file](#if-two-documents-go-to-the-same-file); No: its folder and its text say different computers. With a proposal waiting, it adds «an agent's change waits for your approval» |
 | **Shared** | Only when the document has a live shared link: whether it can be read or edited, and **See** shows the links with their copy button and the usual actions, such as **Stop sharing**. See [Sharing](Documents#sharing) | Read only · See |
 | **The file's properties** | The other keys of its heading, in small key and value rows. When there are too many, or they are too long to read as fields, they show as written | `disable-model-invocation` true; `applyTo` `**/*.rs` |
@@ -489,8 +488,7 @@ A document in Agents does not look like one more document. It opens **for readin
 **The buttons, at the foot**, held at the bottom while the whole card scrolls with its text:
 
 - **Edit** opens Tisty's editor on the text, heading included, with the editor's usual bar for headings and lists, and **Done** closes it again.
-- **Backups**, when the document is written to a single file and that file has any. It opens the same list as **See** in the facts box. A **Global** skill, written to several files, does not have it at the foot: each file's backups open with **See**, on its row.
-- **History**: the document's earlier versions, not the file's. [[Earlier versions|Documents#earlier-versions]] tells it. The comparison with what is **Approved** reads from there: if you empty the history, or the approved version passes the limit, the card asks you to read the whole text before approving.
+- **History**: in one list, the document's earlier versions and the copies Tisty kept of the file, as [One history](#one-history) tells. The versions are those of [[Earlier versions|Documents#earlier-versions]]. The comparison with what is **Approved** reads from there: if you empty the history, or the approved version passes the limit, the card asks you to read the whole text before approving.
 - **Copy link** copies its [link](Documents#a-documents-link).
 - **Pause sync with Claude**, when the document is written to a single file. A Global skill has a button per agent: **Pause Claude**, **Pause Codex**…
 - **Another computer's documents have no Edit, no Apply, no Delete and no pause**: the card says «It belongs to another of your computers: on this one it is only read.». What you can do is read it, move it, copy it as text and take it out. Words another computer approved for this one wait here each time, as [On several computers](#other-computers-documents) tells.
@@ -531,7 +529,7 @@ You can keep editing your agents' files in your editor, or let the agent change 
 
 - **See the file** shows what the file holds now.
 - **Bring the change in** writes into the document what the file says. What the document said before stays in its [earlier versions](Documents#earlier-versions). If someone changed the document after the card was drawn, Tisty does not write over it: it asks you to read it again and choose again.
-- **Overwrite with Tisty** asks «Write this document over `~/.claude/CLAUDE.md`? What the file holds now is kept as a backup.» and, if you say yes, writes the file again from the document.
+- **Overwrite with Tisty** asks «Write this document over `~/.claude/CLAUDE.md`? What the file holds now is kept as a copy in the history.» and, if you say yes, writes the file again from the document.
 
 Until you choose, Tisty does not write that file, even if you change the document.
 
@@ -543,26 +541,31 @@ Until you choose, Tisty does not write that file, even if you change the documen
 
 If both the file and the document changed, the card says **Changed on both sides**. **Keep the file's version** shows, which asks «Make this document read as … does now? What it says now stays in its history.», next to **Overwrite with Tisty**.
 
-The same can happen the first time you sync, when you already had a document in Agents for a file that changed in between. Then **It exists on both sides** opens, with the lines that differ: in red, with `−`, what is **In Tisty**; in green, with `+`, what is **In the file**. You choose **Keep Tisty's**, **Keep the file** or **Decide later**, and what you do not keep is still kept: the file in its [backups](#backups), the document in its earlier versions. If Tisty never brought that file, the box adds **Bring it into Agents**, as [A file you never brought](#a-file-you-never-brought) tells. From **Settings › Agents › Agents folder**, «1 file says something different in Tisty and in the agent.» and **Review** bring you back to that box.
+The same can happen the first time you sync, when you already had a document in Agents for a file that changed in between. Then **It exists on both sides** opens, with the lines that differ: in red, with `−`, what is **In Tisty**; in green, with `+`, what is **In the file**. You choose **Keep Tisty's**, **Keep the file** or **Decide later**, and what you do not keep is still kept: the file in its [copies](#file-copies), the document in its earlier versions; both, in its **History**. If Tisty never brought that file, the box adds **Bring it into Agents**, as [A file you never brought](#a-file-you-never-brought) tells. From **Settings › Agents › Agents folder**, «1 file says something different in Tisty and in the agent.» and **Review** bring you back to that box.
 
-## Backups
+## File copies
 
-**Before writing over an agent's file, Tisty keeps what it held.** Backups live on this computer, in `data/agents/` inside Tisty's folder, never in your agents' folders, and they do not travel with sync or parcels.
+**Before writing over an agent's file, Tisty keeps a copy of what it held.** Copies live on this computer, in `data/agents/` inside Tisty's folder, never in your agents' folders, and they do not travel with sync or parcels. Agents do not read them over MCP: an agent's file can hold secrets.
 
-- **Backup #1 is the original**: the file as it was before Tisty first wrote over it. That one is never removed.
+- **The first copy is the original**: the file as it was before Tisty first wrote over it. That one never expires.
 - **Then, the last 20.** When the 21st comes, the oldest one after the original goes.
-- **Taking a file away leaves one too.** If you [take away the file](#taking-a-rule-and-its-file-out) of a rule you took out, its backups stay on this computer, and if a rule writes that same path again, they show in its **Backups**.
+- **Taking a file away leaves one too.** If you [take away the file](#taking-a-rule-and-its-file-out) of a rule you took out, its copies stay on this computer, and if a rule writes that same path again, they show in its **History**.
 
-So a file Tisty wrote over many times keeps up to 21: the original and the last 20. The box says «The last 20 are kept.», and #1 stays on top of them.
+So a file Tisty wrote over many times keeps up to 21 copies: the original and the last 20.
 
-To see them, press **Backups** at the foot of the card, or **See** on the **Backups** row of the facts box, beside «3 backups»:
+### One history
 
-- **See** shows the whole backup.
-- **Restore** asks «Put this backup back in …? What the file holds now is kept as a backup.» and writes it into the file.
+The file's copies and the document's versions show together in **History**, at the foot of the card, or with **See** on the **File copies** row of the facts box. It is one list, newest first:
 
-**A restored backup does not change your document.** The file says again what the backup said, and the card turns to **Changed outside**: you choose **Bring the change in**, so the document says the same, or **Overwrite with Tisty**, if you changed your mind. That way you never lose either side.
+- **A version of the document**, with its date, who wrote it and its size: **What changed** and **Go back to this version**, as in any document.
+- **A copy of the file**, which says «Claude's file on this computer, before Tisty wrote it», with its date and its size. Choosing it shows the whole file, and **Put back in the file** asks «Put this copy back in …? What the file holds now is kept as another copy in the history.» and writes it into the file.
+- **The original**, always at the end: «Claude's original file, before Tisty first wrote it», with «never expires».
 
-The **document's** earlier versions, on the other hand, are those of any document: they are in its [history](Documents#earlier-versions).
+When there is nothing yet, the history says «Nothing yet: no versions and no file copies». One copy and no versions is normal: versions last the period you choose in [[Earlier versions|Documents#earlier-versions]], 30 days unless you changed it, and copies are kept by number. **Empty the history** removes the document's versions; the file copies stay.
+
+<!-- screenshot: assets/screens/app/en-agents-history-light.webp — alt: The history of Claude's rule Rules: on the left, one list with the document's versions and the file's copies mixed by date, and at the end Claude's original file, before Tisty first wrote it, with never expires; the chosen copy on the right, with the whole file and the Put back in the file button at the top -->
+
+**A copy put back does not change your document.** The file says again what the copy said, and the card turns to **Changed outside**: you choose **Bring the change in**, so the document says the same, or **Overwrite with Tisty**, if you changed your mind. That way you never lose either side.
 
 ## Pausing, stopping sync and emptying
 
@@ -791,7 +794,7 @@ What you choose holds for that document on that computer, and stays:
 
 ### If two documents go to the same file
 
-It happens when the document in your folder and one at the root write the same file, or the same skill. Until you choose, nothing changes on this computer: neither of the two is written. The card of both asks it, whichever came first: «On this computer «CLAUDE.md» for all your computers already goes to the same file. Which one rules here?». It offers one button for each, with its title and whose it is, such as **Use «CLAUDE.md» from this computer** and **Use «CLAUDE.md» for all your computers**, since the two are often named alike.
+It happens when the document in your folder and one at the root write the same file, or the same skill. Until you choose, nothing changes on this computer: neither of the two is written. The card of both asks it, whichever came first: «On this computer «CLAUDE.md» for all your computers already goes to the same file. Which one rules here?». It offers one button for each, with its title and whose it is, such as **Use «CLAUDE.md» from this computer** and **Use «CLAUDE.md» for all your computers**, since the two are often named alike. If the file already existed, the label says **On hold** and the card tells why: «This file stays as it was until you choose which document writes it on this computer.».
 
 **An example.** Marisol has her `CLAUDE.md` in **Home (this computer) › Claude**, and from home she moves to the root another document that also goes to `CLAUDE.md`. When it arrives, the work computer cannot tell which one should rule. Marisol opens either and presses the **Use** button of the one she wants: that one is written to `~/.claude/CLAUDE.md`, and the other stays in its folder, with the card «On this computer … rules.».
 
@@ -1142,7 +1145,7 @@ And editing the file on disk does not help either: that change stands as **Chang
 
 **«The file changed while Tisty was writing, so it was left alone.»** Another program wrote the file at the same moment. Tisty writes over nothing: look at the card again and choose.
 
-**I restored a backup and it says Changed outside.** That is expected: [a restored backup does not change your document](#backups). Choose **Bring the change in** to keep it.
+**I put a copy back in the file and it says Changed outside.** That is expected: [a copy put back does not change your document](#file-copies). Choose **Bring the change in** to keep it.
 
 ## See also
 

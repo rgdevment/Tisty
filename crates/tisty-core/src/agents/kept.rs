@@ -14,6 +14,8 @@ pub struct Kept {
     pub n: u64,
     pub bytes: u64,
     pub pinned: bool,
+    /// When the copy was kept, from its file; `n` alone orders copies when this is missing.
+    pub at: Option<jiff::Timestamp>,
 }
 
 fn shelf(data: &Path, at: &Path) -> PathBuf {
@@ -64,13 +66,16 @@ pub fn kept(data: &Path, at: &Path) -> Vec<Kept> {
         .into_iter()
         .rev()
         .filter_map(|n| {
-            let bytes = std::fs::metadata(shelf.join(format!("{n:0DIGITS$}")))
-                .ok()?
-                .len();
+            let meta = std::fs::metadata(shelf.join(format!("{n:0DIGITS$}"))).ok()?;
+            let at = meta
+                .modified()
+                .ok()
+                .and_then(|when| jiff::Timestamp::try_from(when).ok());
             Some(Kept {
                 n,
-                bytes,
+                bytes: meta.len(),
                 pinned: n == PINNED,
+                at,
             })
         })
         .collect()

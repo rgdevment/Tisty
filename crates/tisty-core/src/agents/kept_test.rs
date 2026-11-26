@@ -23,14 +23,8 @@ fn the_first_backup_stays_and_only_the_last_twenty_others_do() {
     assert_eq!(all.len(), KEPT_AT_MOST + 1);
     assert_eq!(all.first().unwrap().n, 25);
     assert_eq!(all[KEPT_AT_MOST - 1].n, 6);
-    assert_eq!(
-        all.last().unwrap(),
-        &Kept {
-            n: 1,
-            bytes: 10,
-            pinned: true
-        }
-    );
+    let original = all.last().unwrap();
+    assert_eq!((original.n, original.bytes, original.pinned), (1, 10, true));
     assert_eq!(read_kept(data.path(), at, 1).unwrap(), b"version 0\n");
     assert_eq!(read_kept(data.path(), at, 5), Err(Refused::NoSuchBackup));
     assert!(all[..KEPT_AT_MOST].iter().all(|one| !one.pinned));
@@ -59,4 +53,20 @@ fn keeping_the_same_bytes_again_adds_no_second_backup() {
         "only the newest backup is compared"
     );
     assert_eq!(kept(data.path(), at).len(), 3);
+}
+
+#[test]
+fn each_backup_says_when_it_was_kept() {
+    let data = tempfile::tempdir().unwrap();
+    let at = Path::new("/home/rina/.claude/CLAUDE.md");
+    let before = jiff::Timestamp::now() - jiff::SignedDuration::from_secs(60);
+    keep(
+        data.path(),
+        at,
+        b"one
+",
+    )
+    .unwrap();
+    let all = kept(data.path(), at);
+    assert!(all[0].at.is_some_and(|when| when > before));
 }

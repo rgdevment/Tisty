@@ -32,6 +32,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   bytes: null,
   kept: [],
   heldBy: [],
+  clash: false,
   ...more,
 });
 
@@ -83,7 +84,7 @@ describe("what the agent file panel says", () => {
     expect(formatOf(code, "---\nagent: claude/skill/pr/Makefile\n---\n")).toBe("Plain text · LF");
   });
 
-  it("names who reads it, where, the last write, its backups and the original", () => {
+  it("names who reads it, where, the last write and its file copies with the original", () => {
     const said = rows(
       agent([
         place(
@@ -99,8 +100,8 @@ describe("what the agent file panel says", () => {
     );
     expect(said.get("Read by")).toBe("Claude");
     expect(said.get("Written to")).toBe("C:\\Users\\ana\\.claude\\rules\\horario.md");
-    expect(said.get("Backups")).toBe("2 backups");
-    expect(said.get("Original kept")).toBe("Yes, before Tisty's first write");
+    expect(said.get("File copies")).toBe("2 on this computer, with the original");
+    expect(said.has("Original kept")).toBe(false);
     expect(said.get("Syncs on this computer")).toBe("Yes");
     expect(said.get("Last written")).not.toBe("");
   });
@@ -123,21 +124,17 @@ describe("what the agent file panel says", () => {
     );
     expect(said.get("Read by")).toBe("Claude, Codex");
     expect(said.get("Codex file")).toBe("/c/AGENTS.md");
-    expect(said.get("Backups of Claude's file")).toBe("1 backup");
-    expect(said.get("Backups of Codex's file")).toBe("None yet");
+    expect(said.get("Copies of Claude's file")).toBe("1 on this computer, with the original");
+    expect(said.get("Copies of Codex's file")).toBe("None yet");
     expect(said.get("Syncs on this computer")).toBe("Yes, except Codex (paused)");
   });
 
-  it("says when nothing is written, nothing is kept yet and why it does not sync", () => {
+  it("says when nothing is written, no copy is kept yet and why it does not sync", () => {
     expect(rows(agent([])).get("Read by")).toBe("No agent here");
     expect(rows(agent([])).get("Syncs on this computer")).toBe("No");
-    expect(rows(agent([])).has("Backups")).toBe(false);
+    expect(rows(agent([])).has("File copies")).toBe(false);
     expect(rows(agent([])).has("Last written")).toBe(false);
-    expect(rows(agent([])).has("Original kept")).toBe(false);
-    expect(rows(agent([place({ state: "synced" })])).get("Backups")).toBe("None yet");
-    expect(rows(agent([place({ state: "synced" })])).get("Original kept")).toBe(
-      "Not yet: Tisty has not written over it",
-    );
+    expect(rows(agent([place({ state: "synced" })])).get("File copies")).toBe("None yet");
     expect(rows(agent([place({ state: "off" })])).get("Syncs on this computer")).toBe("Paused");
     expect(rows(agent([place({ state: "noConsent" })])).get("Syncs on this computer")).toBe(
       "Not allowed",

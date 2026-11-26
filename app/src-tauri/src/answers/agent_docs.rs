@@ -6,7 +6,9 @@ use tisty_core::agents::{self, Card, Ledger, Refused, Seen, Standing, Target};
 
 use super::agents_moving::{Scope, scope};
 use super::agents_sync::{refused, unled};
-use crate::wiring::agents::{Homes, Placed, Stance, assistant, lead_of, sides, stance, targets};
+use crate::wiring::agents::{
+    Homes, Placed, Stance, assistant, lead_of, sides, stance, stands, targets,
+};
 use crate::{Answer, Refusal, Session, held};
 
 #[derive(serde::Serialize, Debug, PartialEq, Eq)]
@@ -49,6 +51,8 @@ pub struct Place {
     kept: Vec<Backup>,
     /// The documents that hold this file back, by title.
     held_by: Vec<String>,
+    /// Held until the person chooses which document writes it here.
+    clash: bool,
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -159,6 +163,7 @@ pub(crate) fn place(data: &Path, ledger: &Ledger, target: &Target, piece: usize)
         changed: changed_at(&target.at),
         bytes: bytes_at(&target.at),
         held_by: Vec::new(),
+        clash: false,
         kept: agents::kept(data, &target.at)
             .into_iter()
             .map(|one| Backup {
@@ -278,6 +283,35 @@ fn one_place(session: &Session, file: &str, at: &str) -> Answer<(PathBuf, Target
         .find(|(target, _)| target.at.to_string_lossy() == at)
         .ok_or_else(|| Refusal::of("agentNoPlace"))?;
     Ok((opened.data, target, piece))
+}
+
+/// What Tisty kept of each file this document is written to here, found the way restoring finds it.
+pub(crate) fn kept_for(
+    session: &Session,
+    file: &str,
+) -> Answer<Vec<super::agent_history::FileKept>> {
+    let machine = tisty_core::machine::here().unwrap_or_default();
+    kept_here(session, Homes::here().as_ref(), &machine, file)
+}
+
+pub(crate) fn kept_here(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Vec<super::agent_history::FileKept>> {
+    let Some(opened) = opened(session, homes, machine, file)? else {
+        return Ok(Vec::new());
+    };
+    Ok(opened
+        .places
+        .iter()
+        .map(|(target, _)| super::agent_history::FileKept {
+            at: target.at.to_string_lossy().into_owned(),
+            named: named(&target.assistant),
+            kept: agents::kept(&opened.data, &target.at),
+        })
+        .collect())
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -538,6 +572,13 @@ pub(crate) fn card_of(
     };
     let ledger = &opened.ledger;
     let card = opened.card;
+    let stands = homes.map(|homes| (homes, stands(homes, &opened.gate, ledger)));
+    let clash = |target: &Target| {
+        target.held()
+            && stands
+                .as_ref()
+                .is_some_and(|(homes, stands)| stands.asks_at(homes, &card, &target.at))
+    };
     Ok(Some(AgentDoc {
         proposal: super::agent_proposals::proposal_of(session, file, &opened.body)
             .filter(|_| opened.here != Seen::OtherComputer)
@@ -563,6 +604,7 @@ pub(crate) fn card_of(
             .iter()
             .map(|(target, piece)| Place {
                 held_by: held_by(&session.state, &opened.gate, ledger, target),
+                clash: clash(target),
                 ..place(&opened.data, ledger, target, *piece)
             })
             .collect(),

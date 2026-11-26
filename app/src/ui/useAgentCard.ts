@@ -6,7 +6,6 @@ import {
   agentBring,
   agentDiscard,
   agentHeld,
-  agentRestore,
   agentSettle,
   agentTake,
   type Place,
@@ -78,17 +77,12 @@ type Kept<T> = { file: string; one: T } | null;
 // Held above the card and the buttons under the words, and dropped as soon as another file opens.
 export function useAgentShelf(file: string | null) {
   const [shown, setShown] = useState<Kept<Shown>>(null);
-  const [kept, setKept] = useState<Kept<Place>>(null);
   useEffect(() => {
     setShown(null);
-    setKept(null);
   }, [file]);
-  const ours = <T>(held: Kept<T>) => (held && held.file === file ? held.one : null);
   return {
-    shown: ours(shown),
-    kept: ours(kept),
+    shown: shown && shown.file === file ? shown.one : null,
     setShown: (one: Shown | null) => setShown(one && file ? { file, one } : null),
-    setKept: (one: Place | null) => setKept(one && file ? { file, one } : null),
   };
 }
 
@@ -96,7 +90,7 @@ export type AgentShelf = ReturnType<typeof useAgentShelf>;
 
 export function useAgentCard(props: CardProps, shelf: AgentShelf) {
   const { doc, file, editing, locked, onSettle, onTaken, onError } = props;
-  const { shown, setShown, kept, setKept } = shelf;
+  const { shown, setShown } = shelf;
   const single = doc.places.length === 1 ? doc.places[0] : null;
   // Taking the file's words in replaces the page's, so it waits until the page is no longer being written.
   const takes = !locked && !editing;
@@ -110,9 +104,9 @@ export function useAgentCard(props: CardProps, shelf: AgentShelf) {
   }, [file]);
   const failed = (e: unknown) => onError(saidPlainly(e));
   const done = () => window.dispatchEvent(new Event(AGENTS_CHANGED));
-  const show = (place: Place, backup: number | null) =>
-    agentHeld(file, place.at, backup)
-      .then((text) => setShown({ place, backup, text }))
+  const show = (place: Place) =>
+    agentHeld(file, place.at, null)
+      .then((text) => setShown({ place, text }))
       .catch(failed);
   const settled = () => Promise.resolve(onSettle());
   const reread = () => (showing.current === file ? onTaken() : undefined);
@@ -133,25 +127,14 @@ export function useAgentCard(props: CardProps, shelf: AgentShelf) {
     single,
     takes,
     shown,
-    kept,
     owned: (place: Place) => takes && doc.level === place.assistant,
     turnable: (place: Place) => !doc.folderOff && place.said.state !== "noConsent",
     show,
     bring,
-    seeBackups: setKept,
-    closeBackups: () => setKept(null),
     closeFile: () => setShown(null),
     overwrite: (place: Place) =>
       asked(fill("agentOverwriteSure", place.at), () => agentsKeep(place.at, true).then(done)),
     keepFile: (place: Place) => asked(fill("agentKeepFileSure", place.at), () => bring(place)),
-    restore: (place: Place, backup: number) =>
-      asked(fill("agentRestoreSure", place.at), () =>
-        agentRestore(file, place.at, backup).then(() => {
-          setShown(null);
-          setKept(null);
-          done();
-        }),
-      ),
     take: (here: boolean) => agentTake(file, here).then(done).catch(failed),
     settle: () =>
       settled()

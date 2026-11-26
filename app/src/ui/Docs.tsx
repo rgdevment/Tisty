@@ -635,6 +635,7 @@ export default function Docs({
       onKept(said);
     },
     onEmptied: () => setBackable(false),
+    agentFile: agent.doc ? { restores: agent.doc.kind !== "memory" } : undefined,
     onError: (e) => onError(saidPlainly(e)),
   });
 
@@ -1017,7 +1018,12 @@ export default function Docs({
                     agentCard ? (
                       <>
                         {placed}
-                        <AgentCard card={agentCard} shelf={shelf} body={body} />
+                        <AgentCard
+                          card={agentCard}
+                          shelf={shelf}
+                          body={body}
+                          onEarlier={past.show}
+                        />
                       </>
                     ) : (
                       placed
