@@ -3,6 +3,7 @@
 mod hook;
 mod i18n;
 mod mcp;
+mod run_hook;
 
 use std::process::ExitCode;
 
@@ -15,6 +16,7 @@ fn main() -> ExitCode {
     match first.as_deref() {
         Some("mcp") => served(),
         Some("hook") => hook::run(&std::env::args().skip(2).collect::<Vec<_>>()),
+        Some("run-hook") => run_hook::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         Some("--version" | "-V") => {
             let said = spoken().fill("version", &[("version", env!("CARGO_PKG_VERSION"))]);
             println!("{said}");

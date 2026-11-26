@@ -4,6 +4,8 @@ mod card;
 mod found;
 mod gate;
 mod homes;
+pub mod hook_run;
+mod hook_yes;
 mod joined;
 mod kept;
 mod ledger;
@@ -22,6 +24,7 @@ pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
 pub use homes::{
     KNOWN, Told, assistant_folders, assistant_root, home_here, inside_an_assistant, told_here,
 };
+pub use hook_yes::{drop_script, hooks_folder, keep_script, script_at, script_kept, yes_of};
 pub use joined::joined;
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
 pub use ledger::{HookYes, Ledger};

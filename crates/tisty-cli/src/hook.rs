@@ -3,7 +3,7 @@ mod call;
 mod command;
 mod marks;
 mod outside;
-mod said;
+pub(crate) mod said;
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
@@ -37,7 +37,7 @@ pub fn run(args: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn heard() -> Vec<u8> {
+pub(crate) fn heard() -> Vec<u8> {
     let mut raw = Vec::new();
     let _ = std::io::stdin().take(HEARD_AT_MOST).read_to_end(&mut raw);
     raw
@@ -132,7 +132,7 @@ fn ended(
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
-struct Settings {
+pub(crate) struct Settings {
     #[serde(default)]
     turn_hooks: Option<bool>,
     #[serde(default)]
@@ -140,14 +140,14 @@ struct Settings {
 }
 
 impl Settings {
-    fn of(paths: &Paths) -> Self {
+    pub(crate) fn of(paths: &Paths) -> Self {
         std::fs::read_to_string(paths.config_file())
             .ok()
             .and_then(|text| toml::from_str(&text).ok())
             .unwrap_or_default()
     }
 
-    fn door_open(&self) -> bool {
+    pub(crate) fn door_open(&self) -> bool {
         let agent = self.agent_id.as_deref().unwrap_or_default();
         !agent.trim().is_empty()
     }
