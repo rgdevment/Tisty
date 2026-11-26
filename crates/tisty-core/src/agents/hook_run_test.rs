@@ -110,6 +110,23 @@ fn a_script_that_outlasts_its_time_is_felled_and_never_blocks() {
     }
 }
 
+#[cfg(unix)]
+#[test]
+fn a_script_that_outlasts_its_time_takes_what_it_started_with_it() {
+    let scratch = tempfile::tempdir().unwrap();
+    let left = scratch.path().join("left");
+    let script = format!("sleep 30 &\necho $! > '{}'\nwait\n", left.display());
+    let ran = run_named("t.sh", &script, b"{}", Duration::from_millis(500));
+    assert!(ran.timed_out);
+    let pid = std::fs::read_to_string(&left).unwrap();
+    let alive = std::process::Command::new("/bin/sh")
+        .args(["-c", "kill -0 \"$1\" 2>/dev/null", "sh", pid.trim()])
+        .status()
+        .unwrap()
+        .success();
+    assert!(!alive, "sleep {} outlived its script", pid.trim());
+}
+
 #[test]
 fn what_a_script_says_on_stderr_is_cut_at_the_cap() {
     for (name, ran) in each_shell(

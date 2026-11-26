@@ -1,3 +1,12 @@
+# A test that hangs is stopped and named, where a job would otherwise run out its time and say nothing.
+[profile.default]
+slow-timeout = { period = "60s", terminate-after = 10 }
+
+# A hook test waits on scripts it starts: none takes more than seconds, so one stuck is stopped well before.
+[[profile.default.overrides]]
+filter = 'test(/hook_run|run_hook|mcp_hooks|user_hook/)'
+slow-timeout = { period = "20s", terminate-after = 3 }
+
 # No retries anywhere: a test that passes on its second try is the unsteady one this hunts for.
 [profile.determinism]
 fail-fast = false

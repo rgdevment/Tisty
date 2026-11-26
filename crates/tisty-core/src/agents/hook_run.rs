@@ -134,10 +134,16 @@ fn felled(child: &mut std::process::Child) {
     let _ = child.kill();
 }
 
+// The shell's own kill, as POSIX writes it, reads `-- -pgid` as the whole group on Linux and macOS alike.
 #[cfg(unix)]
 fn felled(child: &mut std::process::Child) {
-    let _ = Command::new("/bin/kill")
-        .args(["-KILL", &format!("-{}", child.id())])
+    let _ = Command::new("/bin/sh")
+        .args([
+            "-c",
+            "kill -s KILL -- \"-$1\"",
+            "sh",
+            &child.id().to_string(),
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
