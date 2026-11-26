@@ -273,7 +273,6 @@ fn keyed(number: &str, salt: &[u8], work: u8) -> Result<zeroize::Zeroizing<[u8; 
 
 fn shut(from: &Path, into: &Path, number: &str, along: &Along) -> Result<()> {
     use chacha20poly1305::aead::{Aead, KeyInit};
-    use rand_core::TryRngCore;
     use std::io::{Read, Write};
 
     let whole = std::fs::metadata(from).map(|one| one.len()).unwrap_or(0);
@@ -281,9 +280,8 @@ fn shut(from: &Path, into: &Path, number: &str, along: &Along) -> Result<()> {
 
     let mut salt = [0u8; 16];
     let mut head = [0u8; 19];
-    rand_core::OsRng
-        .try_fill_bytes(&mut salt)
-        .and_then(|()| rand_core::OsRng.try_fill_bytes(&mut head))
+    getrandom::fill(&mut salt)
+        .and_then(|()| getrandom::fill(&mut head))
         .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?;
 
     let key = keyed(number, &salt, WORK)?;

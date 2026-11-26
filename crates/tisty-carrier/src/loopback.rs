@@ -22,10 +22,8 @@ pub fn challenge_of(verifier: &str) -> String {
 }
 
 pub fn random_text(bytes: usize) -> Result<String, Hitch> {
-    use rand_core::TryRngCore;
     let mut fresh = vec![0u8; bytes];
-    rand_core::OsRng
-        .try_fill_bytes(&mut fresh)
+    getrandom::fill(&mut fresh)
         .map_err(|e| Hitch::Broke(format!("no randomness for the sign-in: {e}")))?;
     Ok(URL_SAFE_NO_PAD.encode(fresh))
 }

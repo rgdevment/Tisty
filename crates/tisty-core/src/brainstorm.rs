@@ -303,10 +303,7 @@ pub fn jotted_all(
 }
 
 pub fn roll() -> u32 {
-    use rand_core::TryRngCore;
-    rand_core::OsRng
-        .try_next_u32()
-        .unwrap_or_else(|_| jiff::Timestamp::now().subsec_nanosecond().unsigned_abs())
+    getrandom::u32().unwrap_or_else(|_| jiff::Timestamp::now().subsec_nanosecond().unsigned_abs())
 }
 
 // The oldest wins, so two machines that each made one before they met keep dropping ideas in the same.

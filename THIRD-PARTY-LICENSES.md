@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 361 crates named in
+The licence texts of the 359 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 245 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -8824,7 +8824,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 127
 
-Carried by `libsqlite3-sys` 0.39.1, `rusqlite` 0.41.1.
+Carried by `libsqlite3-sys` 0.40.0, `rusqlite` 0.43.0.
 
 ```text
 Copyright (c) 2014 The rusqlite developers
@@ -10702,7 +10702,7 @@ END OF TERMS AND CONDITIONS
 
 ## Text 161
 
-Carried by `rand` 0.10.4, `rand_core` 0.9.5.
+Carried by `rand` 0.10.4.
 
 ```text
 Copyright 2018 Developers of the Rand project
@@ -10735,7 +10735,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 162
 
-Carried by `rand_core` 0.9.5, `rand_core` 0.10.1.
+Carried by `rand_core` 0.10.1.
 
 ```text
 Apache License
@@ -14581,7 +14581,7 @@ SOFTWARE.
 
 ## Text 232
 
-Carried by `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows-collections` 0.3.2, `windows-core` 0.62.2, `windows-future` 0.3.2, `windows-link` 0.2.1, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.4.1, `windows-strings` 0.5.1, `windows-sys` 0.52.0, `windows-sys` 0.59.0, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-threading` 0.2.1, `windows-version` 0.1.7.
+Carried by `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows-collections` 0.3.2, `windows-core` 0.62.2, `windows-future` 0.3.2, `windows-link` 0.2.1, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.4.1, `windows-strings` 0.5.1, `windows-sys` 0.59.0, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-threading` 0.2.1, `windows-version` 0.1.7.
 
 ```text
 Apache License
@@ -14789,7 +14789,7 @@ Apache License
 
 ## Text 233
 
-Carried by `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows-collections` 0.3.2, `windows-core` 0.62.2, `windows-future` 0.3.2, `windows-link` 0.2.1, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.4.1, `windows-strings` 0.5.1, `windows-sys` 0.52.0, `windows-sys` 0.59.0, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-threading` 0.2.1, `windows-version` 0.1.7.
+Carried by `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows-collections` 0.3.2, `windows-core` 0.62.2, `windows-future` 0.3.2, `windows-link` 0.2.1, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.4.1, `windows-strings` 0.5.1, `windows-sys` 0.59.0, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-threading` 0.2.1, `windows-version` 0.1.7.
 
 ```text
 MIT License

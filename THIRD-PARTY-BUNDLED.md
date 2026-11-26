@@ -51,8 +51,8 @@ written once with the crates that carry it.
 | `@lezer/markdown` | 1.8.1 | MIT |
 | `@marijn/find-cluster-break` | 1.0.4 | MIT |
 | `@mermaid-js/parser` | 2.0.1 | MIT |
-| `@solidjs/signals` | 2.0.0-rc.21 | MIT |
-| `@solidjs/web` | 2.0.0-rc.21 | MIT |
+| `@solidjs/signals` | 2.0.1 | MIT |
+| `@solidjs/web` | 2.0.1 | MIT |
 | `@tauri-apps/api` | 2.12.5 | Apache-2.0 OR MIT |
 | `@tauri-apps/plugin-clipboard-manager` | 2.5.0 | MIT OR Apache-2.0 |
 | `@tauri-apps/plugin-dialog` | 2.8.4 | MIT OR Apache-2.0 |
@@ -172,10 +172,10 @@ written once with the crates that carry it.
 | `rw` | 1.3.3 | BSD-3-Clause |
 | `safer-buffer` | 2.1.2 | MIT |
 | `scheduler` | 0.28.0 | MIT |
-| `seroval` | 1.7.0 | MIT |
-| `seroval-plugins` | 1.7.0 | MIT |
+| `seroval` | 1.8.2 | MIT |
+| `seroval-plugins` | 1.8.0 | MIT |
 | `sigma` | 4.0.6 | MIT |
-| `solid-js` | 2.0.0-rc.21 | MIT |
+| `solid-js` | 2.0.1 | MIT |
 | `style-mod` | 4.1.4 | MIT |
 | `stylis` | 4.4.0 | MIT |
 | `tinyexec` | 1.3.1 | MIT |
@@ -184,7 +184,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (361 crates)
+## In the core (359 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -334,7 +334,7 @@ written once with the crates that carry it.
 | `keyring-core` | 1.0.1 | MIT OR Apache-2.0 |
 | `kstring` | 2.0.5 | MIT OR Apache-2.0 |
 | `libc` | 0.2.191 | MIT OR Apache-2.0 |
-| `libsqlite3-sys` | 0.39.1 | MIT |
+| `libsqlite3-sys` | 0.40.0 | MIT |
 | `litemap` | 0.8.3 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
 | `log` | 0.4.35 | MIT OR Apache-2.0 |
@@ -396,7 +396,6 @@ written once with the crates that carry it.
 | `quick-error` | 2.0.1 | MIT/Apache-2.0 |
 | `quick-xml` | 0.42.0 | MIT |
 | `rand` | 0.10.4 | MIT OR Apache-2.0 |
-| `rand_core` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_core` | 0.10.1 | MIT OR Apache-2.0 |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib |
 | `regex` | 1.13.2 | MIT OR Apache-2.0 |
@@ -406,7 +405,7 @@ written once with the crates that carry it.
 | `rfd` | 0.17.2 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `roxmltree` | 0.21.2 | MIT OR Apache-2.0 |
-| `rusqlite` | 0.41.1 | MIT |
+| `rusqlite` | 0.43.0 | MIT |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustix` | 1.1.6 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | `rustls` | 0.23.46 | Apache-2.0 OR ISC OR MIT |
@@ -525,7 +524,6 @@ written once with the crates that carry it.
 | `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |
 | `windows-result` | 0.4.1 | MIT OR Apache-2.0 |
 | `windows-strings` | 0.5.1 | MIT OR Apache-2.0 |
-| `windows-sys` | 0.52.0 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |
 | `windows-sys` | 0.61.2 | MIT OR Apache-2.0 |
 | `windows-targets` | 0.52.6 | MIT OR Apache-2.0 |

@@ -5,7 +5,6 @@ use aes_gcm::{Aes256Gcm, KeyInit as _, Nonce};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use hkdf::Hkdf;
-use rand_core::{OsRng, TryRngCore};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
@@ -36,9 +35,7 @@ pub fn sealed_for(anchor: &str, language: &str, token: &str) -> Result<String, R
     let cipher = cipher(anchor, language).ok_or_else(unsealable)?;
     let token = token_bytes(token).ok_or_else(unsealable)?;
     let mut nonce = [0u8; NONCE_BYTES];
-    OsRng
-        .try_fill_bytes(&mut nonce)
-        .map_err(|_| Refused::NoRandomness)?;
+    getrandom::fill(&mut nonce).map_err(|_| Refused::NoRandomness)?;
     let sealed = cipher
         .encrypt(
             &Nonce::from(nonce),

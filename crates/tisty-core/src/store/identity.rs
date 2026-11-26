@@ -120,7 +120,7 @@ pub(crate) fn kept_or_minted(paths: &crate::Paths, at: &Path, why: &str) -> Opti
 
 pub(crate) fn minted(paths: &crate::Paths, at: &Path) -> Option<[u8; 32]> {
     let mut fresh = [0u8; 32];
-    rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
+    getrandom::fill(&mut fresh).ok()?;
     written(paths, at, fresh)
 }
 

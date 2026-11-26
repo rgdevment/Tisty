@@ -15,21 +15,21 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@solidjs/web": "2.0.0-rc.21",
+    "@solidjs/web": "2.0.1",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2.6.0",
     "lowlight": "^3.3.0",
     "mermaid": "^12.1.0",
-    "solid-js": "2.0.0-rc.21",
+    "solid-js": "2.0.1",
     "tisty-sheet": "file:../tisty-sheet"
   },
   "devDependencies": {
     "@solidjs/testing-library": "1.0.0-rc.2",
+    "@solidjs/vite-plugin": "3.0.1",
     "@vitest/coverage-v8": "*",
     "jsdom": "*",
     "typescript": "*",
     "vite": "*",
-    "vite-plugin-solid": "3.0.0-next.27",
     "vitest": "*"
   }
 }

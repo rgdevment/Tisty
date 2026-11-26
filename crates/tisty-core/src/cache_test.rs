@@ -1502,3 +1502,12 @@ fn a_proposal_survives_the_cache_and_a_settled_one_leaves_no_row() {
     let advanced = project(&f.store_root, &f.cache_dir).unwrap();
     assert!(advanced.proposals.is_empty());
 }
+
+#[test]
+fn asking_for_documents_with_no_words_never_hands_sqlite_a_query_without_a_condition() {
+    let dir = tempfile::tempdir().unwrap();
+    let cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+
+    assert_eq!(cache.holding(&[]), Some(Vec::new()));
+    assert_eq!(cache.holding(&["report".to_string()]), Some(Vec::new()));
+}

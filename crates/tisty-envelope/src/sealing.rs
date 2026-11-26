@@ -8,7 +8,6 @@ use flate2::Compression;
 use flate2::write::DeflateEncoder;
 use hkdf::Hkdf;
 use hmac::{Hmac, Mac};
-use rand_core::{OsRng, TryRngCore};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use tisty_contracts::{
@@ -67,7 +66,7 @@ pub struct Writer<'a> {
 
 fn random_head() -> Option<[u8; 32]> {
     let mut head = [0u8; 32];
-    OsRng.try_fill_bytes(&mut head).ok()?;
+    getrandom::fill(&mut head).ok()?;
     Some(head)
 }
 

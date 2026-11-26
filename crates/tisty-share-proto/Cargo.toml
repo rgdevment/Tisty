@@ -12,7 +12,7 @@ workspace = true
 [features]
 default = ["mint"]
 # The server only checks keys and never makes one, and the system's randomness does not build for wasm.
-mint = ["dep:rand_core"]
+mint = ["dep:getrandom"]
 
 [dependencies]
 base64.workspace = true
@@ -20,9 +20,9 @@ bip39.workspace = true
 chacha20poly1305.workspace = true
 curve25519-dalek.workspace = true
 ed25519-dalek.workspace = true
+getrandom = { workspace = true, optional = true }
 hmac.workspace = true
 jiff.workspace = true
-rand_core = { workspace = true, optional = true }
 scrypt.workspace = true
 serde.workspace = true
 sha2.workspace = true
