@@ -1,9 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { newRuleForAll } from "../agentsSync";
 import { useAttended } from "../attended";
-import type { Filed, Folded, Papers } from "../core";
+import type { Filed, Folded, Papers, Wired } from "../core";
 import { useGoing, useHiddenGoing } from "../dropLater";
 import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
+import { landedOn } from "../settingsRows";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
 import { usePinned } from "../usePinned";
@@ -51,6 +54,9 @@ interface Props {
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
   acts?: LibraryActs;
+  /// The connected agents Settings already read, for the Hooks group of Agents › Global.
+  agents?: readonly Wired[] | null;
+  onTrouble?: (text: string) => void;
 }
 
 export default function SideLibrary(props: Props) {
@@ -115,7 +121,13 @@ function Wide({
   folds,
   title,
   hidden,
+  agents,
+  onTrouble,
 }: Props & { title: React.ReactNode; hidden: boolean }) {
+  const newRule = (level: string) =>
+    newRuleForAll(level)
+      .then((made) => onChoose({ named: "docs", doc: made.id }))
+      .catch((problem) => onTrouble?.(saidPlainly(problem)));
   const [sifting, setSifting] = useState(false);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const going = useHiddenGoing();
@@ -247,6 +259,9 @@ function Wide({
               onPicked={acts ? pick : undefined}
               onDelete={acts ? dropped : undefined}
               onRename={acts?.rename}
+              agents={agents}
+              onHooks={() => onChoose(landedOn({ page: "agents", shelf: "wired" }))}
+              onNewRule={newRule}
             />
           </div>
         </div>

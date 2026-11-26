@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentKind } from "../agentDocs";
+import { agentGroups } from "../agentGroups";
 import {
   agentsDrawn,
   agentsPaint,
@@ -10,13 +11,14 @@ import {
   inAgents,
   ofAnother,
 } from "../agentsSync";
-import type { Filed, Folded, Papers } from "../core";
+import type { Filed, Folded, Papers, Wired } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { placeOf, rulesOf, useRuling } from "../places";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
+import AgentGroupRows, { groupsDrawn, type RowOf } from "./AgentGroupRows";
 import { useAgentsStage, useSkillsRow } from "./AgentsMark";
 import { FolderMark } from "./AssistantMark";
 import {
@@ -44,7 +46,6 @@ import {
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { letterOf, modKey, onMac, shortcut } from "./macKeys";
-import { TistySkillsRow } from "./TistySkills";
 
 const STIRS = 4;
 
@@ -103,6 +104,10 @@ interface Props {
   onPicked?: (docs: string[]) => void;
   onDelete?: (row: { id: string; kind: "doc" | "folder" }) => void;
   onRename?: (folder: Folded) => void;
+  /// The connected agents Settings already read, for the Hooks group of Global.
+  agents?: readonly Wired[] | null;
+  onHooks?: () => void;
+  onNewRule?: (level: string) => void;
 }
 
 export default function Tree({
@@ -133,6 +138,9 @@ export default function Tree({
   onPicked,
   onDelete,
   onRename,
+  agents = null,
+  onHooks,
+  onNewRule,
 }: Props) {
   useRuling();
   const { root, stage, stance } = useAgentsStage(papers);
@@ -143,6 +151,23 @@ export default function Tree({
   const agentsVeiled = !unfolded && agentsHidden(hidden, root);
   const unborn = !root && !agentsVeiled && !unfolded;
   const agentRows = useAgentRows(papers);
+  const groups = useMemo(
+    () => (root ? agentGroups(papers.docs, papers.folders, agentRows, root) : null),
+    [papers, agentRows, root],
+  );
+  // What Global draws in its groups is not drawn again where it is kept.
+  const projected = useMemo(
+    () =>
+      new Set(
+        (groups?.rules ?? [])
+          .flatMap((one) => one.docs)
+          .concat(
+            (groups?.skills ?? []).flatMap((one) => ("doc" in one ? [one.doc] : one.skill.docs)),
+          )
+          .map((one) => one.id),
+      ),
+    [groups],
+  );
   const own = useFolds();
   const { opened, setOpened, spread, setSpread } = folds ?? own;
   const [over, setOver] = useState<string | null>(null);
@@ -404,6 +429,19 @@ export default function Tree({
     next.focus();
   };
 
+  // A row drawn only, never a folder: the arrow keys reach it, and nothing is dropped on it.
+  const rowOf: RowOf = (key) =>
+    ({
+      "data-row": key,
+      tabIndex: stops(key) ? 0 : -1,
+      onFocus: () => setReached(key),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        e.preventDefault();
+        walk(key, e.key === "ArrowDown" ? 1 : -1);
+      },
+    }) as ReturnType<RowOf>;
+
   const land = (folder?: string) => {
     if (!lifted) return;
     if (lifted.kind === "folder" && lifted.id === folder) return;
@@ -546,7 +584,9 @@ export default function Tree({
 
   const drawnUnder = (parent: string | null) =>
     agentsDrawn(under(parent), papers.folders, root).filter(
-      (one) => one.away || (!veiled(one.id) && !(one.id === root && agentsVeiled)),
+      (one) =>
+        one.away ||
+        (!veiled(one.id) && !(one.id === root && agentsVeiled) && !groups?.emptied.has(one.id)),
     );
 
   const gathered = (one: Filed) => Boolean(onDiary && one.diary && !one.pageOf && !one.away);
@@ -569,6 +609,7 @@ export default function Tree({
         one !== pin &&
         !gathered(one) &&
         !one.pageOf &&
+        !projected.has(one.id) &&
         one.folder === folder &&
         one.away === shelved(folder),
     );
@@ -720,7 +761,11 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page || inGroup || doc.away || !rules.moves ? undefined : doc.id}
+          data-drop={
+            page || inGroup || projected.has(doc.id) || doc.away || !rules.moves
+              ? undefined
+              : doc.id
+          }
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
@@ -1063,7 +1108,7 @@ export default function Tree({
     const shown = folderShown(folder);
     const kids = drawnUnder(folder.id);
     const papersIn = inside(folder.id);
-    const tistySkillsHere = skillsRow && holdsTistySkills(folder, papers.folders);
+    const global = holdsTistySkills(folder, papers.folders);
     const theirs = ofAnother(folder);
     return (
       <li key={folder.id} className={folder.away || theirs ? "relative text-faint" : "relative"}>
@@ -1156,10 +1201,23 @@ export default function Tree({
                   ? paper(one.doc, depth + 1)
                   : skill(one.skill, depth + 1),
             )}
-            {tistySkillsHere && <TistySkillsRow depth={depth + 1} step={STEP} />}
+            {global && groups && (
+              <AgentGroupRows
+                groups={groups}
+                depth={depth + 1}
+                step={STEP}
+                paper={paper}
+                skill={skill}
+                rowOf={rowOf}
+                tistySkills={skillsRow}
+                agents={agents}
+                onHooks={onHooks}
+                onNewRule={onNewRule}
+              />
+            )}
             {!agentsDrawn(under(folder.id), papers.folders, root).length &&
               !papersIn.length &&
-              !tistySkillsHere && (
+              !(global && groups && groupsDrawn(groups, skillsRow, agents, !!onHooks)) && (
                 <li
                   className="py-0.5 text-[11.5px] text-faint italic"
                   style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}

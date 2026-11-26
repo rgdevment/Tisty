@@ -291,6 +291,84 @@ fn carded(card: Option<AgentDoc>) -> Told {
     Told::Card(card.map(Box::new))
 }
 
+/// What «New rule» under Global › Rules › an agent starts with: that agent's rule for all computers, under a name none of them takes yet.
+pub(crate) fn rule_for_all(session: &Session, level: &str) -> Option<String> {
+    let level = assistant(level)?.id;
+    // With one rules file the scopes share it and the person chooses; otherwise a name any computer uses would clash there.
+    let shared_file = crate::wiring::agents::single_rule(level).is_some();
+    let address = |name: &str| format!("{level}/{}/{name}", agents::Kind::Rule.word());
+    let taken: BTreeSet<String> = super::agents_sync::bodies(session)
+        .iter()
+        .filter_map(|(_, body)| Card::of(body))
+        .filter(|card| !shared_file || card.computer.is_none())
+        .map(|card| card.address())
+        .collect();
+    let name = crate::wiring::agents::fresh_rule(level, |name| taken.contains(&address(name)))?;
+    agents::doc_of(level, agents::Kind::Rule, &name, b"").ok()
+}
+
+// An agent that reads one rules file has one for all at most: once it exists, «New rule» opens it.
+fn rule_of_all(session: &Session, level: &str) -> Option<tisty_core::docs::Doc> {
+    let main = crate::wiring::agents::single_rule(level)?;
+    let address = format!("{level}/{}/{main}", agents::Kind::Rule.word());
+    super::agents_sync::bodies(session)
+        .into_iter()
+        .find(|(_, body)| {
+            Card::of(body).is_some_and(|card| card.computer.is_none() && card.address() == address)
+        })
+        .map(|(id, body)| tisty_core::docs::Doc {
+            title: tisty_core::docs::titled(&body),
+            id,
+        })
+}
+
+/// «New rule» under Global › Rules › an agent: made in Global, approved as it starts, for all computers.
+pub(crate) fn rule_made(session: &mut Session, level: &str) -> Answer<tisty_core::docs::Doc> {
+    let Some(seed) = rule_for_all(session, level) else {
+        return rule_of_all(session, level).ok_or_else(|| Refusal::of("agentNoPlace"));
+    };
+    let root =
+        super::agents_sync::root_of(&session.state).ok_or_else(|| Refusal::of("noSuchFolder"))?;
+    // Global put away is asked about as it is, never made a second time beside it.
+    let kept = session
+        .state
+        .folders
+        .values()
+        .find(|one| {
+            one.parent == Some(root)
+                && one.computer.is_none()
+                && one.name == crate::wiring::agents::GLOBAL_FOLDER
+        })
+        .map(|one| one.id);
+    let global = match kept {
+        Some(at) => at,
+        None => {
+            let mut ops = Vec::new();
+            let at = agents::room(
+                &session.state,
+                &mut ops,
+                root,
+                crate::wiring::agents::GLOBAL_FOLDER,
+            );
+            session
+                .commit_all(ops)
+                .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+            at
+        }
+    };
+    crate::folder_open(&session.state, global, true)?;
+    super::placing::may_make(session, Some(global), None, tisty_core::places::Making::Doc)?;
+    super::papers::made_with(session, Some(global), None, &seed)
+}
+
+#[tauri::command(async)]
+pub fn agent_rule_new(
+    session: tauri::State<'_, Mutex<Session>>,
+    level: String,
+) -> Answer<tisty_core::docs::Doc> {
+    rule_made(&mut held(&session), &level)
+}
+
 /// The card of a document, or, given a file and something to do there, what doing it gives back.
 #[tauri::command(async)]
 pub fn agent_doc(

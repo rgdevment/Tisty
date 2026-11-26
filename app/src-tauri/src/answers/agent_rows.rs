@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -10,6 +11,8 @@ use crate::{Answer, Session, held};
 #[serde(rename_all = "camelCase")]
 pub struct Row {
     file: String,
+    /// Outside every computer's own folder, so it is for all of them.
+    everyone: bool,
     #[serde(flatten)]
     shown: Shown,
 }
@@ -27,13 +30,28 @@ pub(crate) fn listed(session: &Session) -> (PathBuf, Vec<String>) {
     (session.paths.docs(), files)
 }
 
-pub(crate) fn rows(docs: &Path, files: &[String]) -> Vec<Row> {
+/// The files under AGENTS that sit in no computer's own folder.
+pub(crate) fn shared(session: &Session) -> BTreeSet<String> {
+    let state = &session.state;
+    root_of(state)
+        .map(|root| {
+            docs_in(state, &tree(state, root))
+                .into_iter()
+                .filter(|one| agents::computer_of(state, one.folder).is_none())
+                .map(|one| one.file.clone())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub(crate) fn rows(docs: &Path, files: &[String], shared: &BTreeSet<String>) -> Vec<Row> {
     files
         .iter()
         .filter_map(|file| {
             let body = tisty_core::docs::read(docs, file).ok()?;
             Some(Row {
                 file: file.clone(),
+                everyone: shared.contains(file),
                 shown: agents::shown(&body)?,
             })
         })
@@ -52,8 +70,11 @@ pub fn agents_rows(
     session: tauri::State<'_, Mutex<Session>>,
     only: Option<Vec<String>>,
 ) -> Answer<Vec<Row>> {
-    let (docs, files) = listed(&held(&session));
-    Ok(rows(&docs, &asked_for(files, only)))
+    let ((docs, files), shared) = {
+        let session = held(&session);
+        (listed(&session), shared(&session))
+    };
+    Ok(rows(&docs, &asked_for(files, only), &shared))
 }
 
 #[cfg(test)]

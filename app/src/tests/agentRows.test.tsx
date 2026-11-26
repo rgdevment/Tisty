@@ -40,7 +40,7 @@ const doc = (file: string, title: string, folderId: string | null = "claude"): F
 
 const row = (file: string, name: string, label: string, kind: AgentRow["kind"] = "rule") => {
   const skill = kind === "skill" && name.includes("/") ? name.split("/")[0] : null;
-  return { file, kind, level: "claude", name, label, skill } satisfies AgentRow;
+  return { file, everyone: false, kind, level: "claude", name, label, skill } satisfies AgentRow;
 };
 
 const FOLDERS = [

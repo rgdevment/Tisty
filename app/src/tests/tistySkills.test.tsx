@@ -184,7 +184,7 @@ describe("Tisty's own skills", () => {
 
   it("opens the card from the sidebar with each skill, where they go and what is left out", async () => {
     render(<TistySkillsRow depth={1} step={12} />);
-    await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills.*Off/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills: off/ }));
 
     expect(
       screen.getByText("Picking up where it left off, tasks, documents and ideas."),
@@ -249,7 +249,7 @@ describe("Tisty's own skills", () => {
     await waitFor(() => expect(sent("agents_tisty_skills_take")).toHaveLength(1));
     expect(sent("agents_tisty_skills_take")[0].args).toEqual({ on: true });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills.*On/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Tisty's skills: on/ }));
     expect(await screen.findByRole("button", { name: "Turn off on this computer" })).toBeTruthy();
     expect(screen.getByText("In sync")).toBeTruthy();
     expect(screen.getByText("A skill that is not Tisty's: left as it is")).toBeTruthy();
@@ -341,7 +341,7 @@ describe("Tisty's own skills in the folder view", () => {
 describe("Tisty's own skills are turned off, never deleted", () => {
   it("the card turns them on and off, and nowhere does it offer to delete them", async () => {
     const { container } = render(<TistySkillsRow depth={1} step={12} />);
-    const row = await screen.findByRole("button", { name: /^Tisty's skills.*Off/ });
+    const row = await screen.findByRole("button", { name: /^Tisty's skills: off/ });
     fireEvent.contextMenu(row);
     fireEvent.keyDown(row, { key: "F10", shiftKey: true });
     fireEvent.keyDown(row, { key: "Delete" });
@@ -355,7 +355,8 @@ describe("Tisty's own skills are turned off, never deleted", () => {
 
   it("says in its row that they are off, and a click opens the card without turning anything", async () => {
     render(<TistySkillsRow depth={1} step={12} />);
-    expect((await screen.findByText("Off")).className).toContain("text-faint");
+    await screen.findByRole("button", { name: "Tisty's skills: off" });
+    expect(screen.queryByText("Off")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /Tisty's skills/ }));
     expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
@@ -366,7 +367,7 @@ describe("Tisty's own skills are turned off, never deleted", () => {
     answering(skills({ on: true }));
     render(<TistySkillsRow depth={1} step={12} />);
     await userEvent.click(
-      await screen.findByRole("button", { name: /^Skills de Tisty.*Encendidas/ }),
+      await screen.findByRole("button", { name: /^Skills de Tisty: encendidas/ }),
     );
     expect(screen.getByRole("button", { name: "Apagar en este equipo" })).toBeTruthy();
     expect(
@@ -411,4 +412,32 @@ describe("a copy left over that Tisty may not open", () => {
     expect(screen.getByText(over.at)).toBeTruthy();
     expect(screen.queryByText("Changed outside Tisty")).toBeNull();
   });
+});
+
+const dotOf = (button: HTMLElement) => button.querySelector("[data-on]") as HTMLElement;
+
+describe("the sidebar row of Tisty's skills shows a dot, not a word", () => {
+  it.each([
+    ["en", false, "Tisty's skills: off", "Off", "On"],
+    ["en", true, "Tisty's skills: on", "On", "Off"],
+    ["es", false, "Skills de Tisty: apagadas", "Apagadas", "Encendidas"],
+    ["es", true, "Skills de Tisty: encendidas", "Encendidas", "Apagadas"],
+  ] as const)(
+    "in %s, on=%s: name and title carry the state, the dot its shape",
+    async (lang, on, words, own, other) => {
+      adopt(lang);
+      answering(skills({ on }));
+      render(<TistySkillsRow depth={1} step={12} />);
+      const button = await screen.findByRole("button", { name: words });
+      expect(button.getAttribute("title")).toBe(words);
+      expect(button.textContent).toBe(lang === "en" ? "Tisty's skills" : "Skills de Tisty");
+      expect(screen.queryByText(own)).toBeNull();
+      expect(screen.queryByText(other)).toBeNull();
+      const dot = dotOf(button);
+      expect(dot.getAttribute("aria-hidden")).toBe("true");
+      expect(dot.getAttribute("data-on")).toBe(String(on));
+      expect(dot.className).toContain(on ? "bg-hue-green" : "border-faint");
+      expect(dot.className).not.toContain(on ? "border-faint" : "bg-hue-green");
+    },
+  );
 });

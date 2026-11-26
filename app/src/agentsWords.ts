@@ -1,5 +1,24 @@
 // Each word once, English then Spanish, so the two languages cannot drift apart.
 const words = {
+  agentGroupRules: ["Rules", "Reglas"],
+  agentGroupSkills: ["Skills", "Skills"],
+  agentGroupHooks: ["Hooks", "Hooks"],
+  agentGroupNewRuleOf: [
+    "New rule for {name}, for all your computers",
+    "Nueva regla de {name}, para todos tus equipos",
+  ],
+  agentGroupHooksLabel: ["Tisty's hooks by agent", "Hooks de Tisty por agente"],
+  agentGroupHooksHere: ["{name} on this computer", "{name} en este equipo"],
+  agentGroupHooksOn: ["with hooks", "con hooks"],
+  agentGroupHooksOff: ["no hooks", "sin hooks"],
+  agentGroupHooksNone: [
+    "No agent connected on this computer",
+    "Ningún agente conectado en este equipo",
+  ],
+  agentGroupHooksOpen: [
+    "Open in Settings › Agents › Connected",
+    "Abrir en Configuración › Agentes › Conectados",
+  ],
   agentNoConsent: [
     "This computer has not allowed Tisty to read or write agent files",
     "Este equipo no le dio permiso a Tisty para leer o escribir archivos de agentes",
@@ -634,6 +653,8 @@ const words = {
   ],
   tistySkills: ["Tisty's skills", "Skills de Tisty"],
   tistySkillsOff: ["Off", "Apagadas"],
+  tistySkillsDotOn: ["Tisty's skills: on", "Skills de Tisty: encendidas"],
+  tistySkillsDotOff: ["Tisty's skills: off", "Skills de Tisty: apagadas"],
   tistySkillsRowBehind: ["To bring up to date", "Por poner al día"],
   tistySkillsRowNone: ["Not here", "Aquí no"],
   tistySkillsRowNoFolder: [

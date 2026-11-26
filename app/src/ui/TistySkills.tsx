@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { landingSaid, leftAsIs } from "../agentsAmiss";
 import { markOffered, SKILLED, SKILLS_DECLINED } from "../agentsOffered";
@@ -17,6 +17,7 @@ import { AssistantMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import Modal from "./Modal";
 import { Knob } from "./Rows";
+import StateDot from "./StateDot";
 
 const NAMES: Record<string, string> = {
   claude: "Claude Code",
@@ -292,11 +293,16 @@ function Opener({
   skills,
   onTaken,
   className,
+  label,
+  row,
   children,
 }: Readonly<{
   skills: TistySkills;
   onTaken: (now: TistySkills) => void;
   className: string;
+  label?: string;
+  /// In the sidebar, what makes it one more row of the tree, walked by the arrow keys.
+  row?: ButtonHTMLAttributes<HTMLButtonElement>;
   children: ReactNode;
 }>) {
   const [open, setOpen] = useState(false);
@@ -305,7 +311,10 @@ function Opener({
       <button
         type="button"
         data-row="tisty-skills"
+        {...row}
         onClick={() => setOpen(true)}
+        aria-label={label}
+        title={label}
         className={className}
       >
         {children}
@@ -402,7 +411,15 @@ function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE | 
   return left ? landingSaid(left) : t("tistySkillsRowYours");
 }
 
-export function TistySkillsRow({ depth, step }: Readonly<{ depth: number; step: number }>) {
+export function TistySkillsRow({
+  depth,
+  step,
+  rowOf,
+}: Readonly<{
+  depth: number;
+  step: number;
+  rowOf?: (key: string) => ButtonHTMLAttributes<HTMLButtonElement>;
+}>) {
   const [skills, setSkills] = useTistySkills();
   if (!skills) return null;
   return (
@@ -418,10 +435,12 @@ export function TistySkillsRow({ depth, step }: Readonly<{ depth: number; step: 
         <Opener
           skills={skills}
           onTaken={setSkills}
+          label={t(skills.on ? "tistySkillsDotOn" : "tistySkillsDotOff")}
+          row={rowOf?.("tisty-skills")}
           className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
         >
           <span className="truncate">{t("tistySkills")}</span>
-          <Standing skills={skills} className="ml-auto pl-2" />
+          <StateDot on={skills.on} className="ml-auto" />
         </Opener>
       </div>
     </li>

@@ -2,7 +2,16 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Filed, Folded } from "./core";
 import { fill, t } from "./locales";
 
-const ASSISTANT_FOLDERS = new Set(["Claude", "Codex", "Copilot", "Gemini", "Cursor"]);
+/// The agents in the order Agents lists them, by level and by the name of their folder.
+export const ASSISTANTS: readonly (readonly [string, string])[] = [
+  ["claude", "Claude"],
+  ["codex", "Codex"],
+  ["copilot", "Copilot"],
+  ["gemini", "Gemini"],
+  ["cursor", "Cursor"],
+  ["dsh", "DeepSeek Harness"],
+];
+export const ASSISTANT_FOLDERS: ReadonlySet<string> = new Set(ASSISTANTS.map(([, name]) => name));
 export const AGENTS_ICON = "robot";
 export const AGENTS_MORE = "tisty:agents-more";
 
@@ -108,6 +117,8 @@ export interface Brought {
 
 export interface AgentRow {
   file: string;
+  /// Outside every computer's own folder, so it is for all of them.
+  everyone: boolean;
   kind: "rule" | "skill" | "memory";
   level: string;
   name: string;
@@ -195,6 +206,9 @@ export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
 export const agentsRescan = (): Promise<AgentsLook> => invoke("agents_rescan");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });
+/// «New rule» under Global › Rules › an agent: made in Global for all computers, or the one rules file it already has.
+export const newRuleForAll = (level: string): Promise<{ id: string; title: string }> =>
+  invoke("agent_rule_new", { level });
 /// `sync` is null to keep the switch as it is, as «Bring another file» does.
 export const agentsBring = (chosen: string[], sync: boolean | null): Promise<Brought> =>
   invoke("agents_bring", { chosen, sync });

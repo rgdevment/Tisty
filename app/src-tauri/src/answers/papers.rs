@@ -518,11 +518,21 @@ pub(crate) fn doc_made(
         Some(_) => String::new(),
         None => super::agents_sync::seeded(session, folder),
     };
+    made_with(session, folder, page_of, &seed)
+}
+
+/// A new document holding `seed`, approved as it is written, last in its place.
+pub(crate) fn made_with(
+    session: &mut Session,
+    folder: Option<tisty_core::model::FolderId>,
+    page_of: Option<tisty_core::model::DocId>,
+    seed: &str,
+) -> Answer<tisty_core::docs::Doc> {
     let made = tisty_core::docs::create_by(
         &session.paths.docs(),
         &session.writer(),
         &session.config.device_id,
-        &seed,
+        seed,
     )
     .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
 
@@ -545,7 +555,7 @@ pub(crate) fn doc_made(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of(&seed).agreed()),
+            said: Some(tisty_core::event::Said::of(seed).agreed()),
             folder,
             page_of,
             task_of: None,

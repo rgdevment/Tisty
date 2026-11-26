@@ -286,6 +286,7 @@ describe("the rows of an assistant's folder", () => {
   ];
   const found = (file: Filed, name: string, label: string, kind: AgentRow["kind"]): AgentRow => ({
     file: file.file,
+    everyone: false,
     kind,
     level: "claude",
     name,

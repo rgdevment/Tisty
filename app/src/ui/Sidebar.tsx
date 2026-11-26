@@ -184,6 +184,8 @@ export default function Sidebar({
             onIdeasMenu={onIdeasMenu}
             onAgentsMenu={onAgentsMenu}
             onFolderMenu={onFolderMenu}
+            agents={finder?.agents?.agents ?? null}
+            onTrouble={onTrouble}
             onDocMenu={onDocMenu}
             onDocsMenu={onDocsMenu}
             onHereMenu={onHereMenu}

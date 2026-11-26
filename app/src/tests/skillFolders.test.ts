@@ -14,6 +14,7 @@ const seen = (name: string): FileSeen => ({
 
 const row = (file: string, name: string, more: Partial<AgentRow> = {}): AgentRow => ({
   file,
+  everyone: false,
   kind: "skill",
   level: "codex",
   name,
