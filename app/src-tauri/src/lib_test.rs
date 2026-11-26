@@ -657,6 +657,7 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
         "src-tauri/src/pdf.rs",
         "src-tauri/src/sealed.rs",
         "src-tauri/src/shop.rs",
+        "src-tauri/src/spelling.rs",
     ];
     assert_eq!(
         allowed.len(),

@@ -18,10 +18,12 @@ fn spellable(word: &str) -> Option<String> {
         .then(|| word.to_owned())
 }
 
+#[cfg(any(windows, test))]
 fn primary(tag: &str) -> &str {
     tag.split(['-', '_']).next().unwrap_or(tag)
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn tongue_chosen(
     supported: &[String],
     asked: Option<&str>,
@@ -110,11 +112,11 @@ mod system {
         loop {
             let mut one = [PWSTR::null()];
             let mut fetched = 0u32;
-            let more = unsafe { listed.Next(&mut one, Some(&raw mut fetched)) };
-            if more.is_err() || fetched == 0 {
-                return found;
-            }
+            // SAFETY: one slot is offered with its count; a filled slot is a CoTaskMem string the caller frees once.
             unsafe {
+                if listed.Next(&mut one, Some(&raw mut fetched)).is_err() || fetched == 0 {
+                    return found;
+                }
                 if let Ok(word) = one[0].to_string() {
                     found.push(word);
                 }
@@ -125,6 +127,7 @@ mod system {
 
     fn own_locale() -> Option<String> {
         let mut name = [0u16; LOCALE_NAME_MAX_LENGTH];
+        // SAFETY: the buffer is LOCALE_NAME_MAX_LENGTH long, the most the call writes.
         let len = unsafe { GetUserDefaultLocaleName(&mut name) };
         let len = usize::try_from(len).ok()?.checked_sub(1)?;
         String::from_utf16(&name[..len]).ok()
@@ -148,6 +151,7 @@ mod system {
             std::thread::Builder::new()
                 .name("speller".into())
                 .spawn(move || {
+                    // SAFETY: this thread joins the free-threaded apartment once and holds every speller object for life.
                     let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
                     for job in rx {
                         job();
@@ -173,6 +177,7 @@ mod system {
     }
 
     fn made_checker(asked: Option<&str>) -> Option<ISpellChecker> {
+        // SAFETY: COM calls on owned interfaces; off the speller thread they fail with CO_E_NOTINITIALIZED, not UB.
         unsafe {
             let factory: ISpellCheckerFactory =
                 CoCreateInstance(&SpellCheckerFactory, None, CLSCTX_INPROC_SERVER).ok()?;
@@ -187,6 +192,7 @@ mod system {
             return Spelled::default();
         };
         let said = HSTRING::from(word);
+        // SAFETY: the checker and the string outlive every call, and each answer is an owned interface.
         unsafe {
             let Ok(errors) = checker.Check(&said) else {
                 return Spelled::default();
@@ -207,6 +213,7 @@ mod system {
     }
 
     pub(super) fn learned(word: &str, asked: Option<&str>) -> bool {
+        // SAFETY: Add takes a string that lives through the call and keeps a copy of its own.
         checker(asked).is_some_and(|checker| unsafe { checker.Add(&HSTRING::from(word)).is_ok() })
     }
 }
@@ -228,6 +235,7 @@ mod system {
     }
 
     fn checker() -> Option<Retained<AnyObject>> {
+        // SAFETY: a public class method returning the shared speller, retained; it runs on the main thread only.
         unsafe { msg_send![class!(NSSpellChecker), sharedSpellChecker] }
     }
 
@@ -236,6 +244,7 @@ mod system {
             return Spelled::default();
         };
         let said = NSString::from_str(word);
+        // SAFETY: public NSSpellChecker selectors with the types AppKit declares; the string outlives both calls.
         unsafe {
             let missed: NSRange =
                 msg_send![&checker, checkSpellingOfString: &*said, startingAt: 0isize];
@@ -265,6 +274,7 @@ mod system {
             return false;
         };
         let said = NSString::from_str(word);
+        // SAFETY: learnWord: is public AppKit API taking an NSString that outlives the call.
         unsafe {
             let _: () = msg_send![&checker, learnWord: &*said];
         }
