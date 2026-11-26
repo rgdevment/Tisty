@@ -192,8 +192,11 @@ fn powershell() -> Option<PathBuf> {
 #[cfg(windows)]
 fn bash() -> Option<PathBuf> {
     let beside_git = on_path("git").and_then(|git| {
-        let root = git.parent()?.parent()?.to_path_buf();
-        Some(root.join("bin").join("bash.exe"))
+        git.ancestors()
+            .skip(1)
+            .take(3)
+            .map(|root| root.join("bin").join("bash.exe"))
+            .find(|at| at.is_file())
     });
     let installed = std::env::var_os("ProgramFiles")
         .map(|at| PathBuf::from(at).join("Git").join("bin").join("bash.exe"));

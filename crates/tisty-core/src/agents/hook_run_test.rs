@@ -147,3 +147,27 @@ fn a_script_leaving_a_background_process_holding_stderr_neither_hangs_nor_loses_
     assert_eq!(ran.said, "early");
     assert!(ran.took < Duration::from_secs(6), "{:?}", ran.took);
 }
+
+#[cfg(windows)]
+#[test]
+fn a_shell_script_runs_with_gits_own_bash_and_never_with_wsls() {
+    let installed = std::env::var_os("ProgramFiles")
+        .map(|at| {
+            std::path::PathBuf::from(at)
+                .join("Git")
+                .join("bin")
+                .join("bash.exe")
+        })
+        .is_some_and(|at| at.is_file());
+    if let Ok((bash, _)) = interpreter("sh") {
+        let said = bash.to_string_lossy().to_lowercase();
+        assert!(
+            said.ends_with("bash.exe")
+                && !said.contains("system32")
+                && !said.contains("windowsapps"),
+            "{said}"
+        );
+    } else {
+        assert!(!installed);
+    }
+}
