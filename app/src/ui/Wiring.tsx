@@ -143,7 +143,9 @@ function Row(props: Readonly<RowProps>) {
       : one.apart
         ? "wiringStateApart"
         : one.astray
-          ? "wiringStateAstray"
+          ? one.gone
+            ? "wiringStateAstray"
+            : "wiringStateOther"
           : one.wired
             ? "wiringOn"
             : one.maybe

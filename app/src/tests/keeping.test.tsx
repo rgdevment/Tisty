@@ -34,6 +34,7 @@ const installed = vi.hoisted(() => ({
     at: string;
     wired: boolean;
     astray: boolean;
+    gone?: boolean;
     points?: string;
     maybe?: boolean;
     byHand?: boolean;
@@ -3233,6 +3234,7 @@ describe("letting an assistant file work here", () => {
         at: "C:/Users/someone/.codex/config.toml",
         wired: false,
         astray: true,
+        gone: true,
         points: "C:/Programs/Gone/tisty.exe",
       },
     ];
@@ -3259,6 +3261,7 @@ describe("letting an assistant file work here", () => {
         at: "C:/Users/someone/.codex/config.toml",
         wired: false,
         astray: true,
+        gone: true,
         points: "C:/Programs/Gone/tisty.exe",
       },
     ];
@@ -3280,7 +3283,7 @@ describe("letting an assistant file work here", () => {
     expect(sent("agent")).toHaveLength(0);
     expect(sent("wsl_seen")).toHaveLength(0);
     await userEvent.click(screen.getByRole("tab", { name: /^overview/i }));
-    expect(await screen.findByText("Codex points to another Tisty")).toBeTruthy();
+    expect(await screen.findByText("Codex points to a Tisty that no longer exists")).toBeTruthy();
   });
 
   // The list is one row per assistant, by the name it gives itself, and says what each wrote;

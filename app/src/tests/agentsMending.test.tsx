@@ -421,7 +421,7 @@ describe("the agents' page", () => {
     ];
     render(<Page known={knownFor({ agent: open, agents, skills: skillsHere() })} />);
 
-    const apart = within(screen.getByRole("region", { name: "zed points to another Tisty" }));
+    const apart = within(screen.getByRole("region", { name: "zed uses your other Tisty install" }));
     expect(apart.getByText(/\/other\/tisty, which is not this Tisty/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Fix/ })).toBeNull();
     expect(screen.getByRole("region", { name: t("extrasTitle") })).toBeTruthy();

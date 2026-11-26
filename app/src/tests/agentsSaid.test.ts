@@ -49,11 +49,20 @@ describe("what is said of an agent that needs something", () => {
   });
 
   it.each<[Wired[], string]>([
-    [[connection("Codex", false)], "Codex apunta a otro Tisty"],
-    [[hooks("Codex", false)], "Los hooks de Codex apuntan a otro Tisty"],
-    [[connection("A", false), connection("B", false)], "2 agentes apuntan a otro Tisty"],
-    [[hooks("A", false), hooks("B", false)], "Los hooks de 2 agentes apuntan a otro Tisty"],
-    [[connection("A", false), hooks("B", false)], "2 agentes, o sus hooks, apuntan a otro Tisty"],
+    [[connection("Codex", false)], "Codex usa tu otra instalación de Tisty"],
+    [[hooks("Codex", false)], "Los hooks de Codex usan tu otra instalación de Tisty"],
+    [
+      [connection("A", false), connection("B", false)],
+      "2 agentes usan tu otra instalación de Tisty",
+    ],
+    [
+      [hooks("A", false), hooks("B", false)],
+      "Los hooks de 2 agentes usan tu otra instalación de Tisty",
+    ],
+    [
+      [connection("A", false), hooks("B", false)],
+      "2 agentes, o sus hooks, usan tu otra instalación de Tisty",
+    ],
   ])("tells another Tisty apart from one that is gone", (all, said) => {
     expect(pendingSaid(all, "elsewhere")).toBe(said);
   });

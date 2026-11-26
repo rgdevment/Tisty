@@ -77,6 +77,19 @@ beforeEach(() => {
   offeredHere.put([]);
 });
 
+describe("what a row says of a connection that leads to another Tisty", () => {
+  it("says it uses the other install while that one is still there, and points at another only once it is gone", () => {
+    shown([
+      one("codex", { astray: true, gone: false, points: "/other/tisty" }),
+      one("gemini", { astray: true, gone: true, points: "/old/tisty" }),
+    ]);
+
+    expect(screen.getAllByText("Uses your other Tisty install")).toHaveLength(1);
+    expect(screen.getAllByText("Points at another Tisty")).toHaveLength(1);
+    expect(screen.getByText("Points at /old/tisty, which is no longer there")).toBeTruthy();
+  });
+});
+
 describe("connecting assistants", () => {
   it("connects every one found at once, leaving the doubtful and the by-hand ones out", async () => {
     shown([
