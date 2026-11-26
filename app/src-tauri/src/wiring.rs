@@ -9,6 +9,8 @@ mod places;
 mod running;
 mod shape;
 mod toml;
+mod user_hook_table;
+pub mod user_hooks;
 
 use std::path::{Path, PathBuf};
 

@@ -770,7 +770,8 @@ fn round_after(
     let data = session.paths.data();
     let taken = ledger.taken_all(gate.admitted().iter().map(agents::Admitted::file));
     let let_in = agents_homes::let_in(&gate, ledger);
-    if ledger.wait_all(gate.unclaimed()) | taken | let_in {
+    let retired = super::user_hooks::retired(session, &gate, ledger);
+    if ledger.wait_all(gate.unclaimed()) | taken | let_in | retired {
         let _ = ledger.keep(session.paths.data());
     }
     let placed = places::targets(homes, &gate, ledger);
