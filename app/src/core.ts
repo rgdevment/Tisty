@@ -5,6 +5,7 @@ import { speakOf } from "./locales";
 import type { PieceShowing } from "./pieceWindow";
 import { type SaveTurn, settled } from "./saving";
 import type { Named } from "./sharing";
+import type { Spelled } from "./ui/pageMenu";
 import { invokedText } from "./unpacked";
 
 export type Status = "open" | "done" | "dropped";
@@ -1112,6 +1113,14 @@ export const leaveHere = (anyway?: boolean): Promise<string[]> => invoke("leave_
 
 export const copied = (text: string): Promise<void> => writeText(text);
 export const copiedHtml = (html: string, plain: string): Promise<void> => writeHtml(html, plain);
+
+// A system with no speller, or a window outside the app, answers nothing rather than failing the menu.
+export const spelledWord = (word: string, tongue: string): Promise<Spelled | null> =>
+  invoke<Spelled>("word_spelled", { word, tongue }).catch(() => null);
+export const learnedWord = (word: string, tongue: string): Promise<boolean> =>
+  invoke<boolean>("word_learned", { word, tongue }).catch(() => false);
+export const menuPasted = (plainly: boolean): Promise<boolean> =>
+  invoke<boolean>("menu_pasted", { plainly }).catch(() => false);
 
 export const weighs = (reference: string): Promise<number> => invoke("weighs", { reference });
 

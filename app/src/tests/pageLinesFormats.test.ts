@@ -166,7 +166,7 @@ describe("the format key pressed twice over two paragraphs", () => {
     writing?.format("**", "**");
     await settled();
     expect(text()).toBe(PLAIN);
-    expect(writing?.chosen()).toBe("Uno\n\nDos");
+    expect(writing?.choiceHeld()?.words).toBe("Uno\n\nDos");
   });
 });
 

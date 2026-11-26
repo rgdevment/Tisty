@@ -163,7 +163,7 @@ describe("a choice from before a table that opens the page to the start of the w
     writing?.stop();
     const cut = opened(OPENS_TABLE, OPENS_TABLE_PLACED);
     toWordsStart();
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(cut()).toBe("After and more\n");
   });
 });
@@ -186,8 +186,8 @@ describe("a choice that runs to the end of a code block that ends the page", () 
   it("is cut with the closing fence, leaving no backtick behind", () => {
     const text = opened(ENDS_CODE, ENDS_CODE_PLACED);
     allOfEnding();
-    expect(writing?.chosen()).toBe("T\n\nBefore\n\n```js\nconst a = 1;\n```");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("T\n\nBefore\n\n```js\nconst a = 1;\n```");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# \n");
   });
 
@@ -217,7 +217,7 @@ describe("a choice that runs to the end of a code block that ends the page", () 
     const text = opened(ENDS_CODE, ENDS_CODE_PLACED);
     const code = codeText();
     chose([wordsOf("T"), 0], [code, code.length - 1]);
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# \n");
   });
 });
@@ -246,8 +246,8 @@ describe("a choice from words above a code block mid-page to the code's end", ()
   it("is copied and cut with the closing fence, the line feeds after it kept", () => {
     const text = opened(MID_CODE, MID_CODE_PLACED);
     toCodeEnd();
-    expect(writing?.chosen()).toBe("more\n\n```js\nconst a = 1;\n```");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("more\n\n```js\nconst a = 1;\n```");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\nBefore and \n\nAfter\n");
   });
 
@@ -285,8 +285,8 @@ describe("a choice to the end of a code block that holds a lone star or backtick
   it("is cut with the fence and no further, as marks in code pair with nothing", () => {
     const text = opened(MARKED_CODE, MARKED_CODE_PLACED);
     toCodeEnd();
-    expect(writing?.chosen()).toBe("more\n\n```js\nconst s = '`' * 2;\n```");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("more\n\n```js\nconst s = '`' * 2;\n```");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\nBefore and \n\nAfter `x` and *y* end\n");
   });
 });
@@ -312,8 +312,8 @@ describe("a choice from the start of a code block that opens the page", () => {
   it("is cut with the opening fence", () => {
     const text = opened(OPENS_CODE, OPENS_CODE_PLACED);
     allOfOpeningCode();
-    expect(writing?.chosen()).toBe(OPENS_CODE.slice(0, -1));
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe(OPENS_CODE.slice(0, -1));
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("\n");
   });
 });
@@ -331,8 +331,8 @@ describe("a choice of all the code inside one block", () => {
     const text = opened(ENDS_CODE, ENDS_CODE_PLACED);
     const code = codeText();
     chose([code, 0], [code, code.length - 1]);
-    expect(writing?.chosen()).toBe("const a = 1;");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("const a = 1;");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\nBefore\n\n```js\n\n```\n");
   });
 });
@@ -389,8 +389,8 @@ describe("a choice that starts on the sheet right before a code block mid-page",
   it("is cut from the opening fence, the words above kept apart", () => {
     const text = opened(MID_CODE, MID_CODE_PLACED);
     fromSheet();
-    expect(writing?.chosen()).toBe("```js\nconst a = 1;\n```\n\nAft");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("```js\nconst a = 1;\n```\n\nAft");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\nBefore and more\n\ner\n");
   });
 });
@@ -408,8 +408,8 @@ describe("words cut under a code block that opens on a list item's line", () => 
     const text = opened(LISTED_CODE, LISTED_CODE_PLACED);
     const bold = wordsOf("bold");
     chose([bold, 0], [bold, 4]);
-    expect(writing?.chosen()).toBe("**bold**");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("**bold**");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\n1. ```js\n   x\n   ```\n\nPara  end\n");
   });
 });

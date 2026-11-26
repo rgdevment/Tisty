@@ -273,14 +273,14 @@ describe("the words a format over code leaves chosen", () => {
     opened(MID, MID_PLACED);
     intoCode();
     writing?.format("`", "`");
-    expect(writing?.chosen()).toBe("`ds here`");
+    expect(writing?.choiceHeld()?.words).toBe("`ds here`");
   });
 
   it("start at the first words, not in the code before them", () => {
     opened(MID, MID_PLACED);
     outOfCode();
     writing?.format("*", "*");
-    expect(writing?.chosen()).toBe("*Aft*");
+    expect(writing?.choiceHeld()?.words).toBe("*Aft*");
   });
 });
 

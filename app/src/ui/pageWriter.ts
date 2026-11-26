@@ -15,6 +15,10 @@ export type Kept = {
   readonly chosenFrom?: number;
 };
 
+// A page left empty writes its first key as its title, unless it is a page shown without one.
+export const titleBegun = (page: Document): { lead: string; tail: string } | null =>
+  page.documentElement.classList.contains("untitled") ? null : { lead: "# ", tail: "" };
+
 export const keptUnlaid = (kept: Kept | null): kept is Kept =>
   kept !== null && kept.offset < 0 && kept.lead === undefined;
 

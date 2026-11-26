@@ -107,13 +107,49 @@ const playersKept = (old: Element) => {
   };
 };
 
-export const takenOver = (old: Element, fresh: Element) => {
+const attributesTaken = (old: Element, fresh: Element) => {
   for (const name of old.getAttributeNames())
     if (!fresh.hasAttribute(name)) old.removeAttribute(name);
   for (const name of fresh.getAttributeNames()) {
     const value = fresh.getAttribute(name) ?? "";
     if (old.getAttribute(name) !== value) old.setAttribute(name, value);
   }
+};
+
+const shapedAlike = (old: Node, fresh: Node): boolean => {
+  if (old.nodeType !== fresh.nodeType) return false;
+  if (old.nodeType === Node.TEXT_NODE) return true;
+  if (old.nodeType !== Node.ELEMENT_NODE) return false;
+  if ((old as Element).tagName !== (fresh as Element).tagName) return false;
+  return childrenAlike(old, fresh);
+};
+
+const childrenAlike = (old: Node, fresh: Node) =>
+  old.childNodes.length === fresh.childNodes.length &&
+  Array.from(old.childNodes).every((one, at) => shapedAlike(one, fresh.childNodes[at]));
+
+const lettersTaken = (old: Text, said: string) => {
+  const was = old.data;
+  if (was === said) return;
+  let from = 0;
+  while (from < was.length && from < said.length && was[from] === said[from]) from++;
+  let back = 0;
+  const room = Math.min(was.length, said.length) - from;
+  while (back < room && was[was.length - 1 - back] === said[said.length - 1 - back]) back++;
+  old.replaceData(from, was.length - from - back, said.slice(from, said.length - back));
+};
+
+const shapeTaken = (old: Node, fresh: Node) => {
+  if (old.nodeType === Node.TEXT_NODE) return lettersTaken(old as Text, (fresh as Text).data);
+  if (old.nodeType === Node.ELEMENT_NODE) attributesTaken(old as Element, fresh as Element);
+  for (const [at, one] of Array.from(old.childNodes).entries())
+    shapeTaken(one, fresh.childNodes[at]);
+};
+
+// The system's speller marks the text nodes themselves, so a block that keeps its shape keeps them and only its letters change.
+export const takenOver = (old: Element, fresh: Element) => {
+  attributesTaken(old, fresh);
+  if (childrenAlike(old, fresh)) return shapeTaken(old, fresh);
   const kept = playersKept(old);
   old.replaceChildren(...fresh.childNodes);
   kept();

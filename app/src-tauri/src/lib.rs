@@ -35,6 +35,7 @@ mod sealed;
 mod sealing;
 mod session;
 mod shop;
+mod spelling;
 mod starting;
 mod summing;
 mod surviving;
@@ -1020,6 +1021,8 @@ fn plugged() -> tauri::Builder<tauri::Wry> {
 #[allow(clippy::too_many_lines)]
 fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
+        spelling::word_spelled,
+        spelling::word_learned,
         answers::tasks::snapshot,
         answers::storing::keepers,
         answers::storing::keeper_of,
@@ -1350,6 +1353,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_lock,
         desktop::parted,
         desktop::pasted_plainly,
+        desktop::menu_pasted,
         desktop::parting_waits,
         desktop::parting_stays,
         desktop::kept_for_the_end,
