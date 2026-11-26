@@ -5,7 +5,7 @@ import "../agentsWords";
 import { adopt } from "../locales";
 
 const ipc = vi.hoisted(() => ({
-  takeable: [] as string[],
+  takeable: [] as string[] | null,
   calls: 0,
 }));
 
@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     if (cmd !== "agents_takeable") return Promise.resolve(null);
     ipc.calls += 1;
-    return Promise.resolve([...ipc.takeable]);
+    return Promise.resolve(ipc.takeable && [...ipc.takeable]);
   },
 }));
 
@@ -70,7 +70,7 @@ describe("the ⟳ button in the Agents folder", () => {
   it("says how many in plural", async () => {
     const { LOOK_EVERY_MS } = await mount();
     ipc.takeable = [
-      ...ipc.takeable,
+      "/h/.claude/skills/pdf/SKILL.md",
       "/h/.claude/skills/a/SKILL.md",
       "/h/.claude/skills/b/SKILL.md",
     ];
@@ -84,21 +84,38 @@ describe("the ⟳ button in the Agents folder", () => {
     await focusAfter(LOOK_EVERY_MS);
     const rescan = vi.fn();
     window.addEventListener(AGENTS_RESCAN, rescan);
-    fireEvent.click(screen.getByRole("button"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
     window.removeEventListener(AGENTS_RESCAN, rescan);
     expect(rescan).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("1 new")).toBeNull();
     expect(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "{}").names).toEqual(ipc.takeable);
   });
 
-  it("recomputes from the last list, without asking again, when the agents change", async () => {
+  it("looks again when the agents change, so a file just brought stops counting", async () => {
     const { LOOK_EVERY_MS } = await mount();
     ipc.takeable = ["/h/.claude/skills/pdf/SKILL.md", "/h/.claude/skills/xlsx/SKILL.md"];
     await focusAfter(LOOK_EVERY_MS);
+    expect(screen.getByText("1 new")).toBeTruthy();
+    ipc.takeable = ["/h/.claude/skills/pdf/SKILL.md"];
     await act(async () => {
       window.dispatchEvent(new Event(AGENTS_CHANGED));
     });
-    expect(ipc.calls).toBe(2);
-    expect(screen.getByText("1 new")).toBeTruthy();
+    expect(ipc.calls).toBe(3);
+    expect(screen.queryByText(/new$/)).toBeNull();
+  });
+
+  it("keeps no baseline without this computer's yes, so nothing seen then counts later", async () => {
+    ipc.takeable = null;
+    const { LOOK_EVERY_MS } = await mount();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button"));
+    });
+    expect(localStorage.getItem(SEEN_KEY)).toBeNull();
+    ipc.takeable = ["/h/.claude/skills/pdf/SKILL.md", "/h/.claude/skills/xlsx/SKILL.md"];
+    await focusAfter(LOOK_EVERY_MS);
+    expect(screen.queryByText(/new$/)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "{}").names).toEqual(ipc.takeable);
   });
 });

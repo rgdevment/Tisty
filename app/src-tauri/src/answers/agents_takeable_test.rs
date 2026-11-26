@@ -2,7 +2,7 @@ use super::*;
 use crate::answers::agents_sync::tests::{HERE, Room, put, room};
 
 fn takeable_now(room: &Room) -> Vec<String> {
-    takeable(&room.session, &room.homes, HERE)
+    takeable(&room.session, &room.homes, HERE).unwrap_or_default()
 }
 
 fn lists(room: &Room, name: &str) -> bool {
@@ -13,7 +13,7 @@ fn lists(room: &Room, name: &str) -> bool {
 fn without_the_yes_of_this_computer_nothing_is_listed_even_with_a_new_skill_there() {
     let room = room();
     put(&room.home.join(".claude/skills/pdf/SKILL.md"), "pdf\n");
-    assert!(takeable_now(&room).is_empty());
+    assert_eq!(takeable(&room.session, &room.homes, HERE), None);
 }
 
 #[test]

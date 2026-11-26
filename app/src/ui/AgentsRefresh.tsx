@@ -29,17 +29,19 @@ const newOf = (now: string[]) => {
 
 export default function AgentsRefresh() {
   const [fresh, setFresh] = useState(0);
-  const latest = useRef<string[]>([]);
+  const latest = useRef<string[] | null>(null);
   const lastLook = useRef(0);
 
+  // Without this computer's yes there is nothing to compare, so what was seen stays as it was.
   const look = useCallback(() => {
     lastLook.current = Date.now();
-    agentsTakeable()
+    return agentsTakeable()
       .then((now) => {
         latest.current = now;
-        setFresh(newOf(now));
+        setFresh(now ? newOf(now) : 0);
+        return now;
       })
-      .catch(() => undefined);
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function AgentsRefresh() {
     const focused = () => {
       if (Date.now() - lastLook.current >= LOOK_EVERY_MS) look();
     };
-    const changed = () => setFresh(newOf(latest.current));
+    const changed = () => void look();
     window.addEventListener("focus", focused);
     window.addEventListener(AGENTS_CHANGED, changed);
     return () => {
@@ -57,9 +59,12 @@ export default function AgentsRefresh() {
   }, [look]);
 
   const lookAgain = () => {
-    keep(latest.current);
     setFresh(0);
     rescanAgents();
+    look().then((now) => {
+      if (now) keep(now);
+      setFresh(0);
+    });
   };
 
   const said = countedAs(fresh, "agentsNewOne", "agentsNewMany");

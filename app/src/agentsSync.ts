@@ -205,8 +205,8 @@ export const syncAgents = () => window.dispatchEvent(new Event(AGENTS_SYNC));
 
 export const agentsLook = (): Promise<AgentsLook> => invoke("agents_look");
 export const agentsRescan = (): Promise<AgentsLook> => invoke("agents_rescan");
-/// The rules and skills «look again» would tick, by path alone: empty without this computer's yes.
-export const agentsTakeable = (): Promise<string[]> => invoke("agents_takeable");
+/// The rules and skills «look again» would tick, by path alone: null without this computer's yes.
+export const agentsTakeable = (): Promise<string[] | null> => invoke("agents_takeable");
 export const agentsRows = (only?: string[]): Promise<AgentRow[]> =>
   invoke("agents_rows", { only: only ?? null });
 /// «New rule» under Global › Rules › an agent: made in Global for all computers, or the one rules file it already has.
