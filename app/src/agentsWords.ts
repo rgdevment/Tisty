@@ -64,8 +64,8 @@ const words = {
   agentHookAway: ["Not here", "No está aquí"],
   agentHookAskTitle: ["Register {name} on this computer", "Registrar {name} en este equipo"],
   agentHookAskSaid: [
-    "Each agent below runs this script {when}, on this computer only. If its words change, it stops and asks again, on every computer.",
-    "Cada agente de abajo correrá este script {when}, solo en este equipo. Si su texto cambia, deja de correr y se vuelve a preguntar, en cada equipo.",
+    "Each agent below runs this script {name}, on this computer only. If its words change, it stops and asks again, on every computer.",
+    "Cada agente de abajo correrá este script {name}, solo en este equipo. Si su texto cambia, deja de correr y se vuelve a preguntar, en cada equipo.",
   ],
   agentHookAskFiles: ["It writes in:", "Escribe en:"],
   agentHookAskYes: ["Yes, register", "Sí, registrar"],

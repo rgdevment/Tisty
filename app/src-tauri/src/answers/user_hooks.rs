@@ -193,6 +193,27 @@ fn registered(session: &Session, file: &str, print: &str) -> Answer<HookLook> {
         return Err(Refusal::of("agentHookNoMachine"));
     }
     let (yes, bytes) = agents::yes_of(&open.body).map_err(super::agents_sync::refused)?;
+    if ledger
+        .hook_named(&yes.name)
+        .is_some_and(|(other, _)| other != file)
+    {
+        return Err(Refusal::of("agentHookNameTaken"));
+    }
+    if let Some(was) = ledger.hook_yes(file) {
+        let left: Vec<String> = match was.name == yes.name {
+            true => was
+                .agents
+                .iter()
+                .filter(|one| !yes.agents.contains(one))
+                .cloned()
+                .collect(),
+            false => was.agents.clone(),
+        };
+        user_hooks::unregister(&was.name, &left).map_err(super::wired::stuck)?;
+        if was.name != yes.name {
+            agents::drop_script(session.paths.data(), &was.name);
+        }
+    }
     let data = session.paths.data();
     agents::keep_script(data, &yes, &bytes).map_err(super::agents_sync::refused)?;
     let hook = hook_of(&open.card, &open.trigger);

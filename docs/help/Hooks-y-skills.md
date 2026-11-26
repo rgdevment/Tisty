@@ -170,7 +170,7 @@ El script recibe por su entrada lo mismo que manda el agente, más `TISTY_HOOK_E
 - **Termina con 2 antes de una herramienta:** la detiene, y el agente lee lo que escribió en stderr. Tisty lo traduce a lo que entiende cada agente.
 - **Cualquier otra cosa**, un error, un intérprete que falta o el tiempo vencido: deja pasar.
 
-En Windows, `.ps1` corre con Windows PowerShell, `.sh` con el bash de Git (nunca con el de WSL), `.py` con `py -3` y `.js` con Node. Con la puerta de los agentes cerrada, no corre ninguno.
+Se registran en los agentes de este equipo, no en los de una distro de WSL. En Windows, `.ps1` corre con Windows PowerShell, `.sh` con el bash de Git (nunca con el de WSL), `.py` con `py -3` y `.js` con Node. Con la puerta de los agentes cerrada, no corre ninguno.
 
 ### Verificar
 

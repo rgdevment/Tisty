@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 const SAID_AT_MOST: usize = 64 * 1024;
 const POLL: Duration = Duration::from_millis(20);
+const SAID_AFTER: Duration = Duration::from_secs(1);
 pub const BLOCKS: i32 = 2;
 pub const EVENT_VAR: &str = "TISTY_HOOK_EVENT";
 pub const AGENT_VAR: &str = "TISTY_HOOK_AGENT";
@@ -71,13 +72,14 @@ fn started(program: &Path, args: &[String], copy: &Path, asked: &Asked) -> Resul
             let _ = into.write_all(&heard);
         });
     }
-    let said = child.stderr.take().map(|from| {
+    let (tell, heard) = std::sync::mpsc::channel();
+    if let Some(from) = child.stderr.take() {
         std::thread::spawn(move || {
             let mut kept = Vec::new();
             let _ = from.take(SAID_AT_MOST as u64).read_to_end(&mut kept);
-            kept
-        })
-    });
+            let _ = tell.send(kept);
+        });
+    }
     let mut timed_out = false;
     let status = loop {
         match child.try_wait() {
@@ -91,9 +93,8 @@ fn started(program: &Path, args: &[String], copy: &Path, asked: &Asked) -> Resul
             Err(_) => break None,
         }
     };
-    let said = said
-        .and_then(|reading| reading.join().ok())
-        .unwrap_or_default();
+    // Something the script left running may hold its stderr open: what came within a second is enough.
+    let said = heard.recv_timeout(SAID_AFTER).unwrap_or_default();
     Ok(Ran {
         code: status.and_then(|it| it.code()),
         said: String::from_utf8_lossy(&said).trim().to_string(),

@@ -70,16 +70,28 @@ pub fn with(kind: Kind, text: &str, place: &Place, hook: &Hook) -> Option<String
     if !fits || hooks::ways_of(kind, text, &marked) > 0 || turned_off(text, &root) {
         return None;
     }
+    let entry = entry(kind, place, hook, at.matcher);
+    if already(kind, text, &marked, at.event, &entry) {
+        return Some(text.to_string());
+    }
     let mut now = hooks::taken_out_of(kind, text, &marked, |run| run.all_read)?;
     if now.trim().is_empty() {
         now = hooks::blank(kind);
     }
-    let entry = entry(kind, place, hook, at.matcher);
     let now = hooks::pushed(now, &root, vec![(at.event, entry)])?;
     let present = hooks::runs_of(kind, &now, &marked)
         .iter()
         .any(|run| run.all_read);
     (hooks::sound_of(kind, text, &now, &marked) && present).then_some(now)
+}
+
+// Codex trusts an entry by its place in the list too, so one already written as it would be stays put.
+fn already(kind: Kind, text: &str, marked: &Marked, event: &str, entry: &Value) -> bool {
+    let ours = hooks::runs_of(kind, text, marked);
+    let listed = json::value(text)
+        .and_then(|doc| doc.get(marked.root)?.get(event)?.as_array().cloned())
+        .unwrap_or_default();
+    ours.len() == 1 && listed.contains(entry)
 }
 
 pub fn without(kind: Kind, text: &str, name: &str) -> Option<String> {

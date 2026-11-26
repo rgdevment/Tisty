@@ -170,7 +170,7 @@ The script gets on its input the same the agent sends, plus `TISTY_HOOK_EVENT` a
 - **It ends with 2 before a tool:** it stops it, and the agent reads what it wrote to stderr. Tisty turns that into what each agent understands.
 - **Anything else**, an error, a missing interpreter or its time running out: it lets the call through.
 
-On Windows, `.ps1` runs with Windows PowerShell, `.sh` with Git's bash (never WSL's), `.py` with `py -3` and `.js` with Node. With the agents' door closed, none runs.
+They are registered in this computer's agents, not in a WSL distro's. On Windows, `.ps1` runs with Windows PowerShell, `.sh` with Git's bash (never WSL's), `.py` with `py -3` and `.js` with Node. With the agents' door closed, none runs.
 
 ### Verify
 
