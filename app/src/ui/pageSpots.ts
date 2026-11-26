@@ -7,6 +7,11 @@ const BLOCK = "[data-at]";
 const spanOf = (one: Element) => placeOf(one, "data-src");
 const solid = (one: Element) => one.getAttribute("contenteditable") === "false";
 
+const emptyCodeIn = (block: Element) => {
+  const code = block.matches("figure.code") ? block.querySelector(":scope > pre > code") : null;
+  return code && !code.textContent ? code : null;
+};
+
 const placedFrom = (tops: HTMLCollection, at: number, until: number) => {
   for (let next = at; next < until; next++) {
     const place = placeOf(tops[next]);
@@ -115,6 +120,10 @@ const nearest = (
   // A block with no words yet, as a step just begun, is written before the line break that ends it.
   const start = unitFrom(known, body, at[0]);
   let end = unitFrom(known, body, at[1]);
+  // A code block with no lines yet is written under its opening fence, never past its closing one.
+  const opened = emptyCodeIn(block) ? body.indexOf("\n", start) : -1;
+  if (opened >= 0 && opened < end)
+    return opened + 1 + (/^[ \t>]*/.exec(body.slice(opened + 1, end))?.[0].length ?? 0);
   while (end > start && /[\r\n]/.test(body[end - 1] ?? "")) end--;
   return end;
 };
@@ -210,6 +219,8 @@ export const spotOf = (
     before = one;
   }
   if (!before && item) return [block, boxEnd(block)];
+  const code = before ? null : emptyCodeIn(block);
+  if (code) return [code, 0];
   return before ? endOf(before) : [block, block.childNodes.length];
 };
 

@@ -137,7 +137,11 @@ export const wholeBehind = (node: Node, offset: number): Element | null => {
 export const unwritable = (node: Node) =>
   Boolean(elementOf(node)?.closest(`.page > [contenteditable="false"], ${WHOLE}`));
 
-export const inCode = (node: Node) => Boolean(elementOf(node)?.closest("code"));
+// The browser leaves a caret in an empty code block on its <pre> or figure, outside the <code>.
+export const inCode = (node: Node) => {
+  const element = elementOf(node);
+  return Boolean(element?.closest("code, figure.code > pre") || element?.matches("figure.code"));
+};
 
 export const PIECES = "[contenteditable='false'], img";
 export const ATOMS = `${PIECES}, button`;

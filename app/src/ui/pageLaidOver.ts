@@ -2,6 +2,7 @@ import { colonsKept } from "./pageColons";
 import { type Edit, landedAfter, type Span } from "./pageEdits";
 import type { Laid } from "./pageLate";
 import type { Laying } from "./pageLaying";
+import { fenceBreakAt } from "./pageLists";
 import { replaced, replacedOverCode } from "./pageMarks";
 import { type Mend, openOf, shutOf } from "./pageMends";
 import type { Writer } from "./pageWriter";
@@ -22,7 +23,10 @@ export const laidOver = (
   coded: boolean,
   mend: Mend | null = null,
 ): Laid => {
-  if (coded) return { edit: { ...one, insert }, caret: one.from + insert.length };
+  if (coded) {
+    const lineBreak = insert && !insert.endsWith("\n") ? fenceBreakAt(text, one.to) : "";
+    return { edit: { ...one, insert: insert + lineBreak }, caret: one.from + insert.length };
+  }
   const laid = mend ? mendedOver(text, one, insert, mend) : replaced(text, one, insert);
   const edit = colonsKept(text, laid.edit);
   return { edit, caret: landedAfter(laid.edit, edit, laid.caret) };

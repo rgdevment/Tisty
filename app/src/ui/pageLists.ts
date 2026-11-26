@@ -394,6 +394,19 @@ const fenceAfter = (was: Fence | null, raw: string): Fence | null => {
   return { mark: opened.mark, quoted: opened.quotes !== "", within };
 };
 
+// Words written where a closing fence begins would push it off its own line, so a break and the line's lead follow them.
+export const fenceBreakAt = (text: string, at: number) => {
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const lead = text.slice(start, at);
+  if (start === 0 || !/^[ \t>]*$/.test(lead)) return "";
+  let open: Fence | null = null;
+  for (const raw of text.slice(0, start - 1).split("\n")) open = fenceAfter(open, raw);
+  const ends = text.indexOf("\n", at);
+  const line = text.slice(start, ends < 0 ? text.length : ends).replace(/\r$/, "");
+  if (!open || !shuts(open, line)) return "";
+  return `${text[start - 2] === "\r" ? "\r\n" : "\n"}${lead}`;
+};
+
 const fencesBlanked = (text: string, openToEnd: boolean): string => {
   const lines = text.split("\n");
   const blanked = (from: number, to: number) => {
