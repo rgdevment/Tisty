@@ -220,7 +220,7 @@ The memory Marisol left out is still there: the next time she looks again, `GEMI
 
 **«2 new».** When you come back to Tisty's window, at most once a minute, Tisty counts the names in your agents' rules and skills folders, without opening any file. If a rule or skill appeared since you last looked again, the **⟳** says how many, such as **⟳ 2 new**. Nothing comes in by itself: press it to see them. It only counts on a computer that already gave permission, and it does not watch the disk in between.
 
-![The top of Agents with its name and, beside it, ⟳ 2 new in the accent color](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-17b-look-again-new.png)
+<!-- Screenshot pending: assets/screens/help/agents/en-17b-look-again-new.png · alt: The top of Agents with its name and, beside it, ⟳ 2 new in the accent color -->
 
 **On a computer that has not given permission yet**, such as a second computer where Agents came in brought, **Look again** opens the first-time box instead, with its names and sizes and its two buttons. It opens no file and makes no subfolder before your **Bring** or your **Bring and sync**.
 

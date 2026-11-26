@@ -220,7 +220,7 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 
 **«2 nuevos».** Cuando vuelves a la ventana de Tisty, como mucho una vez por minuto, Tisty cuenta los nombres en las carpetas de reglas y skills de tus agentes, sin abrir ningún archivo. Si apareció una regla o una skill desde la última vez que buscaste de nuevo, el **⟳** dice cuántas, como **⟳ 2 nuevos**. Nada entra solo: púlsalo para verlas. Solo cuenta en un equipo que ya dio permiso, y entre una vez y otra no vigila el disco.
 
-![Arriba en Agentes, su nombre y, al lado, ⟳ 2 nuevos en el color de acento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17b-buscar-de-nuevo-nuevos.png)
+<!-- Captura pendiente: assets/screens/help/agents/es-17b-buscar-de-nuevo-nuevos.png · alt: Arriba en Agentes, su nombre y, al lado, ⟳ 2 nuevos en el color de acento -->
 
 **En un equipo que todavía no te dio permiso**, como un segundo equipo donde Agentes llegó traída, **Buscar de nuevo** abre en cambio el aviso de la primera vez, con sus nombres y tamaños y sus dos botones. No abre ningún archivo ni crea ninguna subcarpeta antes de tu **Traer** o tu **Traer y sincronizar**.
 
