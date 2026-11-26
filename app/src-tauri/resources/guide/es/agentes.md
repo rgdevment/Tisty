@@ -16,7 +16,7 @@ Esta hoja es una página de la guía. Cuenta cómo trabajar con un agente de IA 
 
 **Conectar los 3 detectados**, con los que haya, conecta de una vez todos los que esperan. Si el tuyo no aparece, el buscador bajo la lista lo encuentra entre los que Tisty conoce.
 
-Al conectar Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI o GitHub Copilot, sus hooks y las skills de Tisty, que cuenta esta página más abajo, van incluidos y quedan encendidos: Tisty te muestra antes los archivos, con una casilla para dejar fuera cada uno. Lo que desmarcas queda apagado, con su interruptor bajo la fila del agente. Codex corre los hooks solo después de que los apruebes en él con `/hooks`, y su fila te lo recuerda.
+Al conectar Claude Code, Cursor, Gemini CLI o GitHub Copilot, sus hooks y las skills de Tisty, que cuenta esta página más abajo, van incluidos y quedan encendidos: Tisty te muestra antes los archivos, con una casilla para dejar fuera cada uno. Lo que desmarcas queda apagado, con su interruptor bajo la fila del agente. Codex, que no tiene hooks, ve solo las skills.
 
 Después, cierra el agente del todo y ábrelo de nuevo: lee su configuración al abrirse. Si prefieres hacerlo a mano, con un plugin o dentro de WSL, cada forma está en [agentes y MCP](https://www.tisty.app/es/ayuda/agentes-y-mcp/).
 
@@ -34,7 +34,7 @@ Nada escucha hasta que conectas uno: el agente arranca Tisty cuando lo necesita,
 Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración › Agentes › Puerta**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los agentes, aunque solo cuando llaman a Tisty.
-- **Los hooks**: en Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot, el interruptor **Hooks de Tisty**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. Apagarlo los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
+- **Los hooks**: en Claude Code, Cursor, Gemini CLI y GitHub Copilot, el interruptor **Hooks de Tisty**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. Apagarlo los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
 ## Que sepa cómo trabajar: las skills de Tisty
 
@@ -56,17 +56,6 @@ Se encienden al conectar un agente o en **Configuración › Agentes › Conecta
 **Un ejemplo.** Yisset conecta Claude Code y deja marcados sus hooks y las skills. Al otro día le escribe «Retoma donde quedamos»: el agente pide `catch_up`, abre la tarea en que estaba, «Exportar el reporte mensual a CSV», y sigue desde su **Estado**. Antes de irse, «Deja esto listo para el próximo agente» deja los pasos marcados, el estado al día y una nota con lo que descartó. Eso queda en la tarea: otro día, en Codex, nombra la tarea por su título y Codex lee ahí mismo el estado y la nota. «Retoma donde quedamos», en cambio, lleva a cada agente a lo último que dejó él.
 
 Todo, caso por caso y con las llamadas del agente, está en [hooks y skills](https://www.tisty.app/es/ayuda/hooks-y-skills/).
-
-## Tus propios hooks
-
-Además de los de Tisty, puedes escribir los tuyos: un script que tu agente corre en un momento que eliges.
-
-1. En la barra lateral, **Agentes › Global › Hooks**, pulsa **+**. Le das un nombre, el tipo de script (`.ps1`, `.sh`, `.py` o `.js`), el momento (al empezar una sesión, al enviar un mensaje, antes o después de una herramienta, al terminar un turno), las herramientas y los agentes. Nace como **Solo este equipo**.
-2. Escribe el script en su página, como cualquier documento.
-3. **Registrar** te muestra el script entero y los archivos que va a tocar, y con **Sí, registrar** lo pone en cada agente elegido. Es un sí por hook y por equipo, y cualquier cambio en su texto vuelve a preguntarlo, en cada equipo.
-4. **Verificar** dice, agente por agente, si está en su archivo y si corre este Tisty. **Probarlo una vez** corre el script de verdad, con una muestra de lo que mandaría el agente, y te dice cómo terminó.
-
-El script recibe lo que manda el agente, más `TISTY_HOOK_EVENT` y `TISTY_HOOK_AGENT`. Si termina con 0, deja pasar; si termina con 2 antes de una herramienta, la detiene y el agente lee lo que escribió en stderr. Con la puerta cerrada, no corre. Ningún agente crea ni cambia un hook: solo tú, en Tisty.
 
 ## Lo que lee: Brainsty
 
