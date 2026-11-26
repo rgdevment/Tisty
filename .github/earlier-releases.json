@@ -1,8 +1,42 @@
 [
-  { "release": "1.23.1", "schema": 15, "shape": 0, "every_pull_request": true },
-  { "release": "1.24.4", "schema": 16, "shape": 1 },
-  { "release": "1.25.1", "schema": 17, "shape": 1 },
-  { "release": "1.30.5", "schema": 17, "shape": 2, "accepts": "1.30.0" },
+  {
+    "release": "1.23.1",
+    "schema": 15,
+    "shape": 0,
+    "every_pull_request": true,
+    "sha256": {
+      "windows": "9bd1f67ec6ccc7c8fa07b271471325933ebd88aee9290c1256e4d0cbd9b97f0f",
+      "macos": "6dbafd48cc581de3ec6d84dc77d744d702466dcf1b4063cf5d788c088c41ce8a"
+    }
+  },
+  {
+    "release": "1.24.4",
+    "schema": 16,
+    "shape": 1,
+    "sha256": {
+      "windows": "4bfe3e527d1d12516ade4ff1206ca945d607ea42ee589c9f527640797119e635",
+      "macos": "a4ea9707fb5308907ee5fe748958a439a16853a9005de37fc36a916b52c8f568"
+    }
+  },
+  {
+    "release": "1.25.1",
+    "schema": 17,
+    "shape": 1,
+    "sha256": {
+      "windows": "cc54da7437478445173a55d26e035cc401c88fcaa9473c8ab22f884dd71ebb84",
+      "macos": "8d76c44cdaacce4db0bc69f46a87532b9bd4e3f70c8a226babc476e48356ba8b"
+    }
+  },
+  {
+    "release": "1.30.5",
+    "schema": 17,
+    "shape": 2,
+    "accepts": "1.30.0",
+    "sha256": {
+      "windows": "f4740facc6716d0ba04b3c7cfffa05929e02e42668ba4a553243a365bf89107d",
+      "macos": "d3ae6bec019205413e85012d74902992eb8da91c25c3077d9d526caab3ce3bf1"
+    }
+  },
   { "release": "1.33.0", "schema": 18, "shape": 3, "accepts": "1.31.0", "built": true },
   { "release": "1.39.1", "schema": 18, "shape": 3, "accepts": "1.39.1", "built": true },
   { "release": "1.40.1", "schema": 18, "shape": 3, "accepts": "1.40.1", "built": true },

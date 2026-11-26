@@ -5,6 +5,10 @@ const MOST_RELEASES = 10;
 const MOST_ON_A_PULL_REQUEST = 2;
 const PULL_REQUEST_SYSTEM = "windows-latest";
 const EVERY_SYSTEM = ["windows-latest", "macos-latest"];
+const PINNED_AS = { "windows-latest": "windows", "macos-latest": "macos" };
+const SHA256 = /^[0-9a-f]{64}$/;
+
+const pinnedEverywhere = ({ sha256 = {} }) => Object.values(PINNED_AS).every((system) => SHA256.test(sha256[system] ?? ""));
 
 export const wrongWith = (releases) => {
   const wrong = [];
@@ -24,18 +28,21 @@ export const wrongWith = (releases) => {
   if (!releases.at(-1)?.every_pull_request) {
     wrong.push("the newest earlier release is the last one listed, and every pull request meets it");
   }
+  for (const one of releases.filter((one) => !one.built && !pinnedEverywhere(one))) {
+    wrong.push(`${one.release} is downloaded, so it pins the sha256 of what it downloads for ${Object.values(PINNED_AS).join(" and ")}, 64 lowercase hex digits each`);
+  }
   return wrong;
 };
 
-const asLine = ({ release, schema, shape, accepts = "", built = false }) =>
-  [release, schema, shape, accepts, built ? "built" : ""].join("|");
+const asLine = (os) => ({ release, schema, shape, accepts = "", built = false, sha256 = {} }) =>
+  [release, schema, shape, accepts, built ? "built" : "", sha256[PINNED_AS[os]] ?? ""].join("|");
 
 export const metOn = (event, releases) => {
   const onPullRequest = event === "pull_request";
   const met = onPullRequest ? releases.filter((one) => one.every_pull_request) : releases;
   const systems = onPullRequest ? [PULL_REQUEST_SYSTEM] : EVERY_SYSTEM;
   const downloaded = releases.filter((one) => !one.built).map((one) => one.release).join("_");
-  return systems.map((os) => ({ os, releases: met.map(asLine).join("\n"), downloaded }));
+  return systems.map((os) => ({ os, releases: met.map(asLine(os)).join("\n"), downloaded }));
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
