@@ -107,8 +107,8 @@ describe("a choice to a code block's end, let go of before the menu reads it", (
     const code = document.querySelector(".page code")?.firstChild as Text;
     chose([wordsOf("T"), 0], [code, code.length]);
     document.getSelection()?.removeAllRanges();
-    expect(writing?.chosen()).toBe("T\n\nBefore\n\n```js\nconst a = 1;\n```");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("T\n\nBefore\n\n```js\nconst a = 1;\n```");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# \n");
   });
 
@@ -133,8 +133,8 @@ describe("words cut across inline code that holds a star", () => {
   it("take the italic they end inside whole, as the star in the code pairs with nothing", () => {
     const text = opened(SPANNED, SPANNED_PLACED);
     chose([wordsOf("Use "), 0], [wordsOf("it"), 1]);
-    expect(writing?.chosen()).toBe("Use `a*b` here and *it*");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("Use `a*b` here and *it*");
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe("# T\n\n there\n");
   });
 });
@@ -169,13 +169,13 @@ describe("a choice from words into the middle of a code block", () => {
   it("is copied as words and the code it took, fenced, with no mark paired past it", () => {
     opened(MID, MID_PLACED);
     intoCode();
-    expect(writing?.chosen()).toBe("ds here\n\n```js\na * \n```");
+    expect(writing?.choiceHeld()?.words).toBe("ds here\n\n```js\na * \n```");
   });
 
   it("is cut, and the code left behind opens with its own fence", () => {
     const text = opened(MID, MID_PLACED);
     intoCode();
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe(REOPENED);
   });
 
@@ -219,13 +219,13 @@ describe("a choice from the middle of a code block out into the words under it",
   it("is copied as the code it took, fenced, and the words", () => {
     opened(MID, MID_PLACED);
     outOfCode();
-    expect(writing?.chosen()).toBe("```js\nb\nc\n```\n\nAft");
+    expect(writing?.choiceHeld()?.words).toBe("```js\nb\nc\n```\n\nAft");
   });
 
   it("is cut, and the code left above shuts with its own fence", () => {
     const text = opened(MID, MID_PLACED);
     outOfCode();
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(text()).toBe(CLOSED);
   });
 
@@ -311,7 +311,7 @@ describe("a choice from the middle of a code block that opens on a list item's l
   it("is copied with the item's fence, and the rest of its line indented", () => {
     opened(LISTED, LISTED_PLACED);
     outOfListed();
-    expect(writing?.chosen()).toBe("1. ```js\n   b\n   ```\n\nAft");
+    expect(writing?.choiceHeld()?.words).toBe("1. ```js\n   b\n   ```\n\nAft");
   });
 });
 

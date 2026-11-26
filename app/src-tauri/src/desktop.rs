@@ -478,6 +478,79 @@ pub fn pasted_plainly(app: tauri::AppHandle) {
     let _ = &app;
 }
 
+/// The page's own menu pastes as the keys would, so the clipboard lands by the page's paste with every type it holds.
+#[tauri::command]
+pub fn menu_pasted(app: tauri::AppHandle, plainly: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = plainly;
+        if let Err(e) = app.run_on_main_thread(pasted_here) {
+            witness::warn(
+                channel::WINDOW,
+                "the menu's paste never reached the window",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
+    }
+    #[cfg(windows)]
+    {
+        let _ = app;
+        keyed_paste(plainly);
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let _ = (&app, plainly);
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn keyed_paste(plainly: bool) {
+    use windows::Win32::System::Threading::GetCurrentProcessId;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP, SendInput,
+        VIRTUAL_KEY, VK_CONTROL, VK_SHIFT, VK_V,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+
+    let mut owner = 0u32;
+    // Keys go to whichever window is in front, so they are sent only while that window is this app's.
+    let ours = unsafe {
+        GetWindowThreadProcessId(GetForegroundWindow(), Some(&raw mut owner));
+        owner == GetCurrentProcessId()
+    };
+    if !ours {
+        return;
+    }
+    let key = |vk: VIRTUAL_KEY, up: bool| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: vk,
+                dwFlags: if up {
+                    KEYEVENTF_KEYUP
+                } else {
+                    KEYBD_EVENT_FLAGS(0)
+                },
+                ..Default::default()
+            },
+        },
+    };
+    let held: &[VIRTUAL_KEY] = if plainly {
+        &[VK_CONTROL, VK_SHIFT]
+    } else {
+        &[VK_CONTROL]
+    };
+    let keys: Vec<INPUT> = held
+        .iter()
+        .map(|&one| key(one, false))
+        .chain([key(VK_V, false), key(VK_V, true)])
+        .chain(held.iter().rev().map(|&one| key(one, true)))
+        .collect();
+    let size = i32::try_from(std::mem::size_of::<INPUT>()).unwrap_or(i32::MAX);
+    unsafe {
+        SendInput(&keys, size);
+    }
+}
+
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 fn pasted_here() {

@@ -515,10 +515,10 @@ describe("words chosen earlier", () => {
   it("are no longer reported as chosen", () => {
     writer();
     choose("dos", 0, 3);
-    expect(writing?.chosen()).toBe("**dos**");
+    expect(writing?.choiceHeld()?.words).toBe("**dos**");
     caretIn("Hola", 2);
     collapsed();
-    expect(writing?.chosen()).toBeNull();
+    expect(writing?.choiceHeld() ?? null).toBeNull();
   });
 
   it("are not cut after the caret collapsed elsewhere", () => {
@@ -526,8 +526,20 @@ describe("words chosen earlier", () => {
     choose("dos", 0, 3);
     caretIn("Hola", 2);
     collapsed();
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(said).toEqual([]);
+  });
+
+  it("are cut as they were when held, though the caret moved on before the cut", () => {
+    const said = writer();
+    choose("dos", 0, 3);
+    const held = writing?.choiceHeld();
+    caretIn("Hola", 2);
+    collapsed();
+    held?.cut?.();
+    expect(held?.words).toBe("**dos**");
+    expect(last(said)).not.toContain("dos");
+    expect(last(said)).toContain("# Hola");
   });
 
   it("are still wrapped when the selection is lost without a collapse, as by a button", () => {

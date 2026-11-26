@@ -23,6 +23,13 @@ import { unformattable } from "./quickly";
 export type { Hands, Turns } from "./pageWriter";
 export { recorded, turnOf, turnsAnew } from "./pageWriter";
 
+/** What was chosen when a menu opened, carried and taken out as it was then, whatever the caret did since. */
+export type HeldChoice = {
+  readonly words: string;
+  readonly shown: DocumentFragment;
+  readonly cut: (() => void) | null;
+};
+
 export type PageWriting = {
   readonly drawn: () => void;
   readonly stop: () => boolean;
@@ -32,10 +39,8 @@ export type PageWriting = {
   readonly placeAt: (at: number, stays?: number) => void;
   readonly rewrite: (next: string) => void;
   readonly outside: (was: string, next: string) => void;
-  readonly chosen: () => string | null;
-  readonly shownChosen: () => DocumentFragment;
+  readonly choiceHeld: () => HeldChoice | null;
   readonly plainNext: () => void;
-  readonly cut: () => void;
   readonly slashed: (one: Slashed, drawnWhole?: boolean) => Edit | null;
   readonly typed: (said: string) => void;
   readonly held: () => () => void;
@@ -193,12 +198,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const text = hands.text();
     return one && (colonsCrossed(text, one) ? colonsCarried(text, one) : one.carried);
   };
-  const chosen = () => blocksChosen() ?? carriedOut(caret.taken()) ?? null;
   const takenAway = (taken: () => Taken) => {
     if (choosing.choosing()) return choosing.dropped();
     keys.takenOut(taken());
   };
-  const cut = () => takenAway(caret.taken);
   // What a choice reads as; a choice of the unseen letter alone reads as nothing, so nothing of it leaves.
   const seenChosen = () => {
     const said = page.getSelection()?.toString() ?? "";
@@ -211,17 +214,26 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     const held = page.getSelection();
     return held?.rangeCount ? chosenContents(held.getRangeAt(0)) : page.createDocumentFragment();
   };
-  // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
-  const clipped = (event: ClipboardEvent) => {
-    if (!onSheet(page, event) || !event.clipboardData) return;
+  const choiceHeld = (): HeldChoice | null => {
     const blocks = blocksChosen();
     const taken = blocks === null ? caret.taken() : null;
     const carried = blocks ?? carriedOut(taken);
     // Words drawn whole, as a table's cells, carry no words of their own: they go as they read, their marks as letters.
     const seen = carried ? null : seenChosen();
-    if (!carried && seen === null) return;
-    clippedWords(event, carried || escapedMarks(seen ?? ""), shownChosen());
-    if (event.type === "cut" && carried) takenAway(() => taken);
+    if (!carried && seen === null) return null;
+    return {
+      words: carried || escapedMarks(seen ?? ""),
+      shown: shownChosen(),
+      cut: carried ? () => takenAway(() => taken) : null,
+    };
+  };
+  // Ctrl+C and Ctrl+X carry the Tisty Markdown of the words chosen, as the right-click does, never the drawn page.
+  const clipped = (event: ClipboardEvent) => {
+    if (!onSheet(page, event) || !event.clipboardData) return;
+    const held = choiceHeld();
+    if (!held) return;
+    clippedWords(event, held.words, held.shown);
+    if (event.type === "cut") held.cut?.();
   };
   page.addEventListener("keydown", named, true);
   page.addEventListener("keydown", keys.outOfSolids, true);
@@ -254,8 +266,10 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     }),
     rewrite: fromHost(history.rewrite),
     outside: fromHost(history.outside),
-    chosen,
-    shownChosen,
+    choiceHeld: () => {
+      const held = choiceHeld();
+      return held && { ...held, cut: held.cut && fromHost(held.cut) };
+    },
     plainNext: input.plainNext,
     slashed: fromHost(beside.slashed),
     unitActed: fromHost(beside.unitActed),
@@ -275,7 +289,6 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
         if (at !== null) caret.placeAt(at);
       };
     }),
-    cut: fromHost(cut),
     stop: () => {
       input.behindDropped();
       clearTimeout(settling);

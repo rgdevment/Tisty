@@ -618,6 +618,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
             ...asked,
             picked: asked.picked && { ...asked.picked, at: chars(asked.picked.at) },
             block: asked.block && { ...asked.block, at: chars(asked.block.at) },
+            word: asked.word && { ...asked.word, at: chars(asked.word.at) },
           })),
     };
   });

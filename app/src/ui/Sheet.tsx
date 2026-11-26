@@ -14,7 +14,6 @@ import {
   type Asking,
   BAR_CSS,
   type Editing,
-  FORMATS,
   formatButtons,
   MARKED_FOR,
   markLately,
@@ -25,7 +24,15 @@ import {
 } from "tisty-editor/edit";
 import type { Design, Head, Sheet as SheetSize } from "tisty-editor/read";
 import { BOXES, bytesAt, charsAt, heads, stepLine, steppedTitle } from "tisty-editor/read";
-import { copied, copyAttached, type Mend, opened } from "../core";
+import {
+  copied,
+  copyAttached,
+  learnedWord,
+  type Mend,
+  menuPasted,
+  opened,
+  spelledWord,
+} from "../core";
 import type { Signing } from "../crediting";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -55,6 +62,7 @@ import { MOVE_KEYS } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { seatedNow } from "./pageLate";
+import { pageChoices } from "./pageMenu";
 import type { Act } from "./pageMoving";
 import { placedAt, placeOf } from "./pagePlaces";
 import type { Seat } from "./pageWriter";
@@ -776,13 +784,16 @@ export default function Sheet(props: Readonly<Props>) {
     pageWriter.current?.hands.format(asked.open, asked.close);
 
   // On the page written in place, cutting and copying carry the Tisty Markdown of the words chosen.
-  const pageMenu = (at: { x: number; y: number }, asked: Menued) => {
+  const pageMenu = async (at: { x: number; y: number }, asked: Menued) => {
     const writer = pageWriter.current?.hands;
-    const words = writer?.chosen() ?? null;
-    // The menu takes the focus, and with it the selection, so what it copies is caught as it opens.
-    const seen = writer?.shownChosen() ?? document.createDocumentFragment();
+    // The menu takes the focus, and with it the selection, so what it carries is held as it opens.
+    const held = writer?.choiceHeld() ?? null;
+    const page = shown.current?.document;
     const back = () => shown.current?.focus();
-    const choices: Choice[] = [...pictures.offered(shown.current?.document, asked.picture)];
+    const { word, block } = asked;
+    const tongue = page?.documentElement.lang || document.documentElement.lang;
+    const spelled = writer && word ? await spelledWord(word.said, tongue) : null;
+    const choices: Choice[] = [...pictures.offered(page, asked.picture)];
     const embed = asked.embed;
     const gone =
       embed && showing.current === latest.current ? embedGone(latest.current, embed) : null;
@@ -798,37 +809,63 @@ export default function Sheet(props: Readonly<Props>) {
           back();
         },
       });
-    if (writer && words) {
-      choices.push(
-        {
-          key: "cut",
-          label: t("cutIt"),
-          apart: choices.length > 0,
-          onPick: () =>
-            void copiedWords(words, seen).then(() => {
-              liveWriter(writer).cut();
+    const carried = (then: () => void) => () =>
+      held && void copiedWords(held.words, held.shown).then(then);
+    const offered = writer
+      ? pageChoices(
+          {
+            words: held?.words ?? null,
+            cuttable: Boolean(held?.cut),
+            said: word?.said ?? null,
+            spelled,
+            formattable: writer.formattable(),
+            limited: Boolean(props.agent),
+            block: block !== null,
+            pasting: true,
+          },
+          {
+            guessed: (guess) => {
+              back();
+              const now = latest.current;
+              if (!word || now.slice(...word.at) !== word.said) return;
+              rewritten(now.slice(0, word.at[0]) + guess + now.slice(word.at[1]));
+              liveWriter(writer).placeAt(word.at[0] + guess.length);
+            },
+            learned: () => {
+              back();
+              if (word) void learnedWord(word.said, tongue);
+            },
+            cut: carried(() => {
+              if (liveWriter(writer) === writer) held?.cut?.();
               back();
             }),
-        },
-        { key: "copy", label: t("copyIt"), onPick: () => void copiedWords(words, seen).then(back) },
-        ...(writer.formattable() ? FORMATS : []).map(([word, , mark, close], index) => ({
-          key: `format-${word}`,
-          label: t(word),
-          apart: index === 0,
-          onPick: () => {
-            back();
-            liveWriter(writer).format(mark, close);
+            copy: carried(back),
+            paste: (plain) => {
+              back();
+              if (plain) liveWriter(writer).plainNext();
+              void menuPasted(plain);
+            },
+            format: (mark, close) => {
+              back();
+              liveWriter(writer).format(mark, close);
+            },
+            insert: () => blockMenu(at, false),
+            blockActed: (act) => {
+              back();
+              if (block) liveWriter(writer).unitActed(block.element, act);
+            },
           },
-        })),
-      );
-    }
+        )
+      : [];
+    const [first, ...rest] = offered;
+    if (first) choices.push({ ...first, apart: choices.length > 0 }, ...rest);
     if (choices.length > 0) shownOn({ ...at, choices });
   };
 
   const menued = (asked: Menued) => {
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const at = { x: (frame?.left ?? 0) + asked.x, y: (frame?.top ?? 0) + asked.y };
-    if (onPage) return pageMenu(at, asked);
+    if (onPage) return void pageMenu(at, asked);
     const editing = open.current?.view;
     if (asked.writing) return editing && setMenu({ ...at, choices: livelyChoices(editing) });
     const { picked, picture } = asked;

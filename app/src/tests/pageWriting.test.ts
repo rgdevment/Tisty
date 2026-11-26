@@ -194,8 +194,8 @@ describe("writing on the page the core draws", () => {
     range.setEnd(piece("dos"), 3);
     document.getSelection()?.removeAllRanges();
     document.getSelection()?.addRange(range);
-    expect(writing?.chosen()).toBe("Uno **dos**");
-    writing?.cut();
+    expect(writing?.choiceHeld()?.words).toBe("Uno **dos**");
+    writing?.choiceHeld()?.cut?.();
     expect(said[said.length - 1]).toBe("# Hola\n\n tres\n\n- primero\n- segundo\n");
   });
 
@@ -1911,7 +1911,7 @@ describe("a key at the edge of a block drawn whole", () => {
     chosen.setEnd(piece("uno"), 0);
     document.getSelection()?.removeAllRanges();
     document.getSelection()?.addRange(chosen);
-    writing?.cut();
+    writing?.choiceHeld()?.cut?.();
     expect(said[said.length - 1]).toBe("Antes.uno\n\n2. dos");
   });
 

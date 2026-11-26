@@ -803,6 +803,10 @@ const en = {
   shareIdentityElsewhere:
     "This computer does not keep your phrase. Type it so this one can sign too.",
   cutIt: "Cut",
+  pasteIt: "Paste",
+  pastePlain: "Paste as plain text",
+  spellNone: "No suggestions",
+  spellLearn: "Add “{name}” to the dictionary",
   editBlock: "Edit this block",
   editWholeDoc: "Edit the whole document",
   marksShown: "Show every mark",
@@ -4702,6 +4706,10 @@ const es: Catalog = {
   shareIdentityElsewhere:
     "Este equipo no guarda tu frase. Escríbela para que también pueda firmar.",
   cutIt: "Cortar",
+  pasteIt: "Pegar",
+  pastePlain: "Pegar sin formato",
+  spellNone: "Sin sugerencias",
+  spellLearn: "Agregar «{name}» al diccionario",
   editBlock: "Editar este bloque",
   editWholeDoc: "Editar todo el documento",
   marksShown: "Mostrar todas las marcas",
