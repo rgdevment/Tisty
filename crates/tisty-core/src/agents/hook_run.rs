@@ -72,12 +72,19 @@ fn started(program: &Path, args: &[String], copy: &Path, asked: &Asked) -> Resul
             let _ = into.write_all(&heard);
         });
     }
-    let (tell, heard) = std::sync::mpsc::channel();
+    let kept = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let (tell, ended) = std::sync::mpsc::channel::<()>();
     if let Some(from) = child.stderr.take() {
+        let into = std::sync::Arc::clone(&kept);
         std::thread::spawn(move || {
-            let mut kept = Vec::new();
-            let _ = from.take(SAID_AT_MOST as u64).read_to_end(&mut kept);
-            let _ = tell.send(kept);
+            let mut from = from.take(SAID_AT_MOST as u64);
+            let mut chunk = [0u8; 4096];
+            while let Ok(read @ 1..) = from.read(&mut chunk) {
+                if let Ok(mut said) = into.lock() {
+                    said.extend_from_slice(&chunk[..read]);
+                }
+            }
+            let _ = tell.send(());
         });
     }
     let mut timed_out = false;
@@ -94,7 +101,8 @@ fn started(program: &Path, args: &[String], copy: &Path, asked: &Asked) -> Resul
         }
     };
     // Something the script left running may hold its stderr open: what came within a second is enough.
-    let said = heard.recv_timeout(SAID_AFTER).unwrap_or_default();
+    let _ = ended.recv_timeout(SAID_AFTER);
+    let said = kept.lock().map(|said| said.clone()).unwrap_or_default();
     Ok(Ran {
         code: status.and_then(|it| it.code()),
         said: String::from_utf8_lossy(&said).trim().to_string(),
