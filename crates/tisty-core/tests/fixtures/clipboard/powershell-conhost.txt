@@ -1,0 +1,15 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+
+Name              Id
+----              --
+AggregatorHost  1956
+cmd            10768
+cmd            10844
+appcompat
+apppatch
+AppReadiness
+
+
+PS C:\harness\in>

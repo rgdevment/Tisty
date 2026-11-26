@@ -34,12 +34,21 @@ fn commas(lines: &[&str]) -> Option<Vec<Vec<String>>> {
     if lines.len() < CSV_ROWS {
         return None;
     }
-    if lines.iter().any(|one| called(one)) {
+    if lines.iter().any(|one| called(one) || opens_a_block(one)) {
         return None;
     }
     let rows: Vec<Vec<String>> = lines.iter().map(|one| fields(one)).collect::<Option<_>>()?;
     let wide = rows.first()?.len();
     (wide >= CSV_FIELDS && rows.iter().all(|one| one.len() == wide)).then_some(rows)
+}
+
+// A list, a heading or a quote whose lines carry commas is still what its marks say it is.
+fn opens_a_block(line: &str) -> bool {
+    let flat = line.trim_start();
+    super::pasted::itemed(line)
+        || flat.starts_with("# ")
+        || flat.starts_with("> ")
+        || flat.starts_with(['•', '◦', '▪', '‣'])
 }
 
 // A line that opens on a call, `foo(a, b)`, is code; a bracket in a heading, `Monto (USD)`, is not.

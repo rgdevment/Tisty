@@ -1,7 +1,11 @@
 #[path = "arriving_html.rs"]
 mod html;
+#[path = "arriving_lists.rs"]
+mod lists;
 #[path = "arriving_obsidian.rs"]
 mod obsidian;
+#[path = "arriving_pasted.rs"]
+mod pasted;
 #[path = "arriving_plain.rs"]
 mod plain;
 #[path = "arriving_separated.rs"]
@@ -9,9 +13,18 @@ mod separated;
 #[path = "arriving_word.rs"]
 mod word;
 
-pub use html::from_html;
+pub use html::{from_html, from_pasted_html};
 pub use plain::from_plain;
 pub use word::{WORD_AT_MOST, Word, from_word};
+
+/// Plain text from a clipboard in Tisty's words, or `None` when it already reads as it should.
+pub fn from_text(text: &str) -> Option<String> {
+    from_plain(text).or_else(|| {
+        let even = plain::even(text);
+        let said = crate::speaking::turned(&even);
+        (said != even).then_some(said)
+    })
+}
 
 /// The documents already here, by the title a note from elsewhere would call them.
 #[derive(Debug, Default, Clone)]
@@ -408,7 +421,15 @@ fn tagless(line: &str) -> String {
             .split(|one: char| one.is_whitespace() || one == '/' || one == '>')
             .next()
             .unwrap_or_default();
-        let letters = !name.is_empty()
+        let escaped = rest[..found]
+            .chars()
+            .rev()
+            .take_while(|one| *one == '\\')
+            .count()
+            % 2
+            == 1;
+        let letters = !escaped
+            && !name.is_empty()
             && name
                 .chars()
                 .next()

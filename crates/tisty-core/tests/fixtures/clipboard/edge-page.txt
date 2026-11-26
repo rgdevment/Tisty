@@ -1,0 +1,16 @@
+Título principal
+Sección número 2
+Un párrafo con negrita, cursiva, un enlace, código_inline() y texto rojo. Año 2026, canción, niño, 42 unidades.
+
+Primero
+Anidado uno
+Segundo
+Tercero
+Paso uno
+Paso dos
+Nombre	Edad
+Ana	31
+José	45
+fn main() {
+    println!("hola, mundo");
+}

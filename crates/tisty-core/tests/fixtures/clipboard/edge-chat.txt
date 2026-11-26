@@ -1,0 +1,18 @@
+# Título
+- uno
+- dos
+**negrita** y [enlace](https://ejemplo.cl)
+| A | B |
+|---|---|
+| 1 | 2 |
+| 3 | 4 |
+una línea con `código`
+# Título
+- uno
+- dos
+**negrita** y [enlace](https://ejemplo.cl)
+| A | B |
+|---|---|
+| 1 | 2 |
+| 3 | 4 |
+una línea con `código`

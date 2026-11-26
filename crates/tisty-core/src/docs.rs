@@ -1268,12 +1268,20 @@ pub(crate) fn commented<'a>(line: &'a str, aside: &mut bool) -> Vec<(bool, &'a s
 }
 
 /// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes
-/// back untouched, so it is not markup.
+/// back untouched, so it is not markup, and neither is a `\<` the writer escaped into a letter.
 pub(crate) fn markup(line: &str) -> Option<&'static str> {
     let bytes = line.as_bytes();
     let mut shut = 0;
     for at in 0..bytes.len() {
         if bytes[at] != b'<' {
+            continue;
+        }
+        let slashes = bytes[..at]
+            .iter()
+            .rev()
+            .take_while(|one| **one == b'\\')
+            .count();
+        if slashes % 2 == 1 {
             continue;
         }
         let rest = &line[at + 1..];

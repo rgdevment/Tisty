@@ -26,9 +26,13 @@ fn named(text: &str, within: std::ops::Range<usize>, found: &mut Vec<Span>) {
         let shut = open + 1 + wide;
         // A colon beside it means an icon's `::name::`, so an unknown icon never turns half emoji.
         let alone = |at: Option<char>| at.is_none_or(|c| !c.is_alphanumeric() && c != ':');
+        // `\:tada:` is the code written out, as a paste without formatting leaves it.
+        let before = &text[..within.start + open];
+        let escaped = before.chars().rev().take_while(|c| *c == '\\').count() % 2 == 1;
         let fits = wide > 0
+            && !escaped
             && said[shut..].starts_with(':')
-            && alone(text[..within.start + open].chars().next_back())
+            && alone(before.chars().next_back())
             && alone(text[within.start + shut + 1..].chars().next());
         match fits
             .then(|| emojis::get_by_shortcode(&rest[..wide]))

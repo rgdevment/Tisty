@@ -302,7 +302,7 @@ pub fn doc_from_html(html: String) -> Answer<String> {
             weighed(PASTED_AT_MOST as u64),
         ));
     }
-    let said = tisty_core::arriving::tidied(&tisty_core::arriving::from_html(&html)).body;
+    let said = tisty_core::arriving::tidied(&tisty_core::arriving::from_pasted_html(&html)).body;
     Ok(said.trim().to_string())
 }
 
@@ -311,7 +311,7 @@ pub fn doc_from_text(text: String) -> Answer<Option<String>> {
     if text.len() > PASTED_AT_MOST {
         return Ok(None);
     }
-    Ok(tisty_core::arriving::from_plain(&text))
+    Ok(tisty_core::arriving::from_text(&text))
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {

@@ -4,14 +4,81 @@ use htmd::{Element, HtmlToMarkdown};
 use markup5ever_rcdom::{Node, NodeData};
 use std::rc::Rc;
 
-const SKIPPED: [&str; 11] = [
+use super::pasted::Arrived;
+
+pub(super) const SKIPPED: [&str; 11] = [
     "script", "style", "head", "noscript", "template", "iframe", "object", "embed", "button",
     "select", "textarea",
 ];
 
+// A page copied from anywhere may nest without end; past this, walking it would overflow the stack.
+const NESTED_AT_MOST: usize = 256;
+
+// Parsing slows with the square of the nesting, so a page far past the limit is turned away before it is read.
+const OPENED_AT_MOST: usize = 2048;
+const SHUT_ALONE: [&str; 21] = [
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track",
+    "wbr", "p", "li", "dt", "dd", "tr", "td", "th", "option",
+];
+
+fn opened_past(html: &str, most: usize) -> bool {
+    let mut depth = 0usize;
+    let mut rest = html;
+    while let Some(at) = rest.find('<') {
+        rest = &rest[at + 1..];
+        let shut = rest.starts_with('/');
+        let name: String = rest
+            .trim_start_matches('/')
+            .chars()
+            .take_while(char::is_ascii_alphanumeric)
+            .collect::<String>()
+            .to_ascii_lowercase();
+        let ends = rest.find('>').unwrap_or(rest.len());
+        if name.is_empty() || SHUT_ALONE.contains(&name.as_str()) || rest[..ends].ends_with('/') {
+            continue;
+        }
+        if shut {
+            depth = depth.saturating_sub(1);
+            continue;
+        }
+        depth += 1;
+        if depth > most {
+            return true;
+        }
+    }
+    false
+}
+
+fn deeper_than(tree: &Rc<Node>, most: usize) -> bool {
+    let mut waiting = vec![(tree.clone(), 0usize)];
+    while let Some((node, depth)) = waiting.pop() {
+        if depth > most {
+            return true;
+        }
+        for child in node.children.borrow().iter() {
+            waiting.push((child.clone(), depth + 1));
+        }
+    }
+    false
+}
+
+/// A page or a document brought in as a file, said in Markdown by what its tags say.
 pub fn from_html(html: &str) -> String {
+    converted(html, false)
+}
+
+/// What a clipboard's html says, read by what it holds: Markdown typed into a chat, a terminal, a code editor or a page.
+pub fn from_pasted_html(html: &str) -> String {
+    converted(html, true)
+}
+
+fn converted(html: &str, pasted: bool) -> String {
+    if opened_past(html, OPENED_AT_MOST) {
+        return String::new();
+    }
     let html = broken(html);
-    HtmlToMarkdown::builder()
+    let html = super::lists::listed(&html);
+    let converter = HtmlToMarkdown::builder()
         .options(Options {
             bullet_list_marker: BulletListMarker::Dash,
             ul_bullet_spacing: 1,
@@ -32,9 +99,22 @@ pub fn from_html(html: &str) -> String {
         .add_handler(vec!["summary"], |_: &dyn Handlers, _: Element| {
             Some(HandlerResult::from(""))
         })
-        .build()
-        .convert(&html)
-        .unwrap_or_default()
+        .build();
+    let Ok(tree) = converter.html_to_tree(&html) else {
+        return String::new();
+    };
+    // Reading the tree walks it by recursion; nothing is said, and the page lands the plain text instead.
+    if deeper_than(&tree, NESTED_AT_MOST) {
+        return String::new();
+    }
+    // A file says what it is by its tags; only a clipboard needs reading for what was meant.
+    if !pasted {
+        return converter.tree_to_markdown(&tree);
+    }
+    match super::pasted::arrived(&tree) {
+        Arrived::Laid(said) | Arrived::Written(said) => said,
+        Arrived::Formatted => converter.tree_to_markdown(&tree),
+    }
 }
 
 const TURNS: [&str; 4] = [
@@ -55,7 +135,7 @@ fn named(rest: &str, name: &str) -> bool {
 }
 
 // The element ends at its own closing tag, past any of the same name opened inside it.
-fn closing(tag: &str, after: &str) -> Option<usize> {
+pub(super) fn closing(tag: &str, after: &str) -> Option<usize> {
     let name: String = tag[1..]
         .chars()
         .take_while(char::is_ascii_alphanumeric)
@@ -196,6 +276,9 @@ fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
     if coded(element.node) {
         return handlers.fallback(element);
     }
+    if spaced_apart(element.node) {
+        return Some(" ".into());
+    }
     let style = attr(&element, "style")
         .unwrap_or_default()
         .to_ascii_lowercase()
@@ -234,6 +317,18 @@ fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
         Some(hue) => pen(&out, Some(&hue)),
         None => out.into(),
     })
+}
+
+// Chromium copies the space between two tags as a span holding one no-break space, styled like its words; it meant a plain space.
+fn spaced_apart(node: &Rc<Node>) -> bool {
+    let children = node.children.borrow();
+    let [only] = children.as_slice() else {
+        return false;
+    };
+    match &only.data {
+        NodeData::Text { contents } => &**contents.borrow() == "\u{a0}",
+        _ => false,
+    }
 }
 
 // Google Docs wraps a whole copy in a bold tag that says it is not bold.

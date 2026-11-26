@@ -1,0 +1,8 @@
+{
+ "types": [
+  "text/plain"
+ ],
+ "plain": "Windows PowerShell\r\nCopyright (C) Microsoft Corporation. All rights reserved.\r\n\r\n\r\nName              Id\r\n----              --\r\nAggregatorHost  1956\r\ncmd             6272\r\ncmd            10716\r\nappcompat\r\napppatch\r\nAppReadiness\r\n\r\n\r\nPS C:\\harness\\in>",
+ "html": "",
+ "tisty": ""
+}

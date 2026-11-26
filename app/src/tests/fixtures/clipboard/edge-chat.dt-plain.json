@@ -1,0 +1,8 @@
+{
+ "types": [
+  "text/plain"
+ ],
+ "plain": "# Título\r\n- uno\r\n- dos\r\n**negrita** y [enlace](https://ejemplo.cl)\r\n| A | B |\r\n|---|---|\r\n| 1 | 2 |\r\n| 3 | 4 |\r\nuna línea con `código`\r\n# Título\r\n- uno\r\n- dos\r\n**negrita** y [enlace](https://ejemplo.cl)\r\n| A | B |\r\n|---|---|\r\n| 1 | 2 |\r\n| 3 | 4 |\r\nuna línea con `código`",
+ "html": "",
+ "tisty": ""
+}

@@ -1,0 +1,29 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+
+Name              Id
+----              --
+AggregatorHost  1956
+cmd             1640
+cmd            10900
+appcompat
+apppatch
+AppReadiness
+
+
+PS C:\Users\tester>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
