@@ -790,6 +790,8 @@ export default function Sheet(props: Readonly<Props>) {
     const writer = pageWriter.current?.hands;
     // The menu takes the focus, and with it the selection, so what it carries is held as it opens.
     const held = writer?.choiceHeld() ?? null;
+    // A line begun and not yet written lives only in the writer, so its caret is held to land a paste there.
+    const resume = held ? null : writer?.held();
     const page = shown.current?.document;
     const back = () => shown.current?.focus();
     const { word, block } = asked;
@@ -851,6 +853,7 @@ export default function Sheet(props: Readonly<Props>) {
               // The menu took the frame's focus, and a paste lands only on the sheet that holds it again.
               const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
               sheet?.focus({ preventScroll: true });
+              resume?.();
               const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? "Shift V" : "V")));
               if (!sheet || sheet.ownerDocument.activeElement !== sheet) return byKeys();
               if (plain) liveWriter(writer).plainNext();
