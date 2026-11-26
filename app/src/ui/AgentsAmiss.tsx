@@ -6,7 +6,7 @@ import { t } from "../locales";
 
 export const useUnheeded = (known: KnownAgents | undefined): Wired[] => {
   const quiet = hushedHere.use().said;
-  return unheeded(known?.agent?.on ? known.agents : null, "lost", quiet);
+  return unheeded(known?.agent?.on ? known.everywhere : null, "lost", quiet);
 };
 
 export default function AgentsAmiss({

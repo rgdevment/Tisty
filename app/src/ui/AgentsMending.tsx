@@ -12,7 +12,7 @@ import {
 } from "../agentsAmiss";
 import { addExtras, bringing, mendAll, type Outcome } from "../agentsMending";
 import { hooksToken, markOffered, SKILLS_DECLINED } from "../agentsOffered";
-import { partsSaid, pathsSaid, pendingSaid } from "../agentsSaid";
+import { partsSaid, pathsSaid, pendingSaid, placeNamed } from "../agentsSaid";
 import type { TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import type { KnownAgents } from "../knownAgents";
@@ -42,8 +42,8 @@ export default function AgentsMending({ known, busy, quietly, sentAt }: Readonly
   const quiet = hushedHere.use().said;
   const held = isHeld(busy, "wiring");
   const open = known.agent?.on === true;
-  const lost = open ? inState(known.agents, "lost") : [];
-  const elsewhere = open ? unheeded(known.agents, "elsewhere", quiet) : [];
+  const lost = open ? inState(known.everywhere, "lost") : [];
+  const elsewhere = open ? unheeded(known.everywhere, "elsewhere", quiet) : [];
   const behind = open && skillsBehind(known.skills) ? known.skills : null;
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -155,7 +155,7 @@ function Lost({ one }: Readonly<{ one: Wired }>) {
   const parts = partsIn(one, "lost");
   return (
     <li className="[overflow-wrap:anywhere]">
-      <span className="font-medium text-ink">{one.name}</span> · {partsSaid(parts)}
+      <span className="font-medium text-ink">{placeNamed(one)}</span> · {partsSaid(parts)}
       {pathsSaid(one, parts).map((said) => (
         <span key={said} className="block text-[11.5px]">
           {said}
@@ -179,7 +179,7 @@ function Elsewhere({ all, onQuiet }: Readonly<{ all: Wired[]; onQuiet: () => voi
       <ul className="mt-1 text-soft">
         {all.map((one) => (
           <li key={one.id} className="[overflow-wrap:anywhere]">
-            <span className="font-medium text-ink">{one.name}</span> ·{" "}
+            <span className="font-medium text-ink">{placeNamed(one)}</span> ·{" "}
             {pathsSaid(one, partsIn(one, "elsewhere")).join(" · ")}
           </li>
         ))}
@@ -235,7 +235,7 @@ function Result({ told, onClose }: Readonly<{ told: Told; onClose: () => void }>
   );
 }
 
-const named = (all: Wired[]) => all.map((one) => one.name).join(", ");
+const named = (all: Wired[]) => all.map((one) => placeNamed(one)).join(", ");
 
 const addSaid = (hooks: boolean, skills: boolean): Word => {
   if (hooks && skills) return "extrasAdd";

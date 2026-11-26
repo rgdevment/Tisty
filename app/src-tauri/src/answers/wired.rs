@@ -75,6 +75,18 @@ pub fn wiring_watched(session: tauri::State<'_, Mutex<Session>>) -> Watched {
     Watched { agent, seen }
 }
 
+// The distros the person already looked into, read only while the door is open.
+#[tauri::command(async)]
+pub fn wsl_watched(
+    session: tauri::State<'_, Mutex<Session>>,
+    names: Vec<String>,
+) -> Vec<wiring::Seen> {
+    match agent_apart(&session).on {
+        true => wiring::seen_in_running(&names),
+        false => Vec::new(),
+    }
+}
+
 #[tauri::command(async)]
 pub fn wiring_known() -> Vec<wiring::Seen> {
     wiring::known()

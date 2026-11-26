@@ -5,7 +5,10 @@ import type { KnownAgents } from "../knownAgents";
 export const knownFor = (over: Partial<KnownAgents> = {}): KnownAgents => ({
   agent: null,
   setAgent: () => {},
-  agents: [],
+  agents: over.agents ?? [],
+  everywhere: over.agents ?? [],
+  inDistros: [],
+  lookDistros: () => {},
   setAgents: () => {},
   learnPlugged: () => false,
   hands: [],

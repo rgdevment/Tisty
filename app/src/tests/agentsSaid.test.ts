@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { allParts, partsIn } from "../agentsAmiss";
-import { noticeSaid, partsSaid, pathsSaid, pendingSaid } from "../agentsSaid";
+import { noticeSaid, partsSaid, pathsSaid, pendingSaid, placeNamed } from "../agentsSaid";
 import type { Wired } from "../core";
 import { adopt } from "../locales";
 import { lostOne, strayHooks, wiredOne } from "./knownFor";
@@ -82,5 +82,21 @@ describe("what is said of an agent that needs something", () => {
       "Apunta a /otro/tisty, que no es este Tisty",
       "Sus hooks apuntan a /viejo/tisty, que ya no existe",
     ]);
+  });
+});
+
+describe("what is said of an agent inside a WSL distro", () => {
+  const inUbuntu = lostOne("wsl:Ubuntu:claude-code", { name: "Claude Code", place: "Ubuntu" });
+
+  it("names the distro in the row's name, and only for a row that has one", () => {
+    expect(placeNamed(inUbuntu)).toBe("Claude Code (Ubuntu · WSL)");
+    expect(placeNamed(lostOne("claude-code", { name: "Claude Code" }))).toBe("Claude Code");
+  });
+
+  it("names it in the notice and in the pending line when it is the only one", () => {
+    expect(noticeSaid([inUbuntu])).toBe("Claude Code (Ubuntu · WSL) ya no encuentra Tisty");
+    expect(pendingSaid([inUbuntu], "lost")).toBe(
+      "Claude Code (Ubuntu · WSL) apunta a un Tisty que ya no existe",
+    );
   });
 });

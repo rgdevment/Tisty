@@ -1001,6 +1001,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::wired::wiring_known,
         answers::wired::wsl_distros,
         answers::wired::wsl_seen,
+        answers::wired::wsl_watched,
         answers::agents::assistants,
         answers::wired::wire,
         answers::wired::unwire,

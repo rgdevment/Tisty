@@ -128,6 +128,19 @@ pub fn seen_in_distro(name: &str) -> Option<(Distro, Vec<Seen>)> {
     ))
 }
 
+/// Reading a stopped distro would start it, so only those already running are looked into.
+pub fn seen_in_running(names: &[String]) -> Vec<Seen> {
+    if names.is_empty() || alias_off() {
+        return Vec::new();
+    }
+    places::running()
+        .iter()
+        .filter(|one| names.contains(one))
+        .filter_map(|one| seen_in_distro(one))
+        .flat_map(|(_, seen)| seen)
+        .collect()
+}
+
 fn distro(name: &str) -> Option<Place> {
     let (_, uid) = places::distros().into_iter().find(|(one, _)| one == name)?;
     places::distro(name, uid, &command::calling())

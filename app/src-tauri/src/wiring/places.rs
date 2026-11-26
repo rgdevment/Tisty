@@ -338,6 +338,73 @@ pub fn distros() -> Vec<(String, u32)> {
     Vec::new()
 }
 
+#[cfg(windows)]
+pub fn running() -> Vec<String> {
+    use std::os::windows::process::CommandExt;
+    let known: Vec<String> = distros().into_iter().map(|(name, _)| name).collect();
+    if known.is_empty() {
+        return Vec::new();
+    }
+    let child = std::process::Command::new("wsl.exe")
+        .args(["--list", "--running", "--quiet"])
+        .creation_flags(0x0800_0000)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+    child
+        .ok()
+        .and_then(answered)
+        .map_or_else(Vec::new, |said| running_in(&said, &known))
+}
+
+// A WSL service that is stuck or updating never answers, and the look goes on without it.
+#[cfg(windows)]
+fn answered(mut child: std::process::Child) -> Option<Vec<u8>> {
+    use std::io::Read;
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if std::time::Instant::now() <= until => {
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+    let mut said = Vec::new();
+    child.stdout.take()?.read_to_end(&mut said).ok()?;
+    Some(said)
+}
+
+#[cfg(not(windows))]
+pub fn running() -> Vec<String> {
+    Vec::new()
+}
+
+/// `wsl.exe` answers in UTF-16 and says «none running» in the system's language, so only known names count.
+pub fn running_in(raw: &[u8], known: &[String]) -> Vec<String> {
+    let bare = raw.strip_prefix(&[0xFF, 0xFE]).unwrap_or(raw);
+    let (pairs, odd) = bare.as_chunks::<2>();
+    let wide = odd.is_empty() && pairs.iter().all(|pair| pair[1] == 0);
+    let said = match wide {
+        true => {
+            let units: Vec<u16> = pairs.iter().map(|pair| u16::from_le_bytes(*pair)).collect();
+            String::from_utf16_lossy(&units)
+        }
+        false => String::from_utf8_lossy(raw).into_owned(),
+    };
+    said.lines()
+        .map(|line| line.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}'))
+        .filter(|line| known.iter().any(|one| one == line))
+        .map(str::to_string)
+        .collect()
+}
+
 pub fn distro_root(name: &str) -> PathBuf {
     PathBuf::from(format!(r"\\wsl.localhost\{name}"))
 }
