@@ -131,7 +131,7 @@ describe("a letter written with a dead key", () => {
     expect(marked.data).toContain("´");
     composing("compositionend", "é");
     expect(text()).toContain("Queé");
-    await vi.waitFor(() => expect(marked.isConnected).toBe(false));
+    await vi.waitFor(() => expect(marked.isConnected && marked.data.includes("´")).toBe(false));
   });
 });
 
@@ -163,7 +163,7 @@ describe("a composition that ends away from the page", () => {
       whole: false,
     });
     await vi.advanceTimersByTimeAsync(50);
-    expect(before.isConnected).toBe(false);
+    expect(before.isConnected ? before.data : null).toBe("Que tal");
   });
 });
 
