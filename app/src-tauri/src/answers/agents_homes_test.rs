@@ -407,6 +407,25 @@ fn a_file_held_by_two_rivals_says_so_on_each_card_until_one_is_chosen() {
 }
 
 #[test]
+fn what_was_kept_of_a_file_is_told_with_its_path_and_the_agents_name() {
+    let mut room = room();
+    let (_, rival) = rivals(&mut room);
+    take(&room, &rival, true);
+
+    let told =
+        crate::answers::agent_docs::kept_here(&room.session, Some(&room.homes), HERE, &rival)
+            .unwrap();
+
+    assert_eq!(told.len(), 1);
+    assert_eq!(told[0].at, room.at(".claude/CLAUDE.md"));
+    assert_eq!(told[0].named, "Claude");
+    assert_eq!(told[0].kept.len(), 1);
+    assert_eq!((told[0].kept[0].n, told[0].kept[0].pinned), (1, true));
+    let first = agents::read_kept(room.session.paths.data(), Path::new(&told[0].at), 1).unwrap();
+    assert_eq!(first, MAIN.as_bytes());
+}
+
+#[test]
 fn a_file_nobody_contests_is_not_a_clash() {
     let mut room = room();
     room.bring(&[".claude/CLAUDE.md"]);

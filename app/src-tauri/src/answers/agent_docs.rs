@@ -291,7 +291,16 @@ pub(crate) fn kept_for(
     file: &str,
 ) -> Answer<Vec<super::agent_history::FileKept>> {
     let machine = tisty_core::machine::here().unwrap_or_default();
-    let Some(opened) = opened(session, Homes::here().as_ref(), &machine, file)? else {
+    kept_here(session, Homes::here().as_ref(), &machine, file)
+}
+
+pub(crate) fn kept_here(
+    session: &Session,
+    homes: Option<&Homes>,
+    machine: &str,
+    file: &str,
+) -> Answer<Vec<super::agent_history::FileKept>> {
+    let Some(opened) = opened(session, homes, machine, file)? else {
         return Ok(Vec::new());
     };
     Ok(opened

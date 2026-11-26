@@ -561,7 +561,7 @@ The file's copies and the document's versions show together in **History**, at t
 - **A copy of the file**, which says «Claude's file on this computer, before Tisty wrote it», with its date and its size. Choosing it shows the whole file, and **Put back in the file** asks «Put this copy back in …? What the file holds now is kept as another copy in the history.» and writes it into the file.
 - **The original**, always at the end: «Claude's original file, before Tisty first wrote it», with «never expires».
 
-When there is nothing yet, the history says «Nothing yet: no versions and no file copies». One copy and no versions is normal: versions expire after 30 days and copies are kept by number. **Empty the history** removes the document's versions; the file copies stay.
+When there is nothing yet, the history says «Nothing yet: no versions and no file copies». One copy and no versions is normal: versions last the period you choose in [[Earlier versions|Documents#earlier-versions]], 30 days unless you changed it, and copies are kept by number. **Empty the history** removes the document's versions; the file copies stay.
 
 ![The history of Claude's rule Rules: on the left, one list with the document's versions and the file's copies mixed by date, and at the end Claude's original file, before Tisty first wrote it, with never expires; the chosen copy on the right, with the whole file and the Put back in the file button at the top](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/en-agents-history-light.webp)
 

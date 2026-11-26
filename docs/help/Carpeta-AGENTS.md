@@ -561,7 +561,7 @@ Las copias del archivo y las versiones del documento se ven juntas en **Historia
 - **Una copia del archivo**, que dice «Archivo de Claude en este equipo, antes de que Tisty lo escribiera», con su fecha y su tamaño. Al elegirla ves el archivo completo, y **Devolver al archivo** pregunta «¿Devolver esta copia a …? Lo que tiene ahora el archivo queda como otra copia en el historial.» y la escribe en el archivo.
 - **El original**, siempre al final: «Archivo original de Claude, antes de que Tisty lo escribiera por primera vez», con «no vence».
 
-Si todavía no hay nada, el historial dice «Todavía nada: ni versiones ni copias del archivo». Que haya una copia y ninguna versión es normal: las versiones vencen a los 30 días y las copias se guardan por número. **Vaciar el historial** borra las versiones del documento; las copias del archivo se quedan.
+Si todavía no hay nada, el historial dice «Todavía nada: ni versiones ni copias del archivo». Que haya una copia y ninguna versión es normal: las versiones duran el plazo que eliges en [[Versiones anteriores|Documentos#versiones-anteriores]], 30 días si no lo cambiaste, y las copias se guardan por número. **Vaciar el historial** borra las versiones del documento; las copias del archivo se quedan.
 
 ![El historial de la regla Reglas de Claude: a la izquierda, una sola lista con versiones del documento y copias del archivo mezcladas por fecha, y al final Archivo original de Claude, antes de que Tisty lo escribiera por primera vez, con no vence; la copia elegida a la derecha, con el archivo completo y el botón Devolver al archivo arriba](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-historial-light.webp)
 
