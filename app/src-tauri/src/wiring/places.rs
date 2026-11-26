@@ -387,6 +387,7 @@ pub fn running() -> Vec<String> {
 }
 
 /// `wsl.exe` answers in UTF-16 and says «none running» in the system's language, so only known names count.
+#[cfg(any(windows, test))]
 pub fn running_in(raw: &[u8], known: &[String]) -> Vec<String> {
     let bare = raw.strip_prefix(&[0xFF, 0xFE]).unwrap_or(raw);
     let (pairs, odd) = bare.as_chunks::<2>();
