@@ -31,18 +31,12 @@ pub(crate) fn tongue_chosen(
     let kin = |a: &str, b: &str| same(primary(a), primary(b));
     let exact = |tag: &str| supported.iter().find(|one| same(one, tag)).cloned();
     let family = |tag: &str| supported.iter().find(|one| kin(one, tag)).cloned();
-    let asked = asked.filter(|tag| !tag.is_empty());
     let own = own.filter(|tag| !tag.is_empty());
-    asked
-        .and_then(exact)
-        .or_else(|| {
-            own.filter(|o| asked.is_some_and(|a| kin(a, o)))
-                .and_then(exact)
-        })
-        .or_else(|| asked.and_then(family))
-        .or_else(|| own.and_then(exact))
-        .or_else(|| own.and_then(family))
-        .or_else(|| supported.first().cloned())
+    // Words read in a language they are not in would all be wrong, so no kin of theirs means no speller.
+    let asked = asked.filter(|tag| !tag.is_empty()).or(own)?;
+    exact(asked)
+        .or_else(|| own.filter(|o| kin(asked, o)).and_then(exact))
+        .or_else(|| family(asked))
 }
 
 #[tauri::command(async)]
@@ -134,10 +128,16 @@ mod system {
         String::from_utf16(&name[..len]).ok()
     }
 
+    thread_local! {
+        // A thread already in an apartment answers S_FALSE or a changed mode, and the speller works in either.
+        static JOINED: () = {
+            let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
+        };
+    }
+
     fn checker(asked: Option<&str>) -> Option<ISpellChecker> {
+        JOINED.with(|()| ());
         unsafe {
-            // A thread already in an apartment answers S_FALSE or a changed mode, and the speller works in either.
-            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
             let factory: ISpellCheckerFactory =
                 CoCreateInstance(&SpellCheckerFactory, None, CLSCTX_INPROC_SERVER).ok()?;
             let supported = read(&factory.SupportedLanguages().ok()?);

@@ -3,7 +3,7 @@ import { t } from "../locales";
 import { EMBED } from "./embeds";
 import { onMac } from "./macKeys";
 import { placeOf } from "./pagePlaces";
-import { type WordAt, wordAt } from "./pageWordAt";
+import { type WordAt, wordAt, wordIn } from "./pageWordAt";
 import { shotAt } from "./paging";
 
 export type Formatting = {
@@ -133,10 +133,12 @@ export const quickly = (page: Document, reach: () => Quick) => {
     else if (bar && !bar.hidden) show();
   });
   let caretStood: Range | null | undefined;
+  let keyed = false;
   page.addEventListener(
     "mousedown",
     (event) => {
       caretStood = undefined;
+      keyed = false;
       if (!askedOnMac(event)) return;
       const selection = page.getSelection();
       const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
@@ -152,7 +154,6 @@ export const quickly = (page: Document, reach: () => Quick) => {
     selection?.removeAllRanges();
     if (stood) selection?.addRange(stood);
   };
-  let keyed = false;
   page.addEventListener(
     "keydown",
     (event) => {
@@ -160,24 +161,30 @@ export const quickly = (page: Document, reach: () => Quick) => {
     },
     true,
   );
-  // A menu asked from the keyboard comes with no place of its own, so it opens where the caret or the choice is.
-  const keyedAt = (event: MouseEvent) => {
+  // A menu asked from the keyboard comes with no place of its own, so it opens on the caret or the choice.
+  const keyedOn = (): { x: number; y: number; range: Range } | null => {
     const asked = keyed;
     keyed = false;
     const selection = page.getSelection();
-    const box =
-      asked && selection?.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : null;
-    return box && (box.width > 0 || box.height > 0)
-      ? { x: box.left, y: box.bottom }
-      : { x: event.clientX, y: event.clientY };
+    const range = asked && selection?.rangeCount ? selection.getRangeAt(0) : null;
+    const box = range?.getBoundingClientRect();
+    return range && box && (box.width > 0 || box.height > 0)
+      ? { x: box.left, y: box.bottom, range }
+      : null;
   };
   page.addEventListener("contextmenu", (event) => {
-    const target = event.target as Element | null;
+    const pointed = event.target as Element | null;
     // A field the page holds, as the diary's box, keeps the system's menu with its own speller.
-    if (target?.closest?.("input, textarea, select")) return;
+    if (pointed?.closest?.("input, textarea, select")) return;
     event.preventDefault();
     caretBack();
-    const at = keyedAt(event);
+    const keyedAt = keyedOn();
+    const caretNode = keyedAt?.range.startContainer;
+    const target = caretNode
+      ? caretNode.nodeType === 1
+        ? (caretNode as Element)
+        : caretNode.parentElement
+      : pointed;
     const onMenu = reach().onMenu;
     if (!onMenu) return;
     const writing = Boolean(target?.closest?.(".editing"));
@@ -188,13 +195,18 @@ export const quickly = (page: Document, reach: () => Quick) => {
     const under = Boolean(target && range?.intersectsNode(target));
     hide();
     onMenu({
-      ...at,
+      x: keyedAt?.x ?? event.clientX,
+      y: keyedAt?.y ?? event.clientY,
       writing,
       picked: writing || !under ? null : picked(page),
       block: element && place ? { at: place, element } : null,
       picture: writing ? null : shotAt(page, target),
       embed: writing ? null : (target?.closest?.(EMBED) ?? null),
-      word: writing ? null : wordAt(page, event.clientX, event.clientY),
+      word: writing
+        ? null
+        : keyedAt
+          ? wordIn(keyedAt.range.startContainer, keyedAt.range.startOffset)
+          : wordAt(page, event.clientX, event.clientY),
     });
   });
 };

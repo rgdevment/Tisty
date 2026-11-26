@@ -28,17 +28,24 @@ fn a_bare_language_takes_the_persons_own_variant_of_it_first() {
 }
 
 #[test]
-fn a_language_the_system_lacks_falls_back_to_the_persons() {
+fn a_language_the_system_lacks_is_never_read_with_another_ones_speller() {
     let supported = have(&["en-US", "fr-FR"]);
     assert_eq!(
-        tongue_chosen(&supported, Some("de-DE"), Some("fr-CA")).as_deref(),
+        tongue_chosen(&supported, Some("de-DE"), Some("fr-CA")),
+        None
+    );
+    assert_eq!(tongue_chosen(&supported, Some("es"), Some("en-US")), None);
+    assert_eq!(tongue_chosen(&supported, None, None), None);
+    assert_eq!(tongue_chosen(&[], Some("es"), Some("es-ES")), None);
+}
+
+#[test]
+fn with_no_language_asked_the_persons_own_is_read() {
+    let supported = have(&["en-US", "fr-FR"]);
+    assert_eq!(
+        tongue_chosen(&supported, None, Some("fr-CA")).as_deref(),
         Some("fr-FR")
     );
-    assert_eq!(
-        tongue_chosen(&supported, None, None).as_deref(),
-        Some("en-US")
-    );
-    assert_eq!(tongue_chosen(&[], Some("es"), Some("es-ES")), None);
 }
 
 #[test]

@@ -114,3 +114,19 @@ describe("the menu of the page asked from fields and from the keyboard", () => {
     expect(onMenu).toHaveBeenCalledWith(expect.objectContaining({ word: null }));
   });
 });
+
+describe("the menu of the page asked from the keyboard on a word", () => {
+  it("spells the caret's word and offers the caret's block, wherever the event says it is", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-11"><span data-src="0-10">hola mundo</span></p></article>';
+    caretInWords();
+    const spy = boxOf({ left: 30, bottom: 40, height: 18 });
+    keyed("ContextMenu");
+    asked(document.querySelector("article"), { clientX: 0, clientY: 0 });
+    spy.mockRestore();
+    const [said] = onMenu.mock.calls[0];
+    expect(said.word).toEqual({ said: "hola", at: [0, 4] });
+    expect(said.block?.element).toBe(document.querySelector("p"));
+    expect([said.x, said.y]).toEqual([30, 40]);
+  });
+});

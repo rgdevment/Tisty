@@ -298,6 +298,7 @@ export default function Sheet(props: Readonly<Props>) {
   );
   const onPage = writable && !markdown;
   const pageWriter = useRef<{ page: Document; file?: string; hands: PageWriting } | null>(null);
+  const menuAsked = useRef(0);
   const undrawn = useRef(false);
   const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
   const alreadyShown = useRef<string | null>(null);
@@ -792,7 +793,10 @@ export default function Sheet(props: Readonly<Props>) {
     const back = () => shown.current?.focus();
     const { word, block } = asked;
     const tongue = page?.documentElement.lang || document.documentElement.lang;
+    const asking = ++menuAsked.current;
     const spelled = writer && word ? await spelledWord(word.said, tongue) : null;
+    // A later right-click, or a page put away, while the speller answered leaves this menu unasked.
+    if (asking !== menuAsked.current || pageWriter.current?.hands !== writer) return;
     const choices: Choice[] = [...pictures.offered(page, asked.picture)];
     const embed = asked.embed;
     const gone =
@@ -842,6 +846,7 @@ export default function Sheet(props: Readonly<Props>) {
             copy: carried(back),
             paste: (plain) => {
               back();
+              if (!shown.current?.document.hasFocus()) return;
               if (plain) liveWriter(writer).plainNext();
               void menuPasted(plain);
             },

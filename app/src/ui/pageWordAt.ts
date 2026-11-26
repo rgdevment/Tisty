@@ -23,19 +23,23 @@ const plainSpan = (node: Node): Element | null => {
   return span.firstChild === node && span.childNodes.length === 1 ? span : null;
 };
 
-export const wordAt = (page: Document, x: number, y: number): WordAt | null => {
-  const spot = spotAt(page, x, y);
-  if (spot?.node.nodeType !== Node.TEXT_NODE) return null;
-  const span = plainSpan(spot.node);
+export const wordIn = (node: Node, offset: number): WordAt | null => {
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+  const span = plainSpan(node);
   const place = span && placeOf(span, "data-src");
   if (!place) return null;
-  const data = (spot.node as Text).data;
-  let from = spot.offset;
-  let to = spot.offset;
+  const data = (node as Text).data;
+  let from = offset;
+  let to = offset;
   while (from > 0 && LETTER.test(data[from - 1])) from--;
   while (to < data.length && LETTER.test(data[to])) to++;
   const said = data.slice(from, to).replace(/^['’]+|['’]+$/g, "");
   if (!said || !/\p{L}/u.test(said)) return null;
   const start = place[0] + bytesOf(data.slice(0, from + data.slice(from, to).indexOf(said)));
   return { said, at: [start, start + bytesOf(said)] };
+};
+
+export const wordAt = (page: Document, x: number, y: number): WordAt | null => {
+  const spot = spotAt(page, x, y);
+  return spot ? wordIn(spot.node, spot.offset) : null;
 };
