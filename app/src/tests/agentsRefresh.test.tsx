@@ -106,6 +106,14 @@ describe("the ⟳ button in the Agents folder", () => {
     expect(screen.queryByText(/new$/)).toBeNull();
   });
 
+  it("asks nothing when the agents change while no count is shown", async () => {
+    await mount();
+    await act(async () => {
+      window.dispatchEvent(new Event(AGENTS_CHANGED));
+    });
+    expect(ipc.calls).toBe(1);
+  });
+
   it("keeps no baseline without this computer's yes, so nothing seen then counts later", async () => {
     ipc.takeable = null;
     const { LOOK_EVERY_MS } = await mount();

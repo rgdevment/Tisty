@@ -31,6 +31,7 @@ export default function AgentsRefresh() {
   const [fresh, setFresh] = useState(0);
   const latest = useRef<string[] | null>(null);
   const lastLook = useRef(0);
+  const counting = useRef(false);
 
   // Without this computer's yes there is nothing to compare, so what was seen stays as it was.
   const look = useCallback(() => {
@@ -38,7 +39,9 @@ export default function AgentsRefresh() {
     return agentsTakeable()
       .then((now) => {
         latest.current = now;
-        setFresh(now ? newOf(now) : 0);
+        const many = now ? newOf(now) : 0;
+        counting.current = many > 0;
+        setFresh(many);
         return now;
       })
       .catch(() => null);
@@ -49,7 +52,10 @@ export default function AgentsRefresh() {
     const focused = () => {
       if (Date.now() - lastLook.current >= LOOK_EVERY_MS) look();
     };
-    const changed = () => void look();
+    // Only a count already shown can go stale; anything new waits for the next focus.
+    const changed = () => {
+      if (counting.current) look();
+    };
     window.addEventListener("focus", focused);
     window.addEventListener(AGENTS_CHANGED, changed);
     return () => {
