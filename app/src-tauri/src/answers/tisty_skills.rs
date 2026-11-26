@@ -244,7 +244,20 @@ pub(crate) fn shipped_round(
             );
         });
     }
-    rounded(session.paths.data(), ledger, &placed)
+    let placing: BTreeSet<String> = placed
+        .iter()
+        .map(|one| agents::path_key(&one.target.at))
+        .collect();
+    let out = rounded(session.paths.data(), ledger, &placed);
+    super::cursor_copies::retired(
+        session.paths.data(),
+        homes,
+        &gate,
+        ledger,
+        &placing,
+        &out.told,
+    );
+    out
 }
 
 fn skill_folder_of(at: &Path) -> PathBuf {

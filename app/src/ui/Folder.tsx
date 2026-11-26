@@ -16,6 +16,7 @@ import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import { atRandom, type Recalled, useForgotten } from "../useForgotten";
 import { useAgentsState, useSkillsRow } from "./AgentsMark";
+import AgentsRefresh from "./AgentsRefresh";
 import { FolderMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
@@ -294,38 +295,41 @@ export default function Folder({
           </nav>
         )}
 
-        <h1 className="text-[21px] font-semibold">
-          <button
-            type="button"
-            disabled={!ownMenu}
-            aria-haspopup={ownMenu ? "menu" : undefined}
-            aria-keyshortcuts={ownMenu ? "Shift+F10" : undefined}
-            onContextMenu={(e) => {
-              if (!ownMenu) return;
-              e.preventDefault();
-              ownMenu({ x: e.clientX, y: e.clientY });
-            }}
-            onKeyDown={(e) => {
-              if (!ownMenu || !asksForMenu(e)) return;
-              e.preventDefault();
-              ownMenu(menuAt(e));
-            }}
-            className="flex items-center gap-2.5 text-left disabled:cursor-default"
-          >
-            <span
-              className={
-                isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
-              }
+        <div className="flex items-center gap-2">
+          <h1 className="text-[21px] font-semibold">
+            <button
+              type="button"
+              disabled={!ownMenu}
+              aria-haspopup={ownMenu ? "menu" : undefined}
+              aria-keyshortcuts={ownMenu ? "Shift+F10" : undefined}
+              onContextMenu={(e) => {
+                if (!ownMenu) return;
+                e.preventDefault();
+                ownMenu({ x: e.clientX, y: e.clientY });
+              }}
+              onKeyDown={(e) => {
+                if (!ownMenu || !asksForMenu(e)) return;
+                e.preventDefault();
+                ownMenu(menuAt(e));
+              }}
+              className="flex items-center gap-2.5 text-left disabled:cursor-default"
             >
-              {folder ? (
-                <FolderMark folder={folder} root={root} className="h-[19px] w-[19px]" />
-              ) : (
-                <Glyph name="inbox" className="h-[19px] w-[19px]" />
-              )}
-            </span>
-            {folder ? folderShown(folder) : t("unfiled")}
-          </button>
-        </h1>
+              <span
+                className={
+                  isAgents ? agentsPaint(stage) : folder ? painted(folder.color) : "text-faint"
+                }
+              >
+                {folder ? (
+                  <FolderMark folder={folder} root={root} className="h-[19px] w-[19px]" />
+                ) : (
+                  <Glyph name="inbox" className="h-[19px] w-[19px]" />
+                )}
+              </span>
+              {folder ? folderShown(folder) : t("unfiled")}
+            </button>
+          </h1>
+          {(stage === "brought" || stage === "syncs") && <AgentsRefresh />}
+        </div>
         {stage === "brought" && (
           <p className="mt-1 text-[12.5px] text-faint">
             {t("agentsNotSynced")} ·{" "}
