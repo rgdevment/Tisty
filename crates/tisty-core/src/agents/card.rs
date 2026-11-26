@@ -1,6 +1,7 @@
 use tisty_markdown::front;
 
 use super::Refused;
+use super::trigger::{self, Trigger};
 use crate::event::DeviceId;
 
 pub const KEY: &str = front::AGENT;
@@ -13,6 +14,7 @@ pub enum Kind {
     Rule,
     Skill,
     Memory,
+    Hook,
 }
 
 impl Kind {
@@ -21,11 +23,12 @@ impl Kind {
             Self::Rule => "rule",
             Self::Skill => "skill",
             Self::Memory => "memory",
+            Self::Hook => "hook",
         }
     }
 
     fn read(word: &str) -> Option<Self> {
-        [Self::Rule, Self::Skill, Self::Memory]
+        [Self::Rule, Self::Skill, Self::Memory, Self::Hook]
             .into_iter()
             .find(|one| one.word() == word)
     }
@@ -49,12 +52,14 @@ pub struct Card {
     pub open_end: bool,
     /// The one computer it is for; without it, the card is for every computer.
     pub computer: Option<DeviceId>,
+    pub trigger: Option<Trigger>,
 }
 
 impl Card {
     pub fn of(body: &str) -> Option<Self> {
-        let field = front::fields(body)
-            .into_iter()
+        let fields = front::fields(body);
+        let field = fields
+            .iter()
             .find(|one| one.key.eq_ignore_ascii_case(KEY))?;
         let (address, flags) = field.values.split_first()?;
         let (level, kind, name) = front::agent_address(address)?;
@@ -66,7 +71,12 @@ impl Card {
             bom: false,
             open_end: false,
             computer: None,
+            trigger: None,
         };
+        if card.kind == Kind::Hook {
+            let fits = card.level == GLOBAL && trigger::hook_name(&card.name);
+            card.trigger = Some(trigger::read(&fields).filter(|_| fits)?);
+        }
         for flag in flags {
             match flag.as_str() {
                 "crlf" => card.endings = Endings::Crlf,
@@ -122,7 +132,7 @@ fn extension(name: &str) -> String {
 }
 
 pub fn doc_of(level: &str, kind: Kind, name: &str, file: &[u8]) -> Result<String, Refused> {
-    if !front::agent_level(level) || !front::agent_name(name) {
+    if kind == Kind::Hook || !front::agent_level(level) || !front::agent_name(name) {
         return Err(Refused::Name);
     }
     let text = std::str::from_utf8(file).map_err(|_| Refused::NotText)?;
@@ -138,6 +148,7 @@ pub fn doc_of(level: &str, kind: Kind, name: &str, file: &[u8]) -> Result<String
         bom,
         open_end: !text.is_empty() && !text.ends_with('\n'),
         computer: None,
+        trigger: None,
     };
     let title = format!("title: {level} · {name}");
     Ok(format!(
@@ -145,6 +156,35 @@ pub fn doc_of(level: &str, kind: Kind, name: &str, file: &[u8]) -> Result<String
         card.line(),
         held(&card, text)
     ))
+}
+
+// A hook is made only here, with its trigger, so nothing brought from disk becomes one.
+pub fn hook_doc(
+    name: &str,
+    computer: Option<&DeviceId>,
+    trigger: &Trigger,
+    script: &str,
+) -> Result<String, Refused> {
+    if !trigger::hook_name(name) {
+        return Err(Refused::Name);
+    }
+    let card = Card {
+        level: GLOBAL.to_string(),
+        kind: Kind::Hook,
+        name: name.to_string(),
+        endings: endings_of(script),
+        bom: false,
+        open_end: !script.is_empty() && !script.ends_with('\n'),
+        computer: computer.cloned(),
+        trigger: Some(trigger.clone()),
+    };
+    let body = format!(
+        "---\n{}\ntitle: {name}\n{}---\n{}",
+        card.line(),
+        trigger.lines(),
+        held(&card, script)
+    );
+    Card::of(&body).map(|_| body).ok_or(Refused::NoCard)
 }
 
 pub fn brought(body: &str, file: &[u8]) -> Result<String, Refused> {

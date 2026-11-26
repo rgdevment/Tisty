@@ -42,6 +42,20 @@ pub struct Ledger {
     words: BTreeMap<String, String>,
     #[serde(default)]
     homing: Option<BTreeSet<String>>,
+    #[serde(default)]
+    hooks: BTreeMap<String, HookYes>,
+}
+
+/// The person's yes to one hook on this computer: the exact words, and the script bytes they became.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HookYes {
+    pub print: String,
+    pub name: String,
+    pub script: String,
+    pub event: String,
+    pub tools: String,
+    pub timeout: u32,
+    pub agents: Vec<String>,
 }
 
 impl Ledger {
@@ -228,6 +242,29 @@ impl Ledger {
         let before = self.took.len();
         self.took.extend(documents(files));
         self.took.len() != before
+    }
+
+    pub fn register_hook(&mut self, file: &str, yes: HookYes) {
+        self.hooks.insert(file.to_string(), yes);
+    }
+
+    pub fn hook_yes(&self, file: &str) -> Option<&HookYes> {
+        self.hooks.get(file)
+    }
+
+    pub fn hook_named(&self, name: &str) -> Option<(&str, &HookYes)> {
+        self.hooks
+            .iter()
+            .find(|(_, yes)| yes.name == name)
+            .map(|(file, yes)| (file.as_str(), yes))
+    }
+
+    pub fn hooks(&self) -> impl Iterator<Item = (&str, &HookYes)> {
+        self.hooks.iter().map(|(file, yes)| (file.as_str(), yes))
+    }
+
+    pub fn drop_hook(&mut self, file: &str) -> Option<HookYes> {
+        self.hooks.remove(file)
     }
 
     pub fn took(&self, file: &str) -> bool {

@@ -213,6 +213,8 @@ fn here_word(seen: Seen, agreed_here: bool, stance: Stance) -> &'static str {
         Seen::OtherComputer => "otherComputer",
         Seen::Apart => "apart",
         Seen::Away | Seen::Plain | Seen::Unread => "away",
+        Seen::HookWaiting => "hookWaiting",
+        Seen::HookRegistered => "hookRegistered",
     }
 }
 

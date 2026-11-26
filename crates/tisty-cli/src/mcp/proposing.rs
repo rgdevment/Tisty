@@ -262,6 +262,9 @@ fn unfit(named: &str, why: Unfit) -> Refused {
         Unfit::TooLong => "would grow past what a proposal holds",
         Unfit::TooManyLines => "has more lines than the person can compare at once on its card",
         Unfit::NotWritable => "would no longer make a whole file: its code block must stay closed",
+        Unfit::Hook => {
+            "is a hook, which runs code on the person's computers: only the person writes it"
+        }
     };
     Refused::Tool(format!(
         "{named} {said}, so nothing was proposed. Tell the person what you would change and why."

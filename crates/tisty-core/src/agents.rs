@@ -12,10 +12,11 @@ mod rooted;
 mod shown;
 mod standing;
 mod subs;
+mod trigger;
 
 pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use builtin::{BUILTIN, Bundled, Locked, builtin, bundled, locked, skill_of};
-pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, meant_for, rendered};
+pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, hook_doc, meant_for, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
 pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
 pub use homes::{
@@ -23,7 +24,7 @@ pub use homes::{
 };
 pub use joined::joined;
 pub use kept::{KEPT_AT_MOST, Kept, kept, read_kept};
-pub use ledger::Ledger;
+pub use ledger::{HookYes, Ledger};
 pub use proposal::{PROPOSAL_AT_MOST, PROPOSAL_LINES_AT_MOST, Unfit, proposable};
 pub use rooted::{
     FOLDER, ICON, computer_of, holding, holds, holds_folder, of_computer, root_of, roots, tree,
@@ -35,6 +36,7 @@ pub use standing::{
     removed_as_written, restore, round, shipped_copy, standing, unshipped, wanted,
 };
 pub use subs::{computer_folder, room, sub_folders, sub_id};
+pub use trigger::{EXTENSIONS, Event, TIMEOUT_AT_MOST, Tools, Trigger, extension, hook_name};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Refused {

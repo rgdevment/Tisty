@@ -12,12 +12,16 @@ pub enum Unfit {
     TooLong,
     TooManyLines,
     NotWritable,
+    Hook,
 }
 
 pub fn proposable(approved: &str, proposed: &str) -> Result<(), Unfit> {
     let card = Card::of(approved).ok_or(Unfit::NoCard)?;
     if card.kind == Kind::Memory {
         return Err(Unfit::Memory);
+    }
+    if card.kind == Kind::Hook {
+        return Err(Unfit::Hook);
     }
     if Card::of(proposed).as_ref() != Some(&card) {
         return Err(Unfit::Retargeted);
