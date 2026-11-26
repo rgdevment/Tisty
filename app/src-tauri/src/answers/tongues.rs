@@ -27,6 +27,7 @@ pub fn translated(
     let doc: DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let lang = language(lang)?;
     let kept = joinable(&session.state, doc)?;
+    super::placing::may_copy(session, doc)?;
     let (said, unwritten) = said_of(&session.state, &kept, from)?;
     if said == lang || session.state.tongue_taken(doc, &lang) {
         return Err(Refusal::of("tongueTaken"));
@@ -81,6 +82,9 @@ pub fn tongued(
     };
     let of: DocId = of.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let up = joinable(&session.state, of)?;
+    // Joining makes each the other's translation, so Ideas and the diary, which are one, join none.
+    super::placing::may_copy(session, doc)?;
+    super::placing::may_copy(session, of)?;
     if session.state.anchor_of(&up) == session.state.anchor_of(&kept) {
         return Ok(());
     }

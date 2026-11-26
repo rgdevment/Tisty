@@ -20,7 +20,10 @@ pub(crate) fn may_hang(session: &Session, page: DocId, book: Option<DocId>) -> A
         return Err(Refusal::of("noSuchDoc"));
     };
     match book.and_then(|up| state.docs.get(&up)) {
-        Some(book) => places.may_hang(state, page, book).map_err(refused),
+        Some(book) => {
+            places.may_hang(state, page, book).map_err(refused)?;
+            lodged(session, &places, page.id, places.of_doc(state, book))
+        }
         None => places.may_file(state, page).map_err(refused),
     }
 }
@@ -57,17 +60,34 @@ pub(crate) fn may_copy(session: &Session, doc: DocId) -> Answer<()> {
     places(session).may_copy(state, kept).map_err(refused)
 }
 
-/// AGENTS makes no folder of its own, so only a folder that is already one of its own moves inside.
+/// AGENTS makes no folder of its own, so only a folder that is already one of its own moves inside, and none leaves.
 pub(crate) fn may_shelve(
     session: &Session,
     folder: FolderId,
     into: Option<FolderId>,
 ) -> Answer<()> {
+    places(session)
+        .may_shelve(&session.state, folder, into)
+        .map_err(refused)
+}
+
+/// Filing `doc` into `into`: a plain document does not slip into AGENTS, where every file is an agent's.
+pub(crate) fn may_lodge(session: &Session, doc: DocId, into: Option<FolderId>) -> Answer<()> {
     let places = places(session);
-    match places.of_folder(Some(folder)) {
-        Place::Agents => Ok(()),
-        _ => places.may_make(into, Making::Folder).map_err(refused),
-    }
+    lodged(session, &places, doc, places.of_folder(into))
+}
+
+fn lodged(session: &Session, places: &Places, doc: DocId, into: Place) -> Answer<()> {
+    let state = &session.state;
+    let Some(kept) = state.docs.get(&doc) else {
+        return Err(Refusal::of("noSuchDoc"));
+    };
+    let agents_own = into == Place::Agents
+        && tisty_core::docs::read(&session.paths.docs(), &kept.file)
+            .is_ok_and(|body| tisty_core::agents::Card::of(&body).is_some());
+    places
+        .may_lodge(state, kept, into, agents_own)
+        .map_err(refused)
 }
 
 /// A diagram is a document to the store, so the window says which it is making and AGENTS refuses it here.
@@ -137,3 +157,7 @@ pub fn doc_place(session: tauri::State<'_, Mutex<Session>>, file: String) -> Ans
 #[cfg(test)]
 #[path = "placing_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "places_matrix_test.rs"]
+mod matrix;

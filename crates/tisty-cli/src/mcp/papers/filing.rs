@@ -194,10 +194,10 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 doc_named(&state, which)
             )));
         }
-        if folder.is_some()
+        if kept.folder != folder
             && let Err(ruled) = places.may_file(&state, kept)
         {
-            return Err(super::super::placed::filed_refused(&state, which, ruled));
+            return Err(super::super::placed::refused(&state, which, ruled));
         }
         if state.held_by_another(kept) {
             return Err(Refused::Tool(format!(

@@ -101,6 +101,8 @@ pub(in crate::mcp) fn translation_written(
     }
     let (state, _) = opened(paths)?;
     let up = found(&state, of)?;
+    let places = tisty_core::places::Places::read(&paths.docs(), &state);
+    super::super::placed::may_copy(&places, &state, up)?;
     // Written here it would be the person's own, so someone else's words would go out under their name.
     if !state.mine(up) {
         return Err(Refused::Tool(format!(
@@ -194,6 +196,10 @@ pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, R
         .find(|one| super::super::ideas::sheet_named(paths, &state, one).is_some())
     {
         return Err(super::super::ideas::sheet_stays_put(&state, sheet));
+    }
+    let places = tisty_core::places::Places::read(&paths.docs(), &state);
+    for one in [&kept, &up] {
+        super::super::placed::may_copy(&places, &state, one)?;
     }
     if up.lang.is_none() {
         return Err(unsaid(&state, &of));

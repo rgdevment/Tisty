@@ -125,7 +125,7 @@ fn nothing_is_hung_under_ideas_or_a_diary_book() {
 }
 
 #[test]
-fn plain_and_agents_documents_hang_and_let_go_freely() {
+fn plain_and_agents_documents_hang_and_let_go_freely_but_a_plain_one_stays_out_of_agents() {
     let shelf = shelf();
 
     assert_eq!(
@@ -134,7 +134,7 @@ fn plain_and_agents_documents_hang_and_let_go_freely() {
             shelf.plain,
             Some(shelf.agents_doc)
         )),
-        None
+        Some("agentsHoldOnlyRules")
     );
     assert_eq!(
         code(may_hang(
@@ -217,7 +217,7 @@ fn neither_ideas_nor_the_diary_is_copied() {
 }
 
 #[test]
-fn a_plain_folder_does_not_move_into_agents_and_one_of_its_own_does() {
+fn a_plain_folder_does_not_move_into_agents_and_one_of_its_own_moves_only_inside() {
     let mut shelf = shelf();
     let claude = folder(&mut shelf.session, "Claude", None);
     shelf.session.state.folders.get_mut(&claude).unwrap().parent = Some(shelf.agents);
@@ -232,7 +232,8 @@ fn a_plain_folder_does_not_move_into_agents_and_one_of_its_own_does() {
         Some("agentsHoldOnlyRules")
     );
     assert_eq!(shelve(claude, Some(shelf.agents)), None);
-    assert_eq!(shelve(claude, None), None);
+    assert_eq!(shelve(claude, None), Some("agentsKeepTheirFolders"));
+    assert_eq!(shelve(shelf.agents, None), None);
     assert_eq!(shelve(shelf.work, None), None);
 }
 

@@ -76,7 +76,7 @@ pub(super) fn written_doc(
         ));
     }
 
-    let (folder, page_of) = where_it_lands(&state, args)?;
+    let (folder, page_of) = where_it_lands(paths, &state, args)?;
     super::super::diary::may_start(&body)?;
     if super::super::ideas::is_sheet(&body) {
         let placed = folder.is_some() || page_of.is_some();
@@ -826,6 +826,7 @@ fn warned_into(before: &str, body: &str, notice: &str) -> Option<String> {
 /// Every reason a new document is turned away, worked out before anything is written or copied:
 /// a folder that does not exist must not be paid for with an orphan on disk.
 pub(super) fn where_it_lands(
+    paths: &Paths,
     state: &State,
     args: &Value,
 ) -> Result<
@@ -858,8 +859,9 @@ pub(super) fn where_it_lands(
                      belongs to."
                 )));
             }
-            if up.brainstorm {
-                return Err(super::super::ideas::no_pages_on_a_sheet(state, &said));
+            let places = tisty_core::places::Places::read(&paths.docs(), state);
+            if let Err(ruled) = places.of_doc(state, up).takes_pages() {
+                return Err(super::super::placed::refused(state, &said, ruled));
             }
             if state.held_away(up) {
                 return Err(super::put_away(state, up, &named));

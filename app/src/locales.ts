@@ -2184,6 +2184,7 @@ const en = {
     "Agents holds only your assistants' files: a new one here is a rule. Bring other files with «Bring another file».",
   agentsFolderHolds:
     "That folder of Agents still holds files. Move or delete them from their own menus first, so each agent knows.",
+  agentsKeepTheirFolders: "A folder of Agents stays inside Agents, where its agent reads it.",
   importedFromTisty:
     "That file is one Tisty already keeps, so it is not brought in again as a new document. Duplicate the document instead.",
   attachmentLost: "The file came in, but the field it was for is gone",
@@ -6101,6 +6102,8 @@ const es: Catalog = {
     "Agentes guarda solo los archivos de tus asistentes: uno nuevo aquí es una regla. Trae otros con «Traer otro archivo».",
   agentsFolderHolds:
     "Esa carpeta de Agentes todavía tiene archivos. Muévelos o elimínalos primero desde sus menús, para que cada agente se entere.",
+  agentsKeepTheirFolders:
+    "Una carpeta de Agentes se queda dentro de Agentes, donde la lee su agente.",
   importedFromTisty:
     "Ese archivo ya lo guarda Tisty, así que no se trae de nuevo como un documento nuevo. Duplica el documento en su lugar.",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",

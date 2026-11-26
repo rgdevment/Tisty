@@ -70,7 +70,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             made.body.clone()
         }
         None => {
-            where_it_lands(&state, args)?;
+            where_it_lands(paths, &state, args)?;
             let body = titled(args, &at, &made.body);
             super::compacting::subject_free(&state, args, &body)?;
             fits(&said, &asked_with(args, &body))?;
