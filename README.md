@@ -1524,10 +1524,11 @@ Two optional helps make that a habit, each with its own yes in Settings ›
 Agents. Both come with an agent when you connect it there, with a tick to leave
 each one out, and one switch each after that; the agents you already had are
 offered both together, in one box.
-Its **hooks**, in Claude Code, Cursor, Gemini CLI and GitHub Copilot,
-bring the agent its open tasks when a session starts, and hand the turn back
-once when it edited files without writing anything here, and ask it once before
-it leaves a text file outside a repository. Its **own skills**,
+Its **hooks**, in Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and
+GitHub Copilot, bring the agent its open tasks when a session starts, and hand
+the turn back once when it edited files without writing anything here, and
+ask it once before it leaves a text file outside a repository. Its
+**own skills**,
 `tisty`, `consolidate` and `next-agent`, teach it what
 “Pick up where we left off”, “Tidy up my Tisty” or “Make this page clear for
 the next agent” mean, in your own words. And when it says a step of yours is

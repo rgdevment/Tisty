@@ -2,6 +2,7 @@ use super::*;
 
 const MARK: Spoken = Spoken {
     mark: "hook cursor",
+    root: "hooks",
     posix: false,
 };
 
@@ -123,7 +124,11 @@ fn a_group_that_is_not_an_object_or_a_list_is_passed_over() {
 }
 
 fn moments(text: &str, mark: &str, events: &[&'static str]) -> Vec<String> {
-    let spoken = Spoken { mark, posix: false };
+    let spoken = Spoken {
+        mark,
+        root: "hooks",
+        posix: false,
+    };
     found(text, events, &spoken)
         .into_iter()
         .map(|run| run.moment)
@@ -173,4 +178,76 @@ fn the_moment_a_hook_runs_for_is_read_in_every_form_it_is_written() {
 fn a_hook_with_no_moment_after_its_program_reads_an_empty_one() {
     let text = r#"{ "hooks": { "ev": [ { "command": "'/opt/tisty' hook cursor" } ] } }"#;
     assert_eq!(moments(text, "hook cursor", &["ev"]), [""]);
+}
+
+const NAMED: Spoken = Spoken {
+    mark: "hook antigravity",
+    root: "tisty",
+    posix: false,
+};
+
+fn named_one(command: &str) -> String {
+    let said = serde_json::to_string(command).unwrap();
+    format!(
+        "{{ \"hooks\": {{ \"Stop\": [ {{ \"command\": \"x\" }} ] }}, \"tisty\": {{ \"Stop\": [ {{ \"command\": {said} }} ] }} }}"
+    )
+}
+
+#[test]
+fn a_root_other_than_hooks_is_the_one_read() {
+    let text = named_one("'/opt/tisty' hook antigravity stop");
+
+    let runs = found(&text, &["Stop"], &NAMED);
+
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].moment, "stop");
+    assert_eq!(runs[0].programs[0].said, "/opt/tisty");
+    assert!(found(&text, &["Stop"], &MARK).is_empty());
+}
+
+#[test]
+fn the_list_and_whether_it_fits_are_looked_for_under_the_root_given() {
+    let text = named_one("'/opt/tisty' hook antigravity stop");
+
+    assert!(list(&text, "tisty", "Stop").is_some());
+    assert!(list(&text, "mine", "Stop").is_none());
+    assert!(list_fits(&text, "tisty", "Stop"));
+    assert!(!list_fits(r#"{ "tisty": { "Stop": 3 } }"#, "tisty", "Stop"));
+    assert!(list_fits(r#"{ "tisty": { "Stop": 3 } }"#, "hooks", "Stop"));
+}
+
+#[test]
+fn taking_out_the_only_hook_of_an_event_unsets_it_under_its_own_root() {
+    let text = named_one("'/opt/tisty' hook antigravity stop");
+    let run = found(&text, &["Stop"], &NAMED).pop().unwrap();
+
+    let now = taken_out(&text, &run).unwrap();
+
+    let told: serde_json::Value = serde_json::from_str(&now).unwrap();
+    assert!(told["tisty"].get("Stop").is_none(), "{now}");
+    assert_eq!(told["hooks"]["Stop"][0]["command"], "x");
+}
+
+#[test]
+fn a_command_windows_is_read_as_one_more_way_to_run_the_hook() {
+    let text = r#"{ "hooks": { "stop": [ { "command": "'/old/tisty' hook cursor stop", "commandWindows": "\"C:\\Old\\tisty.exe\" hook cursor stop" } ] } }"#;
+
+    assert_eq!(programs(text), ["/old/tisty", "C:\\Old\\tisty.exe"]);
+    let runs = found(text, &["stop"], &MARK);
+    assert!(runs[0].all_read);
+
+    let now = repointed(text, &runs, |_| true, &new("/New/tisty", "")).unwrap();
+
+    assert_eq!(programs(&now), ["/New/tisty", "/New/tisty"]);
+}
+
+#[test]
+fn a_command_windows_run_in_a_wrapper_leaves_the_hook_not_wholly_read() {
+    let text = r#"{ "hooks": { "stop": [ { "command": "'/old/tisty' hook cursor stop", "commandWindows": "quiet.exe tisty.exe hook cursor stop" } ] } }"#;
+
+    let runs = found(text, &["stop"], &MARK);
+
+    assert_eq!(runs.len(), 1);
+    assert!(!runs[0].all_read);
+    assert_eq!(programs(text), ["/old/tisty"]);
 }

@@ -3392,6 +3392,7 @@ const en = {
   hooksYes: "Add them",
   hooksMissOne:
     "They lack the newest one, which asks before it leaves something outside a repository: turn them off and on to have it.",
+  hooksCodexTrust: "Approve it in Codex with /hooks.",
   joinTitle: "Connect {name} to Tisty",
   joinTitleAll: "Connect {name} agents to Tisty",
   joinHooks: "With its hooks: {name}",
@@ -7313,6 +7314,7 @@ const es: Catalog = {
   hooksYes: "Agregarlos",
   hooksMissOne:
     "Les falta el más nuevo, el de antes de dejar algo fuera de un repo: apágalos y enciéndelos para tenerlo.",
+  hooksCodexTrust: "Apruébalo en Codex con /hooks.",
   joinTitle: "Conectar {name} con Tisty",
   joinTitleAll: "Conectar {name} agentes con Tisty",
   joinHooks: "Con sus hooks: {name}",

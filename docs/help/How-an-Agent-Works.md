@@ -18,7 +18,7 @@ This page follows a real agent session, step by step, with the calls it makes an
 In **Settings › Agents**:
 
 1. On the **Connected** tab, **Connect** puts Tisty in the agent's settings. See [[Agents and MCP|Agents-and-MCP]].
-2. Right there, under a connected agent (Claude Code, Cursor, Gemini CLI or GitHub Copilot), the **Tisty's hooks** row has a switch. Turning it on tells you which file it will write; **Add them** puts them there. If you connect the agent now, they come with **Connect**. From its next session, the agent uses them.
+2. Right there, under a connected agent (Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI or GitHub Copilot), the **Tisty's hooks** row has a switch. Turning it on tells you which file it will write; **Add them** puts them there. If you connect the agent now, they come with **Connect**. From its next session, the agent uses them.
 3. Right there, that agent's **Tisty's skills** row has another switch. Turning it on opens their card, and **Turn on here** writes the three skills into your agents' folders. They need no Agents folder.
 
    If you connect the agent now, both come with **Connect** and stay on. If it was already connected, steps 2 and 3 come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
@@ -221,7 +221,7 @@ An agent that still calls one of them is told where it went («`find` moved into
 
 ## Good to know
 
-- **Agents without hooks.** Codex and Claude Desktop run no hooks: they get only the question in the answers, and only when they call Tisty. Codex does read Tisty's skills, from `~/.agents/skills`, so “Pick up where we left off” still leads it to `catch_up`.
+- **Agents without hooks.** Claude Desktop and DeepSeek Harness run no hooks: they get only the question in the answers, and only when they call Tisty. DeepSeek Harness does read Tisty's skills, so “Pick up where we left off” still leads it to `catch_up`.
 - **With the Tisty plugin** in Claude Code, the plugin brings the hooks and the skills: the hooks row says **The Tisty plugin brings them** and Tisty does not copy its skills there. See [[Hooks and skills|Hooks-and-Skills]].
 - **Work that edits no files**, like planning or researching, is not seen by the end-of-turn hook: there the question in the answers remains.
 - **GitHub Copilot** may spend a premium request on the turn that is handed back.

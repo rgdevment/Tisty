@@ -32,6 +32,8 @@ const pillDress = (one: Wired): string => {
   return one.hooks?.plugged ? "border-hue-green/40 text-hue-green" : "border-line text-soft";
 };
 
+export const trustedByHand = (one: Wired) => one.id.endsWith("codex");
+
 const asks = (one: Wired, at: string): string =>
   [fill("hooksAsk", at), ...(one.id.endsWith("claude-code") ? [t("hooksAskPlugin")] : [])].join(
     " ",
@@ -89,6 +91,9 @@ export default function Hooking({ one, held, onHook, onFix }: Readonly<Props>) {
       {hooks.apart && <p className="mt-1 text-[12.5px] text-soft">{t("hooksOwnWayWhy")}</p>}
       {hooks.plugged && hooks.on && (
         <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">{t("hooksTwice")}</p>
+      )}
+      {hooks.on && trustedByHand(one) && (
+        <p className="mt-1 text-[12.5px] text-soft">{t("hooksCodexTrust")}</p>
       )}
       {missesOne && broken.length === 0 && (
         <p className="mt-1 text-[12.5px] text-soft">{t("hooksMissOne")}</p>

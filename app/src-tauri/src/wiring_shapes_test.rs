@@ -754,3 +754,112 @@ fn hooks_the_plugin_no_longer_brings_are_not_taken_out() {
     assert!(failed.is_none(), "{failed:?}");
     assert!(!room.read(SETTINGS).contains("NoSuch"));
 }
+
+const ANTIGRAVITY_HOOKS: &str = ".gemini/config/hooks.json";
+const CODEX_HOOKS: &str = ".codex/hooks.json";
+
+fn hook_of(id: &str, room: &Room) -> Result<(), Stuck> {
+    hook_at(&client(id), &room.here())
+}
+
+fn unhook_of(id: &str, room: &Room) -> Result<(), Stuck> {
+    unhook_at(&client(id), &room.here())
+}
+
+#[test]
+fn a_hooks_file_of_codex_or_antigravity_that_is_not_json_is_never_written() {
+    for (id, rel) in [("codex", CODEX_HOOKS), ("antigravity", ANTIGRAVITY_HOOKS)] {
+        for (named, text) in FILES_THAT_ARE_NOT_JSON {
+            let room = Room::with(rel, text);
+
+            assert!(hook_of(id, &room).is_err(), "{id} {named}");
+            let _ = unhook_of(id, &room);
+
+            assert_eq!(room.read(rel), text, "{id} {named}");
+        }
+    }
+}
+
+#[test]
+fn what_the_person_put_under_antigravitys_hook_name_stays_whatever_shape_it_is_in() {
+    for text in [
+        r#"{ "tisty": "mine" }"#,
+        r#"{ "tisty": [ { "mine": 1 } ] }"#,
+        r#"{ "tisty": null }"#,
+        r#"{ "tisty": { "Stop": "echo mine" } }"#,
+        r#"{ "tisty": { "SessionStart": { "type": "command", "command": "mine" } } }"#,
+    ] {
+        let room = Room::with(ANTIGRAVITY_HOOKS, text);
+
+        assert!(hook_of("antigravity", &room).is_err(), "{text}");
+        assert_eq!(room.read(ANTIGRAVITY_HOOKS), text);
+    }
+}
+
+#[test]
+fn antigravitys_other_hooks_keep_their_comments_and_odd_shapes_when_tisty_comes_and_goes() {
+    let text = "{\n  // mine, keep\n  \"my-linter\": { \"Stop\": [ \"x\", 3, null ] },\n  \"other\": [ 1, 2, ],\n}\n";
+    let room = Room::with(ANTIGRAVITY_HOOKS, text);
+
+    hook_of("antigravity", &room).unwrap();
+    assert!(room.row("antigravity").hooks.unwrap().on);
+    unhook_of("antigravity", &room).unwrap();
+
+    let now = room.read(ANTIGRAVITY_HOOKS);
+    for word in [
+        "// mine, keep",
+        "\"my-linter\"",
+        "\"x\", 3, null",
+        "[ 1, 2, ]",
+    ] {
+        assert!(now.contains(word), "{word}: {now}");
+    }
+    assert!(!now.contains("hook antigravity"), "{now}");
+}
+
+#[test]
+fn a_hook_of_the_persons_stays_in_codex_whatever_shape_it_is_in() {
+    for text in [
+        r#"{ "hooks": { "Stop": "echo mine" } }"#,
+        r#"{ "hooks": [ { "mine": 1 } ] }"#,
+        r#"{ "hooks": "mine" }"#,
+    ] {
+        let room = Room::with(CODEX_HOOKS, text);
+
+        assert!(hook_of("codex", &room).is_err(), "{text}");
+        assert_eq!(room.read(CODEX_HOOKS), text);
+    }
+    let text = "{\n  \"hooks\": {\n    // mine\n    \"SessionStart\": [ \"mine.exe\", 3, null, { \"hooks\": \"mine\" } ]\n  }\n}\n";
+    let room = Room::with(CODEX_HOOKS, text);
+
+    hook_of("codex", &room).unwrap();
+    unhook_of("codex", &room).unwrap();
+
+    let now: serde_json::Value =
+        serde_json::from_str(&strip_comments(&room.read(CODEX_HOOKS))).unwrap();
+    assert_eq!(now["hooks"]["SessionStart"][0], "mine.exe");
+    assert!(room.read(CODEX_HOOKS).contains("// mine"));
+}
+
+fn strip_comments(text: &str) -> String {
+    text.lines()
+        .filter(|line| !line.trim_start().starts_with("//"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn a_command_windows_the_person_wrote_beside_codexs_hook_is_never_taken_out() {
+    let text = r#"{ "hooks": { "SessionStart": [ { "hooks": [ { "type": "command", "command": "/opt/tisty hook codex start", "commandWindows": "my-wrapper.cmd" } ] } ] } }"#;
+    let room = Room::with(CODEX_HOOKS, text);
+
+    let seen = room.row("codex").hooks.unwrap();
+    assert!(seen.apart && !seen.on, "{seen:?}");
+    assert!(
+        hook_of("codex", &room).is_err(),
+        "a second one would run beside it"
+    );
+    unhook_of("codex", &room).unwrap();
+
+    assert_eq!(room.read(CODEX_HOOKS), text);
+}

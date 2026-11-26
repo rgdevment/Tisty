@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-const EDITING: [&str; 10] = [
+const EDITING: [&str; 13] = [
     "Edit",
     "Write",
     "MultiEdit",
@@ -12,6 +12,9 @@ const EDITING: [&str; 10] = [
     "edit",
     "apply_patch",
     "str_replace_editor",
+    "write_to_file",
+    "replace_file_content",
+    "multi_replace_file_content",
 ];
 const SERVER: &str = "tisty";
 
@@ -24,10 +27,14 @@ pub struct Heard {
     session_id_camel: Option<Value>,
     #[serde(default)]
     conversation_id: Option<Value>,
+    #[serde(default, rename = "conversationId")]
+    conversation_id_camel: Option<Value>,
     #[serde(default)]
     tool_name: Option<Value>,
     #[serde(default, rename = "toolName")]
     tool_name_camel: Option<Value>,
+    #[serde(default, rename = "toolCall")]
+    tool_call: Option<ToolCall>,
     #[serde(default)]
     mcp_server_name: Option<Value>,
     #[serde(default)]
@@ -36,6 +43,13 @@ pub struct Heard {
     stop_hook_active: Option<Value>,
     #[serde(default)]
     cursor_version: Option<serde::de::IgnoredAny>,
+}
+
+/// Antigravity names the tool inside the call it is about to make.
+#[derive(Debug, Default, Deserialize)]
+struct ToolCall {
+    #[serde(default)]
+    name: Option<Value>,
 }
 
 impl Heard {
@@ -48,6 +62,7 @@ impl Heard {
             &self.session_id,
             &self.session_id_camel,
             &self.conversation_id,
+            &self.conversation_id_camel,
         ]
         .into_iter()
         .find_map(|one| one.as_ref()?.as_str())
@@ -55,8 +70,10 @@ impl Heard {
     }
 
     pub fn tool(&self) -> Option<&str> {
+        let called = self.tool_call.as_ref().map(|call| &call.name);
         [&self.tool_name, &self.tool_name_camel]
             .into_iter()
+            .chain(called)
             .find_map(|one| one.as_ref()?.as_str())
     }
 
@@ -110,6 +127,8 @@ pub enum Client {
     Cursor,
     GeminiCli,
     Copilot,
+    Codex,
+    Antigravity,
 }
 
 impl Client {
@@ -119,6 +138,8 @@ impl Client {
             "cursor" => Some(Client::Cursor),
             "gemini-cli" => Some(Client::GeminiCli),
             "copilot" => Some(Client::Copilot),
+            "codex" => Some(Client::Codex),
+            "antigravity" => Some(Client::Antigravity),
             _ => None,
         }
     }
@@ -129,6 +150,8 @@ impl Client {
             Client::Cursor => "cursor",
             Client::GeminiCli => "gemini-cli",
             Client::Copilot => "copilot",
+            Client::Codex => "codex",
+            Client::Antigravity => "antigravity",
         }
     }
 
@@ -142,7 +165,7 @@ impl Client {
 
     pub fn started(self, context: &str) -> String {
         match self {
-            Client::ClaudeCode | Client::GeminiCli => json!({
+            Client::ClaudeCode | Client::GeminiCli | Client::Codex => json!({
                 "hookSpecificOutput": {
                     "hookEventName": "SessionStart",
                     "additionalContext": context,
@@ -150,13 +173,16 @@ impl Client {
             }),
             Client::Cursor => json!({ "additional_context": context }),
             Client::Copilot => json!({ "additionalContext": context }),
+            Client::Antigravity => json!({
+                "injectSteps": [{ "systemMessage": { "systemMessage": context } }]
+            }),
         }
         .to_string()
     }
 
     pub fn denied(self, reason: &str) -> String {
         match self {
-            Client::ClaudeCode => json!({
+            Client::ClaudeCode | Client::Codex => json!({
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
                     "permissionDecision": "deny",
@@ -164,7 +190,9 @@ impl Client {
                 }
             }),
             Client::Cursor => json!({ "permission": "deny", "agent_message": reason }),
-            Client::GeminiCli => json!({ "decision": "deny", "reason": reason }),
+            Client::GeminiCli | Client::Antigravity => {
+                json!({ "decision": "deny", "reason": reason })
+            }
             Client::Copilot => json!({
                 "permissionDecision": "deny",
                 "permissionDecisionReason": reason,
@@ -176,7 +204,9 @@ impl Client {
     pub fn handed_back(self, reason: &str) -> String {
         match self {
             Client::Cursor => json!({ "followup_message": reason }),
-            Client::ClaudeCode | Client::GeminiCli | Client::Copilot => {
+            // Antigravity keeps the agent going on `continue`, with the reason as a system message.
+            Client::Antigravity => json!({ "decision": "continue", "reason": reason }),
+            Client::ClaudeCode | Client::GeminiCli | Client::Copilot | Client::Codex => {
                 json!({ "decision": "block", "reason": reason })
             }
         }

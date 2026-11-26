@@ -2,8 +2,10 @@ use serde::Deserialize;
 use serde::de::IgnoredAny;
 use serde_json::Value;
 
-const CREATING: [&str; 3] = ["Write", "write_file", "create"];
-const SHELLS: [&str; 3] = ["Bash", "PowerShell", "Shell"];
+const CREATING: [&str; 4] = ["Write", "write_file", "create", "write_to_file"];
+const SHELLS: [&str; 4] = ["Bash", "PowerShell", "Shell", "run_command"];
+const PATCH: &str = "apply_patch";
+const ADDS_FILE: &str = "*** Add File: ";
 const CARD: &str = "mcp__ccd_session__start_session";
 const OWN_INITIATIVE: &str = "own_initiative";
 
@@ -29,16 +31,24 @@ struct Sent {
     tool_input: Option<Args>,
     #[serde(default, rename = "toolArgs")]
     tool_args: Option<Args>,
+    #[serde(default, rename = "toolCall")]
+    tool_call: Option<ToolCall>,
     #[serde(default)]
     command: Option<Value>,
     #[serde(default)]
     cwd: Option<Value>,
 }
 
+#[derive(Debug, Default, Deserialize)]
+struct ToolCall {
+    #[serde(default)]
+    args: Option<Args>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum Args {
-    Input(Input),
+    Input(Box<Input>),
     // Copilot hands its arguments over as JSON inside a string.
     Said(String),
     Other(IgnoredAny),
@@ -52,21 +62,26 @@ struct Input {
     file_path_camel: Option<Value>,
     #[serde(default)]
     path: Option<Value>,
-    #[serde(default)]
+    #[serde(default, alias = "TargetFile")]
     target_file: Option<Value>,
-    #[serde(default)]
+    #[serde(default, alias = "CommandLine")]
     command: Option<Value>,
-    #[serde(default)]
+    #[serde(default, alias = "Cwd")]
     working_directory: Option<Value>,
     #[serde(default)]
     initiation: Option<Value>,
+    #[serde(default)]
+    input: Option<Value>,
+    #[serde(default)]
+    patch: Option<Value>,
 }
 
 impl Call {
     pub fn read(raw: &[u8]) -> Self {
         let sent: Sent = serde_json::from_slice(raw).unwrap_or_default();
-        let input = match sent.tool_input.or(sent.tool_args) {
-            Some(Args::Input(input)) => input,
+        let called = sent.tool_call.and_then(|call| call.args);
+        let input = match sent.tool_input.or(sent.tool_args).or(called) {
+            Some(Args::Input(input)) => *input,
             Some(Args::Said(said)) => serde_json::from_str(&said).unwrap_or_default(),
             Some(Args::Other(_)) | None => Input::default(),
         };
@@ -81,6 +96,7 @@ impl Call {
         match tool {
             Some(tool) if CREATING.contains(&tool) => self.file(),
             Some(tool) if SHELLS.contains(&tool) => command(&self.input.command),
+            Some(PATCH) => self.added(),
             Some(CARD) if text(&self.input.initiation) == Some(OWN_INITIATIVE) => Leaving::Card,
             Some(_) => Leaving::Nothing,
             // Cursor hands a terminal command over on its own, with no tool named.
@@ -92,6 +108,19 @@ impl Call {
         text(&self.input.working_directory)
             .or(text(&self.cwd))
             .unwrap_or_default()
+    }
+
+    // Codex writes a new file through a patch, which names it on a line of its own.
+    fn added(&self) -> Leaving {
+        let input = &self.input;
+        let named = [&input.command, &input.input, &input.patch]
+            .into_iter()
+            .filter_map(text)
+            .flat_map(str::lines)
+            .find_map(|line| line.strip_prefix(ADDS_FILE))
+            .map(str::trim)
+            .filter(|path| !path.is_empty());
+        named.map_or(Leaving::Nothing, |it| Leaving::File(it.to_string()))
     }
 
     fn file(&self) -> Leaving {

@@ -319,10 +319,19 @@ pub fn unset(text: &str, key: &str, name: &str) -> Option<String> {
     if raw.get(under.value.0) != Some(&b'{') {
         return None;
     }
-    let it = member(raw, under.value.0, name)?;
+    unset_in(text, under.value.0, name)
+}
+
+pub fn unset_top(text: &str, name: &str) -> Option<String> {
+    unset_in(text, opens(text.as_bytes())?, name)
+}
+
+fn unset_in(text: &str, object: usize, name: &str) -> Option<String> {
+    let raw = text.as_bytes();
+    let it = member(raw, object, name)?;
     let past = blank(raw, it.whole.1);
     if raw.get(past) != Some(&b',') {
-        let before = members(raw, under.value.0)?
+        let before = members(raw, object)?
             .iter()
             .rev()
             .map(|one| one.whole.1)

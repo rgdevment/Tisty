@@ -9,6 +9,8 @@ use super::places::{Os, Place};
 use super::running::{self, New, Program, Run, Spoken};
 
 const HOOKS: &str = "hooks";
+/// Antigravity keys its hooks by name, so Tisty's live under a name of their own.
+const ANTIGRAVITY_ROOT: &str = "tisty";
 const START_SECONDS: u64 = 15;
 const TURN_SECONDS: u64 = 5;
 const BEFORE_SECONDS: u64 = 3;
@@ -21,6 +23,8 @@ pub enum Kind {
     Cursor,
     Gemini,
     Copilot,
+    Codex,
+    Antigravity,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
@@ -51,6 +55,8 @@ pub fn kind(client: &str) -> Option<Kind> {
         "cursor" => Some(Kind::Cursor),
         "gemini-cli" => Some(Kind::Gemini),
         "copilot" => Some(Kind::Copilot),
+        "codex" => Some(Kind::Codex),
+        "antigravity" => Some(Kind::Antigravity),
         _ => None,
     }
 }
@@ -62,7 +68,17 @@ impl Kind {
             Kind::Cursor => "~/.cursor/hooks.json",
             Kind::Gemini => "~/.gemini/settings.json",
             Kind::Copilot => "~/.copilot/hooks/tisty.json",
+            Kind::Codex => "~/.codex/hooks.json",
+            // Antigravity CLI reads hooks here, never from its own settings.json.
+            Kind::Antigravity => "~/.gemini/config/hooks.json",
         })
+    }
+
+    fn root(self) -> &'static str {
+        match self {
+            Kind::Antigravity => ANTIGRAVITY_ROOT,
+            _ => HOOKS,
+        }
     }
 
     fn client(self) -> &'static str {
@@ -71,6 +87,8 @@ impl Kind {
             Kind::Cursor => "cursor",
             Kind::Gemini => "gemini-cli",
             Kind::Copilot => "copilot",
+            Kind::Codex => "codex",
+            Kind::Antigravity => "antigravity",
         }
     }
 
@@ -91,6 +109,9 @@ impl Kind {
             ],
             Kind::Gemini => &["SessionStart", "BeforeTool", "AfterTool", "AfterAgent"],
             Kind::Copilot => &["sessionStart", "preToolUse", "postToolUse", "agentStop"],
+            Kind::Codex | Kind::Antigravity => {
+                &["SessionStart", "PreToolUse", "PostToolUse", "Stop"]
+            }
         }
     }
 
@@ -124,6 +145,14 @@ impl Kind {
                 json!({ "matcher": "^write_file$", "hooks": [run] }),
             )],
             Kind::Copilot => vec![("preToolUse", matched("create"))],
+            Kind::Codex => vec![(
+                "PreToolUse",
+                json!({ "matcher": "^(Bash|apply_patch)$", "hooks": [run] }),
+            )],
+            Kind::Antigravity => vec![(
+                "PreToolUse",
+                json!({ "matcher": "^(write_to_file|run_command)$", "hooks": [run] }),
+            )],
         }
     }
 
@@ -180,6 +209,33 @@ impl Kind {
                     ("agentStop", stop),
                 ]
             }
+            Kind::Codex => vec![
+                ("SessionStart", json!({ "hooks": [start] })),
+                (
+                    "PostToolUse",
+                    json!({ "matcher": "^apply_patch$", "hooks": [tool] }),
+                ),
+                (
+                    "PostToolUse",
+                    json!({ "matcher": "^mcp__tisty__", "hooks": [tool] }),
+                ),
+                ("Stop", json!({ "hooks": [stop] })),
+            ],
+            Kind::Antigravity => vec![
+                ("SessionStart", start),
+                (
+                    "PostToolUse",
+                    json!({
+                        "matcher": "^(write_to_file|replace_file_content|multi_replace_file_content)$",
+                        "hooks": [tool]
+                    }),
+                ),
+                (
+                    "PostToolUse",
+                    json!({ "matcher": "^mcp_tisty_", "hooks": [tool] }),
+                ),
+                ("Stop", stop),
+            ],
         }
     }
 
@@ -189,14 +245,17 @@ impl Kind {
             Kind::Claude => json!({
                 "type": "command", "command": place.command, "args": args, "timeout": seconds
             }),
-            Kind::Cursor => json!({ "command": spoken(place, &args), "timeout": seconds }),
+            Kind::Cursor => json!({ "command": self.spoken(place, &args), "timeout": seconds }),
             Kind::Gemini => json!({
                 "name": format!("tisty-{moment}"), "type": "command",
-                "command": spoken(place, &args), "timeout": seconds * 1_000
+                "command": self.spoken(place, &args), "timeout": seconds * 1_000
+            }),
+            Kind::Codex | Kind::Antigravity => json!({
+                "type": "command", "command": self.spoken(place, &args), "timeout": seconds
             }),
             // Copilot refuses the call when this hook fails, so it goes through a shell that never does.
             Kind::Copilot if moment == BEFORE => {
-                let said = spoken(place, &args);
+                let said = self.spoken(place, &args);
                 let (shell, never_fails) = match windows(place) {
                     true => ("powershell", format!("{said}; exit 0")),
                     false => ("bash", format!("{said} || true")),
@@ -210,22 +269,23 @@ impl Kind {
             }),
         }
     }
-}
 
-// Cursor and Gemini run a hook through PowerShell on Windows and a POSIX shell elsewhere.
-fn spoken(place: &Place, args: &[&str]) -> String {
-    format!("{} {}", quoted(place), args.join(" "))
+    fn spoken(self, place: &Place, args: &[&str]) -> String {
+        format!("{} {}", self.quoted(place), args.join(" "))
+    }
+
+    // On Windows Codex runs a hook through cmd.exe and the others through PowerShell; elsewhere, a POSIX shell.
+    fn quoted(self, place: &Place) -> String {
+        match (windows(place), self) {
+            (true, Kind::Codex) => format!("\"{}\"", place.command),
+            (true, _) => format!("& '{}'", place.command.replace('\'', "''")),
+            (false, _) => format!("'{}'", place.command.replace('\'', "'\\''")),
+        }
+    }
 }
 
 fn windows(place: &Place) -> bool {
     place.os == Os::Windows && place.distro.is_none()
-}
-
-fn quoted(place: &Place) -> String {
-    match windows(place) {
-        true => format!("& '{}'", place.command.replace('\'', "''")),
-        false => format!("'{}'", place.command.replace('\'', "'\\''")),
-    }
 }
 
 pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
@@ -263,7 +323,22 @@ pub fn hooked(kind: Kind, text: &str) -> bool {
 }
 
 pub fn apart(kind: Kind, text: &str) -> bool {
-    own_ways(kind, text) > 0
+    own_ways(kind, text) > 0 || (kind.root() != HOOKS && named_apart(kind, text))
+}
+
+// Antigravity names each hook: Tisty run from a hook of another name, or Tisty's turned off by hand, is the person's way.
+fn named_apart(kind: Kind, text: &str) -> bool {
+    let Some(Value::Object(doc)) = json::value(text) else {
+        return false;
+    };
+    let mark = kind.mark();
+    doc.iter().any(|(name, hook)| match name == kind.root() {
+        true => hook.get("enabled") == Some(&Value::Bool(false)),
+        false => {
+            let said = hook.to_string();
+            said.to_lowercase().contains("tisty") && said.contains(&mark)
+        }
+    })
 }
 
 fn own_ways(kind: Kind, text: &str) -> usize {
@@ -274,6 +349,7 @@ fn own_ways(kind: Kind, text: &str) -> usize {
 fn runs(kind: Kind, text: &str) -> Vec<Run> {
     let spoken = Spoken {
         mark: &kind.mark(),
+        root: kind.root(),
         posix: kind == Kind::Claude,
     };
     running::found(text, kind.events(), &spoken)
@@ -312,7 +388,16 @@ fn taken_out(kind: Kind, text: &str, which: impl Fn(&Run) -> bool) -> Option<Str
     while let Some(run) = runs(kind, &now).into_iter().find(|run| which(run)) {
         now = running::taken_out(&now, &run)?;
     }
+    if kind.root() != HOOKS && emptied_root(&now, kind.root()) {
+        now = json::unset_top(&now, kind.root())?;
+    }
     sound(kind, text, &now).then_some(now)
+}
+
+// A hook named Tisty's with nothing left in it would still stand in the person's file.
+fn emptied_root(text: &str, root: &str) -> bool {
+    let bare = |it: &Value| it.as_object().is_some_and(serde_json::Map::is_empty);
+    json::value(text).is_some_and(|doc| doc.get(root).is_some_and(bare))
 }
 
 pub fn repointed(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
@@ -322,7 +407,7 @@ pub fn repointed(kind: Kind, text: &str, place: &Place, said: &[String]) -> Opti
         |one| named(one, place, said),
         &New {
             command: &place.command,
-            spoken: &quoted(place),
+            spoken: &kind.quoted(place),
             windows: windows(place),
         },
     )?;
@@ -333,7 +418,7 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
     let fits = kind
         .events()
         .iter()
-        .all(|event| running::list_fits(text, event));
+        .all(|event| running::list_fits(text, kind.root(), event));
     if !fits || apart(kind, text) {
         return None;
     }
@@ -341,22 +426,22 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
     if now.trim().is_empty() {
         now = match kind {
             Kind::Cursor | Kind::Copilot => "{\n  \"version\": 1\n}\n".to_string(),
-            Kind::Claude | Kind::Gemini => "{\n}\n".to_string(),
+            _ => "{\n}\n".to_string(),
         };
     }
-    let now = pushed(now, kind.entries(place))?;
+    let now = pushed(now, kind.root(), kind.entries(place))?;
     (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
 }
 
-fn pushed(text: String, entries: Vec<(&'static str, Value)>) -> Option<String> {
+fn pushed(text: String, root: &str, entries: Vec<(&'static str, Value)>) -> Option<String> {
     let mut now = text;
     for (event, entry) in entries {
         let piece = serde_json::to_string_pretty(&entry).ok()?;
-        now = match running::list(&now, event) {
+        now = match running::list(&now, root, event) {
             Some(at) => json::push(&now, at, &piece)?,
             None => {
                 let laid: Vec<String> = piece.lines().map(|line| format!("  {line}")).collect();
-                json::set(&now, HOOKS, event, &format!("[\n{}\n]", laid.join("\n")))?
+                json::set(&now, root, event, &format!("[\n{}\n]", laid.join("\n")))?
             }
         };
     }
@@ -366,13 +451,14 @@ fn pushed(text: String, entries: Vec<(&'static str, Value)>) -> Option<String> {
 fn sound(kind: Kind, was: &str, now: &str) -> bool {
     let kept = json::same_but(was, now, |doc| {
         doc.remove("version");
-        if let Some(Value::Object(hooks)) = doc.get_mut(HOOKS) {
+        let root = kind.root();
+        if let Some(Value::Object(hooks)) = doc.get_mut(root) {
             let named = kind.events().iter().copied();
             named.for_each(|event| others_alone(kind, hooks, event));
         }
         let bare = |it: &Value| it.as_object().is_some_and(serde_json::Map::is_empty);
-        if doc.get(HOOKS).is_some_and(bare) {
-            doc.remove(HOOKS);
+        if doc.get(root).is_some_and(bare) {
+            doc.remove(root);
         }
     });
     kept && own_ways(kind, was) == own_ways(kind, now)
@@ -397,7 +483,8 @@ fn others_alone(kind: Kind, hooks: &mut serde_json::Map<String, Value>, event: &
 }
 
 fn ours(run: &Value, mark: &str) -> bool {
-    let fields = ["command", "exec", "bash", "powershell"].map(|named| run.get(named));
+    let fields =
+        ["command", "commandWindows", "exec", "bash", "powershell"].map(|named| run.get(named));
     let args = run.get("args").and_then(Value::as_array);
     let said: Vec<&str> = fields
         .into_iter()

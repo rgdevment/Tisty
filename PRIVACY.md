@@ -783,10 +783,11 @@ this computer and sending nothing:
   that agent connects, such as `~/.claude.json`, `~/.codex/config.toml`,
   `~/.copilot/mcp-config.json` or `~/.cursor/mcp.json`, and, in those that run
   hooks, the file that holds them: `~/.claude/settings.json`,
-  `~/.cursor/hooks.json`, `~/.gemini/settings.json` and
-  `~/.copilot/hooks/tisty.json`. It looks only for Tisty's own entry and
-  Tisty's own hooks, and at whether the program they name is there and is this
-  Tisty, to tell you when one of them can no longer find it. **It writes
+  `~/.codex/hooks.json`, `~/.cursor/hooks.json`, `~/.gemini/config/hooks.json`,
+  `~/.gemini/settings.json` and `~/.copilot/hooks/tisty.json`. It looks only for
+  Tisty's own entry and Tisty's own hooks, and at whether the program they
+  name is there and is this Tisty, to tell you when one of them can no longer
+  find it. **It writes
   nothing in them until you click.** It never reads a WSL distro's files this
   way: those, only when you press **Look in** that distro or, once you did, the
   **Connected** tab.

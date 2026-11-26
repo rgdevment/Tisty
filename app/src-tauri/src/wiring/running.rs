@@ -1,13 +1,14 @@
 use super::json;
 
 const HOOKS: &str = "hooks";
-const COMMANDS: [&str; 4] = ["command", "exec", "bash", "powershell"];
+const COMMANDS: [&str; 5] = ["command", "commandWindows", "exec", "bash", "powershell"];
 
 type Span = (usize, usize);
 
 #[derive(Debug)]
 pub struct Run {
     pub event: &'static str,
+    root: &'static str,
     pub programs: Vec<Program>,
     pub all_read: bool,
     pub moment: String,
@@ -42,15 +43,15 @@ enum Quote {
     PowerShell,
 }
 
-pub fn list(text: &str, event: &str) -> Option<usize> {
+pub fn list(text: &str, root: &str, event: &str) -> Option<usize> {
     let raw = text.as_bytes();
-    let under = json::member(raw, json::opens(raw)?, HOOKS)?;
+    let under = json::member(raw, json::opens(raw)?, root)?;
     Some(listed(raw, under.value.0, event)?.0)
 }
 
-pub fn list_fits(text: &str, event: &str) -> bool {
+pub fn list_fits(text: &str, root: &str, event: &str) -> bool {
     let raw = text.as_bytes();
-    let under = json::opens(raw).and_then(|root| json::member(raw, root, HOOKS));
+    let under = json::opens(raw).and_then(|at| json::member(raw, at, root));
     let Some(under) = under else {
         return true;
     };
@@ -69,6 +70,8 @@ fn listed(raw: &[u8], object: usize, name: &str) -> Option<Span> {
 
 pub struct Spoken<'a> {
     pub mark: &'a str,
+    /// The object that holds the events: `hooks` for most, the hook's own name for Antigravity.
+    pub root: &'static str,
     /// Its `command` line is run by a POSIX shell, on Windows too.
     pub posix: bool,
 }
@@ -82,7 +85,7 @@ pub fn found(text: &str, events: &[&'static str], spoken: &Spoken) -> Vec<Run> {
 
 fn in_event(text: &str, event: &'static str, spoken: &Spoken) -> Vec<Run> {
     let raw = text.as_bytes();
-    let Some(list) = list(text, event) else {
+    let Some(list) = list(text, spoken.root, event) else {
         return Vec::new();
     };
     let groups = json::elements(raw, list).unwrap_or_default();
@@ -170,6 +173,7 @@ fn run(
         .to_string();
     Run {
         event,
+        root: spoken.root,
         moment,
         all_read: !programs.is_empty() && programs.len() == fields.len(),
         programs,
@@ -307,7 +311,7 @@ pub fn repointed(
 
 pub fn taken_out(text: &str, run: &Run) -> Option<String> {
     match run.only_in_list {
-        true => json::unset(text, HOOKS, run.event),
+        true => json::unset(text, run.root, run.event),
         false => json::cut(text, run.list, run.span),
     }
 }

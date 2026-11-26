@@ -206,8 +206,111 @@ fn every_client_id_reads_back() {
         Client::Cursor,
         Client::GeminiCli,
         Client::Copilot,
+        Client::Codex,
+        Client::Antigravity,
     ] {
         assert_eq!(Client::named(client.id()), Some(client));
     }
-    assert_eq!(Client::named("codex"), None);
+    assert_eq!(Client::Codex.id(), "codex");
+    assert_eq!(Client::Antigravity.id(), "antigravity");
+    assert_eq!(Client::named("windsurf"), None);
+}
+
+#[test]
+fn codex_is_told_its_context_and_denied_the_call_like_claude_code() {
+    assert_eq!(
+        parsed(&Client::Codex.started("hi")),
+        parsed(&Client::ClaudeCode.started("hi"))
+    );
+    assert_eq!(
+        parsed(&Client::Codex.denied("why")),
+        parsed(&Client::ClaudeCode.denied("why"))
+    );
+    assert_eq!(
+        parsed(&Client::Codex.handed_back("why")),
+        json!({ "decision": "block", "reason": "why" })
+    );
+}
+
+#[test]
+fn antigravity_is_told_its_context_as_a_step_to_inject() {
+    assert_eq!(
+        parsed(&Client::Antigravity.started("hi")),
+        json!({ "injectSteps": [ { "systemMessage": { "systemMessage": "hi" } } ] })
+    );
+}
+
+#[test]
+fn antigravity_is_denied_the_call_and_kept_going_in_its_own_words() {
+    assert_eq!(
+        parsed(&Client::Antigravity.denied("why")),
+        json!({ "decision": "deny", "reason": "why" })
+    );
+    assert_eq!(
+        parsed(&Client::Antigravity.handed_back("why")),
+        json!({ "decision": "continue", "reason": "why" })
+    );
+}
+
+#[test]
+fn antigravity_names_its_session_and_its_tool_in_its_own_fields() {
+    let said = heard(json!({
+        "conversationId": "conv-1",
+        "toolCall": { "name": "write_to_file", "args": { "TargetFile": "a.md" } },
+    }));
+
+    assert_eq!(said.session(), "conv-1");
+    assert_eq!(said.tool(), Some("write_to_file"));
+    assert!(said.edits());
+}
+
+#[test]
+fn the_tool_a_client_names_at_the_top_wins_over_the_one_inside_its_call() {
+    let said = heard(json!({
+        "tool_name": "Read",
+        "toolCall": { "name": "write_to_file" },
+    }));
+
+    assert_eq!(said.tool(), Some("Read"));
+    assert!(!said.edits());
+}
+
+#[test]
+fn a_tool_call_without_a_readable_name_names_no_tool() {
+    for value in [
+        json!({ "toolCall": {} }),
+        json!({ "toolCall": { "name": 4 } }),
+        json!({ "toolCall": "write_to_file" }),
+    ] {
+        assert_eq!(heard(value.clone()).tool(), None, "{value}");
+    }
+}
+
+#[test]
+fn the_edits_of_antigravity_count_and_its_other_tools_do_not() {
+    for named in [
+        "write_to_file",
+        "replace_file_content",
+        "multi_replace_file_content",
+    ] {
+        let said = heard(json!({ "toolCall": { "name": named } }));
+        assert!(said.edits(), "{named}");
+    }
+    for named in ["run_command", "view_file", "grep_search", "mcp_tisty_tick"] {
+        let said = heard(json!({ "toolCall": { "name": named } }));
+        assert!(!said.edits(), "{named}");
+    }
+}
+
+#[test]
+fn a_tool_of_tisty_is_known_as_antigravity_spells_it() {
+    let said = heard(json!({ "toolCall": { "name": "mcp_tisty_say_done" } }));
+
+    assert_eq!(said.tisty_tool(), Some("say_done"));
+}
+
+#[test]
+fn the_hand_of_codex_and_antigravity_is_their_own_id() {
+    assert_eq!(Client::Codex.hand(&Heard::default()), "codex");
+    assert_eq!(Client::Antigravity.hand(&Heard::default()), "antigravity");
 }

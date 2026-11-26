@@ -167,11 +167,18 @@ fn copilot_gets_a_file_of_its_own_run_without_a_shell() {
 }
 
 #[test]
-fn only_four_assistants_run_hooks() {
-    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+fn only_six_assistants_run_hooks() {
+    for id in [
+        "claude-code",
+        "cursor",
+        "gemini-cli",
+        "copilot",
+        "codex",
+        "antigravity",
+    ] {
         assert!(kind(id).is_some(), "{id}");
     }
-    for id in ["codex", "claude-desktop", "vscode", "windsurf"] {
+    for id in ["claude-desktop", "vscode", "windsurf"] {
         assert!(kind(id).is_none(), "{id}");
     }
 }
@@ -184,7 +191,21 @@ fn a_file_tisty_cannot_read_is_left_alone() {
     assert_eq!(with(Kind::Claude, "{ \"hooks\": [] }", &here), None);
 }
 
-const ALL: [Kind; 4] = [Kind::Claude, Kind::Cursor, Kind::Gemini, Kind::Copilot];
+const ALL: [Kind; 6] = [
+    Kind::Claude,
+    Kind::Cursor,
+    Kind::Gemini,
+    Kind::Copilot,
+    Kind::Codex,
+    Kind::Antigravity,
+];
+
+fn root(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Antigravity => "tisty",
+        _ => "hooks",
+    }
+}
 
 fn written(kind: Kind, home: &Path, text: &str) {
     let at = kind.file(&place(home, Os::Linux, "")).unwrap();
@@ -463,11 +484,13 @@ fn a_hook_with_one_way_of_running_it_wrapped_by_the_person_is_never_taken_out() 
     assert_eq!(fixed, was.replace("/old/tisty", "/opt/new/tisty"));
 }
 
-const BEFORE_ONLY: [(Kind, &[&str]); 4] = [
+const BEFORE_ONLY: [(Kind, &[&str]); 6] = [
     (Kind::Claude, &["PreToolUse"]),
     (Kind::Cursor, &["preToolUse", "beforeShellExecution"]),
     (Kind::Gemini, &["BeforeTool"]),
     (Kind::Copilot, &["preToolUse"]),
+    (Kind::Codex, &["PreToolUse"]),
+    (Kind::Antigravity, &["PreToolUse"]),
 ];
 
 fn before_events(kind: Kind) -> &'static [&'static str] {
@@ -481,14 +504,14 @@ fn as_text(value: &Value) -> String {
 fn as_of_1_49(kind: Kind, text: &str) -> String {
     let mut now = read(text);
     for event in before_events(kind) {
-        now["hooks"].as_object_mut().unwrap().remove(*event);
+        now[root(kind)].as_object_mut().unwrap().remove(*event);
     }
     as_text(&now)
 }
 
 fn person_entry(kind: Kind) -> Value {
     match kind {
-        Kind::Claude | Kind::Gemini => {
+        Kind::Claude | Kind::Gemini | Kind::Codex | Kind::Antigravity => {
             json!({ "matcher": "Bash", "hooks": [ { "type": "command", "command": "say hi" } ] })
         }
         Kind::Cursor | Kind::Copilot => json!({ "command": "say hi" }),
@@ -603,7 +626,7 @@ fn turning_hooks_of_the_release_before_off_and_on_brings_the_hook_that_asks_firs
 
         assert!(!hooked(kind, &off), "{kind:?}");
         assert!(!lacks_before(kind, &on), "{kind:?}");
-        assert_eq!(read(&on)["hooks"], read(&full)["hooks"], "{kind:?}");
+        assert_eq!(read(&on)[root(kind)], read(&full)[root(kind)], "{kind:?}");
     }
 }
 
@@ -613,7 +636,7 @@ fn taking_hooks_out_takes_the_one_that_asks_first_and_leaves_the_persons() {
         let (_tmp, here) = linux();
         let mut mixed = read(&with(kind, "", &here).unwrap());
         let event = before_events(kind)[0];
-        mixed["hooks"][event]
+        mixed[root(kind)][event]
             .as_array_mut()
             .unwrap()
             .insert(0, person_entry(kind));
@@ -623,11 +646,11 @@ fn taking_hooks_out_takes_the_one_that_asks_first_and_leaves_the_persons() {
 
         assert!(!hooked(kind, &now), "{kind:?}");
         assert_eq!(
-            told["hooks"][event],
+            told[root(kind)][event],
             json!([person_entry(kind)]),
             "{kind:?}"
         );
-        assert!(!now.contains("tisty"), "{kind:?} {now}");
+        assert!(!now.contains("/opt/tisty"), "{kind:?} {now}");
     }
 }
 
@@ -639,7 +662,7 @@ fn taking_hooks_out_leaves_no_event_that_held_only_the_one_that_asks_first() {
         let now = read(&without(kind, &with(kind, "", &here).unwrap()).unwrap());
 
         for event in before_events(kind) {
-            assert!(now["hooks"].get(*event).is_none(), "{kind:?} {event}");
+            assert!(now[root(kind)].get(*event).is_none(), "{kind:?} {event}");
         }
     }
 }
@@ -662,7 +685,7 @@ fn fixing_the_program_repoints_the_hook_that_asks_first_too() {
         );
         let told = read(&now);
         let event = before_events(kind)[0];
-        assert!(as_text(&told["hooks"][event]).contains("/opt/new/tisty"));
+        assert!(as_text(&told[root(kind)][event]).contains("/opt/new/tisty"));
     }
 }
 
@@ -711,4 +734,325 @@ fn fixing_the_program_keeps_the_tail_of_copilots_powershell_form_on_windows() {
         told["hooks"]["sessionStart"][0]["exec"],
         "C:\\New One\\tisty.exe"
     );
+}
+
+#[test]
+fn codex_runs_its_hook_through_cmd_with_double_quotes_on_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(
+        tmp.path(),
+        Os::Windows,
+        "C:\\Program Files\\O'Neil\\tisty.exe",
+    );
+
+    let now = read(&with(Kind::Codex, "", &here).unwrap());
+
+    let start = &now["hooks"]["SessionStart"][0]["hooks"][0];
+    assert_eq!(start["type"], "command");
+    assert_eq!(
+        start["command"],
+        "\"C:\\Program Files\\O'Neil\\tisty.exe\" hook codex start"
+    );
+    assert_eq!(
+        now["hooks"]["Stop"][0]["hooks"][0]["command"],
+        "\"C:\\Program Files\\O'Neil\\tisty.exe\" hook codex stop"
+    );
+}
+
+#[test]
+fn codex_runs_its_hook_through_a_posix_shell_off_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Macos, "/Apps/It's Tisty/tisty");
+
+    let now = read(&with(Kind::Codex, "", &here).unwrap());
+
+    assert_eq!(
+        now["hooks"]["SessionStart"][0]["hooks"][0]["command"],
+        "'/Apps/It'\\''s Tisty/tisty' hook codex start"
+    );
+}
+
+#[test]
+fn codex_reads_seconds_and_matches_the_tools_that_leave_something() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Codex, "", &here).unwrap());
+
+    assert_eq!(now["hooks"]["SessionStart"][0]["hooks"][0]["timeout"], 15);
+    assert_eq!(now["hooks"]["SessionStart"][0].get("matcher"), None);
+    assert_eq!(
+        now["hooks"]["PreToolUse"][0]["matcher"],
+        "^(Bash|apply_patch)$"
+    );
+    assert_eq!(now["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"], 3);
+    assert_eq!(
+        now["hooks"]["PreToolUse"][0]["hooks"][0]["command"],
+        "'/opt/tisty' hook codex before"
+    );
+    let tools = now["hooks"]["PostToolUse"].as_array().unwrap();
+    assert_eq!(tools.len(), 2);
+    assert_eq!(tools[0]["matcher"], "^apply_patch$");
+    assert_eq!(tools[1]["matcher"], "^mcp__tisty__");
+    assert_eq!(tools[1]["hooks"][0]["timeout"], 5);
+    assert_eq!(now["hooks"]["Stop"][0]["hooks"][0]["timeout"], 5);
+}
+
+#[test]
+fn codex_and_antigravity_each_get_a_file_of_their_own() {
+    let (tmp, here) = linux();
+
+    assert_eq!(
+        Kind::Codex.file(&here).unwrap(),
+        tmp.path().join(".codex").join("hooks.json")
+    );
+    assert_eq!(
+        Kind::Antigravity.file(&here).unwrap(),
+        tmp.path().join(".gemini").join("config").join("hooks.json")
+    );
+    assert!(!alone(Kind::Codex) && !alone(Kind::Antigravity));
+}
+
+#[test]
+fn antigravity_keeps_its_hooks_under_a_name_and_not_under_hooks() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Antigravity, "", &here).unwrap());
+
+    assert!(now.get("hooks").is_none(), "{now}");
+    let ours = &now["tisty"];
+    assert_eq!(ours["SessionStart"].as_array().unwrap().len(), 1);
+    assert_eq!(ours["SessionStart"][0]["type"], "command");
+    assert_eq!(
+        ours["SessionStart"][0]["command"],
+        "'/opt/tisty' hook antigravity start"
+    );
+    assert_eq!(ours["SessionStart"][0]["timeout"], 15);
+    assert!(ours["SessionStart"][0].get("hooks").is_none());
+    assert_eq!(
+        ours["Stop"][0]["command"],
+        "'/opt/tisty' hook antigravity stop"
+    );
+    assert!(ours["Stop"][0].get("matcher").is_none());
+}
+
+#[test]
+fn antigravity_matches_the_tools_that_leave_something_by_their_own_names() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Antigravity, "", &here).unwrap());
+
+    let before = &now["tisty"]["PreToolUse"][0];
+    assert_eq!(before["matcher"], "^(write_to_file|run_command)$");
+    assert_eq!(before["hooks"][0]["timeout"], 3);
+    assert_eq!(
+        before["hooks"][0]["command"],
+        "'/opt/tisty' hook antigravity before"
+    );
+    let tools = now["tisty"]["PostToolUse"].as_array().unwrap();
+    assert_eq!(tools.len(), 2);
+    assert_eq!(
+        tools[0]["matcher"],
+        "^(write_to_file|replace_file_content|multi_replace_file_content)$"
+    );
+    assert_eq!(tools[1]["matcher"], "^mcp_tisty_");
+    assert_eq!(
+        tools[1]["hooks"][0]["command"],
+        "'/opt/tisty' hook antigravity tool"
+    );
+}
+
+#[test]
+fn antigravity_runs_its_hook_through_powershell_on_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Windows, "C:\\Users\\O'Neil\\tisty.exe");
+
+    let now = read(&with(Kind::Antigravity, "", &here).unwrap());
+
+    assert_eq!(
+        now["tisty"]["Stop"][0]["command"],
+        "& 'C:\\Users\\O''Neil\\tisty.exe' hook antigravity stop"
+    );
+}
+
+const OTHER_HOOK: &str = "{\n  \"my-linter\": {\n    \"Stop\": [\n      { \"type\": \"command\", \"command\": \"lint --all\" }\n    ]\n  }\n}\n";
+
+#[test]
+fn another_named_hook_of_antigravity_stays_untouched_when_adding_and_removing() {
+    let (tmp, here) = linux();
+
+    let added = with(Kind::Antigravity, OTHER_HOOK, &here).unwrap();
+    let told = read(&added);
+    assert_eq!(told["my-linter"], read(OTHER_HOOK)["my-linter"]);
+    assert!(hooked(Kind::Antigravity, &added));
+    written(Kind::Antigravity, tmp.path(), &added);
+    assert!(!seen(Kind::Antigravity, &here).unwrap().apart);
+
+    let removed = without(Kind::Antigravity, &added).unwrap();
+
+    assert!(!hooked(Kind::Antigravity, &removed));
+    assert_eq!(read(&removed)["my-linter"], read(OTHER_HOOK)["my-linter"]);
+    assert!(!removed.contains("/opt/tisty"), "{removed}");
+}
+
+#[test]
+fn taking_antigravity_out_leaves_no_hook_name_of_ours_behind() {
+    let (_tmp, here) = linux();
+    let added = with(Kind::Antigravity, "", &here).unwrap();
+
+    let removed = without(Kind::Antigravity, &added).unwrap();
+
+    assert!(!removed.contains("/opt/tisty"), "{removed}");
+    assert!(read(&removed).get("tisty").is_none(), "{removed}");
+}
+
+#[test]
+fn antigravitys_hook_name_stays_when_the_person_left_something_in_it() {
+    let (_tmp, here) = linux();
+    let mut now = read(&with(Kind::Antigravity, "", &here).unwrap());
+    now["tisty"]["enabled"] = json!(false);
+
+    let removed = without(Kind::Antigravity, &as_text(&now)).unwrap();
+
+    assert_eq!(
+        read(&removed)["tisty"],
+        json!({ "enabled": false }),
+        "{removed}"
+    );
+}
+
+#[test]
+fn a_handler_of_the_persons_inside_tistys_stop_stays_when_ours_goes() {
+    let (_tmp, here) = linux();
+    let mine = json!({ "type": "command", "command": "say bye" });
+    let mut now = read(&with(Kind::Antigravity, "", &here).unwrap());
+    now["tisty"]["Stop"]
+        .as_array_mut()
+        .unwrap()
+        .insert(0, mine.clone());
+
+    let removed = without(Kind::Antigravity, &as_text(&now)).unwrap();
+    let told = read(&removed);
+
+    assert!(!hooked(Kind::Antigravity, &removed));
+    assert_eq!(told["tisty"]["Stop"], json!([mine]));
+    assert!(told["tisty"].get("SessionStart").is_none(), "{removed}");
+}
+
+#[test]
+fn tisty_run_from_another_named_hook_of_antigravity_is_the_persons_way() {
+    let (_tmp, here) = linux();
+    let was = r#"{ "mine": { "Stop": [ { "type": "command", "command": "/opt/tisty hook antigravity stop" } ] } }"#;
+
+    assert!(!hooked(Kind::Antigravity, was));
+    assert!(apart(Kind::Antigravity, was));
+    assert_eq!(with(Kind::Antigravity, was, &here), None);
+    assert_eq!(without(Kind::Antigravity, was).unwrap(), was);
+}
+
+#[test]
+fn antigravitys_hook_turned_off_by_hand_is_the_persons_way() {
+    let (_tmp, here) = linux();
+    let mut now = read(&with(Kind::Antigravity, "", &here).unwrap());
+    now["tisty"]["enabled"] = json!(false);
+    let off = as_text(&now);
+
+    assert!(apart(Kind::Antigravity, &off));
+    assert_eq!(with(Kind::Antigravity, &off, &here), None);
+}
+
+#[test]
+fn another_named_hook_of_antigravity_that_never_runs_tisty_is_not_apart() {
+    let was = r#"{ "my-linter": { "PreToolUse": [ { "matcher": "run_command", "hooks": [ { "command": "./lint.sh" } ] } ] } }"#;
+    assert!(!apart(Kind::Antigravity, was));
+}
+
+#[test]
+fn a_file_of_antigravity_tisty_cannot_read_is_left_alone() {
+    let (_tmp, here) = linux();
+    assert_eq!(with(Kind::Antigravity, "[1, 2]", &here), None);
+    assert_eq!(with(Kind::Antigravity, r#"{ "tisty": [] }"#, &here), None);
+}
+
+#[test]
+fn taking_codex_out_leaves_the_persons_hooks_and_file() {
+    let (_tmp, here) = linux();
+    let was = "{\n  \"hooks\": {\n    \"Stop\": [\n      { \"hooks\": [ { \"type\": \"command\", \"command\": \"say done\" } ] }\n    ]\n  }\n}\n";
+
+    let added = with(Kind::Codex, was, &here).unwrap();
+    let removed = without(Kind::Codex, &added).unwrap();
+
+    assert_eq!(read(&removed), read(was));
+}
+
+#[cfg(windows)]
+#[test]
+fn fixing_the_program_keeps_codexs_double_quoted_form_on_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let old = place(tmp.path(), Os::Windows, "C:\\NoSuch\\Old\\tisty.exe");
+    let here = place(tmp.path(), Os::Windows, "C:\\New One\\tisty.exe");
+    let was = with(Kind::Codex, "", &old).unwrap();
+
+    let now = repointed(
+        Kind::Codex,
+        &was,
+        &here,
+        &["C:\\NoSuch\\Old\\tisty.exe".to_string()],
+    )
+    .unwrap();
+
+    let told = read(&now);
+    assert_eq!(
+        told["hooks"]["SessionStart"][0]["hooks"][0]["command"],
+        "\"C:\\New One\\tisty.exe\" hook codex start"
+    );
+    assert!(!now.contains("NoSuch"), "{now}");
+}
+
+#[cfg(windows)]
+#[test]
+fn a_codex_path_written_in_double_quotes_is_read_back_whole() {
+    let tmp = tempfile::tempdir().unwrap();
+    let here = place(tmp.path(), Os::Windows, "C:\\New\\tisty.exe");
+    let old = place(tmp.path(), Os::Windows, "C:\\No such Tisty\\tisty.exe");
+    written(
+        Kind::Codex,
+        tmp.path(),
+        &with(Kind::Codex, "", &old).unwrap(),
+    );
+
+    let found = seen(Kind::Codex, &here).unwrap();
+
+    assert_eq!(
+        found.stray,
+        [stray_at("C:\\No such Tisty\\tisty.exe", true)]
+    );
+}
+
+#[test]
+fn a_command_windows_of_the_persons_beside_ours_makes_the_hook_apart() {
+    let (tmp, here) = linux();
+    for mine in ["quiet.exe tisty.exe hook codex start", "my-own-hook.cmd"] {
+        let was = format!(
+            r#"{{ "hooks": {{ "SessionStart": [ {{ "hooks": [ {{ "type": "command", "command": "'/old/tisty' hook codex start", "commandWindows": "{mine}" }} ] }} ] }} }}"#
+        );
+        written(Kind::Codex, tmp.path(), &was);
+
+        let found = seen(Kind::Codex, &here).unwrap();
+
+        assert!(found.apart && !found.on, "{mine}: {found:?}");
+        assert_eq!(with(Kind::Codex, &was, &here), None, "{mine}");
+    }
+}
+
+#[test]
+fn a_command_windows_of_the_persons_is_never_taken_out_nor_rewritten() {
+    let (_tmp, here) = linux();
+    let was = r#"{ "hooks": { "SessionStart": [ { "hooks": [ { "type": "command", "command": "'/old/tisty' hook codex start", "commandWindows": "quiet.exe tisty.exe hook codex start" } ] } ] } }"#;
+    let named = ["/old/tisty".to_string()];
+
+    assert_eq!(without_those(Kind::Codex, was, &here, &named).unwrap(), was);
+    assert_eq!(without(Kind::Codex, was).unwrap(), was);
+    let fixed = repointed(Kind::Codex, was, &here, &named).unwrap();
+    assert_eq!(fixed, was.replace("/old/tisty", "/opt/tisty"));
+    assert!(fixed.contains("quiet.exe tisty.exe hook codex start"));
 }

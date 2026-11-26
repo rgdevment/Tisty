@@ -437,7 +437,7 @@ fn looked(id: &str, home: &Path, command: &str) -> Seen {
 
 #[test]
 fn hooks_left_behind_are_seen_with_the_connection_already_right_and_adding_them_again_mends_them() {
-    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+    for id in ALL_HOOKED {
         let tmp = tempfile::tempdir().unwrap();
         hooked_here(id, tmp.path(), "/old/tisty");
         wired_here(id, tmp.path(), "/opt/tisty");
@@ -457,6 +457,15 @@ fn hooks_left_behind_are_seen_with_the_connection_already_right_and_adding_them_
     }
 }
 
+const ALL_HOOKED: [&str; 6] = [
+    "claude-code",
+    "cursor",
+    "gemini-cli",
+    "copilot",
+    "codex",
+    "antigravity",
+];
+
 fn mended(id: &str, home: &Path, ask: &Mend) -> (Option<Stuck>, Option<Stuck>) {
     let place = place(home, "/opt/tisty");
     let client = client(id);
@@ -474,7 +483,7 @@ fn both() -> Mend {
 
 #[test]
 fn one_fix_repoints_the_connection_and_the_hooks_it_named() {
-    for id in ["claude-code", "cursor", "gemini-cli", "copilot"] {
+    for id in ALL_HOOKED {
         let tmp = tempfile::tempdir().unwrap();
         wired_here(id, tmp.path(), "/old/tisty");
         hooked_here(id, tmp.path(), "/old/tisty");
@@ -896,4 +905,158 @@ fn a_fix_leaves_claude_codes_hooks_alone_when_the_plugin_turns_out_to_bring_them
     );
     assert!(hooks.is_none());
     assert!(!read_of(&settings).contains("/old/tisty"));
+}
+
+const PERSONS_HOOKS: &str = r#"{
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "say done" } ] }
+    ]
+  }
+}
+"#;
+
+const PERSONS_NAMED_HOOK: &str = r#"{
+  "my-linter": {
+    "Stop": [ { "type": "command", "command": "lint --all" } ]
+  }
+}
+"#;
+
+fn json_at(at: &Path) -> serde_json::Value {
+    json_at_text(&read_of(at))
+}
+
+fn json_at_text(text: &str) -> serde_json::Value {
+    serde_json::from_str(text).unwrap()
+}
+
+#[test]
+fn hooking_then_unhooking_codex_leaves_the_persons_hooks_file_as_it_was() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".codex").join("hooks.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, PERSONS_HOOKS).unwrap();
+    let codex = client("codex");
+    let here = place(tmp.path(), "/opt/tisty");
+
+    hook_at(&codex, &here).unwrap();
+
+    let hooks = told(&codex, &here, None).unwrap().hooks.unwrap();
+    assert!(
+        hooks.on && !hooks.apart && hooks.stray.is_empty(),
+        "{hooks:?}"
+    );
+    assert!(hooks.at.ends_with("hooks.json"), "{}", hooks.at);
+    let now = json_at(&at);
+    assert_eq!(
+        now["hooks"]["Stop"][0],
+        json_at_text(PERSONS_HOOKS)["hooks"]["Stop"][0]
+    );
+    assert!(read_of(&at).contains("'/opt/tisty' hook codex start"));
+
+    unhook_at(&codex, &here).unwrap();
+
+    assert!(!told(&codex, &here, None).unwrap().hooks.unwrap().on);
+    assert_eq!(json_at(&at), json_at_text(PERSONS_HOOKS));
+}
+
+#[test]
+fn antigravity_is_hooked_in_the_file_beside_its_connection_and_keeps_the_persons_named_hooks() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join(".gemini").join("config").join("hooks.json");
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, PERSONS_NAMED_HOOK).unwrap();
+    let antigravity = client("antigravity");
+    let here = place(tmp.path(), "/opt/tisty");
+    let connection = antigravity.file(&here).unwrap();
+
+    wire_at(&antigravity, &here, &connection).unwrap();
+    assert!(!told(&antigravity, &here, None).unwrap().hooks.unwrap().on);
+    hook_at(&antigravity, &here).unwrap();
+
+    let seen = told(&antigravity, &here, None).unwrap();
+    let hooks = seen.hooks.unwrap();
+    assert!(
+        seen.wired && hooks.on && hooks.stray.is_empty(),
+        "{hooks:?}"
+    );
+    assert!(!hooks.apart, "{hooks:?}");
+    let now = json_at(&at);
+    assert_eq!(
+        now["my-linter"],
+        json_at_text(PERSONS_NAMED_HOOK)["my-linter"]
+    );
+    assert_eq!(
+        now["tisty"]["SessionStart"][0]["command"],
+        "'/opt/tisty' hook antigravity start"
+    );
+    assert!(json_at(&connection)["mcpServers"]["tisty"].is_object());
+
+    unhook_at(&antigravity, &here).unwrap();
+
+    let seen = told(&antigravity, &here, None).unwrap();
+    assert!(seen.wired && !seen.hooks.unwrap().on);
+    assert_eq!(
+        json_at(&at)["my-linter"],
+        json_at_text(PERSONS_NAMED_HOOK)["my-linter"]
+    );
+    assert!(!read_of(&at).contains("/opt/tisty"));
+}
+
+#[test]
+fn disconnecting_codex_or_antigravity_takes_its_hooks_out_too() {
+    for id in ["codex", "antigravity"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let client = client(id);
+        let here = place(tmp.path(), "/opt/tisty");
+        let at = client.file(&here).unwrap();
+        wire_at(&client, &here, &at).unwrap();
+        hook_at(&client, &here).unwrap();
+        assert!(
+            told(&client, &here, None).unwrap().hooks.unwrap().on,
+            "{id}"
+        );
+
+        unwire_at(&client, &here, &at).unwrap();
+
+        let seen = told(&client, &here, None).unwrap();
+        assert!(!seen.wired, "{id}");
+        assert!(!seen.hooks.unwrap().on, "{id}");
+    }
+}
+
+#[test]
+fn connecting_codex_or_antigravity_never_adds_hooks_the_person_did_not_ask_for() {
+    for id in ["codex", "antigravity"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let client = client(id);
+        let here = place(tmp.path(), "/opt/tisty");
+        let at = client.file(&here).unwrap();
+
+        wire_at(&client, &here, &at).unwrap();
+
+        let hooks = told(&client, &here, None).unwrap().hooks.unwrap();
+        assert!(!hooks.on, "{id}");
+        assert!(!Path::new(&hooks.at).exists(), "{id}");
+    }
+}
+
+#[test]
+fn a_hook_file_written_by_a_mend_keeps_the_copy_of_what_was_before_for_codex_and_antigravity() {
+    for (id, rel) in [
+        ("codex", ".codex/hooks.json"),
+        ("antigravity", ".gemini/config/hooks.json"),
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        wired_here(id, tmp.path(), "/old/tisty");
+        hooked_here(id, tmp.path(), "/old/tisty");
+        let at = tmp.path().join(rel);
+        let was = read_of(&at);
+
+        mended(id, tmp.path(), &both());
+
+        assert_eq!(read_of(&beside(&at, "before-tisty-last")), was, "{id}");
+        assert!(!read_of(&at).contains("/old/tisty"), "{id}");
+    }
 }

@@ -27,6 +27,16 @@ fn said(home: &Home, moment: &str, heard: Value, at: i128) -> Option<String> {
     )
 }
 
+fn said_by(home: &Home, client: Client, moment: &str, heard: Value, at: i128) -> Option<String> {
+    answered(
+        &home.paths,
+        client,
+        moment,
+        heard.to_string().as_bytes(),
+        at,
+    )
+}
+
 fn edit(home: &Home, at: i128) {
     let heard = json!({ "session_id": "s1", "tool_name": "Edit" });
     assert_eq!(said(home, "tool", heard, at), None);
@@ -272,4 +282,144 @@ fn a_turn_that_was_asked_about_is_not_handed_back_and_the_next_edited_turn_is() 
     edit(&home, 30);
     let handed: Value = serde_json::from_str(&stop(&home, 40).unwrap()).unwrap();
     assert_eq!(handed["decision"], "block");
+}
+
+fn parsed(said: Option<String>) -> Value {
+    serde_json::from_str(&said.unwrap()).unwrap()
+}
+
+fn antigravity_writing(conversation: &str, folder: &str) -> Value {
+    let at = nowhere().join(folder).join("notes.md");
+    json!({
+        "conversationId": conversation,
+        "toolCall": {
+            "name": "write_to_file",
+            "args": { "TargetFile": at.display().to_string(), "CodeContent": "x" },
+        },
+    })
+}
+
+#[test]
+fn a_new_text_file_outside_is_asked_about_once_in_antigravity() {
+    let home = home(LET_IN);
+    let ask = |at| {
+        let heard = antigravity_writing("c1", "Docs");
+        said_by(&home, Client::Antigravity, "before", heard, at)
+    };
+
+    let first = parsed(ask(1));
+
+    assert_eq!(first["decision"], "deny");
+    assert_eq!(first["reason"], crate::mcp::FILE_LEFT_OUTSIDE);
+    assert_eq!(ask(2), None);
+    assert_eq!(Session::of(home.paths.cache(), "c1").marks().asked, Some(1));
+}
+
+#[test]
+fn a_command_antigravity_runs_that_leaves_a_file_outside_is_asked_about() {
+    let home = home(LET_IN);
+    let at = nowhere().join("Docs").join("notes.md");
+    let heard = json!({
+        "conversationId": "c1",
+        "toolCall": {
+            "name": "run_command",
+            "args": {
+                "CommandLine": format!("echo x > \"{}\"", at.display()),
+                "Cwd": nowhere().display().to_string(),
+            },
+        },
+    });
+
+    let first = said_by(&home, Client::Antigravity, "before", heard, 1);
+
+    assert_eq!(parsed(first)["decision"], "deny");
+}
+
+#[test]
+fn an_antigravity_session_that_edited_without_writing_in_tisty_is_kept_going_once() {
+    let home = home(LET_IN);
+    let edited = json!({
+        "conversationId": "c1",
+        "toolCall": { "name": "replace_file_content", "args": {} },
+    });
+    assert_eq!(
+        said_by(&home, Client::Antigravity, "tool", edited, 10),
+        None
+    );
+    let ending = |at| {
+        let heard = json!({ "conversationId": "c1" });
+        said_by(&home, Client::Antigravity, "stop", heard, at)
+    };
+
+    let handed = parsed(ending(20));
+
+    assert_eq!(handed["decision"], "continue");
+    assert_eq!(handed["reason"], crate::mcp::TURN_LEFT_UNWRITTEN);
+    assert_eq!(ending(30), None);
+}
+
+#[test]
+fn a_write_in_tisty_from_antigravity_lets_its_session_end() {
+    let home = home(LET_IN);
+    let edited = json!({ "conversationId": "c1", "toolCall": { "name": "write_to_file" } });
+    let tick = json!({ "conversationId": "c1", "toolCall": { "name": "mcp_tisty_tick" } });
+    said_by(&home, Client::Antigravity, "tool", edited, 10);
+    said_by(&home, Client::Antigravity, "tool", tick, 15);
+
+    let heard = json!({ "conversationId": "c1" });
+    let ended = said_by(&home, Client::Antigravity, "stop", heard, 20);
+
+    assert_eq!(ended, None);
+}
+
+#[test]
+fn a_patch_of_codex_that_adds_a_file_outside_is_asked_about_once() {
+    let home = home(LET_IN);
+    let at = nowhere().join("Docs").join("notes.md");
+    let patch = format!(
+        "*** Begin Patch\n*** Add File: {}\n+hi\n*** End Patch",
+        at.display()
+    );
+    let heard = json!({
+        "session_id": "s1",
+        "tool_name": "apply_patch",
+        "tool_input": { "command": patch },
+    });
+    let ask = |at| said_by(&home, Client::Codex, "before", heard.clone(), at);
+
+    let first = parsed(ask(1));
+
+    let decision = &first["hookSpecificOutput"];
+    assert_eq!(decision["permissionDecision"], "deny");
+    assert_eq!(
+        decision["permissionDecisionReason"],
+        crate::mcp::FILE_LEFT_OUTSIDE
+    );
+    assert_eq!(ask(2), None);
+}
+
+#[test]
+fn a_patch_of_codex_that_only_updates_files_is_let_through() {
+    let home = home(LET_IN);
+    let patch = "*** Begin Patch\n*** Update File: a.rs\n@@\n-a\n+b\n*** End Patch";
+    let heard = json!({
+        "session_id": "s1",
+        "tool_name": "apply_patch",
+        "tool_input": { "command": patch },
+    });
+
+    assert_eq!(said_by(&home, Client::Codex, "before", heard, 1), None);
+}
+
+#[test]
+fn codex_is_handed_its_turn_back_as_claude_code_is() {
+    let home = home(LET_IN);
+    let patch = json!({ "session_id": "s1", "tool_name": "apply_patch" });
+    assert_eq!(said_by(&home, Client::Codex, "tool", patch, 10), None);
+
+    let ending = json!({ "session_id": "s1", "stop_hook_active": false });
+    let handed = parsed(said_by(&home, Client::Codex, "stop", ending, 20));
+
+    assert_eq!(handed["decision"], "block");
+    assert_eq!(handed["reason"], crate::mcp::TURN_LEFT_UNWRITTEN);
 }

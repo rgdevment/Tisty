@@ -18,7 +18,7 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 En **Configuración › Agentes**:
 
 1. En la pestaña **Conectados**, **Conectar** pone Tisty en la configuración del agente. Mira [[Agentes y MCP|Agentes-y-MCP]].
-2. Ahí mismo, bajo un agente conectado (Claude Code, Cursor, Gemini CLI o GitHub Copilot), la fila **Hooks de Tisty** tiene un interruptor. Al encenderlo te dice qué archivo va a escribir; **Agregarlos** los pone. Si conectas el agente ahora, van incluidos en **Conectar**. Desde su próxima sesión, el agente los usa.
+2. Ahí mismo, bajo un agente conectado (Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI o GitHub Copilot), la fila **Hooks de Tisty** tiene un interruptor. Al encenderlo te dice qué archivo va a escribir; **Agregarlos** los pone. Si conectas el agente ahora, van incluidos en **Conectar**. Desde su próxima sesión, el agente los usa.
 3. Ahí mismo, la fila **Skills de Tisty** de ese agente tiene otro interruptor. Al encenderlo se abre su ficha, y **Encender en este equipo** escribe las tres skills en las carpetas de tus agentes. No necesitan la carpeta Agentes.
 
    Si conectas el agente ahora, los dos van incluidos en **Conectar** y quedan encendidos. Si ya lo tenías conectado, los pasos 2 y 3 llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
@@ -224,7 +224,7 @@ Un agente que todavía llama a una de ellas recibe dónde quedó («`find` moved
 
 ## Lo que conviene saber
 
-- **Agentes sin hooks.** Codex y Claude Desktop no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty. Codex sí lee las skills de Tisty, desde `~/.agents/skills`, así que «Retoma donde quedamos» lo lleva igual a `catch_up`.
+- **Agentes sin hooks.** Claude Desktop y DeepSeek Harness no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty. DeepSeek Harness sí lee las skills de Tisty, así que «Retoma donde quedamos» lo lleva igual a `catch_up`.
 - **Con el plugin de Tisty** en Claude Code, los hooks y las skills los trae el plugin: la fila de hooks dice **Los trae el plugin de Tisty** y Tisty no copia ahí sus skills. Mira [[Hooks y skills|Hooks-y-skills]].
 - **Trabajo que no edita archivos**, como planificar o investigar, no lo ve el hook del final del turno: ahí queda la pregunta en las respuestas.
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.

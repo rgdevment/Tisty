@@ -18,7 +18,7 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Run, Word } from "./Card";
-import Hooking, { type OnHook } from "./Hooking";
+import Hooking, { type OnHook, trustedByHand } from "./Hooking";
 import MendAsk, { JoinAsk, type JoinWith, OutAsk } from "./MendAsk";
 import { foldersBehind, TistySkillsAgentLine, teaches } from "./TistySkills";
 
@@ -430,7 +430,11 @@ export default function Wiring({
     quietly("wiring", hooked(one.id, on), (now) => {
       place(one, now);
       if (on) {
-        tell({ card: "wiring", text: t("hooksFresh") });
+        const fresh = t("hooksFresh");
+        tell({
+          card: "wiring",
+          text: trustedByHand(one) ? `${fresh} ${t("hooksCodexTrust")}` : fresh,
+        });
         return;
       }
       markOffered([hooksToken(one.id)]);

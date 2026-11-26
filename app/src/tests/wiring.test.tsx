@@ -6,6 +6,7 @@ import { offeredHere } from "../agentsOffered";
 import type { TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import { adopt, fill, t } from "../locales";
+import { trustedByHand } from "../ui/Hooking";
 import Wiring from "../ui/Wiring";
 import { skillsFor, strayHooks } from "./knownFor";
 
@@ -755,5 +756,78 @@ describe("right after connecting an agent", () => {
     await userEvent.click(screen.getByRole("button", { name: "Connect" }));
     await waitFor(() => expect(sent("wire")).toHaveLength(1));
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
+  });
+});
+
+describe("the hooks of Codex, which the person approves by hand", () => {
+  const hooks = { on: true, at: "/home/someone/.codex/hooks.json" };
+  const trust = () => screen.queryByText(t("hooksCodexTrust"));
+
+  it("says how to approve them under Codex's row, in English and in Spanish", () => {
+    const { unmount } = shown([one("codex", { wired: true, hooks })]);
+    expect(trust()?.textContent).toBe("Approve it in Codex with /hooks.");
+    unmount();
+
+    adopt("es");
+    shown([one("codex", { wired: true, hooks })]);
+    expect(trust()?.textContent).toBe("Apruébalo en Codex con /hooks.");
+  });
+
+  it("says it only while they are on", () => {
+    shown([one("codex", { wired: true, hooks: { ...hooks, on: false } })]);
+    expect(trust()).toBeNull();
+  });
+
+  it("says it for Codex in a WSL distro too, and for no other assistant", () => {
+    shown([one("wsl:Ubuntu:codex", { wired: true, hooks })]);
+    expect(trust()).not.toBeNull();
+  });
+
+  it.each(["claude-code", "cursor", "gemini-cli", "copilot", "antigravity"])(
+    "does not say it under %s",
+    (id) => {
+      shown([one(id, { wired: true, hooks })]);
+      expect(screen.getAllByRole("switch", { name: /^Tisty.s hooks/ })).toHaveLength(1);
+      expect(trust()).toBeNull();
+    },
+  );
+
+  it("knows Codex by the end of its id", () => {
+    expect(trustedByHand(one("codex"))).toBe(true);
+    expect(trustedByHand(one("wsl:Ubuntu:codex"))).toBe(true);
+    expect(trustedByHand(one("antigravity"))).toBe(false);
+    expect(trustedByHand(one("codex-extra"))).toBe(false);
+  });
+
+  const toggled = async (id: string, on: boolean) => {
+    const tell = vi.fn();
+    const now = one(id, { wired: true, hooks: { ...hooks, on } });
+    ipc.answer = (cmd) => Promise.resolve(["hook", "unhook"].includes(cmd) ? [now] : []);
+    shown([one(id, { wired: true, hooks: { ...hooks, on: !on } })], { tell });
+    await userEvent.click(screen.getByRole("switch", { name: /^Tisty.s hooks/, checked: !on }));
+    if (on) await userEvent.click(screen.getByRole("button", { name: "Add them" }));
+    await waitFor(() => expect(tell).toHaveBeenCalled());
+    return tell;
+  };
+
+  it("adds the sentence to the toast when Codex's hooks are added", async () => {
+    const tell = await toggled("codex", true);
+
+    expect(tell).toHaveBeenCalledWith({
+      card: "wiring",
+      text: `${t("hooksFresh")} ${t("hooksCodexTrust")}`,
+    });
+  });
+
+  it("keeps the toast as it was when another assistant's hooks are added", async () => {
+    const tell = await toggled("antigravity", true);
+
+    expect(tell).toHaveBeenCalledWith({ card: "wiring", text: t("hooksFresh") });
+  });
+
+  it("says nothing of approving when Codex's hooks are removed", async () => {
+    const tell = await toggled("codex", false);
+
+    expect(tell).toHaveBeenCalledWith({ card: "wiring", text: t("hooksGone") });
   });
 });

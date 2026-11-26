@@ -12,7 +12,7 @@ How to connect an agent is in [[Agents and MCP|Agents-and-MCP]]; a session call 
 | :-- | :-- | :-- |
 | **What they are** | Commands your agent runs by itself when a session starts, before and after some tools and when a turn ends | Three folders with a `SKILL.md` that your agent reads when what you ask fits them |
 | **What they do** | Bring the agent its open tasks when it starts, and hand the turn back once if it edited files without writing anything in Tisty, and ask it once before it leaves a text file outside a repository | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
-| **Which agents** | Claude Code, Cursor, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI and DeepSeek Harness |
+| **Which agents** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI and DeepSeek Harness |
 | **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or on the **Tisty's skills** row, at the end |
 | **Both at once** | **Hooks and skills for your agents**, above the tabs | The same box |
 | **The yes** | One per agent, when you connect it or on its switch, naming the file that will be written | One for the whole computer, when you connect or on its switch, naming the folders that will be written |
@@ -79,7 +79,9 @@ Had Marisol asked for exactly that file, the agent makes the same call again and
 | Agent | File |
 | :-- | :-- |
 | **Claude Code** | `~/.claude/settings.json` |
+| **Codex** | `~/.codex/hooks.json` |
 | **Cursor** | `~/.cursor/hooks.json` |
+| **Antigravity CLI** | `~/.gemini/config/hooks.json`, under the name `tisty` |
 | **Gemini CLI** | `~/.gemini/settings.json` |
 | **GitHub Copilot** (its command line and the Copilot sessions in VS Code) | a file of its own, `~/.copilot/hooks/tisty.json` |
 
@@ -270,7 +272,7 @@ When you connect an agent from **Settings › Agents › Connected**, its hooks 
 - **Connect the 3 found** shows the same for all of them, with each one's files. The ones inside WSL too.
 - **If the hooks cannot be added**, because their file could not be read or the Tisty plugin already brings them, the agent is connected all the same and Tisty tells you, with no hooks twice.
 - **If the skills cannot be turned on**, the agent is connected all the same and Tisty tells you why.
-- The skills count for the whole computer: when they are already on, they are not asked again. Codex, which has no hooks, shows only the skills; an agent with neither, like Claude Desktop, is connected with one click. **Fix** adds nothing new.
+- The skills count for the whole computer: when they are already on, they are not asked again. DeepSeek Harness, which has no hooks, shows only the skills; an agent with neither, like Claude Desktop, is connected with one click. **Fix** adds nothing new.
 - With **Remind it when a turn starts and ends** off, they are added and stay quiet.
 
 After that, under its row are the two switches, **Tisty's skills** and **Tisty's hooks**, on.
@@ -373,7 +375,7 @@ Had Yisset written the task herself and ticked the first step, the agent's ticks
 
 ### 9. Later, another agent
 
-Yisset goes back to Codex. Codex has no hooks, so nothing reaches it when it starts, and since it was connected before 1.50 it never saw the box for connecting; but it reads the `tisty` skill, which Yisset turned on in step 3 and which landed in `~/.agents/skills`. “Pick up where we left off”, alone, would take it to the last thing **it** left, so Yisset names the task: “Pick up the monthly report export”.
+Yisset goes back to Codex. She never gave Codex Tisty's hooks, so nothing reaches it when it starts, and since it was connected before 1.50 it never saw the box for connecting; but it reads the `tisty` skill, which Yisset turned on in step 3 and which landed in `~/.agents/skills`. “Pick up where we left off”, alone, would take it to the last thing **it** left, so Yisset names the task: “Pick up the monthly report export”.
 
 ```json
 > brain {"query": "export monthly report"}
@@ -396,7 +398,8 @@ Yisset installs the Tisty plugin in Claude Code. The next time she opens **Setti
 - **Before any yes**, the skills' or Agents', the card opens nothing inside your agents' folders: it only looks at which ones exist and whether the copies Tisty wrote before are still there. It does not read the plugin's record either, unless you press to add or fix Claude Code's hooks, and only then. With Agents' yes alone, it reads that record and those copies, to tell whether they changed.
 - **With the door closed.** The skills stay in your agents' folders, and your agent can read them, but every call to Tisty is refused and the hooks stay quiet. **Stop it** touches neither piece.
 - **An agent paused in Agents.** The pause does not reach Tisty's skills: they keep reaching and updating in that agent. For none to have them, **Turn off on this computer**.
-- **Codex and Claude Desktop** have no hooks. Codex gets the skills; Claude Desktop, neither, and only the question in Tisty's answers reaches it.
+- **Codex** runs the hooks only once you approve them there: under its row, «Approve it in Codex with /hooks.». Each time Tisty changes them, as when it fixes which Tisty they point at, Codex asks again.
+- **Claude Desktop** has neither hooks nor skills, and only the question in Tisty's answers reaches it. **DeepSeek Harness** has no hooks, but gets the skills.
 - **Gemini CLI** runs the hooks only in folders you trusted. Its Tisty extension brings them too, but Tisty recognises only the Claude Code plugin: if you use the extension, do not also add the hooks from Settings.
 - **Cursor** also runs Claude Code's hooks. Even when both fire, Tisty hands the turn back only once.
 - **GitHub Copilot** may spend a premium request on the turn handed back.

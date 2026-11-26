@@ -54,6 +54,34 @@ fn only_its_program_says_an_assistant_is_still_here() {
 }
 
 #[test]
+fn antigravity_is_found_by_its_agy_program_as_well_as_by_its_own_name() {
+    for program in ["antigravity", "agy"] {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut here = Place {
+            distro: None,
+            os: Os::Linux,
+            home: tmp.path().to_path_buf(),
+            config: tmp.path().join(".config"),
+            dsh: tmp.path().join(".dsh"),
+            appdata: None,
+            local: None,
+            bins: Vec::new(),
+            command: "/opt/tisty".into(),
+            open: true,
+            packaged: false,
+            mount: String::new(),
+        };
+        let antigravity = all().into_iter().find(|it| it.id == "antigravity").unwrap();
+
+        assert!(!antigravity.installed(&here), "{program}");
+        std::fs::write(tmp.path().join(program), "").unwrap();
+        here.bins.push(tmp.path().to_path_buf());
+
+        assert!(antigravity.installed(&here), "{program}");
+    }
+}
+
+#[test]
 fn the_assistants_whose_program_the_catalog_names_nowhere_are_known() {
     let nowhere: Vec<String> = all()
         .into_iter()

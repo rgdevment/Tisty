@@ -12,7 +12,7 @@ Cómo conectar un agente está en [[Agentes y MCP|Agentes-y-MCP]]; una sesión l
 | :-- | :-- | :-- |
 | **Qué son** | Comandos que tu agente corre solo al empezar una sesión, antes y después de algunas herramientas y al terminar un turno | Tres carpetas con un `SKILL.md` que tu agente lee cuando lo que le pides calza con ellas |
 | **Qué hacen** | Le traen al agente sus tareas abiertas al empezar y le devuelven el turno una vez si editó archivos sin escribir nada en Tisty, y le preguntan una vez antes de dejar un archivo de texto fuera de un repo | Le enseñan a retomar donde quedó, a ordenar lo que guardas sin borrar nada y a escribir para el próximo agente |
-| **Qué agentes** | Claude Code, Cursor, Gemini CLI y GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI y DeepSeek Harness |
+| **Qué agentes** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI y DeepSeek Harness |
 | **Dónde se encienden** | **Configuración › Agentes › Conectados**, bajo la fila de cada agente | **Configuración › Agentes › Conectados**, bajo la fila de cada agente o en la fila **Skills de Tisty**, al final |
 | **Los dos a la vez** | **Hooks y skills para tus agentes**, sobre las pestañas | El mismo recuadro |
 | **El sí** | Uno por agente, al conectarlo o en su interruptor, con el archivo que se va a escribir nombrado | Uno para todo el equipo, al conectar o en su interruptor, con las carpetas que se van a escribir nombradas |
@@ -79,7 +79,9 @@ Si Marisol hubiera pedido justo ese archivo, el agente repite la misma llamada y
 | Agente | Archivo |
 | :-- | :-- |
 | **Claude Code** | `~/.claude/settings.json` |
+| **Codex** | `~/.codex/hooks.json` |
 | **Cursor** | `~/.cursor/hooks.json` |
+| **Antigravity CLI** | `~/.gemini/config/hooks.json`, bajo el nombre `tisty` |
 | **Gemini CLI** | `~/.gemini/settings.json` |
 | **GitHub Copilot** (su línea de comandos y las sesiones de Copilot en VS Code) | un archivo propio, `~/.copilot/hooks/tisty.json` |
 
@@ -270,7 +272,7 @@ Al conectar un agente desde **Configuración › Agentes › Conectados**, sus h
 - **Conectar los 3 detectados** muestra lo mismo para todos, con los archivos de cada uno. También los que están dentro de WSL.
 - **Si los hooks no se pueden agregar**, porque su archivo no se pudo leer o el plugin de Tisty ya los trae, el agente se conecta igual y Tisty te lo dice, sin hooks duplicados.
 - **Si las skills no se pueden encender**, el agente se conecta igual y Tisty te dice por qué.
-- Las skills valen para todo el equipo: si ya están encendidas, no se preguntan otra vez. Codex, que no tiene hooks, muestra solo las skills; un agente sin hooks ni skills, como Claude Desktop, se conecta con un clic. **Corregir** no agrega nada nuevo.
+- Las skills valen para todo el equipo: si ya están encendidas, no se preguntan otra vez. DeepSeek Harness, que no tiene hooks, muestra solo las skills; un agente sin hooks ni skills, como Claude Desktop, se conecta con un clic. **Corregir** no agrega nada nuevo.
 - Con **Recordarle al empezar y al terminar cada turno** apagado, quedan agregados y callados.
 
 Después, bajo su fila quedan los dos interruptores, **Skills de Tisty** y **Hooks de Tisty**, encendidos.
@@ -373,7 +375,7 @@ Si la tarea la hubiera escrito Yisset, y ella hubiera marcado el primer paso, la
 
 ### 9. Después, otro agente
 
-Yisset vuelve a Codex. Codex no tiene hooks, así que nada le llega al empezar, y como ya estaba conectado antes de la 1.50 nunca se le preguntó al conectar; pero lee la skill `tisty`, que Yisset encendió en el paso 3 y quedó en `~/.agents/skills`. «Retoma donde quedamos», a secas, lo llevaría a lo último que dejó **él**, así que Yisset nombra la tarea: «Retoma la exportación del reporte mensual».
+Yisset vuelve a Codex. A Codex no le agregó los hooks de Tisty, así que nada le llega al empezar, y como ya estaba conectado antes de la 1.50 nunca se le preguntó al conectar; pero lee la skill `tisty`, que Yisset encendió en el paso 3 y quedó en `~/.agents/skills`. «Retoma donde quedamos», a secas, lo llevaría a lo último que dejó **él**, así que Yisset nombra la tarea: «Retoma la exportación del reporte mensual».
 
 ```json
 > brain {"query": "exportar reporte mensual"}
@@ -396,7 +398,8 @@ Yisset instala el plugin de Tisty en Claude Code. La próxima vez que abre **Con
 - **Antes de cualquier sí**, el de las skills o el de Agentes, la ficha no abre nada dentro de las carpetas de tus agentes: solo mira cuáles existen y si siguen ahí las copias que Tisty escribió antes. Tampoco lee el registro del plugin, salvo que pulses agregar o corregir los hooks de Claude Code, y solo en ese momento. Con el sí de Agentes solo, lee ese registro y esas copias, para ver si cambiaron.
 - **Con la puerta cerrada.** Las skills siguen en las carpetas de tus agentes, y tu agente puede leerlas, pero cada llamada a Tisty se rechaza y los hooks callan. **Quitarle la voz** no toca ninguna de las dos piezas.
 - **Un agente en pausa en Agentes.** La pausa no alcanza a las skills de Tisty: siguen llegando y actualizándose en ese agente. Para que no las tenga ninguno, **Apagar en este equipo**.
-- **Codex y Claude Desktop** no tienen hooks. Codex recibe las skills; Claude Desktop, ninguna de las dos, y le llega solo la pregunta en las respuestas de Tisty.
+- **Codex** corre los hooks solo después de que los apruebes en él: bajo su fila, «Apruébalo en Codex con /hooks.». Cada vez que Tisty los cambia, como al corregir a qué Tisty apuntan, Codex vuelve a pedirlo.
+- **Claude Desktop** no tiene hooks ni skills, y le llega solo la pregunta en las respuestas de Tisty. **DeepSeek Harness** no tiene hooks, pero recibe las skills.
 - **Gemini CLI** corre los hooks solo en las carpetas en que confiaste. Su extensión de Tisty también los trae, pero Tisty solo reconoce el plugin de Claude Code: si usas la extensión, no agregues además los hooks desde Configuración.
 - **Cursor** también corre los hooks de Claude Code. Aunque se disparen los dos, Tisty devuelve el turno una sola vez.
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.

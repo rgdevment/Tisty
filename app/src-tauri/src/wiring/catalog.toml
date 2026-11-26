@@ -98,7 +98,7 @@ name = "Antigravity"
 shape = "plain"
 key = "mcpServers"
 everywhere = ["~/.gemini/config/mcp_config.json"]
-bins = ["antigravity"]
+bins = ["antigravity", "agy"]
 apps = ["localappdata:Programs/Antigravity/Antigravity.exe", "/Applications/Antigravity.app"]
 dirs = ["~/.gemini/config", "appdata:Antigravity", "support:Antigravity"]
 
