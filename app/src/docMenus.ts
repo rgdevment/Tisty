@@ -34,6 +34,7 @@ import { deep, destinations } from "./folders";
 import { agentsKeys, BRAINSTORM, hideChoice } from "./hiding";
 import { waysOut } from "./leaving";
 import { fill, t } from "./locales";
+import { measureChoice } from "./measureMenu";
 import { tongueChoices } from "./tongueMenus";
 import type { Choice } from "./ui/Menu";
 
@@ -342,6 +343,7 @@ const everyChoice = (doc: Filed, h: Hands): Choice[] => [
     onPick: () => docPage(doc.id).then(h.changed).catch(h.fail),
   },
   ...tongueChoices(doc, h),
+  measureChoice(doc),
   {
     key: "move",
     icon: "⇢",
@@ -456,7 +458,7 @@ const everyChoice = (doc: Filed, h: Hands): Choice[] => [
 const ON_BOARD = new Set(["copy", "away", "drop"]);
 
 // Another computer's agent file is read, moved and taken out here; what it says and whether it stands is that computer's.
-const OF_ANOTHER = new Set(["move", "asPlain", "asLink", "takeOut", "packIt"]);
+const OF_ANOTHER = new Set(["move", "measure", "asPlain", "asLink", "takeOut", "packIt"]);
 
 export const docChoices = (doc: Filed, h: Hands, board = false): Choice[] => {
   const all = everyChoice(doc, h);

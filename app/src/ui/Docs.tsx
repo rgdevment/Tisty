@@ -5,7 +5,7 @@ import type { Asking } from "tisty-editor/edit";
 import type { Design } from "tisty-editor/read";
 import { acrossOf, type Head, laidIn, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { agentsTree } from "../agentsSync";
-import { fold, RAIL, sideWidth, useBreadth, WIDE_WINDOW } from "../breadth";
+import { fold, RAIL, sideWidth, useBreadth, useMeasure, WIDE_WINDOW } from "../breadth";
 import type { Citing } from "../citing";
 import { asPlain } from "../copying";
 import {
@@ -1029,6 +1029,7 @@ export default function Docs({
       })
       .catch((e) => onError(saidPlainly(e)));
   };
+  const measure = useMeasure(open?.id);
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
@@ -1052,6 +1053,7 @@ export default function Docs({
       >
         {open ? (
           <div
+            data-measure={measure}
             style={onNotes || onDiary ? NOTES_ROOM : sheetRoom}
             className="relative mx-auto flex min-h-0 w-full flex-1 flex-col"
           >

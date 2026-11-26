@@ -187,12 +187,8 @@ export default function Sheet(props: Readonly<Props>) {
   said.current = props;
   // An agent's card scrolls as one with its words, so its page grows instead of scrolling inside.
   const lively = !props.inline && Boolean(props.wholeable) && !props.agent;
-  // A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge.
-  const widthOf = props.agent
-    ? "w-full max-w-[760px]"
-    : lively && !props.sheet
-      ? "w-[round(down,85%,1px)] max-w-[1100px]"
-      : "w-full";
+  // The whole-document page and what hangs below it take their width from the document's measure in index.css.
+  const widthOf = props.agent ? "w-full max-w-[760px]" : "w-full";
   // A task's page takes its file with its first words, a moment after they are saved.
   const fileNamed = async (): Promise<string | undefined> => {
     for (let waited = 0; waited <= NAMED_WAIT; waited += NAMED_STEP) {

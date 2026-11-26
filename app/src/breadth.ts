@@ -123,3 +123,35 @@ export const sideWidth = (breadth: Breadth, wide: boolean): number => {
 
 export const chosenWidth = (breadth: Breadth): number | null =>
   breadth.folded ? RAIL : breadth.width;
+
+export type Measure = "narrow" | "normal" | "wide" | "full";
+
+export const MEASURES: readonly Measure[] = ["narrow", "normal", "wide", "full"];
+
+// The default fills the window up to a line that still reads in one sweep of the eye.
+export const SHOWN_MEASURE: Measure = "normal";
+
+const isMeasure = (said: unknown): said is Measure =>
+  typeof said === "string" && (MEASURES as readonly string[]).includes(said);
+
+// Kept by the computer, never in the document: how wide it reads is the reader's, not its words'.
+const measured = stored<Record<string, Measure>>("tisty.measure", (said) =>
+  Object.fromEntries(
+    Object.entries(said).filter((pair): pair is [string, Measure] => isMeasure(pair[1])),
+  ),
+);
+
+export const measureOf = (doc: string, kept: Record<string, Measure>): Measure =>
+  kept[doc] ?? SHOWN_MEASURE;
+
+export const measureNow = (doc: string): Measure => measureOf(doc, measured.current());
+
+export const useMeasure = (doc: string | undefined): Measure => {
+  const kept = measured.use();
+  return doc ? measureOf(doc, kept) : SHOWN_MEASURE;
+};
+
+export const measureFor = (doc: string, measure: Measure) => {
+  const { [doc]: _was, ...others } = measured.current();
+  measured.put(measure === SHOWN_MEASURE ? others : { ...others, [doc]: measure });
+};

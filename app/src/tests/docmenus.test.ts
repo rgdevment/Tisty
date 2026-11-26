@@ -442,6 +442,12 @@ describe("the menu inside AGENTS", () => {
 });
 
 describe("the menu of a document", () => {
+  it("offers the width of the text, in its own submenu", () => {
+    const choice = pick(docChoices(doc, hands()), "measure");
+
+    expect(choice.into?.choices).toHaveLength(4);
+  });
+
   it("does each thing to that document", async () => {
     const h = hands();
     const choices = docChoices(doc, h);
@@ -583,10 +589,10 @@ describe("the menus of the folders and documents of the computers in Agents", ()
     expect(calls).toEqual([]);
   });
 
-  it("offers on a document of another computer only to move, copy as text or link, take out and pack", () => {
+  it("offers on a document of another computer only to move, set its width, copy as text or link, take out and pack", () => {
     const h = inComputers();
     const all = keys(docChoices(theirRule, h));
-    expect(all.sort()).toEqual(["asLink", "asPlain", "move", "packIt", "takeOut"]);
+    expect(all.sort()).toEqual(["asLink", "asPlain", "measure", "move", "packIt", "takeOut"]);
     expect(all).not.toContain("drop");
   });
 

@@ -62,9 +62,9 @@ type Below = {
 
 export function LivelyBelow({ children, folds, width }: Below) {
   const [open, setOpen] = useState(false);
-  if (!folds) return <div className={`mx-auto shrink-0 ${width}`}>{children}</div>;
+  if (!folds) return <div className={`lively-below mx-auto shrink-0 ${width}`}>{children}</div>;
   return (
-    <div className={`mx-auto shrink-0 ${width}`}>
+    <div className={`lively-below mx-auto shrink-0 ${width}`}>
       <button
         type="button"
         aria-expanded={open}

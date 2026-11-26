@@ -81,15 +81,6 @@ const kept = (one: Element | null, ...at: number[]) => {
   return seen && { ...seen, box: at.map((index) => seen.box[index]) };
 };
 
-const chOf = (sheet: Element) => {
-  const probe = sheet.ownerDocument.createElement("span");
-  probe.style.cssText = "position:absolute;width:1ch;visibility:hidden";
-  sheet.append(probe);
-  const wide = probe.getBoundingClientRect().width;
-  probe.remove();
-  return wide;
-};
-
 const onTop = (page: Document, one: Element | null) => {
   const box = one?.getBoundingClientRect();
   return box ? page.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === one : null;
@@ -100,7 +91,6 @@ const laid = (page: Document) => {
   if (!sheet) throw new Error("the frame drew no page");
   const blocks = Array.from(sheet.children);
   return {
-    ch: chOf(sheet),
     printed: page.defaultView?.matchMedia("print").matches ?? false,
     classes: page.documentElement.className,
     root: styled(page.documentElement),

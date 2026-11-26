@@ -45,15 +45,20 @@ const inside = ({ page }) => page.box[1] - Number.parseFloat(page["padding-left"
 const ratioOf = (one, root) => `${one.color} on ${root["background-color"]}, ${contrast(one.color, root["background-color"]).toFixed(2)}:1`;
 
 const READS = [
+  // The window holds the card to the document's measure; the page fills whatever card it gets.
   {
-    name: "keeps its words to 68ch, centred, on a wide card",
+    name: "keeps 760px of words on a normal card",
+    asked: { mode: "lively", width: 872 },
+    holds: (seen) =>
+      near(inside(seen), 760, 1) && near(seen.page.box[0], 0) ? null : `${inside(seen)}px of words starting at ${seen.page.box[0]}px`,
+  },
+  {
+    name: "fills a full card, margins kept",
     asked: { mode: "lively", width: 1100 },
-    holds: (seen) => {
-      const words = inside(seen);
-      return near(words, 68 * seen.ch, 1) && near(seen.page.box[0], (1100 - seen.page.box[1]) / 2, 1)
+    holds: (seen) =>
+      near(seen.page.box[1], 1100) && near(seen.page.box[0], 0) && seen.page["padding-left"] === "56px"
         ? null
-        : `${words}px of words starting at ${seen.page.box[0]}px`;
-    },
+        : `the page is ${seen.page.box[1]}px wide, starting at ${seen.page.box[0]}px`,
   },
   {
     name: "fills a narrow card, margins kept",

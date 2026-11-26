@@ -507,41 +507,43 @@ label[for] {
   max-width: var(--sheet-wide, none);
   margin-inline: auto;
 }
-/* The whole-document editor's sheet leaves room around it, and what frames it above keeps its width. */
+/* The whole-document editor's page takes the window up to its document's measure: the text plus the page's 56px sides. */
+[data-measure="narrow"] {
+  --measure-across: 672px;
+}
+[data-measure="wide"] {
+  --measure-across: 1112px;
+}
+[data-measure="full"] {
+  --measure-across: none;
+}
+.lively-room {
+  padding-inline: clamp(12px, 3%, 48px);
+}
 .lively-room > .ribbon {
   padding-inline: 56px;
 }
 .lively-room.stuck > .ribbon {
   padding-block: 12px;
 }
-.lively-room > .ribbon,
-.lively-room > .leaves,
-.lively-room > .onward {
-  width: round(down, 85%, 1px);
-  max-width: 1100px;
+/* A whole pixel wide, or the frame inside rounds down and leaves a sliver of the holder at its edge. */
+.lively-room > :is(.tisty-sheet, .ribbon, .leaves, .onward, .lively-below) {
+  width: round(down, 100%, 1px);
+  max-width: var(--measure-across, 872px);
 }
+/* Paper shows only in the print view: on screen the page lies flat on the desk. */
 @media screen {
-  .lively-room {
-    --card-cast: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.06);
-  }
-  [data-theme="dark"] .lively-room {
-    --card-cast: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.25);
-  }
   .lively-room > .tisty-sheet {
     border-radius: 12px;
-    box-shadow: var(--card-cast);
   }
   .lively-room > .ribbon {
     border-radius: 12px 12px 0 0;
-    box-shadow: var(--card-cast);
-    clip-path: inset(-32px -32px 0);
   }
   .lively-room.stuck > .ribbon {
     box-shadow:
-      var(--card-cast),
       0 1px 0 var(--tisty-hair),
       0 8px 12px -10px var(--tisty-cast);
-    clip-path: inset(-32px -32px -16px);
+    clip-path: inset(0 -32px -16px);
   }
 }
 /* An agent's ribbon is the top of its card: as wide, framed the same, and its folders always shown. */

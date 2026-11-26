@@ -2,9 +2,9 @@
   display: none;
 }
 @media screen {
+  /* The frame is as wide as the document's measure, so the page fills it. */
   html.lively:not(.tall):not(.sheeted) {
-    --measure: 68ch;
-    --column: var(--wide, calc(var(--measure) + 112px));
+    --column: var(--wide, 100%);
   }
   html.lively:not(.tall):not(.sheeted) body {
     font-size: 16px;

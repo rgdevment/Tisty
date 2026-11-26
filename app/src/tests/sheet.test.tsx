@@ -587,6 +587,10 @@ describe("the whole-document sheet", () => {
     const page = await loaded(await shown(view.container));
     await waitFor(() => expect(page.documentElement.classList.contains("lively")).toBe(true));
     expect(view.queryByText("under the sheet")).toBeNull();
+    expect(view.container.querySelector(".lively-room > .tisty-sheet")?.className).not.toContain(
+      "max-w-[1100px]",
+    );
+    expect(view.container.querySelector(".lively-room > .lively-below")).not.toBeNull();
     view.getByRole("button", { name: "Pages" }).click();
     await waitFor(() => expect(view.getByText("under the sheet")).toBeTruthy());
   });
