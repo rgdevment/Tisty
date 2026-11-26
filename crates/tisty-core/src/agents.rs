@@ -32,7 +32,8 @@ pub use rooted::{
 pub use shown::{OwnFront, Shown, own_front, shown};
 pub use standing::{
     Standing, Target, adopted, bring, lacks, lead_in, lead_out, overwrite, reclaimed, removed,
-    removed_as_written, restore, round, shipped_copy, standing, unshipped, wanted,
+    removed_as_written, restore, restored, round, shipped_copy, standing, unshipped, vanished,
+    wanted,
 };
 pub use subs::{computer_folder, room, sub_folders, sub_id};
 

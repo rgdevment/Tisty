@@ -64,6 +64,7 @@ export interface AgentsLook {
   folder: string | null;
   docs: number;
   changes: number;
+  vanished: number;
   waiting: number;
   unagreed: number;
   proposed: number;
@@ -217,6 +218,8 @@ export const agentsKeep = (at: string, tisty: boolean): Promise<Rounded> =>
 export const agentsTurn = (assistant: string | null, on: boolean): Promise<Rounded> =>
   invoke("agents_turn", { assistant, on });
 export const agentsRound = (): Promise<Rounded> => invoke("agents_round");
+export const agentsRestore = (): Promise<{ wrote: number; failed: number; round: Rounded }> =>
+  invoke("agents_restore");
 export const agentsEmpty = (): Promise<boolean> => invoke("agents_empty");
 export const agentsLoose = (at: string, away: boolean): Promise<Rounded> =>
   invoke("agents_loose", { at, away });

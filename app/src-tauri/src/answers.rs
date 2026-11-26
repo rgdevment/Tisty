@@ -7,6 +7,7 @@ pub mod agents_drop;
 pub(crate) mod agents_homes;
 pub mod agents_moving;
 pub mod agents_sync;
+pub mod agents_vanished;
 pub mod attaching;
 pub mod born;
 pub mod brainstorming;

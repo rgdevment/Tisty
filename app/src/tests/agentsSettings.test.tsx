@@ -21,6 +21,7 @@ const ipc = vi.hoisted(() => ({
   refuses: "",
   state: null as unknown,
   look: null as unknown,
+  restored: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -30,6 +31,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === ipc.refuses) return Promise.reject(new Error("It failed"));
     if (cmd === "agents_state") return Promise.resolve(ipc.state);
     if (cmd === "agents_look") return Promise.resolve(ipc.look);
+    if (cmd === "agents_restore" && ipc.restored) return Promise.resolve(ipc.restored);
     return Promise.resolve({ told: [], both: [], loose: [], unled: [] });
   },
 }));
@@ -47,6 +49,7 @@ const look = (more: Partial<AgentsLook> = {}): AgentsLook => ({
   folder: "A",
   docs: 1,
   changes: 0,
+  vanished: 0,
   waiting: 0,
   unagreed: 0,
   proposed: 0,
@@ -76,6 +79,7 @@ beforeEach(() => {
   ipc.refuses = "";
   ipc.state = state();
   ipc.look = look();
+  ipc.restored = null;
 });
 
 describe("the Agents card in Settings", () => {
@@ -361,5 +365,63 @@ describe("the Agents card in Settings", () => {
     expect(screen.queryByRole("button", { name: "Hide" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show again" }));
     await waitFor(() => expect(isHidden(AGENTS)).toBe(false));
+  });
+
+  describe("files taken away whole", () => {
+    const shown = () =>
+      render(
+        <LiveRows>
+          {(cards) => <AgentsSettings fail={cards.fail} quietly={cards.quietly} />}
+        </LiveRows>,
+      );
+    const consented = () => {
+      ipc.state = state({ folder: "A", consented: true });
+    };
+
+    it("says how many files are gone and offers to write them again", async () => {
+      consented();
+      ipc.look = look({ vanished: 3 });
+      shown();
+      expect(await screen.findByText("3 of your agents' files are no longer there.")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Write them again" })).toBeTruthy();
+    });
+
+    it("shows nothing when no file is gone", async () => {
+      consented();
+      shown();
+      await settle();
+      await waitFor(() => expect(ipc.asked).toContain("agents_look"));
+      expect(screen.queryByText(/no longer there/)).toBeNull();
+      expect(screen.queryByRole("button", { name: /Write (it|them) again/ })).toBeNull();
+    });
+
+    it("says it in the singular for one file", async () => {
+      consented();
+      ipc.look = look({ vanished: 1 });
+      shown();
+      expect(await screen.findByText("1 of your agents' files is no longer there.")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Write it again" })).toBeTruthy();
+    });
+
+    it("writes them again and then looks again", async () => {
+      consented();
+      ipc.look = look({ vanished: 2 });
+      shown();
+      await userEvent.click(await screen.findByRole("button", { name: "Write them again" }));
+      await waitFor(() => expect(ipc.asked).toContain("agents_restore"));
+      const restore = ipc.asked.indexOf("agents_restore");
+      await waitFor(() => expect(ipc.asked.slice(restore)).toContain("agents_look"));
+    });
+
+    it("says how many could not be written", async () => {
+      consented();
+      ipc.look = look({ vanished: 2 });
+      shown();
+      const button = await screen.findByRole("button", { name: "Write them again" });
+      ipc.restored = { wrote: 0, failed: 2, round: { told: [], both: [], loose: [], unled: [] } };
+      await userEvent.click(button);
+      const said = "2 could not be written again. Open them in Agents to see why.";
+      expect((await screen.findAllByText(said)).length).toBeGreaterThan(0);
+    });
   });
 });
