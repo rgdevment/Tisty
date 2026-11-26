@@ -5,6 +5,7 @@ use crate::history::{Step, Writer};
 
 use super::{
     alone, as_written, print_of, print_of_bytes, read, resolve, settled, whole_of, written,
+    written_over,
 };
 
 /// One door for every writer: a body read by one is never written under another.
@@ -25,15 +26,15 @@ pub fn write_by(root: &Path, by: &Writer, id: &str, body: &str) -> Result<()> {
 pub fn write_over(root: &Path, by: &Writer, id: &str, body: &str, print: &str) -> Result<bool> {
     alone(root, || {
         // A body gone from the disk under the window is written back, as any save would.
-        let was = whole_of(&resolve(root, id)?)?;
-        if let Some(was) = &was {
-            if print_of_bytes(was) != print {
-                return Ok(false);
-            }
-            by.passes(id, was, body, Step::Stays);
+        let Some(was) = whole_of(&resolve(root, id)?)? else {
+            written(root, id, body)?;
+            return Ok(true);
+        };
+        if print_of_bytes(&was) != print {
+            return Ok(false);
         }
-        written(root, id, body)?;
-        Ok(true)
+        by.passes(id, &was, body, Step::Stays);
+        written_over(root, id, body, print)
     })
 }
 
@@ -82,7 +83,9 @@ pub fn rewrite(root: &Path, by: &Writer, id: &str, body: &str, print: &str) -> R
         }
         let was = read(root, id)?;
         by.replaces(id, was.as_bytes(), body, Step::Back)?;
-        written(root, id, body)?;
+        if !written_over(root, id, body, print)? {
+            return Ok(Rewrite::Moved);
+        }
         Ok(Rewrite::Made {
             was,
             whole: settled(body),

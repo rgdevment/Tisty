@@ -201,6 +201,11 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
+    /// A file another program holds: replacing one it shares for reading is refused as access denied.
+    pub fn held_open(&self) -> bool {
+        matches!(self, Error::Io(e) if cfg!(windows) && matches!(e.raw_os_error(), Some(5 | 32 | 33)))
+    }
+
     pub fn coded(&self) -> &'static str {
         match self {
             Error::Io(_) => "io",

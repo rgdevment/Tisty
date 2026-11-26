@@ -240,8 +240,8 @@ export default function Notes({
         <ul ref={wall} className="notes-wall">
           {newestFirst.map(({ note, at, nth, hue }, shown) => (
             <Sticky
-              key={`${note.heading}#${nth}#${note.text}`}
-              stamp={`${note.heading}#${nth}#${note.text}`}
+              key={`${note.heading}#${nth}`}
+              stamp={`${note.heading}#${nth}`}
               note={note}
               nth={nth}
               hue={hue}
@@ -254,6 +254,7 @@ export default function Notes({
               target={lifted !== null && lifted.from !== shown && lifted.over === shown}
               onLift={(x, y) => setLifted({ from: shown, x, y, dx: 0, dy: 0, over: null })}
               onMove={(by) => moved(shown, shown + by)}
+              onTyped={(text) => onWrite(rewritten(latest.current, at, text))}
               onText={(text) => {
                 setFresh(null);
                 if (!text.trim() && fresh === at) onWrite(dropped(body, at));
@@ -367,6 +368,7 @@ interface StickyProps {
   target: boolean;
   onLift: (x: number, y: number) => void;
   onMove: (by: number) => void;
+  onTyped: (text: string) => void;
   onText: (text: string) => void;
   onDrop: () => void;
   onFile: () => void;
@@ -390,6 +392,7 @@ function Sticky({
   target,
   onLift,
   onMove,
+  onTyped,
   onText,
   onDrop,
   onFile,
@@ -402,6 +405,22 @@ function Sticky({
   }, [focused]);
   const lines = note.text.split("\n").length;
   const [used, setUsed] = useState(note.text.length);
+  // The note's own typing comes back as its text; anything else that changes it is shown in the box.
+  const told = useRef(note.text);
+  useEffect(() => {
+    if (note.text === told.current) return;
+    told.current = note.text;
+    if (!words.current) return;
+    words.current.value = note.text;
+    setUsed(note.text.length);
+  }, [note.text]);
+  const typedIn = (value: string) => {
+    setUsed(value.length);
+    const said = value.trim();
+    if (!said || said === told.current) return;
+    told.current = said;
+    onTyped(said);
+  };
   const nudge = shape.nudge * 6;
 
   return (
@@ -456,7 +475,7 @@ function Sticky({
           aria-keyshortcuts={MOVE_SHORTCUTS}
           defaultValue={note.text}
           maxLength={IDEA_AT_MOST}
-          onChange={(e) => setUsed(e.currentTarget.value.length)}
+          onChange={(e) => typedIn(e.currentTarget.value)}
           rows={Math.max(3, lines + 1)}
           onBlur={(e) => onText(e.currentTarget.value.trim())}
           className="sticky-words"

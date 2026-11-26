@@ -23,7 +23,6 @@ import {
   type Filed,
   type Folded,
   keepFile,
-  noteTrouble,
   opened,
   type Paper,
   roomy,
@@ -32,6 +31,7 @@ import {
   viewDoc,
 } from "../core";
 import type { Today } from "../diary";
+import { keepDraftsOf } from "../drafts";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withDesign, withLandscape, withPaper, withSheets } from "../front";
 import { setAside } from "../keptAside";
@@ -40,21 +40,10 @@ import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
-import {
-  allUnanswered,
-  busy,
-  codeOf,
-  cut,
-  holds,
-  refusedForGood,
-  stalledOn,
-  stuck,
-  turned,
-  unansweredWords,
-} from "../saving";
+import { busy, cut, holds, stalledOn, turned, unansweredWords } from "../saving";
 import { sure } from "../sure";
 import { chooseTongue, dressAll, tonguesOf, twinOf } from "../tongues";
-import { opening, type Read, remembered, savedOnce } from "../weaving";
+import { type Clash, opening, type Read, remembered } from "../weaving";
 import AgentCard, { AgentButtons, AgentTrail } from "./AgentCard";
 import { changedIn, MARK_FADES } from "./anchoring";
 import Beside, { trailed } from "./Beside";
@@ -79,13 +68,12 @@ import Tongues, { standingHead } from "./Tongues";
 import { cardFor, useAgentShelf } from "./useAgentCard";
 import { useAgentDoc } from "./useAgentDoc";
 import { useEarlier } from "./useEarlier";
+import { type Held, useKeeping } from "./useKeeping";
 import { useLeaving } from "./useLeaving";
 import { useLinkable } from "./useLinkable";
 import { useToldAbove } from "./useToldAbove";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
-
-const SETTLES = 700;
 
 const GUTTER = 8;
 
@@ -162,14 +150,11 @@ export default function Docs({
   const [unopened, setUnopened] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [inEditor, setInEditor] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [waiting, setWaiting] = useState(false);
   const [packed, setPacked] = useState(0);
   const shaped = useRef("");
   const typed = useRef(0);
   const seen = useRef(0);
   const [coming, setComing] = useState(false);
-  const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
   const [lately, setLately] = useState<[number, number] | null>(null);
   // The mark shows where the words changed, then fades, so the page goes back to reading as it was.
@@ -193,10 +178,39 @@ export default function Docs({
     setWentBackTo(null);
   }, [stirred]);
   const [looking, setLooking] = useState(0);
+  const sent = useCallback((said: string) => setPacked(crowd(said)), []);
+  const wovenIn = useCallback(
+    (text: string, woven: string) => {
+      shaped.current = woven;
+      setBody(woven);
+      setPacked(crowd(woven));
+      mark(changedIn(text, woven));
+      setStirred(true);
+    },
+    [mark],
+  );
   const lastRead = useRef(new Map<string, Read>());
   const onScreen = useRef<string | null>(null);
-  const settling = useRef<ReturnType<typeof setTimeout>>(null);
-  const held = useRef<{ id: string; body: string } | null>(null);
+  const held = useRef<Held | null>(null);
+  const missed = useRef(false);
+  const [clashed, setClashed] = useState<Clash | null>(null);
+  const {
+    saving,
+    waiting,
+    setWaiting,
+    heldOpen,
+    saved,
+    behind,
+    flush,
+    again,
+    hold,
+    drop,
+    mineStands,
+  } = useKeeping({
+    ...{ shaped, typed, lastRead, onScreen, held, missed, setClashed, onKept, onError },
+    onSent: sent,
+    onWoven: wovenIn,
+  });
   const turn = useRef(0);
   const [room, setRoom] = useState(() => window.innerWidth);
   const [shown, setShown] = useState<boolean | null>(null);
@@ -204,10 +218,6 @@ export default function Docs({
   const breadth = useBreadth();
   const spare = room - sideWidth(breadth, wide) - GUTTER;
   const [heads, setHeads] = useState<Head[]>([]);
-  const [saved, setSaved] = useState(0);
-  // A round that came while a save was in flight is read once the save lands, not dropped.
-  const missed = useRef(false);
-  const [behind, setBehind] = useState(0);
   const sized = sizedPapers.use();
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
@@ -225,96 +235,6 @@ export default function Docs({
     window.addEventListener("resize", look);
     return () => window.removeEventListener("resize", look);
   }, []);
-
-  const stalled = useCallback((id: string) => {
-    noteTrouble("saveStuck", id).catch(() => {});
-    const last = lastRead.current.get(id);
-    if (last) remembered(lastRead.current, id, { ...last, unwoven: true });
-    if (held.current || onScreen.current !== id) return;
-    held.current = { id, body: shaped.current };
-    setWaiting(true);
-  }, []);
-
-  const keep = useCallback(
-    (id: string, text: string, anyway?: boolean) => {
-      setSaving(true);
-      const wrote_at = typed.current;
-      const mine = savedOnce(id, text, anyway, () => lastRead.current.get(id))
-        .then(({ fresh, woven }) => {
-          if (held.current?.id === id && held.current.body === text) held.current = null;
-          setClashed(false);
-          setSaved((many) => many + 1);
-          if (fresh) {
-            remembered(lastRead.current, id, { text, print: fresh.print });
-            onKept(fresh);
-            return;
-          }
-          if (!woven) return;
-          onKept({ id, title: woven.title });
-          // Words typed since are woven by their own save, over what this one sent; the old print keeps it refused.
-          if (typed.current !== wrote_at) {
-            const was = lastRead.current.get(id)?.print;
-            remembered(lastRead.current, id, { text, print: was, unwoven: true });
-            return;
-          }
-          remembered(lastRead.current, id, { text: woven.body, print: woven.print });
-          if (onScreen.current !== id || woven.body === text) return;
-          shaped.current = woven.body;
-          setBody(woven.body);
-          setPacked(crowd(woven.body));
-          mark(changedIn(text, woven.body));
-          setStirred(true);
-        })
-        .catch((e) => {
-          const code = codeOf(e);
-          if (code === "saveLate") return;
-          if (refusedForGood(e) && held.current?.id === id && held.current.body === text)
-            held.current = null;
-          if (stuck(e)) stalled(id);
-          else if (code === "documentMoved" && onScreen.current === id) setClashed(true);
-          else onError(saidPlainly(e));
-        })
-        .finally(() => {
-          setSaving(false);
-          if (held.current) return;
-          setWaiting(false);
-          if (!missed.current) return;
-          missed.current = false;
-          setBehind((many) => many + 1);
-        });
-      return mine;
-    },
-    [onError, onKept, mark, stalled],
-  );
-
-  const flush = useCallback(() => {
-    if (settling.current) clearTimeout(settling.current);
-    const waiting = held.current;
-    if (!waiting) return undefined;
-    setPacked(crowd(waiting.body));
-    return keep(waiting.id, waiting.body);
-  }, [keep]);
-
-  const again = useCallback(() => {
-    const sent = flush();
-    for (const [id, words] of allUnanswered()) {
-      if (id !== held.current?.id) keep(id, words);
-    }
-    return sent;
-  }, [flush, keep]);
-
-  const drop = useCallback(() => {
-    if (settling.current) clearTimeout(settling.current);
-    held.current = null;
-    setWaiting(false);
-  }, []);
-
-  const mineStands = useCallback(() => {
-    if (!open) return;
-    if (settling.current) clearTimeout(settling.current);
-    const waiting = held.current;
-    keep(open.file, waiting?.id === open.file ? waiting.body : shaped.current, true);
-  }, [keep, open]);
 
   const [backable, setBackable] = useState(false);
   const marked = filed(known, open?.file)?.compacted;
@@ -395,7 +315,7 @@ export default function Docs({
     cut(open.file);
     reread(open.file)
       .then(() => {
-        setClashed(false);
+        setClashed(null);
         setStirred(false);
       })
       .catch((e) => {
@@ -441,6 +361,10 @@ export default function Docs({
   }, [asked, known, open, drop]);
 
   useEffect(() => {
+    if (known.length) keepDraftsOf(new Set(known.map((one) => one.file)));
+  }, [known]);
+
+  useEffect(() => {
     if (!asked) {
       turn.current += 1;
       setComing(false);
@@ -475,7 +399,7 @@ export default function Docs({
     (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
       .then(() => Promise.all([opening(wanted.file), sheetLoaded()]))
-      .then(([{ body: text, print, left }, ready]) => {
+      .then(([{ body: text, print, left, base }, ready]) => {
         if (turn.current !== mine) return;
         // Somebody typed while this was in flight: reading it back over them would lose the
         // words and drop the caret at the end.
@@ -484,18 +408,18 @@ export default function Docs({
         const astir = !left && last !== undefined && tailless(last) !== tailless(text);
         // A round that brought other things reads this one again; the same words leave the block being written open.
         const same = before === wanted.file && !astir;
-        if (left) {
-          held.current = { id: wanted.file, body: text };
-          setWaiting(true);
-          settling.current = setTimeout(flush, SETTLES);
-        } else remembered(lastRead.current, wanted.file, { text, print });
+        // A draft back from a restart is woven over the body it was typed on, never written over the disk.
+        if (left && base !== undefined)
+          remembered(lastRead.current, wanted.file, { text: base, print });
+        if (left) hold({ id: wanted.file, body: text });
+        else remembered(lastRead.current, wanted.file, { text, print });
         shaped.current = text;
         // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
         setStirred((was) => astir || (was && before === wanted.file));
         if (astir) mark(changedIn(last, text));
         setSheet(() => ready);
         setOpen(wanted);
-        setClashed(false);
+        setClashed(null);
         if (!same) {
           setBody(text);
           setPacked(crowd(text));
@@ -520,7 +444,7 @@ export default function Docs({
         setUnopened(wanted.file);
         onError(saidPlainly(e));
       });
-  }, [asked, known, open, flush, onError, fresh, behind, mark, visit]);
+  }, [asked, known, open, flush, hold, onError, fresh, behind, mark, visit]);
 
   useEffect(() => {
     onScreen.current = open?.file ?? null;
@@ -550,17 +474,10 @@ export default function Docs({
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       setWaiting(false);
       cut(open.file);
-      if (held.current?.id === open.file) {
-        held.current = null;
-        if (settling.current) clearTimeout(settling.current);
-        settling.current = null;
-      }
+      if (held.current?.id === open.file) drop();
       return;
     }
-    held.current = { id: open.file, body: text };
-    setWaiting(true);
-    if (settling.current) clearTimeout(settling.current);
-    settling.current = setTimeout(flush, SETTLES);
+    hold({ id: open.file, body: text });
   };
 
   const own = filed(known, open?.file);
@@ -1188,10 +1105,20 @@ export default function Docs({
                 : ""
           }
         />
-        {open && !saving && !clashed && stalledOn(open.file) && (
-          <StuckBar style={wall} onAgain={again} />
+        {open && !clashed && heldOpen === open.file ? (
+          <StuckBar
+            style={wall}
+            said={t("documentHeldOpen")}
+            now={t("saveHeldTryNow")}
+            onAgain={again}
+          />
+        ) : (
+          open &&
+          !saving &&
+          !clashed &&
+          stalledOn(open.file) && <StuckBar style={wall} onAgain={again} />
         )}
-        {open && (
+        {open && !clashed && (
           <KeptAside
             key={open.file}
             file={open.file}
@@ -1225,7 +1152,15 @@ export default function Docs({
             onGone={() => setStirred(false)}
           />
         )}
-        {clashed && open && <ClashBar style={wall} onMine={mineStands} onTheirs={theirsStands} />}
+        {clashed && open && (
+          <ClashBar
+            style={wall}
+            torn={clashed.torn}
+            front={clashed.front}
+            onMine={() => mineStands(open.file)}
+            onTheirs={theirsStands}
+          />
+        )}
         {shelved && open && (
           <div
             style={wall}

@@ -258,6 +258,9 @@ const REFUSALS: &[&str] = &[
     "internal",
     "internalNamed",
     "saveStuck",
+    "saveLate",
+    "documentHeldOpen",
+    "draftUnkept",
 ];
 
 pub(crate) fn refusal_code(said: &str) -> Option<&'static str> {

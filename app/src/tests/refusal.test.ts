@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { adopt, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
 describe("saidPlainly", () => {
@@ -61,5 +62,27 @@ describe("saidPlainly", () => {
 
   it("leaves a refusal people can act on exactly as it was written", () => {
     expect(saidPlainly({ code: "pastDeadline" })).not.toMatch(/Something went wrong/);
+  });
+});
+
+describe("a document another program holds open", () => {
+  it("is said in a sentence a person can act on, in English", () => {
+    adopt("en");
+
+    const said = saidPlainly({ code: "documentHeldOpen" });
+
+    expect(said).toBe(t("documentHeldOpen"));
+    expect(said).toMatch(/Another program has this document open or locked/);
+    expect(said).not.toMatch(/os error|Something went wrong/);
+  });
+
+  it("is said in Spanish too", () => {
+    adopt("es");
+
+    const said = saidPlainly({ code: "documentHeldOpen" });
+
+    adopt("en");
+    expect(said).toMatch(/Otro programa tiene abierto o bloqueado este documento/);
+    expect(said).not.toMatch(/os error|Something went wrong/);
   });
 });

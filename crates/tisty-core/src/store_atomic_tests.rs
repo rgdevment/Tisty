@@ -311,3 +311,36 @@ fn a_moment_s_refusal_is_tried_again_and_a_lasting_one_is_not() {
     assert!(done.is_err());
     assert_eq!(tries, 7);
 }
+
+#[test]
+fn a_file_another_program_wrote_while_the_new_bytes_were_poured_is_not_written_over() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("note.md");
+    std::fs::write(&at, "old").unwrap();
+
+    let landed = write_atomic_if(&at, b"mine", || {
+        std::fs::write(&at, "outside").unwrap();
+        Ok(std::fs::read_to_string(&at).unwrap() == "old")
+    })
+    .unwrap();
+
+    assert!(!landed);
+    assert_eq!(std::fs::read_to_string(&at).unwrap(), "outside");
+    let left: Vec<_> = std::fs::read_dir(room.path()).unwrap().collect();
+    assert_eq!(left.len(), 1, "the poured copy was left behind");
+}
+
+#[test]
+fn a_file_still_as_it_was_takes_the_new_bytes() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("note.md");
+    std::fs::write(&at, "old").unwrap();
+
+    let landed = write_atomic_if(&at, b"mine", || {
+        Ok(std::fs::read_to_string(&at).unwrap() == "old")
+    })
+    .unwrap();
+
+    assert!(landed);
+    assert_eq!(std::fs::read_to_string(&at).unwrap(), "mine");
+}

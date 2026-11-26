@@ -178,11 +178,21 @@ pub fn task_doc_merge(
     id: String,
     base: String,
     mine: String,
+    prefer: Option<String>,
 ) -> Answer<bool> {
-    caught("task_doc_merge", || merging(&session, id, base, mine))?
+    let mine_stands = prefer.as_deref() == Some("mine");
+    caught("task_doc_merge", || {
+        merging(&session, id, base, mine, mine_stands)
+    })?
 }
 
-fn merging(session: &Mutex<Session>, id: String, base: String, mine: String) -> Answer<bool> {
+fn merging(
+    session: &Mutex<Session>,
+    id: String,
+    base: String,
+    mine: String,
+    mine_stands: bool,
+) -> Answer<bool> {
     let id = task_id(&id)?;
     let mut session = held(session);
     session.reload()?;
@@ -190,28 +200,57 @@ fn merging(session: &Mutex<Session>, id: String, base: String, mine: String) -> 
     let file = file_of(&session, id).ok_or_else(|| Refusal::of("noSuchDoc"))?;
     writable(&session.state, &file)?;
     let root = session.paths.docs();
-    let raw = tisty_core::docs::read(&root, &file)
-        .map_err(|e| blamed(channel::WINDOW, "a task's page could not be read", e))?;
-    let Some(merged) = tisty_core::merge::merged(&base, &mine, &raw) else {
-        witness::note(
-            channel::STORE,
-            "a task's page changed on both sides and could not be merged",
-            &[("task", Fact::Id(id.to_string()))],
-        );
-        return Ok(false);
-    };
-    let whole = tisty_core::stages::ticked(&task, &merged);
-    let theirs = tisty_core::stages::ticked(&task, &raw);
-    if !tisty_core::docs::unchanged(&raw, &whole) {
-        tisty_core::docs::write_by(&root, &session.writer(), &file, &whole)
-            .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
-        session.corpus.forget(&file);
-        let hand = signing(&session.state);
-        session.retell(&file, &whole, hand);
+    for _ in 0..WEAVES_AT_MOST {
+        let raw = tisty_core::docs::read(&root, &file)
+            .map_err(|e| failed(e, "a task's page could not be read"))?;
+        let merged = match tisty_core::merge::merged(&base, &mine, &raw) {
+            Some(merged) => merged,
+            None if mine_stands => super::weaving::ended_as(
+                &raw,
+                tisty_core::merge::merged_preferring(&base, &mine, &raw)
+                    .map_or_else(|| mine.clone(), |one| one.whole),
+            ),
+            None => {
+                witness::note(
+                    channel::STORE,
+                    "a task's page changed on both sides and could not be merged",
+                    &[("task", Fact::Id(id.to_string()))],
+                );
+                return Ok(false);
+            }
+        };
+        let whole = tisty_core::stages::ticked(&task, &merged);
+        let theirs = tisty_core::stages::ticked(&task, &raw);
+        if !tisty_core::docs::unchanged(&raw, &whole) {
+            let seen = tisty_core::docs::print_of_text(&raw);
+            let writer = session.writer();
+            let landed = match mine_stands {
+                true => tisty_core::docs::rewrite(&root, &writer, &file, &whole, &seen)
+                    .map(|made| made != tisty_core::docs::Rewrite::Moved),
+                false => tisty_core::docs::write_over(&root, &writer, &file, &whole, &seen),
+            }
+            .map_err(|e| failed(e, "a task's page could not be written"))?;
+            if !landed {
+                continue;
+            }
+            session.corpus.forget(&file);
+            let hand = signing(&session.state);
+            session.retell(&file, &whole, hand);
+        }
+        session.mind_body(&file, &tisty_core::docs::settled(&whole));
+        reconciled_into(&mut session, &task, &theirs, &whole)?;
+        return Ok(true);
     }
-    session.mind_body(&file, &tisty_core::docs::settled(&whole));
-    reconciled_into(&mut session, &task, &theirs, &whole)?;
-    Ok(true)
+    Err(Refusal::about("documentMoved", file))
+}
+
+const WEAVES_AT_MOST: usize = 3;
+
+fn failed(e: tisty_core::Error, what: &'static str) -> Refusal {
+    match e.held_open() {
+        true => Refusal::of("documentHeldOpen"),
+        false => blamed(channel::WINDOW, what, e),
+    }
 }
 
 /// A page rewritten whole hands the task its boxes and sections, weighed against what the page said ticked as the task had it.
@@ -386,3 +425,7 @@ pub(crate) fn round_cleared(session: &mut Session, id: TaskId, said: &str) {
     tisty_core::round::round_cleared(&open.paths, &mut open.store, &open.state, id, said);
     settled_after(session, id);
 }
+
+#[cfg(test)]
+#[path = "task_docs_merge_test.rs"]
+mod merge_mine_tests;

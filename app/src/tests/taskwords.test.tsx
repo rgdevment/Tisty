@@ -10,6 +10,7 @@ const ipc = vi.hoisted(() => ({
   moved: false,
   woven: true,
   keeps: false,
+  held: 0,
   weaving: undefined as (() => void) | undefined,
   sheets: [] as {
     file?: string;
@@ -26,8 +27,16 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "task_doc_open") return Promise.resolve(ipc.doc);
     if (cmd === "task_step_dates") return Promise.resolve([]);
+    if (cmd === "doc_write" && ipc.held > 0) {
+      ipc.held -= 1;
+      return Promise.reject({ code: "documentHeldOpen" });
+    }
     if (cmd === "doc_write" && ipc.moved && !args.anyway) {
       return Promise.reject({ code: "documentMoved", name: "t_one-0001" });
+    }
+    if (cmd === "task_doc_merge" && args.prefer === "mine") {
+      ipc.doc = { ...(ipc.doc as object), body: args.mine };
+      return Promise.resolve(true);
     }
     if (cmd === "task_doc_merge") {
       ipc.weaving?.();
@@ -62,6 +71,7 @@ beforeEach(() => {
   ipc.moved = false;
   ipc.woven = true;
   ipc.keeps = false;
+  ipc.held = 0;
   ipc.weaving = undefined;
   ipc.sheets = [];
 });
@@ -223,10 +233,11 @@ describe("a task document changed on disk meanwhile", () => {
     fireEvent.click(await screen.findByText(t("clashSave"), {}, { timeout: 2000 }));
 
     await waitFor(() =>
-      expect(sent("doc_write").map((one) => one.args)).toContainEqual({
-        id: "t_one-0001",
-        body: "mine, edited\n",
-        anyway: true,
+      expect(sent("task_doc_merge").map((one) => one.args)).toContainEqual({
+        id: "one",
+        base: "mine\n",
+        mine: "mine, edited\n",
+        prefer: "mine",
       }),
     );
     expect(await screen.findByText("sheet:mine, edited")).toBeTruthy();
@@ -349,6 +360,31 @@ describe("steps ticked from outside the page, such as an agent's word taken", ()
     expect(ipc.sheets.slice(mounted).every((one) => one.value === "- [ ] Pay the fee\n")).toBe(
       true,
     );
+  });
+});
+
+describe("a task page another program holds open", () => {
+  it("is tried again on its own after 1s and 2s, and said only once", async () => {
+    ipc.doc = { file: "t_one-0001", body: "a\n", held: false };
+    ipc.held = 2;
+    ipc.keeps = true;
+    const failed = vi.fn();
+    render(<TaskWords task={task()} onError={failed} />);
+    await screen.findByText("sheet:a");
+
+    ipc.sheets[ipc.sheets.length - 1].onWrite("b\n");
+    await waitFor(() => expect(sent("doc_write")).toHaveLength(1), { timeout: 3000 });
+    await vi.advanceTimersByTimeAsync(1200);
+    await waitFor(() => expect(sent("doc_write")).toHaveLength(2));
+    await vi.advanceTimersByTimeAsync(2200);
+
+    await waitFor(() => expect(sent("doc_write")).toHaveLength(3));
+    expect(sent("doc_write").every((one) => one.args.body === "b\n")).toBe(true);
+    expect((ipc.doc as { body: string }).body).toBe("b\n");
+    expect(failed).toHaveBeenCalledTimes(1);
+    expect((failed.mock.calls[0][0] as { code: string }).code).toBe("documentHeldOpen");
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(sent("doc_write")).toHaveLength(3);
   });
 });
 

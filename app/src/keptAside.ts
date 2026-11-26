@@ -6,8 +6,9 @@ const aside = stored<Record<string, string>>("tisty.aside", (said) =>
   ),
 );
 
-export const setAside = (id: string, words: string): void =>
+export const setAside = (id: string, words: string): void => {
   aside.put({ ...aside.current(), [id]: words });
+};
 
 export const asideWords = (id: string): string | undefined => aside.current()[id];
 

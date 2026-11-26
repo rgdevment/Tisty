@@ -276,3 +276,13 @@ fn a_parcel_whose_entries_all_fail_names_nobody() {
 
     assert!(edited_facts(&edited, None).is_none());
 }
+
+#[cfg(windows)]
+#[test]
+fn a_document_another_program_holds_open_is_refused_in_words_not_as_an_os_error() {
+    for os_error in [5, 32, 33] {
+        let held = tisty_core::Error::Io(std::io::Error::from_raw_os_error(os_error));
+
+        assert_eq!(unwritten(held).code, "documentHeldOpen");
+    }
+}

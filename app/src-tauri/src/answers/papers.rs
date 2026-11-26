@@ -1284,6 +1284,7 @@ pub(crate) fn unwritten(e: tisty_core::Error) -> Refusal {
             Refusal::about("documentTooLong", weighed(limit))
         }
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+        e if e.held_open() => Refusal::of("documentHeldOpen"),
         _ => blamed(channel::WINDOW, "a document could not be written", e),
     }
 }

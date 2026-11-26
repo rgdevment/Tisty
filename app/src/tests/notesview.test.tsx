@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import Notes from "../ui/Notes";
@@ -37,6 +38,22 @@ const papers: Filed[] = [
 const BODY =
   "---\nview: notes\n---\n\n# Ideas\n\n> [!IDEA] 2026-11-10 18:40\n> primera\n\n> [!IDEA] 2026-11-11 09:12\n> segunda\n";
 
+// Holds the body as a window does, so each write comes back down as the new body.
+function Wall({ onWrite }: Readonly<{ onWrite: (next: string) => void }>) {
+  const [body, setBody] = useState(BODY);
+  return (
+    <Notes
+      title="Ideas"
+      body={body}
+      reading={false}
+      onWrite={(next) => {
+        onWrite(next);
+        setBody(next);
+      }}
+    />
+  );
+}
+
 describe("a brainstorm shown as notes", () => {
   it("puts the newest idea first", () => {
     render(<Notes title="Ideas" body={BODY} reading={false} onWrite={() => {}} />);
@@ -46,18 +63,65 @@ describe("a brainstorm shown as notes", () => {
     expect(notes[1].textContent).toContain("primera");
   });
 
-  it("writes a note back into its own sticky note when it loses the focus", () => {
+  it("writes a note back into its own sticky note as it is typed, and nothing more on blur", () => {
     const onWrite = vi.fn();
-    render(<Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />);
+    const { rerender } = render(
+      <Notes title="Ideas" body={BODY} reading={false} onWrite={onWrite} />,
+    );
 
     const [newest] = screen.getAllByRole("textbox");
     fireEvent.change(newest, { target: { value: "segunda, mejorada" } });
-    fireEvent.blur(newest);
 
     expect(onWrite).toHaveBeenCalledTimes(1);
     const written: string = onWrite.mock.calls[0][0];
     expect(written).toContain("> [!IDEA] 2026-11-11 09:12\n> segunda, mejorada");
     expect(written).toContain("> [!IDEA] 2026-11-10 18:40\n> primera");
+
+    rerender(<Notes title="Ideas" body={written} reading={false} onWrite={onWrite} />);
+    fireEvent.blur(newest);
+    expect(onWrite).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes on every change, and keeps the focus and the typed value across the new body", async () => {
+    const seen: string[] = [];
+    render(<Wall onWrite={(next) => seen.push(next)} />);
+
+    const [newest] = screen.getAllByRole("textbox");
+    newest.focus();
+    fireEvent.change(newest, { target: { value: "segunda a" } });
+    fireEvent.change(newest, { target: { value: "segunda ab" } });
+    fireEvent.change(newest, { target: { value: "segunda abc" } });
+
+    expect(seen).toHaveLength(3);
+    expect(seen[2]).toContain("> [!IDEA] 2026-11-11 09:12\n> segunda abc");
+    const [after] = screen.getAllByRole("textbox") as HTMLTextAreaElement[];
+    expect(after).toBe(newest);
+    expect(document.activeElement).toBe(newest);
+    expect(after.value).toBe("segunda abc");
+  });
+
+  it("shows an outside change to a note's text in its box", () => {
+    const props = { title: "Ideas", reading: false, onWrite: vi.fn() };
+    const { rerender } = render(<Notes {...props} body={BODY} />);
+
+    rerender(<Notes {...props} body={BODY.replace("> segunda", "> segunda, del agente")} />);
+
+    const [newest] = screen.getAllByRole("textbox") as HTMLTextAreaElement[];
+    expect(newest.value).toBe("segunda, del agente");
+  });
+
+  it("still drops a new note that was left empty when it loses the focus", async () => {
+    const onWrite = vi.fn();
+    render(<Wall onWrite={onWrite} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "New idea" }));
+    expect(screen.getAllByRole("textbox")).toHaveLength(3);
+    const added = onWrite.mock.calls.length;
+    fireEvent.blur(screen.getAllByRole("textbox")[0]);
+
+    expect(onWrite.mock.calls.length).toBe(added + 1);
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+    expect(onWrite.mock.calls[onWrite.mock.calls.length - 1][0]).not.toContain("> \n");
   });
 
   it("does not write when nothing changed", () => {

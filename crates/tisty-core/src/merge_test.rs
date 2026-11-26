@@ -749,3 +749,174 @@ fn a_change_past_what_a_merge_weighs_is_not_told() {
 
     assert!(changed(&many, &many).is_none());
 }
+
+#[test]
+fn preferring_mine_keeps_what_theirs_changed_outside_the_clash() {
+    let base = told(&["b0", "b1", "b2", "b3", "b4", "b5"]);
+    let mine = told(&["b0", "M1", "b2", "b3", "b4", "b5"]);
+    let theirs = told(&["b0", "T1", "b2", "b3", "T4", "b5"]);
+
+    assert_eq!(merged(&base, &mine, &theirs), None);
+    let Preferred { whole, torn, .. } =
+        merged_preferring(&base, &mine, &theirs).expect("one place clashes");
+
+    assert_eq!(torn, 1);
+    assert_eq!(whole, told(&["b0", "M1", "b2", "b3", "T4", "b5"]));
+}
+
+#[test]
+fn preferring_mine_counts_every_place_that_clashed() {
+    let base = told(&["b0", "b1", "b2", "b3", "b4", "b5", "b6"]);
+    let mine = told(&["b0", "M1", "b2", "b3", "b4", "M5", "b6"]);
+    let theirs = told(&["b0", "T1", "b2", "T3", "b4", "T5", "b6"]);
+
+    let Preferred { whole, torn, .. } = merged_preferring(&base, &mine, &theirs).unwrap();
+
+    assert_eq!(torn, 2);
+    assert_eq!(whole, told(&["b0", "M1", "b2", "T3", "b4", "M5", "b6"]));
+}
+
+#[test]
+fn preferring_mine_with_nothing_clashing_is_the_plain_weave() {
+    let mine = "# Kit\n\nprimero cambiado\n\nsegundo parrafo\n\ntercer parrafo\n";
+    let theirs = "# Kit\n\nprimer parrafo\n\nsegundo parrafo\n\ntercero cambiado\n";
+
+    let Preferred { whole, torn, .. } = merged_preferring(BASE, mine, theirs).unwrap();
+
+    assert_eq!(torn, 0);
+    assert_eq!(Some(whole), merged(BASE, mine, theirs));
+}
+
+#[test]
+fn preferring_mine_keeps_both_when_both_only_added_at_the_same_place_mine_first() {
+    let mine = "# Kit\n\nprimer parrafo\n\ndel mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+    let theirs = "# Kit\n\nprimer parrafo\n\nde windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+    let Preferred { whole, torn, .. } = merged_preferring(BASE, mine, theirs).unwrap();
+
+    assert_eq!(torn, 1);
+    assert_eq!(
+        whole,
+        "# Kit\n\nprimer parrafo\n\ndel mac\n\nde windows\n\nsegundo parrafo\n\ntercer parrafo\n"
+    );
+}
+
+#[test]
+fn preferring_mine_falls_back_to_mine_when_keeping_both_would_glue_two_lists() {
+    let base = told(&["intro", "cierre"]);
+    let mine = told(&["intro", "- [ ] pendiente", "cierre"]);
+    let theirs = told(&["intro", "1. otra", "cierre"]);
+
+    assert_eq!(woven_with(&base, &mine, &theirs, &[Pick::Both]), None);
+    let Preferred { whole, torn, .. } =
+        merged_preferring(&base, &mine, &theirs).expect("mine alone is sound");
+
+    assert_eq!(torn, 1);
+    assert!(whole.contains("- [ ] pendiente"), "{whole:?}");
+    assert!(!whole.contains("1. otra"), "{whole:?}");
+}
+
+#[test]
+fn preferring_mine_takes_my_properties_when_both_changed_them_differently() {
+    let base = "---\ntitle: uno\n---\n\ncuerpo\n\nfin\n";
+    let mine = "---\ntitle: dos\n---\n\ncuerpo\n\nfin mio\n";
+    let theirs = "---\ntitle: tres\n---\n\ncuerpo nuevo\n\nfin\n";
+
+    assert_eq!(merged(base, mine, theirs), None);
+    let Preferred { whole, torn, .. } = merged_preferring(base, mine, theirs).unwrap();
+
+    assert_eq!(torn, 0);
+    assert!(whole.starts_with("---\ntitle: dos\n---\n"), "{whole:?}");
+    assert!(
+        whole.contains("cuerpo nuevo") && whole.contains("fin mio"),
+        "{whole:?}"
+    );
+    assert!(!whole.contains("tres"), "{whole:?}");
+}
+
+#[test]
+fn preferring_mine_gives_nothing_for_a_paper_too_big_to_weave() {
+    let many = CELLS_AT_MOST.isqrt() + 1;
+    let base: String = (0..many).map(|at| format!("b{at}\n\n")).collect();
+    let mine = base.replace("b7\n", "cambiado\n");
+    let theirs = base.replace("b7\n", "otro\n");
+
+    assert_eq!(merged_preferring(&base, &mine, &theirs), None);
+}
+
+#[test]
+fn preferring_mine_does_not_say_a_heading_twice_when_both_added_it_with_different_words_under_it() {
+    let base = told(&["# Log", "primero", "segundo"]);
+    let mine = told(&["# Log", "primero", "segundo", "## 25 nov", "lo mio"]);
+    let theirs = told(&[
+        "# Log",
+        "primero cambiado por el agente",
+        "segundo",
+        "## 25 nov",
+        "lo del agente",
+    ]);
+
+    assert_eq!(merged(&base, &mine, &theirs), None);
+    let one = merged_preferring(&base, &mine, &theirs).expect("mine alone is sound");
+
+    assert!(
+        one.whole.contains("primero cambiado por el agente"),
+        "{:?}",
+        one.whole
+    );
+    assert_eq!(one.whole.matches("## 25 nov").count(), 1, "{:?}", one.whole);
+    assert!(one.whole.contains("lo mio"), "{:?}", one.whole);
+}
+
+#[test]
+fn preferring_mine_says_the_properties_went_mine_only_when_both_changed_them() {
+    let base = "---\ntitle: uno\n---\n\ncuerpo\n\nfin\n";
+    let mine = "---\ntitle: dos\n---\n\ncuerpo\n\nfin mio\n";
+    let theirs = "---\ntitle: tres\n---\n\ncuerpo nuevo\n\nfin\n";
+    let only_theirs = "---\ntitle: uno\n---\n\ncuerpo nuevo\n\nfin\n";
+
+    assert!(merged_preferring(base, mine, theirs).unwrap().front_mine);
+    assert!(
+        !merged_preferring(base, mine, only_theirs)
+            .unwrap()
+            .front_mine
+    );
+}
+
+#[test]
+fn preferring_mine_keeps_the_agents_neighbour_of_a_clash() {
+    let base = told(&["p1", "p2", "p3", "p4", "p5", "p6"]);
+    let mine = told(&["M1", "p2", "p3", "p4", "p5", "M6"]);
+    let theirs = told(&["T1", "T2", "p3", "T4", "p5", "T6"]);
+
+    assert_eq!(merged(&base, &mine, &theirs), None);
+    let Preferred { whole, torn, .. } = merged_preferring(&base, &mine, &theirs).unwrap();
+
+    assert_eq!(torn, 2);
+    assert_eq!(whole, told(&["M1", "T2", "p3", "T4", "p5", "M6"]));
+}
+
+#[test]
+fn preferring_mine_over_a_wider_edit_still_takes_that_whole_stretch_from_mine() {
+    let base = told(&["b0", "b1", "b2", "b3", "b4", "b5"]);
+    let mine = told(&["b0", "M0", "M1", "b5"]);
+    let theirs = told(&["b0", "b1", "T0", "T1", "b4", "b5"]);
+
+    let Preferred { whole, torn, .. } = merged_preferring(&base, &mine, &theirs).unwrap();
+
+    assert_eq!(torn, 1);
+    assert_eq!(whole, mine);
+}
+
+#[test]
+fn without_preferring_mine_neighbouring_blocks_still_tear_together() {
+    let base = told(&["p1", "p2", "p3", "p4"]);
+    let mine = told(&["M1", "p2", "p3", "p4"]);
+    let theirs = told(&["T1", "T2", "p3", "p4"]);
+
+    let said = rifts(&base, &mine, &theirs);
+
+    assert_eq!(said.len(), 1);
+    assert_eq!(said[0].mine, vec!["M1", "p2"]);
+    assert_eq!(said[0].theirs, vec!["T1", "T2"]);
+}

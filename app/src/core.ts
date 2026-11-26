@@ -319,8 +319,12 @@ export const taskDocSettled = (
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export type StepDated = { text: string; born?: string | null; done?: string | null };
 export const stepDates = (id: string): Promise<StepDated[]> => invoke("task_step_dates", { id });
-export const taskDocMerge = (id: string, base: string, mine: string): Promise<boolean> =>
-  invoke("task_doc_merge", { id, base, mine });
+export const taskDocMerge = (
+  id: string,
+  base: string,
+  mine: string,
+  prefer?: "mine",
+): Promise<boolean> => invoke("task_doc_merge", { id, base, mine, prefer });
 export const taskPageImport = (from: string, anyway?: boolean): Promise<string | null> =>
   invoke("task_page_import", { from, anyway });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
@@ -1275,12 +1279,16 @@ export const docWrite = (
   since?: string,
   turn?: SaveTurn,
 ): Promise<Doc & { print: string }> => invoke("doc_write", { id, body, anyway, since, turn });
+export type Woven = Opened & { title: string };
+/** How many places the two touched alike, or `null` when only the whole page could stand. */
+export type Clashing = { torn: number | null; front?: boolean };
 export const docMerge = (
   id: string,
-  base: string,
+  base: string | undefined,
   mine: string,
   turn?: SaveTurn,
-): Promise<(Opened & { title: string }) | null> => invoke("doc_merge", { id, base, mine, turn });
+  prefer?: "mine",
+): Promise<Woven | Clashing | null> => invoke("doc_merge", { id, base, mine, prefer, turn });
 export const docBack = (id: string, turn?: SaveTurn): Promise<Doc> =>
   invoke("doc_back", { id, turn });
 export const docBackable = (id: string): Promise<boolean> => invoke("doc_backable", { id });

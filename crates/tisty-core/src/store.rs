@@ -1104,11 +1104,24 @@ fn signed_by_its_directory(path: &Path, event: &Event) -> bool {
 }
 
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
+    write_atomic_if(path, contents, || Ok(true)).map(|_| ())
+}
+
+/// Checked again once the new bytes are on the disk, just before they take the old file's place:
+/// a writer outside Tisty that landed meanwhile is noticed, not written over.
+pub fn write_atomic_if(
+    path: &Path,
+    contents: &[u8],
+    still: impl FnOnce() -> Result<bool>,
+) -> Result<bool> {
     static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = path.with_extension(format!("{}.{turn}.tmp", std::process::id()));
-    let wrote = poured(&tmp, contents).and_then(|()| Ok(renamed(&tmp, path)?));
-    if wrote.is_err() {
+    let wrote = poured(&tmp, contents).and_then(|()| match still()? {
+        true => Ok(renamed(&tmp, path).map(|()| true)?),
+        false => Ok(false),
+    });
+    if !matches!(wrote, Ok(true)) {
         let _ = std::fs::remove_file(&tmp);
     }
     wrote

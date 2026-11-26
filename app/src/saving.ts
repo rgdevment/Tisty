@@ -1,3 +1,4 @@
+import { letDraftGo } from "./drafts";
 import { setAside } from "./keptAside";
 
 export const PATIENCE = 30_000;
@@ -98,8 +99,10 @@ export const kept = <T>(
         if (!uncut()) throw { code: "saveLate" };
         if (mayHaveWritten(problem)) stopped(id, { n: turn.n, words });
         if (SET_ASIDE.has(codeOf(problem) ?? "")) setAside(id, words);
-        if (refusedForGood(problem)) unanswered.delete(id);
-        else if (codeOf(problem) !== "saveLate")
+        if (refusedForGood(problem)) {
+          unanswered.delete(id);
+          letDraftGo(id);
+        } else if (codeOf(problem) !== "saveLate")
           unanswered.set(id, { n: turn.n, words, stuck: stuck(problem) });
         throw problem;
       },
@@ -128,6 +131,7 @@ export const cut = (id: string): void => {
   const line = lines.get(id);
   if (line) line.era += 1;
   forget(id);
+  letDraftGo(id);
 };
 
 export const busy = (id: string): Promise<unknown> | undefined => lines.get(id)?.last;

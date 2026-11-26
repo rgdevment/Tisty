@@ -16,6 +16,7 @@ import { useSigning } from "../crediting";
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
+import { backoff } from "../pacing";
 import { holds, queued, settled as saved } from "../saving";
 import { sure } from "../sure";
 import { useKeptHeight } from "./heights";
@@ -385,6 +386,12 @@ function Written({
     });
   };
 
+  // A page another program holds open is tried again on its own, and said once, not at every try.
+  const flushing = useRef<() => void>(() => {});
+  const retry = useMemo(() => backoff(() => flushing.current()), []);
+  const heldSaid = useRef(false);
+  useEffect(() => () => retry.reset(), [retry]);
+
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
@@ -396,11 +403,20 @@ function Written({
       const into = await ensure(next);
       if (!first) await docWrite(into, next);
       known.current = next;
+      retry.reset();
+      heldSaid.current = false;
     }).catch((e) => {
-      if ((e as { code?: string } | null)?.code === "documentMoved") clashed(e);
-      else failed.current?.(e);
+      const code = (e as { code?: string } | null)?.code;
+      if (code === "documentMoved") clashed(e);
+      else if (code === "documentHeldOpen") {
+        waiting.current ??= next;
+        retry.later();
+        if (!heldSaid.current) failed.current?.(e);
+        heldSaid.current = true;
+      } else failed.current?.(e);
     });
-  }, [task.id, ensure, clashed]);
+  }, [task.id, ensure, clashed, retry]);
+  flushing.current = flush;
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
@@ -431,8 +447,9 @@ function Written({
   const mineStands = () => {
     const mine = typed.current;
     setClash(false);
+    // What the page moved on with stays wherever it does not clash with these words.
     ensure(mine)
-      .then((into) => docWrite(into, mine, true))
+      .then(() => taskDocMerge(task.id, known.current, mine, "mine"))
       .then(() => {
         known.current = mine;
         settled(learnt.current, mine);

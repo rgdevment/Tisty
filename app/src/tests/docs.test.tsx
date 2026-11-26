@@ -21,6 +21,7 @@ const store = vi.hoisted(() => ({
   moved: null as { code: string; landed?: number } | null,
   barred: null as string | null,
   merges: [] as { base: string; mine: string; turn?: unknown }[],
+  stood: [] as { id: string; base: unknown; mine: string }[],
   troubles: [] as string[],
   woven: null as string | null,
   delays: [] as number[],
@@ -123,6 +124,16 @@ vi.mock("@tauri-apps/api/core", async () => ({
         case "agent_doc":
           return Promise.resolve(store.agent);
         case "doc_merge":
+          if (args?.prefer === "mine") {
+            if (store.barred) return Promise.reject({ code: store.barred });
+            store.stood.push({ id: String(args?.id), base: args?.base, mine: String(args?.mine) });
+            store.bodies[String(args?.id)] = String(args?.mine);
+            return Promise.resolve({
+              body: String(args?.mine),
+              print: `print:${String(args?.mine)}`,
+              title: "Compra",
+            });
+          }
           store.merges.push({
             base: String(args?.base),
             mine: String(args?.mine),
@@ -193,6 +204,7 @@ vi.mock("../ui/Sheet", () => ({
 }));
 
 beforeEach(() => {
+  store.stood = [];
   for (const file of ["a3f1-0001", "a3f1-0002", "a3f1-0003"]) {
     cut(file);
     letAsideGo(file);
@@ -1245,7 +1257,7 @@ describe("a document that moved on disk while it was open", () => {
     await userEvent.click(screen.getByText(/de todos modos|anyway/));
     await settled();
 
-    expect(store.writes[store.writes.length - 1]?.anyway).toBe(true);
+    expect(store.stood).toHaveLength(1);
     expect(store.bodies["a3f1-0001"]).toContain("y pan");
     expect(screen.queryByText(/mientras lo tenías abierto|while you had it open/)).toBeNull();
   });

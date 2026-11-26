@@ -156,7 +156,30 @@ enum Step {
     Torn(Rift),
 }
 
+// Consecutive blocks each rewritten in place are told apart, so one side's neighbour is not torn with it.
+fn one_by_one(all: Vec<Edit>) -> Vec<Edit> {
+    all.into_iter()
+        .flat_map(|one| match one.upto - one.from == one.said.len() {
+            true => one
+                .said
+                .into_iter()
+                .enumerate()
+                .map(|(at, said)| Edit {
+                    from: one.from + at,
+                    upto: one.from + at + 1,
+                    said: vec![said],
+                })
+                .collect(),
+            false => vec![one],
+        })
+        .collect()
+}
+
 fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
+    plan_with(base, mine, theirs, false)
+}
+
+fn plan_with(base: &str, mine: &str, theirs: &str, apart: bool) -> Option<Vec<Step>> {
     let base = blocks(base);
     let mine = blocks(mine);
     let theirs = blocks(theirs);
@@ -165,8 +188,13 @@ fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
     {
         return None;
     }
-    let ours = edits(&base, &mine);
-    let yours = edits(&base, &theirs);
+    let (ours, yours) = match apart {
+        true => (
+            one_by_one(edits(&base, &mine)),
+            one_by_one(edits(&base, &theirs)),
+        ),
+        false => (edits(&base, &mine), edits(&base, &theirs)),
+    };
 
     let mut all: Vec<(bool, Edit)> = ours
         .into_iter()
@@ -360,6 +388,47 @@ pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
     }
     let whole = joined(side, woven(&steps, &[])?);
     sound(&whole, mine, theirs).then_some(whole)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Preferred {
+    pub whole: String,
+    /// How many places both touched in the words.
+    pub torn: usize,
+    /// Both changed the properties, so mine replace theirs whole.
+    pub front_mine: bool,
+}
+
+/// Mine wins only where both touched the same blocks, so nothing else either side wrote is lost.
+pub fn merged_preferring(base: &str, mine: &str, theirs: &str) -> Option<Preferred> {
+    let front = front_of(base, mine, theirs);
+    let side = front.unwrap_or(mine);
+    let steps = plan_with(parted(base).1, parted(mine).1, parted(theirs).1, true)?;
+    let torn: Vec<&Rift> = steps
+        .iter()
+        .filter_map(|one| match one {
+            Step::Torn(rift) => Some(rift),
+            _ => None,
+        })
+        .collect();
+    let both_added: Vec<Pick> = torn
+        .iter()
+        .map(|rift| match rift.was.is_empty() {
+            true => Pick::Both,
+            false => Pick::Mine,
+        })
+        .collect();
+    let all_mine = vec![Pick::Mine; torn.len()];
+    // Keeping both can glue two lists or say one heading twice; mine alone may still stand.
+    let whole = [both_added, all_mine].iter().find_map(|picks| {
+        let whole = joined(side, woven(&steps, picks)?);
+        sound(&whole, mine, theirs).then_some(whole)
+    })?;
+    Some(Preferred {
+        whole,
+        torn: torn.len(),
+        front_mine: front.is_none(),
+    })
 }
 
 pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {

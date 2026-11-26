@@ -1,6 +1,6 @@
 use super::*;
 use crate::answers::papers::written_by_hand;
-use crate::answers::weaving::merged;
+use crate::answers::weaving::{Merge, merged};
 use tisty_core::Op;
 
 fn session() -> (tempfile::TempDir, Session) {
@@ -82,11 +82,10 @@ fn woven(session: &mut Session, id: &str, base: &str, mine: &str, by: Option<Tur
         session,
         id,
         by,
-        |session| merged(session, id.to_string(), base, mine),
-        Option::is_some,
+        |session| merged(session, id.to_string(), Some(base), mine, false),
+        |done| matches!(done, Merge::Woven(_)),
     )
-    .unwrap()
-    .is_some()
+    .is_ok_and(|done| matches!(done, Merge::Woven(_)))
 }
 
 fn someone_else_writes(session: &Session, id: &str, body: &str) {
@@ -258,8 +257,16 @@ fn a_weave_sent_by_a_save_the_window_gave_up_on_lands_nowhere_after_a_newer_one(
         &mut session,
         &id,
         turn("a", 1),
-        |session| merged(session, id.clone(), opened, "# Lista\n\nleche\n\npan\n"),
-        Option::is_some,
+        |session| {
+            merged(
+                session,
+                id.clone(),
+                Some(opened),
+                "# Lista\n\nleche\n\npan\n",
+                false,
+            )
+        },
+        |done| matches!(done, Merge::Woven(_)),
     );
 
     assert_eq!(late.map(|_| ()).unwrap_err().code, "saveLate");
@@ -392,4 +399,37 @@ fn a_save_that_reaches_a_deleted_document_never_writes_it_back() {
         tisty_core::docs::read(&session.paths.docs(), &file).is_err(),
         "the deleted document came back on the disk"
     );
+}
+
+#[test]
+fn a_reloaded_window_saves_only_once_it_has_opened_the_document_with_its_new_hand() {
+    let (_tmp, mut session) = session();
+    let opened = "# Compras\n\nleche\n";
+    let id = filed(&mut session, opened);
+    session.turns.opened(&id, &turn("antes", 40).unwrap());
+    let words = "# Compras\n\nleche y pan\n";
+
+    let refused = saved(
+        &mut session,
+        &id,
+        words,
+        &print(opened),
+        false,
+        turn("ahora", 1),
+    );
+    assert_eq!(refused.unwrap_err().code, "saveLate");
+    assert_eq!(on_disk(&session, &id), opened);
+
+    session.turns.opened(&id, &turn("ahora", 1).unwrap());
+    saved(
+        &mut session,
+        &id,
+        words,
+        &print(opened),
+        false,
+        turn("ahora", 1),
+    )
+    .unwrap();
+
+    assert_eq!(on_disk(&session, &id), words);
 }

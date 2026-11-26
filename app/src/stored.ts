@@ -2,7 +2,8 @@ import { useSyncExternalStore } from "react";
 
 export type Stored<T> = {
   current: () => T;
-  put: (next: T) => void;
+  /** False when the browser refused to keep it (its room is full): it lasts only until the window goes. */
+  put: (next: T) => boolean;
   use: () => T;
 };
 
@@ -24,12 +25,16 @@ export const stored = <T>(key: string, read: (said: Record<string, unknown>) => 
     return now.value;
   };
 
-  const put = (next: T) => {
+  const put = (next: T): boolean => {
     now = { value: next };
+    let kept = true;
     try {
       localStorage.setItem(key, JSON.stringify(next));
-    } catch {}
+    } catch {
+      kept = false;
+    }
     for (const one of told) one();
+    return kept;
   };
 
   const subscribe = (change: () => void) => {

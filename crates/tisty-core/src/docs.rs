@@ -161,6 +161,19 @@ pub fn unchanged(was: &str, now: &str) -> bool {
 }
 
 fn written(root: &Path, id: &str, body: &str) -> Result<()> {
+    let (at, whole) = to_write(root, id, body)?;
+    write_atomic(&at, whole.as_bytes())
+}
+
+/// Lands only while the disk still holds the body that `print` names, checked again just before.
+fn written_over(root: &Path, id: &str, body: &str, print: &str) -> Result<bool> {
+    let (at, whole) = to_write(root, id, body)?;
+    crate::store::write_atomic_if(&at, whole.as_bytes(), || {
+        Ok(print_of(&at)?.as_deref() == Some(print))
+    })
+}
+
+fn to_write(root: &Path, id: &str, body: &str) -> Result<(std::path::PathBuf, String)> {
     let whole = settled(body);
     let bytes = whole.len() as u64;
     if bytes > BODY_AT_MOST {
@@ -172,7 +185,7 @@ fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     let at = resolve(root, id)?;
     std::fs::create_dir_all(root)?;
     let _ = crate::paths::ours_alone(root);
-    write_atomic(&at, whole.as_bytes())
+    Ok((at, whole))
 }
 
 /// What happened when a book was asked to name pages at its end. One answer for every door, so

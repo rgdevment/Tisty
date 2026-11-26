@@ -137,4 +137,10 @@ describe("the window's policy", () => {
     expect(scripts).not.toContain("'unsafe-inline'");
     expect(scripts).not.toContain("'unsafe-eval'");
   });
+
+  it("lets both policies load the bundled fonts from the app itself and from data", () => {
+    for (const said of [conf.app.security.csp, conf.app.security.devCsp]) {
+      expect(said).toContain("font-src 'self' data:");
+    }
+  });
 });

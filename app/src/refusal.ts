@@ -290,6 +290,7 @@ const KNOWN = [
   "folderNameSlash",
   "folderNameTooLong",
   "documentBeingWritten",
+  "documentHeldOpen",
   "documentLocked",
   "diaryBehind",
   "diaryDayChanged",

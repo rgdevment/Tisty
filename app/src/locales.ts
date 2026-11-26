@@ -1399,6 +1399,9 @@ const en = {
   folderNameSlash: "A folder is named, not pathed: leave the / out and nest it instead",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
+  documentHeldOpen:
+    "Another program has this document open or locked, so it could not be saved yet. Your words are still here, and Tisty tries again on its own.",
+  saveHeldTryNow: "Try now",
   documentAway: "That one is in the archive. Bring it back to write in it",
   folderAway: "That folder is in the archive. Bring it back to change it",
   agentOfAnother:
@@ -1579,6 +1582,17 @@ const en = {
   freed: "{name} freed. Anything your cloud could not vouch for stayed here",
   moreHere: "…and {name} more",
   clashSave: "Save mine anyway",
+  clashTornOne:
+    "Something wrote in this document while you had it open here, in the same place as you. Saving yours keeps everything else it wrote.",
+  clashTorn:
+    "Something wrote in this document while you had it open here, in {name} of the places you wrote too. Saving yours keeps everything else it wrote.",
+  clashWhole:
+    "Something wrote in this document while you had it open here, and it cannot be joined with yours. Saving yours puts back your whole page; what it replaces stays as a version.",
+  clashFront:
+    "Something wrote in this document while you had it open here, and you both changed its properties. Saving yours keeps your properties whole and everything else it wrote.",
+  clashFrontToo: "Its properties clash too: saving yours keeps yours whole.",
+  saveTurnLost:
+    "This window could not save this document any more. Your words are still here: open the document again to save them.",
   clashLook: "Read it again",
   clashSure: "What you wrote here was never saved. Reading it again takes it away.",
   intoItself: "A folder cannot go inside itself",
@@ -5291,6 +5305,9 @@ const es: Catalog = {
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
+  documentHeldOpen:
+    "Otro programa tiene abierto o bloqueado este documento, así que todavía no se pudo guardar. Tu texto sigue aquí y Tisty vuelve a intentarlo solo.",
+  saveHeldTryNow: "Intentar ahora",
   documentAway: "Ese está en el archivo. Desarchívalo para escribir en él",
   folderAway: "Esa carpeta está en el archivo. Desarchívala para cambiarla",
   agentOfAnother: "Este es de otro de tus equipos: aquí lo lees y lo mueves, y lo escribes allá",
@@ -5473,6 +5490,17 @@ const es: Catalog = {
   freed: "{name} liberados. Lo que tu nube no pudo confirmar se quedó aquí",
   moreHere: "…y {name} más",
   clashSave: "Guardar lo mío de todos modos",
+  clashTornOne:
+    "Algo escribió en este documento mientras lo tenías abierto aquí, en el mismo lugar que tú. Guardar lo tuyo conserva todo lo demás que escribió.",
+  clashTorn:
+    "Algo escribió en este documento mientras lo tenías abierto aquí, en {name} de los lugares donde escribiste tú. Guardar lo tuyo conserva todo lo demás que escribió.",
+  clashWhole:
+    "Algo escribió en este documento mientras lo tenías abierto aquí, y no se puede unir con lo tuyo. Guardar lo tuyo vuelve a poner tu página entera; lo que reemplaza queda como versión.",
+  clashFront:
+    "Algo escribió en este documento mientras lo tenías abierto aquí, y los dos cambiaron sus propiedades. Guardar lo tuyo deja tus propiedades enteras y conserva todo lo demás que escribió.",
+  clashFrontToo: "Las propiedades también chocan: guardar lo tuyo deja las tuyas enteras.",
+  saveTurnLost:
+    "Esta ventana ya no podía guardar este documento. Tu texto sigue aquí: vuelve a abrir el documento para guardarlo.",
   clashLook: "Volver a leerlo",
   clashSure: "Lo que escribiste aquí no llegó a guardarse. Volver a leerlo se lo lleva.",
   intoItself: "Una carpeta no puede ir dentro de sí misma",
