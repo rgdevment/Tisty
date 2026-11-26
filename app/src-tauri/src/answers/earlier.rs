@@ -80,10 +80,14 @@ pub fn listed(
 
 #[tauri::command(async)]
 pub fn doc_versions(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Shelf> {
-    let (log, asked) = super::tasks::unheld_log(&session, |session| asked(session, &id))?;
-    let rows = listed(&asked, &log, &id, jiff::Timestamp::now())?;
+    shelf(&session, &id)
+}
+
+pub fn shelf(session: &Mutex<Session>, id: &str) -> Answer<Shelf> {
+    let (log, asked) = super::tasks::unheld_log(session, |session| asked(session, id))?;
+    let rows = listed(&asked, &log, id, jiff::Timestamp::now())?;
     Ok(Shelf {
-        kept: history::versions(&asked.data, &id).len(),
+        kept: history::versions(&asked.data, id).len(),
         versions: rows
             .into_iter()
             .map(|one| Earlier {

@@ -35,6 +35,7 @@ export interface Place {
   readonly bytes: number | null;
   readonly kept: readonly Backup[];
   readonly heldBy: readonly string[];
+  readonly clash: boolean;
 }
 
 export type Here =

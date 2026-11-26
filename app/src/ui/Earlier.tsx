@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { agentHistory, type Copy, copyKey, keyOf, timeline } from "../agentHistory";
 import { type Signing, useSigning } from "../crediting";
 import {
   awayOf,
@@ -15,6 +16,7 @@ import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { sure } from "../sure";
 import EarlierCompared from "./EarlierCompared";
+import { CopyBar, CopyListed, CopyShown } from "./EarlierCopies";
 import { useHeldFocus } from "./heldFocus";
 import type { CardsShown } from "./liveCards";
 import Page from "./Page";
@@ -31,6 +33,8 @@ interface Props {
   onBack?: (one: Version) => Promise<void>;
   ready?: () => Promise<unknown>;
   onEmptied?: () => void;
+  /** An agent's document: the copies Tisty kept of its files join its versions, and `restores` puts one back. */
+  agentFile?: { restores: boolean };
   onClose: () => void;
   onError: (problem: unknown) => void;
 }
@@ -138,6 +142,7 @@ export default function Earlier({
   onBack,
   ready = RIGHT_AWAY,
   onEmptied,
+  agentFile,
   onClose,
   onError,
 }: Readonly<Props>) {
@@ -149,32 +154,40 @@ export default function Earlier({
   const credited = useSigning("inside");
   const signing = page ? credited : undefined;
   const [shelf, setShelf] = useState<Shelf | null>(null);
+  const [copies, setCopies] = useState<readonly Copy[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
   const [against, setAgainst] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const failed = useRef(onError);
   failed.current = onError;
 
+  const withCopies = agentFile !== undefined;
   const look = useCallback(() => {
     let live = true;
-    docVersions(doc)
+    const load = (): Promise<Shelf & { copies?: Copy[] }> =>
+      withCopies ? agentHistory(doc) : docVersions(doc);
+    load()
       .then((all) => {
         if (!live) return;
         const kept = all.versions.filter((one) => one.here);
         const stays = (print: string | null) => kept.some((one) => one.print === print);
+        const found = all.copies ?? [];
+        const open = timeline(kept, found).map(keyOf);
         setShelf(all);
-        setChosen((was) => (stays(was) ? was : (kept[0]?.print ?? null)));
+        setCopies(found);
+        setChosen((was) => (was !== null && open.includes(was) ? was : (open[0] ?? null)));
         setAgainst((was) => (was === null || was === NOW || stays(was) ? was : NOW));
       })
       .catch((e) => {
         if (!live) return;
         setShelf({ versions: [], kept: 0 });
+        setCopies([]);
         failed.current(e);
       });
     return () => {
       live = false;
     };
-  }, [doc]);
+  }, [doc, withCopies]);
   useEffect(look, [look]);
   // A version compared with the one read is no comparison: what it says now takes its place.
   useEffect(() => {
@@ -191,6 +204,8 @@ export default function Earlier({
   };
 
   const rows = shelf?.versions ?? null;
+  const listed = rows && timeline(rows, copies);
+  const copy = copies.find((row) => copyKey(row) === chosen);
   const one = rows?.find((row) => row.print === chosen && row.here);
   const here = rows?.some((row) => row.here) ?? false;
   const other = rows?.find((row) => row.here && row.print === against && row.print !== chosen);
@@ -222,7 +237,8 @@ export default function Earlier({
   };
 
   const empty = async () => {
-    if (working || !(await sure(t("earlierEmptySure")))) return;
+    const asked = [t("earlierEmptySure"), agentFile ? t("agentHistoryEmptyKeeps") : ""];
+    if (working || !(await sure(asked.filter(Boolean).join(" ")))) return;
     setWorking(true);
     try {
       await docHistoryEmpty(doc);
@@ -259,21 +275,38 @@ export default function Earlier({
             <p role="note" className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
               {t("earlierLocal")}
             </p>
+            {agentFile && (
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
+                {t("agentHistoryCopies")}
+              </p>
+            )}
           </header>
-          {rows?.length === 0 && (
-            <p className="px-5 text-[12.5px] leading-relaxed text-soft">{t("earlierNone")}</p>
+          {listed?.length === 0 && (
+            <p className="px-5 text-[12.5px] leading-relaxed text-soft">
+              {t(agentFile ? "agentHistoryNone" : "earlierNone")}
+            </p>
           )}
           <ul aria-label={t("earlierList")} className="scroller min-h-0 flex-1 px-2 pb-2">
-            {rows?.map((row) => (
-              <li key={row.print}>
-                <Listed
-                  one={row}
-                  chosen={row.print === chosen}
-                  against={row.print === against}
-                  onPick={() => pick(row.print)}
-                  onAgainst={row.print === chosen ? undefined : () => turnAgainst(row.print)}
-                  signing={signing}
-                />
+            {listed?.map((row) => (
+              <li key={keyOf(row)}>
+                {row.kind === "copy" ? (
+                  <CopyListed
+                    one={row.one}
+                    chosen={keyOf(row) === chosen}
+                    onPick={() => pick(keyOf(row))}
+                  />
+                ) : (
+                  <Listed
+                    one={row.one}
+                    chosen={row.one.print === chosen}
+                    against={row.one.print === against}
+                    onPick={() => pick(row.one.print)}
+                    onAgainst={
+                      row.one.print === chosen ? undefined : () => turnAgainst(row.one.print)
+                    }
+                    signing={signing}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -293,9 +326,21 @@ export default function Earlier({
         </div>
         <section className="flex min-w-0 flex-1 flex-col bg-desk">
           <div className="flex min-h-[46px] items-center gap-3 border-b border-hair bg-bg px-5 py-2">
-            <span className="min-w-0 flex-1 truncate text-[12.5px] text-soft">
-              {one ? saidOf(one, signing) : ""}
-            </span>
+            {copy ? (
+              <CopyBar
+                doc={doc}
+                one={copy}
+                restores={agentFile?.restores ?? false}
+                working={working}
+                onWorking={setWorking}
+                onBack={look}
+                onError={onError}
+              />
+            ) : (
+              <span className="min-w-0 flex-1 truncate text-[12.5px] text-soft">
+                {one ? saidOf(one, signing) : ""}
+              </span>
+            )}
             {one && (
               <button
                 ref={comparing}
@@ -314,7 +359,9 @@ export default function Earlier({
             )}
           </div>
           <div className="relative flex min-h-0 flex-1 flex-col">
-            {one && older && against !== null ? (
+            {copy ? (
+              <CopyShown doc={doc} one={copy} onError={onError} />
+            ) : one && older && against !== null ? (
               <EarlierCompared
                 doc={doc}
                 was={older.print}

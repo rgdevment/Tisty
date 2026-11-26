@@ -61,6 +61,7 @@ const place = (said: Said, more: Partial<Place> = {}): Place => ({
   bytes: null,
   kept: [],
   heldBy: [],
+  clash: false,
   ...more,
 });
 
@@ -109,7 +110,12 @@ function Both({ doc, more, on }: { doc: AgentDoc; more: Shown; on: Hands }) {
   };
   return (
     <>
-      <AgentCard card={card} shelf={shelf} body={BODY} />
+      <AgentCard
+        card={card}
+        shelf={shelf}
+        body={BODY}
+        onEarlier={more.earlier ? on.onEarlier : undefined}
+      />
       <AgentButtons card={card} shelf={shelf} onEarlier={more.earlier ? on.onEarlier : undefined} />
     </>
   );
@@ -244,44 +250,42 @@ describe("an agent document's card", () => {
     expect(screen.queryByTestId("file")).toBeNull();
   });
 
-  it("lists the backups, shows one and puts it back", async () => {
+  it("tells what is kept of the file on this computer, with the original, and opens the history from it", async () => {
     const kept = [
       { n: 2, bytes: 40, pinned: false },
       { n: 1, bytes: 30, pinned: true },
     ];
-    ipc.answer = (_cmd, args) =>
-      Promise.resolve(
-        (args.asked as { do: string } | undefined)?.do === "held" ? "Old words.\n" : null,
-      );
-    shown(card([place({ state: "synced" }, { kept })]));
-    expect(screen.getByText(/2 backups/)).toBeTruthy();
+    const on = shown(card([place({ state: "synced" }, { kept })]), { earlier: true });
+    expect(screen.getByText("File copies")).toBeTruthy();
+    expect(screen.getByText(/2 on this computer, with the original/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "See" }));
-    expect(screen.getByText(/Backup #2/)).toBeTruthy();
-    await userEvent.click(
-      within(screen.getByRole("dialog")).getAllByRole("button", { name: "See" })[0],
-    );
-    await screen.findByTestId("file");
-    expect(page.body).toContain("Old words.");
-    await userEvent.click(screen.getByRole("button", { name: "Restore" }));
-    await waitFor(() =>
-      expect(sent("agent_doc").map((one) => one.args.asked)).toContainEqual({
-        do: "restore",
-        backup: 2,
-      }),
-    );
-    await waitFor(() => expect(screen.queryByTestId("file")).toBeNull());
+    expect(on.onEarlier).toHaveBeenCalledTimes(1);
+    expect(sent("agent_doc")).toHaveLength(0);
   });
 
-  it("puts a backup back from the list and closes the list", async () => {
+  it("says one copy without the original in the same words as the facts", () => {
+    shown(card([place({ state: "synced" }, { kept: [{ n: 3, bytes: 4, pinned: false }] })]), {
+      earlier: true,
+    });
+    expect(screen.getByText(/1 on this computer/).textContent).not.toContain("original");
+  });
+
+  it("offers no way to see the copies where the window has no history, nor when there is none", () => {
     shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 30, pinned: true }] })]));
-    await userEvent.click(screen.getAllByRole("button", { name: "Backups" })[0]);
-    await userEvent.click(screen.getByRole("button", { name: "Restore" }));
-    await waitFor(() =>
-      expect(sent("agent_doc")[0].args.asked).toEqual({ do: "restore", backup: 1 }),
-    );
-    await userEvent.click(screen.getAllByRole("button", { name: "Backups" })[0]);
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("button", { name: "See" })).toBeNull();
+    cleanup();
+    shown(card([place({ state: "synced" })]), { earlier: true });
+    expect(screen.getByText("None yet")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "See" })).toBeNull();
+  });
+
+  it("keeps no Backups button at the foot, whatever the file keeps", () => {
+    shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 30, pinned: true }] })]), {
+      earlier: true,
+    });
+    expect(screen.queryByRole("button", { name: "Backups" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Restore" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("lets each of several places be paused or resumed on its own", async () => {
@@ -631,6 +635,28 @@ describe("an agent document's card", () => {
     expect(screen.queryByRole("button", { name: "Overwrite with Tisty" })).toBeNull();
   });
 
+  it("says a file held by a clash waits for the person to choose, whoever else is named", () => {
+    shown(card([place({ state: "held" }, { clash: true, heldBy: ["claude · tone.md"] })]));
+    expect(
+      screen.getByText(/stays as it was until you choose which document writes it/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/changed or left Agents/)).toBeNull();
+  });
+
+  it("says a held file waits for the person's choice when no document is named as holding it", () => {
+    shown(card([place({ state: "held" })]));
+    expect(
+      screen.getByText(/stays as it was until you choose which document writes it/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/changed or left Agents/)).toBeNull();
+  });
+
+  it("keeps naming the document that holds a file back when no clash waits", () => {
+    shown(card([place({ state: "held" }, { clash: false, heldBy: ["x"] })]));
+    expect(screen.getByText(/x changed or left Agents without your approval/)).toBeTruthy();
+    expect(screen.queryByText(/until you choose/)).toBeNull();
+  });
+
   it("lets the person overwrite a file an earlier Tisty wrote, once they say yes", async () => {
     shown(card([place({ state: "unproven" })]));
     expect(screen.getByText("Written by an earlier Tisty")).toBeTruthy();
@@ -797,10 +823,10 @@ describe("the file's facts on an agent document's card", () => {
     expect(screen.getByText("Claude file")).toBeTruthy();
     expect(screen.getByText("Codex file")).toBeTruthy();
     expect(screen.getByText("Size of Claude's file")).toBeTruthy();
-    expect(screen.getByText("Backups of Codex's file")).toBeTruthy();
+    expect(screen.getByText("Copies of Claude's file")).toBeTruthy();
     expect(screen.getByText("together with one other document")).toBeTruthy();
     expect(screen.getByText("together with 2 other documents")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Backups" })).toBeNull();
+    expect(screen.getByText("Copies of Codex's file")).toBeTruthy();
   });
 });
 
@@ -816,12 +842,6 @@ describe("the buttons under an agent's words", () => {
   it("offers no history where the window has none", () => {
     shown(card([place({ state: "synced" })]));
     expect(screen.queryByRole("button", { name: "History" })).toBeNull();
-  });
-
-  it("opens the same backups from the button as from the facts", async () => {
-    shown(card([place({ state: "synced" }, { kept: [{ n: 1, bytes: 3, pinned: true }] })]));
-    await userEvent.click(screen.getByRole("button", { name: "Backups" }));
-    expect(screen.getByRole("dialog")).toBeTruthy();
   });
 });
 

@@ -371,6 +371,50 @@ fn the_side_this_computer_already_wrote_asks_too_when_a_rival_arrives_and_the_fi
     }
 }
 
+fn claude_place(room: &Room, file: &str) -> serde_json::Value {
+    shown(room, file)["places"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| {
+            one["at"]
+                .as_str()
+                .is_some_and(|at| at.ends_with("CLAUDE.md"))
+        })
+        .cloned()
+        .unwrap_or_else(|| panic!("{}", shown(room, file)))
+}
+
+#[test]
+fn a_file_held_by_two_rivals_says_so_on_each_card_until_one_is_chosen() {
+    let mut room = room();
+    let (standing, rival) = rivals(&mut room);
+    for file in [&standing, &rival] {
+        let place = claude_place(&room, file);
+        assert_eq!(place["said"]["state"], "held", "{file}");
+        assert_eq!(place["clash"], true, "{file}");
+    }
+
+    take(&room, &rival, true);
+
+    assert_eq!(claude_place(&room, &rival)["clash"], false);
+    assert!(
+        shown(&room, &standing)["places"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_file_nobody_contests_is_not_a_clash() {
+    let mut room = room();
+    room.bring(&[".claude/CLAUDE.md"]);
+    let file = file_brought_from(&room, "CLAUDE.md");
+    assert!(!claude_target_held(&room));
+    assert_eq!(claude_place(&room, &file)["clash"], false);
+}
+
 #[test]
 fn an_own_document_made_after_an_everyone_one_was_applied_makes_both_ask_in_that_order() {
     let mut room = room();

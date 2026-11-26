@@ -9,7 +9,7 @@ Uso más de un agente de IA, y cada uno lee sus reglas de un archivo distinto, e
 
 ## Qué es y cuándo te sirve
 
-**Agentes** es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, en gris, hasta que traes algo. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo lees y lo editas en Tisty, con su buscador y sus versiones anteriores, pero no se ve como un documento más: se abre en su propia [ficha](#la-ficha-de-un-documento-de-agente), que te dice quién lo lee, dónde se escribe y cuántos respaldos tiene, con el texto del agente tal como lo escribiste. Si la sincronizas, Tisty escribe el archivo que ese agente lee, byte a byte.
+**Agentes** es una carpeta de tu Biblioteca, arriba de todo, con el icono de un robot. Está en tu barra lateral desde el primer día, en gris, hasta que traes algo. Cada documento que tiene adentro es un archivo de un agente: una regla, una skill o su memoria. Lo lees y lo editas en Tisty, con su buscador y sus versiones anteriores, pero no se ve como un documento más: se abre en su propia [ficha](#la-ficha-de-un-documento-de-agente), que te dice quién lo lee, dónde se escribe y cuántas copias del archivo guarda, con el texto del agente tal como lo escribiste. Si la sincronizas, Tisty escribe el archivo que ese agente lee, byte a byte.
 
 Te sirve cuando:
 
@@ -226,7 +226,7 @@ Esto pasa sincronizando: traída sin sincronizar, Tisty no escribe ningún archi
 
 **Un ejemplo.** Tienes `~/.codex/AGENTS.md` con tus reglas de Codex, y la primera vez lo dejaste sin marcar. Después escribes en **Agentes › Casa (este equipo) › Codex** un documento que va a ese mismo archivo. Tisty no sabe qué parte del archivo es tuya, así que no lo pisa: te pregunta **Existe en los dos lados**, al entrar en Agentes o con **Revisar** en Configuración › Agentes › Carpeta Agentes. Como nunca trajo ese archivo, el aviso suma «Tisty nunca trajo este archivo. Si lo traes a Agentes, queda como está, como un documento de este equipo.» y el botón **Traer a Agentes**.
 
-Con **Traer a Agentes**, el archivo entra como un documento en **Agentes › Casa (este equipo) › Codex**, con sus palabras tal como están. Un documento es un archivo, palabra por palabra: Tisty no le suma nada. Lo que tenía antes queda en sus [respaldos](#respaldos).
+Con **Traer a Agentes**, el archivo entra como un documento en **Agentes › Casa (este equipo) › Codex**, con sus palabras tal como están. Un documento es un archivo, palabra por palabra: Tisty no le suma nada. Lo que tenía antes queda en sus [copias del archivo](#copias-del-archivo).
 
 **Traer otro archivo** hace lo mismo: ese `AGENTS.md` aparece en su lista, sin marcar, y al traerlo queda igual que el archivo.
 
@@ -458,7 +458,7 @@ Un agente cuenta en cada equipo por separado: Tisty solo escribe lo de un agente
 
 Un documento de Agentes no se ve como un documento más. Se abre **para leer**, en una sola ficha: arriba, qué es y dónde va; en el medio, el texto del agente; abajo, lo que puedes hacer. No hay columna al lado: todo lo útil está en la ficha.
 
-![La ficha de la regla Reglas en Agentes / Claude: las etiquetas Regla, Claude y Al día; el cuadro de datos con Lo lee Claude, Se escribe en con su botón de copiar, Tamaño, Respaldos con Ver, Formato Markdown · LF, Última escritura, Original guardado y Sincroniza en este equipo Sí; debajo, el texto de la regla, y al pie Editar, Respaldos, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-regla-light.webp)
+![La ficha de la regla Reglas en Agentes / Claude: las etiquetas Regla, Claude y Al día; el cuadro de datos con Lo lee Claude, Se escribe en con su botón de copiar, Tamaño, Copias del archivo con 1 en este equipo, con el original · Ver, Formato Markdown · LF, Última escritura y Sincroniza en este equipo Sí; debajo, el texto de la regla, y al pie Editar, Historial, Copiar enlace y Pausar la sincronización con Claude](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-regla-light.webp)
 
 **Arriba de todo, el camino de carpetas**: «Agentes / Casa (este equipo) / Claude». Un clic en una carpeta la abre.
 
@@ -474,10 +474,9 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 | **Lo lee** | Qué agentes de este equipo leen el archivo | Claude, Codex |
 | **Se escribe en** | La ruta completa del archivo, con un botón para copiarla. Una skill de Global tiene una por agente: **Archivo de Claude**, **Archivo de Codex**. Es siempre un solo documento por archivo: nada se escribe «junto con otro» | `~/.claude/CLAUDE.md` |
 | **Tamaño** | Cuánto pesa el archivo que lee el agente | 12,7 kB |
-| **Respaldos** | Cuántos guarda este equipo, y **Ver** para abrirlos | 3 respaldos · Ver, o Ninguno todavía |
+| **Copias del archivo** | Cuántas guarda este equipo, si está el original, y **Ver** para abrirlas en el **Historial** | 3 en este equipo, con el original · Ver, o Ninguna todavía |
 | **Formato** | Markdown, o el tipo del script; cómo terminan sus líneas, y las marcas que conserva | Markdown · LF, o PY · CRLF · BOM |
 | **Última escritura** | Cuándo cambió el archivo por última vez | hoy, 19:37 |
-| **Original guardado** | Si ya está el respaldo n.º 1, el archivo de antes de que Tisty lo tocara | Sí, el de antes de la primera escritura de Tisty |
 | **Sincroniza en este equipo** | Si Tisty lo mantiene al día aquí | Sí; Sí, salvo Codex (en pausa); Tisty solo lo lee; No, Agentes no se sincroniza; No: espera «Aplicar aquí»; No: su texto espera tu aprobación; No: es de otro equipo; Espera que elijas, o No: aquí manda otro, cuando [dos documentos van al mismo archivo](#si-dos-documentos-van-al-mismo-archivo); No: su carpeta y su texto dicen equipos distintos. Con una propuesta esperando, se suma «un cambio propuesto por un agente espera tu aprobación» |
 | **Compartido** | Solo si el documento tiene un enlace compartido activo: si se puede leer o editar, y **Ver** muestra los enlaces con su botón para copiarlos y las acciones de siempre, como **Dejar de compartir**. Lo cuenta [Compartir](Documentos#compartir) | Solo leer · Ver |
 | **Las propiedades del archivo** | Las otras claves de su encabezado, en filas chicas de clave y valor. Si son demasiadas o muy largas para leerlas como campos, van tal como están escritas | `disable-model-invocation` true; `applyTo` `**/*.rs` |
@@ -489,8 +488,7 @@ Un documento de Agentes no se ve como un documento más. Se abre **para leer**, 
 **Los botones, al pie**, fijos abajo mientras la ficha entera se desplaza junto con el texto:
 
 - **Editar** abre el editor de Tisty sobre el texto, con su encabezado y la barra del editor de siempre para títulos y listas, y **Listo** lo vuelve a cerrar.
-- **Respaldos**, cuando el documento se escribe en un solo archivo y ese archivo tiene alguno. Abre la misma lista que **Ver** en el cuadro de datos. Una skill de **Global**, que se escribe en varios archivos, no lo tiene al pie: los respaldos de cada archivo se abren con **Ver**, en su fila.
-- **Historial**: las versiones anteriores del documento, no del archivo. Lo cuenta [[Versiones anteriores|Documentos#versiones-anteriores]]. La comparación con lo **Aprobado** lee de ahí: si vacías el historial, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
+- **Historial**: en una sola lista, las versiones anteriores del documento y las copias que Tisty guardó del archivo, como cuenta [Un solo historial](#un-solo-historial). Las versiones son las de [[Versiones anteriores|Documentos#versiones-anteriores]]. La comparación con lo **Aprobado** lee de ahí: si vacías el historial, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
 - **Copiar enlace** copia su [enlace](Documentos#el-enlace-de-un-documento).
 - **Pausar la sincronización con Claude**, cuando el documento se escribe en un solo archivo. Una skill de Global tiene un botón por agente: **Pausar Claude**, **Pausar Codex**…
 - **Los de otro equipo no tienen Editar, ni Aplicar, ni Eliminar, ni pausa**: la ficha dice «Es de otro de tus equipos: en este solo se lee.». Lo que sí puedes es leerlo, moverlo, copiarlo como texto y sacarlo. Un cambio que otro equipo aprobó para este espera aquí cada vez, como cuenta [En varios equipos](#documentos-de-otros-equipos).
@@ -531,7 +529,7 @@ Puedes seguir editando los archivos de tus agentes con tu editor, o dejar que el
 
 - **Ver el archivo** muestra lo que el archivo tiene ahora.
 - **Traer el cambio** escribe en el documento lo que dice el archivo. Lo que decía antes el documento queda en sus [versiones anteriores](Documentos#versiones-anteriores). Si alguien cambió el documento después de que se dibujó la ficha, Tisty no lo pisa: te pide leerlo de nuevo y volver a elegir.
-- **Sobrescribir con Tisty** pregunta «¿Escribir este documento sobre `~/.claude/CLAUDE.md`? Lo que tiene ahora el archivo queda en un respaldo.» y, si dices que sí, vuelve a escribir el archivo desde el documento.
+- **Sobrescribir con Tisty** pregunta «¿Escribir este documento sobre `~/.claude/CLAUDE.md`? Lo que tiene ahora el archivo queda como copia en el historial.» y, si dices que sí, vuelve a escribir el archivo desde el documento.
 
 Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
 
@@ -543,26 +541,31 @@ Mientras no eliges, Tisty no escribe ese archivo, aunque cambies el documento.
 
 Si cambiaron el archivo y también el documento, la ficha dice **Cambiado en los dos lados**. Aparece **Quedarse con el archivo**, que pregunta «¿Dejar este documento como está ahora …? Lo que dice ahora queda en su historial.», junto a **Sobrescribir con Tisty**.
 
-Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [respaldos](#respaldos), el documento en sus versiones anteriores. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Agentes › Carpeta Agentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
+Lo mismo puede pasar la primera vez que sincronizas, cuando ya tenías en Agentes un documento de un archivo que entretanto cambió. Entonces aparece **Existe en los dos lados**, con las líneas que difieren: en rojo, con `−`, lo que hay **En Tisty**; en verde, con `+`, lo que hay **En el archivo**. Eliges **Conservar el de Tisty**, **Conservar el archivo** o **Decidir después**, y lo que no conservas queda guardado: el archivo en sus [copias](#copias-del-archivo), el documento en sus versiones anteriores; las dos cosas, en su **Historial**. Si Tisty nunca trajo ese archivo, el aviso suma **Traer a Agentes**, como cuenta [Un archivo que nunca trajiste](#un-archivo-que-nunca-trajiste). Desde **Configuración › Agentes › Carpeta Agentes**, «1 archivo dice algo distinto en Tisty y en el agente.» y **Revisar** te traen de vuelta a ese aviso.
 
-## Respaldos
+## Copias del archivo
 
-**Antes de sobrescribir un archivo de un agente, Tisty guarda lo que tenía.** Los respaldos viven en este equipo, en `data/agents/` dentro de la carpeta de Tisty, nunca en las carpetas de tus agentes, y no viajan con la sincronización ni con los paquetes.
+**Antes de sobrescribir un archivo de un agente, Tisty guarda una copia de lo que tenía.** Las copias viven en este equipo, en `data/agents/` dentro de la carpeta de Tisty, nunca en las carpetas de tus agentes, y no viajan con la sincronización ni con los paquetes. Los agentes no las leen por MCP: un archivo de agente puede tener secretos.
 
-- **El respaldo n.º 1 es el original**: el archivo como estaba antes de que Tisty lo sobrescribiera por primera vez. Ese no se borra nunca.
-- **Además, los últimos 20.** Cuando llega el 21, se va el más antiguo después del original.
-- **Quitar un archivo también deja uno.** Si [quitas el archivo](#sacar-una-regla-y-su-archivo) de una regla que sacaste, sus respaldos siguen en este equipo, y si una regla vuelve a escribir esa misma ruta, aparecen en su **Respaldos**.
+- **La primera copia es el original**: el archivo como estaba antes de que Tisty lo sobrescribiera por primera vez. Esa no vence nunca.
+- **Además, las últimas 20.** Cuando llega la 21, se va la más antigua después del original.
+- **Quitar un archivo también deja una.** Si [quitas el archivo](#sacar-una-regla-y-su-archivo) de una regla que sacaste, sus copias siguen en este equipo, y si una regla vuelve a escribir esa misma ruta, aparecen en su **Historial**.
 
-Así, un archivo que Tisty sobrescribió muchas veces guarda hasta 21: el original y los últimos 20. El cuadro dice «Se guardan los últimos 20.», y el n.º 1 se queda además de ellos.
+Así, un archivo que Tisty sobrescribió muchas veces guarda hasta 21 copias: el original y las últimas 20.
 
-Para verlos, pulsa **Respaldos** al pie de la ficha, o **Ver** en la fila **Respaldos** del cuadro de datos, junto a «3 respaldos»:
+### Un solo historial
 
-- **Ver** muestra el respaldo completo.
-- **Recuperar** pregunta «¿Devolver este respaldo a …? Lo que tiene ahora el archivo queda en un respaldo.» y lo escribe en el archivo.
+Las copias del archivo y las versiones del documento se ven juntas en **Historial**, al pie de la ficha, o con **Ver** en la fila **Copias del archivo** del cuadro de datos. Es una sola lista, de la más nueva a la más vieja:
 
-**Un respaldo recuperado no cambia tu documento.** El archivo vuelve a decir lo que decía el respaldo, y la ficha pasa a **Cambiado por fuera**: eliges **Traer el cambio**, para que el documento diga lo mismo, o **Sobrescribir con Tisty**, si te arrepentiste. Así nunca pierdes ninguno de los dos lados.
+- **Una versión del documento**, con su fecha, quién la escribió y su tamaño: **Qué cambió** y **Volver a esta versión**, como en cualquier documento.
+- **Una copia del archivo**, que dice «Archivo de Claude en este equipo, antes de que Tisty lo escribiera», con su fecha y su tamaño. Al elegirla ves el archivo completo, y **Devolver al archivo** pregunta «¿Devolver esta copia a …? Lo que tiene ahora el archivo queda como otra copia en el historial.» y la escribe en el archivo.
+- **El original**, siempre al final: «Archivo original de Claude, antes de que Tisty lo escribiera por primera vez», con «no vence».
 
-Las versiones anteriores del **documento**, en cambio, son las de cualquier documento: están en su [historial](Documentos#versiones-anteriores).
+Si todavía no hay nada, el historial dice «Todavía nada: ni versiones ni copias del archivo». Que haya una copia y ninguna versión es normal: las versiones vencen a los 30 días y las copias se guardan por número. **Vaciar el historial** borra las versiones del documento; las copias del archivo se quedan.
+
+![El historial de la regla Reglas de Claude: a la izquierda, una sola lista con versiones del documento y copias del archivo mezcladas por fecha, y al final Archivo original de Claude, antes de que Tisty lo escribiera por primera vez, con no vence; la copia elegida a la derecha, con el archivo completo y el botón Devolver al archivo arriba](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-agentes-historial-light.webp)
+
+**Una copia devuelta no cambia tu documento.** El archivo vuelve a decir lo que decía la copia, y la ficha pasa a **Cambiado por fuera**: eliges **Traer el cambio**, para que el documento diga lo mismo, o **Sobrescribir con Tisty**, si te arrepentiste. Así nunca pierdes ninguno de los dos lados.
 
 ## Pausar, dejar de sincronizar y vaciar
 
@@ -791,7 +794,7 @@ Lo que eliges vale para ese documento en ese equipo, y queda:
 
 ### Si dos documentos van al mismo archivo
 
-Pasa cuando el documento de tu carpeta y uno de la raíz escriben el mismo archivo, o la misma skill. Mientras no elijas, en este equipo no cambia nada: ninguno de los dos se escribe. Lo pregunta la ficha de los dos, sin importar cuál llegó primero: «En este equipo «CLAUDE.md» de todos tus equipos ya va al mismo archivo. ¿Cuál manda aquí?». Ofrece un botón por cada uno, con su título y de quién es, como **Usar «CLAUDE.md» de este equipo** y **Usar «CLAUDE.md» de todos tus equipos**, porque los dos suelen llamarse igual.
+Pasa cuando el documento de tu carpeta y uno de la raíz escriben el mismo archivo, o la misma skill. Mientras no elijas, en este equipo no cambia nada: ninguno de los dos se escribe. Lo pregunta la ficha de los dos, sin importar cuál llegó primero: «En este equipo «CLAUDE.md» de todos tus equipos ya va al mismo archivo. ¿Cuál manda aquí?». Ofrece un botón por cada uno, con su título y de quién es, como **Usar «CLAUDE.md» de este equipo** y **Usar «CLAUDE.md» de todos tus equipos**, porque los dos suelen llamarse igual. Si el archivo ya existía, la etiqueta dice **En espera** y la ficha lo explica: «Este archivo queda como estaba hasta que elijas qué documento lo escribe en este equipo.».
 
 **Un ejemplo.** Marisol tiene en **Casa (este equipo) › Claude** su `CLAUDE.md`, y desde la casa mueve a la raíz otro documento que también va a `CLAUDE.md`. Al llegar, el trabajo no sabe cuál debe mandar. Marisol abre cualquiera de los dos y pulsa el botón **Usar** del que quiere: ese se escribe en `~/.claude/CLAUDE.md`, y el otro sigue en su carpeta, con la ficha «En este equipo manda …».
 
@@ -1142,7 +1145,7 @@ Y editar el archivo en disco tampoco sirve: ese cambio queda como **Cambiado por
 
 **«El archivo cambió mientras Tisty lo escribía, así que no lo tocó.»** Otro programa escribió el archivo al mismo tiempo. Tisty no pisa nada: vuelve a mirar la ficha y elige.
 
-**Recuperé un respaldo y dice Cambiado por fuera.** Es lo esperado: [un respaldo recuperado no cambia tu documento](#respaldos). Elige **Traer el cambio** para quedarte con él.
+**Devolví una copia al archivo y dice Cambiado por fuera.** Es lo esperado: [una copia devuelta no cambia tu documento](#copias-del-archivo). Elige **Traer el cambio** para quedarte con él.
 
 ## Ver también
 

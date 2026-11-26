@@ -8,7 +8,6 @@ import {
   type Place,
 } from "../agentDocs";
 import { copied } from "../core";
-import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { agentRows, backupsSaid, type FactRow } from "./agentFile";
 import ComparedLines from "./ComparedLines";
@@ -16,7 +15,7 @@ import Glyph from "./Glyph";
 import Modal from "./Modal";
 import Page from "./Page";
 
-export type Shown = { place: Place; backup: number | null; text: string };
+export type Shown = { place: Place; text: string };
 
 export function Pill({
   tone,
@@ -196,11 +195,11 @@ const TONE = { amber: "text-hue-amber", red: "text-hue-red" } as const;
 
 function Fact({
   row,
-  onBackups,
+  onEarlier,
   onError,
 }: {
   row: FactRow;
-  onBackups: (place: Place) => void;
+  onEarlier?: () => void;
   onError: (e: unknown) => void;
 }) {
   if (row.kind === "raw")
@@ -230,10 +229,10 @@ function Fact({
         {row.kind === "backups" && (
           <span>
             {backupsSaid(row.place)}
-            {row.place.kept.length > 0 && (
+            {row.place.kept.length > 0 && onEarlier && (
               <>
                 {" · "}
-                <Link label={t("agentSee")} onClick={() => onBackups(row.place)} />
+                <Link label={t("agentSee")} onClick={onEarlier} />
               </>
             )}
           </span>
@@ -259,70 +258,33 @@ interface Facts {
   readonly doc: AgentDoc;
   readonly body: string;
   readonly children?: ReactNode;
-  readonly onBackups: (place: Place) => void;
+  readonly onEarlier?: () => void;
   readonly onError: (e: unknown) => void;
 }
 
 // The only place the file's facts are told: the page under it keeps only the words.
-export function AgentFacts({ doc, body, onBackups, onError, children }: Facts) {
+export function AgentFacts({ doc, body, onEarlier, onError, children }: Facts) {
   return (
     <dl
       aria-label={t("agentFileTitle")}
       className="mt-3 rounded-[10px] bg-desk px-3.5 py-1 text-[12.5px]"
     >
       {agentRows(doc, body).map((row) => (
-        <Fact key={keyOf(row)} row={row} onBackups={onBackups} onError={onError} />
+        <Fact key={keyOf(row)} row={row} onEarlier={onEarlier} onError={onError} />
       ))}
       {children}
     </dl>
   );
 }
 
-interface Backups {
-  readonly place: Place;
-  readonly restores: boolean;
-  readonly onSee: (backup: number) => void;
-  readonly onRestore: (backup: number) => void;
-  readonly onClose: () => void;
-}
-
-export function BackupsModal({ place, restores, onSee, onRestore, onClose }: Backups) {
-  return (
-    <Modal title={t("agentBackupsAll")} onClose={onClose}>
-      <p className="mb-2 text-[12.5px] text-soft">{fill("agentBackupsOf", place.at)}</p>
-      <ul className="divide-y divide-hair text-[13px]">
-        {place.kept.map((one) => (
-          <li key={one.n} className="flex items-center justify-between gap-3 py-1.5">
-            <span>{fill("agentBackupNamed", String(one.n), weigh(one.bytes))}</span>
-            <span className="flex gap-2">
-              <Link label={t("agentSee")} onClick={() => onSee(one.n)} />
-              {restores && <Link label={t("agentRestore")} onClick={() => onRestore(one.n)} />}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 flex justify-end">
-        <Action glyph="close" label={t("close")} onClick={onClose} />
-      </div>
-    </Modal>
-  );
-}
-
 interface File {
   readonly shown: Shown;
-  readonly restores: boolean;
-  readonly onRestore: (backup: number) => void;
   readonly onClose: () => void;
 }
 
-export function FileModal({ shown, restores, onRestore, onClose }: File) {
-  const backup = shown.backup;
+export function FileModal({ shown, onClose }: File) {
   return (
-    <Modal
-      wide
-      title={backup === null ? t("agentFileNow") : fill("agentBackupTitle", String(backup))}
-      onClose={onClose}
-    >
+    <Modal wide title={t("agentFileNow")} onClose={onClose}>
       <div className="flex h-[60vh] min-h-0 flex-col">
         <Page
           body={fencedFile(shown.text, shown.place.at)}
@@ -331,9 +293,6 @@ export function FileModal({ shown, restores, onRestore, onClose }: File) {
         />
       </div>
       <div className="mt-3 flex justify-end gap-2">
-        {backup !== null && restores && (
-          <Action glyph="history" label={t("agentRestore")} onClick={() => onRestore(backup)} />
-        )}
         <Action glyph="close" label={t("close")} onClick={onClose} />
       </div>
     </Modal>

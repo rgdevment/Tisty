@@ -3,7 +3,7 @@ import { folderShown } from "../agentsSync";
 import { asLink } from "../copying";
 import type { Folded } from "../core";
 import { fill, t } from "../locales";
-import { Action, AgentFacts, BackupsModal, FileModal, HereNote, Pill } from "./AgentCardParts";
+import { Action, AgentFacts, FileModal, HereNote, Pill } from "./AgentCardParts";
 import AgentProposal from "./AgentProposal";
 import { SharedFact, SharedWindows } from "./AgentShared";
 import { assistantPill } from "./AssistantMark";
@@ -58,6 +58,7 @@ interface Props {
   readonly card: CardProps;
   readonly shelf: AgentShelf;
   readonly body: string;
+  readonly onEarlier?: () => void;
 }
 
 function Outside({ hands, outside }: { hands: CardHands; outside: Place }) {
@@ -90,11 +91,7 @@ function Outside({ hands, outside }: { hands: CardHands; outside: Place }) {
             />
           )}
           {!(said.state === "outside" && said.gone) && (
-            <Action
-              glyph="view"
-              label={t("agentSeeFile")}
-              onClick={() => hands.show(outside, null)}
-            />
+            <Action glyph="view" label={t("agentSeeFile")} onClick={() => hands.show(outside)} />
           )}
         </div>
       </div>
@@ -131,7 +128,9 @@ function Notices({ hands }: { hands: CardHands }) {
         .filter((one) => one.said.state === "held")
         .map((one) => (
           <p key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
-            {fill("agentHeldSaid", one.heldBy.join(", "))}
+            {one.clash || one.heldBy.length === 0
+              ? t("agentHeldClash")
+              : fill("agentHeldSaid", one.heldBy.join(", "))}
           </p>
         ))}
       {doc.places
@@ -151,7 +150,7 @@ function Notices({ hands }: { hands: CardHands }) {
   );
 }
 
-export default function AgentCard({ card, shelf, body }: Props) {
+export default function AgentCard({ card, shelf, body, onEarlier }: Props) {
   const hands = useAgentCard(card, shelf);
   const shared = useSharedRow(card.id, hands.failed, card.onKeep);
   const { doc } = card;
@@ -178,28 +177,12 @@ export default function AgentCard({ card, shelf, body }: Props) {
       <h2 className="mt-2.5 text-[21px] font-medium text-ink">{doc.label}</h2>
       {doc.own.about && <p className="mt-0.5 text-[12.5px] text-soft">{doc.own.about}</p>}
       {hands.own && <p className="mt-1.5 text-[12.5px] text-soft">{t("agentMemoryOwn")}</p>}
-      <AgentFacts doc={doc} body={body} onBackups={hands.seeBackups} onError={hands.failed}>
+      <AgentFacts doc={doc} body={body} onEarlier={onEarlier} onError={hands.failed}>
         <SharedFact shared={shared} />
       </AgentFacts>
       <Notices hands={hands} />
       <SharedWindows shared={shared} id={card.id} title={doc.label} onError={hands.failed} />
-      {hands.kept && !hands.shown && (
-        <BackupsModal
-          place={hands.kept}
-          restores={!hands.own}
-          onSee={(backup) => hands.kept && hands.show(hands.kept, backup)}
-          onRestore={(backup) => hands.kept && hands.restore(hands.kept, backup)}
-          onClose={hands.closeBackups}
-        />
-      )}
-      {hands.shown && (
-        <FileModal
-          shown={hands.shown}
-          restores={!hands.own}
-          onRestore={(backup) => hands.shown && hands.restore(hands.shown.place, backup)}
-          onClose={hands.closeFile}
-        />
-      )}
+      {hands.shown && <FileModal shown={hands.shown} onClose={hands.closeFile} />}
     </section>
   );
 }
@@ -227,13 +210,6 @@ export function AgentButtons({ card, shelf, onEarlier }: Buttons) {
           glyph={editing ? "done" : "pencil"}
           label={t(editing ? "agentDoneEditing" : "agentEdit")}
           onClick={() => onEdit(!editing)}
-        />
-      )}
-      {single && single.kept.length > 0 && (
-        <Action
-          glyph="archive"
-          label={t("agentBackupsAll")}
-          onClick={() => hands.seeBackups(single)}
         />
       )}
       {onEarlier && <Action glyph="history" label={t("agentFileHistory")} onClick={onEarlier} />}

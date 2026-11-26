@@ -21,6 +21,7 @@ const doc = (states: AgentDoc["places"][number]["said"][]): AgentDoc => ({
     said,
     shared: 1,
     heldBy: [],
+    clash: false,
     changed: null,
     bytes: null,
     kept: [],

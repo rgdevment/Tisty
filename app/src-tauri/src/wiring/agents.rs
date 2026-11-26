@@ -617,6 +617,14 @@ impl Stands {
                 matches!(stand, Some(Stand::Goes(it)) if *it != source)
             })
     }
+
+    /// Whether this path waits for the person to choose which document writes it.
+    pub fn asks_at(&self, homes: &Homes, card: &Card, at: &Path) -> bool {
+        landings(homes, card)
+            .iter()
+            .filter(|one| agents::same_file(&one.at, at))
+            .any(|one| self.0.get(&unit_of(card, &one.at)) == Some(&Stand::Asks))
+    }
 }
 
 pub fn placed(

@@ -72,7 +72,8 @@ const latest = (places: readonly Place[]): string | undefined =>
 export const backupsSaid = (place: Place): string => {
   const count = place.kept.length;
   if (count === 0) return t("agentFileNone");
-  return count === 1 ? t("agentBackupsOne") : fill("agentBackups", String(count));
+  const said = count === 1 ? t("agentBackupsOne") : fill("agentBackups", String(count));
+  return place.kept.some((one) => one.pinned) ? fill("agentCopiesWithOriginal", said) : said;
 };
 
 const capped = (doc: AgentDoc, place: Place): boolean =>
@@ -120,7 +121,6 @@ const ownRows = (doc: AgentDoc): FactRow[] => [
 
 export const agentRows = (doc: AgentDoc, body: string): FactRow[] => {
   const wrote = latest(doc.places);
-  const original = doc.places.some((one) => one.kept.some((backup) => backup.pinned));
   const said = (label: Parameters<typeof t>[0], value: string): FactRow => ({
     kind: "said",
     label: t(label),
@@ -131,14 +131,6 @@ export const agentRows = (doc: AgentDoc, body: string): FactRow[] => {
     ...eachPlace(doc),
     said("agentFileFormat", formatOf(doc, body)),
     ...(wrote ? [said("agentFileWrote", stamped(wrote))] : []),
-    ...(doc.places.length > 0
-      ? [
-          said(
-            "agentFileOriginal",
-            t(original ? "agentFileOriginalKept" : "agentFileOriginalNotYet"),
-          ),
-        ]
-      : []),
     said("agentFileSyncs", syncsOf(doc)),
     ...ownRows(doc),
   ];
