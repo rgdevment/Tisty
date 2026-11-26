@@ -295,7 +295,7 @@ pub(super) fn in_order(on: Option<&DateSpec>, owed: Option<&DateSpec>) -> Result
     let (Some(on), Some(owed)) = (on, owed) else {
         return Ok(());
     };
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     if owed.date() < on.date() && owed.date() >= today {
         return Err(Refused::Tool(format!(
             "a deadline of {} falls before {}, the day it would be worked on, and neither day \
@@ -349,7 +349,7 @@ pub(super) fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused>
                      out the moment yourself before calling."
                 ))
             })?;
-        if at < jiff::Zoned::now().datetime() {
+        if at < jiff::ZonedDateTime::now().datetime() {
             return Err(Refused::Tool(format!(
                 "`{key}` cannot ring in the past: {said:?} has already gone."
             )));

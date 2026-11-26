@@ -37,7 +37,11 @@ pub struct Nudge {
 
 #[tauri::command(async)]
 pub fn review_remind(session: tauri::State<'_, Mutex<Session>>, nudge: Nudge) -> Answer<Task> {
-    reminded(&mut held(&session), &nudge, jiff::Zoned::now().datetime())
+    reminded(
+        &mut held(&session),
+        &nudge,
+        jiff::ZonedDateTime::now().datetime(),
+    )
 }
 
 pub fn reminded(session: &mut Session, nudge: &Nudge, now: jiff::civil::DateTime) -> Answer<Task> {

@@ -53,7 +53,7 @@ fn at(when: &str) -> crate::DateSpec {
 fn moment(when: &str) -> jiff::Timestamp {
     when.parse::<jiff::civil::DateTime>()
         .unwrap()
-        .to_zoned(zone())
+        .to_zoned_datetime(zone())
         .unwrap()
         .timestamp()
 }

@@ -471,7 +471,7 @@ fn a_step_an_assistant_says_is_done_waits_for_the_person() {
     let one = state.tasks[&id].step(step).unwrap();
     assert!(one.said && !one.done, "said, not ticked");
 
-    let closing = state.completing(id, jiff::Zoned::now());
+    let closing = state.completing(id, jiff::ZonedDateTime::now());
     for (n, op) in closing.into_iter().enumerate() {
         state.apply(&ev(5 + n as i64, "dev_laptop", op));
     }

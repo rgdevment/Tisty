@@ -72,9 +72,9 @@ impl Event {
         }
     }
 
-    pub fn zoned(&self) -> Option<jiff::Zoned> {
+    pub fn zoned(&self) -> Option<jiff::ZonedDateTime> {
         let zone = jiff::tz::TimeZone::get(self.zone.as_deref()?).ok()?;
-        Some(self.timestamp.to_zoned(zone))
+        Some(self.timestamp.to_zoned_datetime(zone))
     }
 
     pub fn sort_key(&self) -> (jiff::Timestamp, &DeviceId, u64) {

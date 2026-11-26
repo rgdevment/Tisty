@@ -170,7 +170,7 @@ fn closed_round(room: &mut Room) -> Ulid {
     let state = room.state();
     let closing = closing_words(&room.paths, &mut room.store, &state, id, None);
     room.store.append_batch(closing.ops).unwrap();
-    let ops = room.state().completing(id, jiff::Zoned::now());
+    let ops = room.state().completing(id, jiff::ZonedDateTime::now());
     room.store.append_batch(ops).unwrap();
     id
 }

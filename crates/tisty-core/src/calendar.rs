@@ -1,5 +1,5 @@
 use jiff::civil::Date;
-use jiff::{Span, Timestamp, Zoned};
+use jiff::{Span, Timestamp, ZonedDateTime};
 
 use crate::ics::{EVE_AT, TIMED_BEFORE};
 use crate::model::Task;
@@ -21,7 +21,7 @@ pub struct Entry {
     pub link: String,
 }
 
-pub fn entry(task: &Task, link: &str, now: &Zoned) -> Option<Entry> {
+pub fn entry(task: &Task, link: &str, now: &ZonedDateTime) -> Option<Entry> {
     let (on, due) = match (&task.date, &task.deadline) {
         (Some(day), _) => (day, false),
         (None, Some(deadline)) => (deadline, true),
@@ -39,7 +39,7 @@ pub fn entry(task: &Task, link: &str, now: &Zoned) -> Option<Entry> {
         (When::Hours { from, to }, from)
     } else {
         let from = on.date();
-        let midnight = from.to_zoned(here.clone()).ok()?.timestamp();
+        let midnight = from.to_zoned_datetime(here.clone()).ok()?.timestamp();
         let to = from.tomorrow().ok()?;
         (When::Days { from, to }, midnight)
     };
@@ -60,7 +60,7 @@ pub fn entry(task: &Task, link: &str, now: &Zoned) -> Option<Entry> {
                 .yesterday()
                 .ok()?
                 .to_datetime(EVE_AT)
-                .to_zoned(here.clone())
+                .to_zoned_datetime(here.clone())
                 .ok()?
                 .timestamp(),
         };

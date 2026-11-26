@@ -342,7 +342,7 @@ fn no_order_anywhere_hands_back_a_drawing_that_cannot_say_it_broke() {
 
 #[test]
 fn a_date_typed_as_it_is_said_lands_as_its_day() {
-    let now: jiff::Zoned = "2026-10-28T10:00:00[America/Santiago]".parse().unwrap();
+    let now: jiff::ZonedDateTime = "2026-10-28T10:00:00[America/Santiago]".parse().unwrap();
     assert_eq!(canon("date", "2026-11-14", &now, "es"), "2026-11-14");
     assert_eq!(canon("date", "mañana", &now, "es"), "2026-10-29");
     assert_eq!(canon("date", "tomorrow", &now, "en"), "2026-10-29");

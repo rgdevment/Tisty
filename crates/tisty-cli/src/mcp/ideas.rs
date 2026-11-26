@@ -320,7 +320,7 @@ pub(super) fn jotted_on(
     }
     let each = ideas_in(said)?;
     let before = tisty_core::docs::read(&paths.docs(), &kept.file).map_err(hitch)?;
-    let at = jiff::Zoned::now().datetime();
+    let at = jiff::ZonedDateTime::now().datetime();
     let used = brainstorm::proposed_from(state, &kept.file);
     let added = brainstorm::jotted_all(&before, &used, &each, at, brainstorm::roll);
     let whole = tisty_core::docs::append(

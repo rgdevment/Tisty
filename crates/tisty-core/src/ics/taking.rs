@@ -1,6 +1,6 @@
 use jiff::civil::Time;
 use jiff::tz::TimeZone;
-use jiff::{Span, Zoned};
+use jiff::{Span, ZonedDateTime};
 
 use super::read::{Alarm, Item, Kind};
 use super::rule::{Ruled, ruled, span};
@@ -50,9 +50,9 @@ impl Taken {
 }
 
 // An alarm of its own wins; without one, half an hour before a time, or the evening before a day.
-fn reminder(at: &DateSpec, alarm: Option<i64>, now: &Zoned) -> Option<DateSpec> {
+fn reminder(at: &DateSpec, alarm: Option<i64>, now: &ZonedDateTime) -> Option<DateSpec> {
     let here = now.time_zone();
-    let start = at.instant(here).ok()?.to_zoned(here.clone());
+    let start = at.instant(here).ok()?.to_zoned_datetime(here.clone());
     let back = |minutes: i64| Span::new().try_minutes(minutes).ok();
     let then = match (alarm, at.has_time) {
         (Some(minutes), _) => start.checked_sub(back(minutes)?).ok()?,
@@ -62,7 +62,7 @@ fn reminder(at: &DateSpec, alarm: Option<i64>, now: &Zoned) -> Option<DateSpec> 
             .yesterday()
             .ok()?
             .to_datetime(EVE_AT)
-            .to_zoned(here.clone())
+            .to_zoned_datetime(here.clone())
             .ok()?,
     };
     (then.timestamp() > now.timestamp())
@@ -77,7 +77,7 @@ fn described(item: &Item) -> Option<String> {
     (!said.is_empty()).then(|| said.join("\n\n"))
 }
 
-fn gone(at: &DateSpec, now: &Zoned) -> bool {
+fn gone(at: &DateSpec, now: &ZonedDateTime) -> bool {
     match at.has_time {
         true => at
             .instant(now.time_zone())
@@ -87,7 +87,7 @@ fn gone(at: &DateSpec, now: &Zoned) -> bool {
 }
 
 // A series that began long ago starts at its next turn, counted from its first so the 31st stays the 31st.
-fn caught_up(at: &DateSpec, each: Cadence, now: &Zoned) -> Option<DateSpec> {
+fn caught_up(at: &DateSpec, each: Cadence, now: &ZonedDateTime) -> Option<DateSpec> {
     if !gone(at, now) {
         return Some(at.clone());
     }
@@ -149,7 +149,7 @@ fn ended_at(item: &Item, here: &TimeZone, start: Option<&DateSpec>) -> Option<Da
     Some(start.moved(start.at.checked_add(span).ok()?))
 }
 
-pub fn taken(item: &Item, now: &Zoned) -> Taken {
+pub fn taken(item: &Item, now: &ZonedDateTime) -> Taken {
     let here = now.time_zone();
     let start = item.start.as_ref().and_then(|one| when(one, here));
     let due = item.due.as_ref().and_then(|one| when(one, here));

@@ -51,7 +51,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
     }
     if draft
         .repeat
-        .is_some_and(|over| over.ended(jiff::Zoned::now().date()))
+        .is_some_and(|over| over.ended(jiff::ZonedDateTime::now().date()))
     {
         return Err(Rejected::EndedAlready);
     }

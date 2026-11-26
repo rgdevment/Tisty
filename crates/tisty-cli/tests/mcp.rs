@@ -453,7 +453,7 @@ fn filed(served: &Served, title: &str) -> String {
 
 fn today_there() -> String {
     jiff::Timestamp::now()
-        .to_zoned(jiff::tz::TimeZone::get("America/Santiago").unwrap())
+        .to_zoned_datetime(jiff::tz::TimeZone::get("America/Santiago").unwrap())
         .strftime("%Y-%m-%d")
         .to_string()
 }
@@ -979,7 +979,7 @@ fn what_can_be_cached_says_for_how_long_and_by_whom() {
     // In the served process's zone, not the runner's, and before asking rather than after: either
     // mismatch makes the margin come out negative on a machine that is not the author's.
     let zone = jiff::tz::TimeZone::get("America/Santiago").unwrap();
-    let day = jiff::Timestamp::now().to_zoned(zone);
+    let day = jiff::Timestamp::now().to_zoned_datetime(zone);
     let midnight = day.tomorrow().unwrap().start_of_day().unwrap();
     let until = midnight.timestamp().as_millisecond() - day.timestamp().as_millisecond();
 
@@ -5122,7 +5122,7 @@ fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
 }
 
 fn soon(days: i64, hour: i8) -> String {
-    let at = jiff::Zoned::now()
+    let at = jiff::ZonedDateTime::now()
         .checked_add(jiff::Span::new().try_days(days).unwrap())
         .unwrap()
         .date();
@@ -5130,7 +5130,7 @@ fn soon(days: i64, hour: i8) -> String {
 }
 
 fn on(days: i64) -> String {
-    jiff::Zoned::now()
+    jiff::ZonedDateTime::now()
         .checked_add(jiff::Span::new().try_days(days).unwrap())
         .unwrap()
         .date()

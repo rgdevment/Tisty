@@ -37,8 +37,11 @@ fn floating_time_survives_a_dst_change() {
     let before = DateSpec::floating("2026-09-05T10:00:00".parse().unwrap(), "America/Santiago");
     let after = DateSpec::floating("2026-09-12T10:00:00".parse().unwrap(), "America/Santiago");
 
-    let a = before.instant(&zone).unwrap().to_zoned(zone.clone());
-    let b = after.instant(&zone).unwrap().to_zoned(zone);
+    let a = before
+        .instant(&zone)
+        .unwrap()
+        .to_zoned_datetime(zone.clone());
+    let b = after.instant(&zone).unwrap().to_zoned_datetime(zone);
 
     assert_eq!(a.hour(), 10);
     assert_eq!(b.hour(), 10);
@@ -55,7 +58,7 @@ fn round_trips() {
 fn a_day_has_passed_only_once_it_is_over_and_an_hour_once_it_is_gone() {
     let now = jiff::civil::date(2026, 8, 5)
         .at(12, 0, 0, 0)
-        .to_zoned(tz("UTC"))
+        .to_zoned_datetime(tz("UTC"))
         .unwrap();
     let today = DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC");
     let yesterday = DateSpec::all_day("2026-08-04".parse().unwrap(), "UTC");
@@ -70,7 +73,7 @@ fn a_day_has_passed_only_once_it_is_over_and_an_hour_once_it_is_gone() {
 fn a_deadline_fixed_in_another_zone_has_passed_by_its_own_clock() {
     let now = jiff::civil::date(2026, 8, 5)
         .at(12, 0, 0, 0)
-        .to_zoned(tz("America/Santiago"))
+        .to_zoned_datetime(tz("America/Santiago"))
         .unwrap();
     let berlin_noon = DateSpec::fixed("2026-08-05T12:00:00".parse().unwrap(), "Europe/Berlin");
     let tokyo_evening = DateSpec::fixed("2026-08-05T23:00:00".parse().unwrap(), "Asia/Tokyo");

@@ -1,4 +1,4 @@
-use jiff::Zoned;
+use jiff::ZonedDateTime;
 use jiff::civil::date;
 
 use super::{Entry, When, entry, google, outlook, outlook_work};
@@ -8,7 +8,7 @@ use crate::model::{DateSpec, Task};
 const TASK: &str = "01KA7B3VJ9RZ0Q8M5N2X4Y6W1T";
 const LINK: &str = "tisty://task?id=01KA7B3VJ9RZ0Q8M5N2X4Y6W1T";
 
-fn now() -> Zoned {
+fn now() -> ZonedDateTime {
     date(2026, 11, 14)
         .at(12, 0, 0, 0)
         .in_tz("America/Santiago")

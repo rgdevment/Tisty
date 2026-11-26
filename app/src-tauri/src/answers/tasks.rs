@@ -153,7 +153,7 @@ pub fn archive_shape(
 ) -> Answer<tisty_core::shape::Shape> {
     let mut session = held(&session);
     session.reload()?;
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     Ok(tisty_core::shape::shape(
         &session.state,
         18,
@@ -293,7 +293,11 @@ pub fn named_priority(raw: &str) -> Answer<tisty_core::Priority> {
     raw.parse().map_err(|_| Refusal::of("notAPriority"))
 }
 
-pub fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
+pub fn dated(
+    raw: &str,
+    now: &jiff::ZonedDateTime,
+    spoken: &str,
+) -> Result<tisty_core::DateSpec, Refusal> {
     if let Ok(day) = raw.parse::<jiff::civil::Date>() {
         return Ok(tisty_core::DateSpec::all_day(day, zone()));
     }
@@ -315,7 +319,7 @@ pub fn capture(
 ) -> Answer<Task> {
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let read = tisty_nl::parse(&text, &now, &spoken);
     let mut draft: tisty_core::capture::Draft = read.clone().into();
 
@@ -379,7 +383,7 @@ pub fn read(
     locale: String,
 ) -> Answer<tisty_nl::Parsed> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
-    Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
+    Ok(tisty_nl::parse(&text, &jiff::ZonedDateTime::now(), &spoken))
 }
 
 #[derive(serde::Serialize)]
@@ -408,7 +412,7 @@ pub fn patch(
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let task = session
         .state
         .tasks
@@ -784,7 +788,7 @@ impl Edits {
     pub(crate) fn apply(
         &self,
         draft: &mut tisty_core::capture::Draft,
-        now: &jiff::Zoned,
+        now: &jiff::ZonedDateTime,
         spoken: &str,
     ) -> Result<(), Refusal> {
         if self.no_date {

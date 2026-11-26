@@ -178,7 +178,7 @@ fn year_of(kept: &Kept) -> Option<i16> {
     kept.title
         .as_deref()
         .and_then(year_named)
-        .or_else(|| Some(kept.made?.to_zoned(jiff::tz::TimeZone::UTC).year()))
+        .or_else(|| Some(kept.made?.to_zoned_datetime(jiff::tz::TimeZone::UTC).year()))
 }
 
 // The oldest wins, as with Brainstorm, so two machines that each began the year write in one book.

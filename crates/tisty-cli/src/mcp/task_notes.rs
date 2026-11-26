@@ -48,7 +48,8 @@ pub(super) fn noted_on_page(
     let spanish = tisty_core::model::spoken(config.locale.as_deref())
         .to_lowercase()
         .starts_with("es");
-    let note = tisty_core::assistant_notes::signed_by(&assistant(), &jiff::Zoned::now(), body);
+    let note =
+        tisty_core::assistant_notes::signed_by(&assistant(), &jiff::ZonedDateTime::now(), body);
     let page = tisty_core::task_docs::of(state, owner).map(|kept| kept.file.clone());
     let folded = match replace {
         true => folding(paths, page.as_deref(), &title, body, &note, spanish)?,

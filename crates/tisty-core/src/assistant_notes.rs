@@ -21,7 +21,7 @@ pub fn noted(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
-pub fn signed_by(who: &str, at: &jiff::Zoned, words: &str) -> String {
+pub fn signed_by(who: &str, at: &jiff::ZonedDateTime, words: &str) -> String {
     format!(
         "**{}** · {who}\n{}",
         at.strftime("%Y-%m-%d %H:%M"),

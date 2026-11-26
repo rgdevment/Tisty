@@ -1,6 +1,6 @@
 use super::*;
 
-fn now() -> jiff::Zoned {
+fn now() -> jiff::ZonedDateTime {
     "2026-08-11T17:04:03-04[America/Santiago]".parse().unwrap()
 }
 

@@ -58,7 +58,7 @@ fn every_case() -> Vec<(&'static str, Case)> {
         .collect()
 }
 
-fn now() -> jiff::Zoned {
+fn now() -> jiff::ZonedDateTime {
     "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
 }
 

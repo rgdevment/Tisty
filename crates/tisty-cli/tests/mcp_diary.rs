@@ -328,7 +328,10 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
 }
 
 fn santiago_today() -> jiff::civil::Date {
-    jiff::Zoned::now().in_tz("America/Santiago").unwrap().date()
+    jiff::ZonedDateTime::now()
+        .in_tz("America/Santiago")
+        .unwrap()
+        .date()
 }
 
 #[test]

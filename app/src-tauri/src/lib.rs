@@ -130,11 +130,11 @@ async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static)
 }
 
 fn today() -> jiff::civil::Date {
-    jiff::Zoned::now().date()
+    jiff::ZonedDateTime::now().date()
 }
 
 fn zone() -> String {
-    jiff::Zoned::now()
+    jiff::ZonedDateTime::now()
         .time_zone()
         .iana_name()
         .unwrap_or("UTC")

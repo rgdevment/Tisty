@@ -289,7 +289,7 @@ fn the_tasks_closed_on_a_day_are_the_ones_done_that_day_and_not_hidden() {
     let zone = jiff::tz::TimeZone::UTC;
     let noon = day("2026-11-15")
         .at(12, 0, 0, 0)
-        .to_zoned(zone.clone())
+        .to_zoned_datetime(zone.clone())
         .unwrap();
     let ms = noon.timestamp().as_millisecond();
     let mut add = |title: &str, at: i64| {

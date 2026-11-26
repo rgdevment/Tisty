@@ -113,11 +113,11 @@ fn a_daily_due(on: &str) -> (Vec<Event>, TaskId) {
     )
 }
 
-fn now_on(day: &str) -> jiff::Zoned {
+fn now_on(day: &str) -> jiff::ZonedDateTime {
     format!("{day}T09:00:00Z")
         .parse::<jiff::Timestamp>()
         .unwrap()
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
 }
 
 #[test]
@@ -385,7 +385,7 @@ fn completing_a_repeating_task_emits_the_next_one() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     let ops = state.completing(id, now);
 
@@ -420,7 +420,7 @@ fn the_next_turn_of_a_repeat_is_not_born_written_off() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     let ops = state.completing(id, now);
 
@@ -448,7 +448,7 @@ fn a_repeat_carries_the_quadrant_it_was_placed_in() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     let ops = state.completing(id, now);
 
@@ -487,7 +487,7 @@ fn what_was_pinned_to_the_old_date_moves_with_it() {
 
     let now = jiff::civil::date(2026, 8, 11)
         .at(20, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     let ops = state.completing(id, now);
     let Op::TaskAdd { d, .. } = &ops[1] else {
@@ -527,7 +527,7 @@ fn completing_twice_does_not_emit_two_of_the_next_one() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     for op in state.completing(id, now.clone()) {
         state.apply(&ev(2, "a", op));
@@ -552,7 +552,7 @@ fn completing_an_ordinary_task_emits_nothing_extra() {
         },
     ));
 
-    let now = jiff::Timestamp::now().to_zoned(jiff::tz::TimeZone::UTC);
+    let now = jiff::Timestamp::now().to_zoned_datetime(jiff::tz::TimeZone::UTC);
     assert_eq!(state.completing(id, now).len(), 1);
 }
 use super::*;
@@ -610,7 +610,7 @@ fn the_next_occurrence_carries_the_recipe() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     for op in state.completing(id, now) {
         state.apply(&ev(9, "a", op));
@@ -668,7 +668,7 @@ fn the_steps_come_back_unticked() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     for op in state.completing(id, now) {
         state.apply(&ev(9, "a", op));
@@ -702,7 +702,7 @@ fn nothing_is_copied_when_there_is_no_repeat() {
 
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
 
     assert_eq!(state.completing(id, now).len(), 1);
@@ -725,7 +725,7 @@ fn a_reminder_on_a_dateless_repeat_moves_with_the_cadence() {
 
     let now = jiff::civil::date(2026, 8, 11)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     for op in state.completing(id, now) {
         state.apply(&ev(9, "a", op));
@@ -822,7 +822,7 @@ fn repeating() -> (State, TaskId) {
     state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
     let now = jiff::civil::date(2026, 8, 4)
         .at(21, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap();
     for op in state.completing(id, now) {
         state.apply(&ev(9, "a", op));
@@ -1116,7 +1116,7 @@ fn the_turn_that_follows_a_marked_one_is_born_with_nothing_said_about_it() {
     state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
     said_done(&mut state, 2, id);
 
-    let now = at(3).to_zoned(jiff::tz::TimeZone::UTC);
+    let now = at(3).to_zoned_datetime(jiff::tz::TimeZone::UTC);
     for (n, op) in state.completing(id, now).into_iter().enumerate() {
         state.apply(&ev(4 + n as i64, "dev_laptop", op));
     }

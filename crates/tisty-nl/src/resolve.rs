@@ -1,11 +1,11 @@
 use jiff::{
-    Zoned,
+    ZonedDateTime,
     civil::{Date, Time, Weekday},
 };
 
 use crate::scan::Anchor;
 
-pub fn to_date(anchor: Anchor, now: &Zoned) -> Option<Date> {
+pub fn to_date(anchor: Anchor, now: &ZonedDateTime) -> Option<Date> {
     let today = now.date();
 
     let date = match anchor {
@@ -86,7 +86,7 @@ fn explicit(today: Date, day: u8, written: Option<u8>, year: Option<i16>) -> Opt
     Date::new(today.year() + 1, month, day as i8).ok()
 }
 
-pub fn place_time(date: Option<Date>, time: Time, now: &Zoned) -> Option<Date> {
+pub fn place_time(date: Option<Date>, time: Time, now: &ZonedDateTime) -> Option<Date> {
     match date {
         Some(d) => Some(d),
         None if time > now.time() => Some(now.date()),

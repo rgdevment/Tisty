@@ -1,9 +1,9 @@
 use super::{Kind, Odd, Unread, read, taken};
 use crate::model::{Cadence, Priority, Repeat, Unit};
-use jiff::Zoned;
+use jiff::ZonedDateTime;
 use jiff::civil::date;
 
-fn now() -> Zoned {
+fn now() -> ZonedDateTime {
     date(2026, 10, 18)
         .at(12, 0, 0, 0)
         .in_tz("America/Santiago")

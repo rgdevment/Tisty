@@ -4,14 +4,14 @@ use crate::{State, order};
 
 impl State {
     /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
-    pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
+    pub fn completing(&self, id: TaskId, now: jiff::ZonedDateTime) -> Vec<Op> {
         let mut ops = self.open_parts_dropped(id);
         ops.extend(self.said_ticked(id));
         ops.extend(self.finishing(id, now));
         ops
     }
 
-    fn finishing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
+    fn finishing(&self, id: TaskId, now: jiff::ZonedDateTime) -> Vec<Op> {
         let done = vec![Op::TaskDone { id, filled: false }];
         let Some(task) = self.tasks.get(&id) else {
             return done;
@@ -145,7 +145,12 @@ impl State {
     }
 
     /// Fills the dates the person says they did, as turns already closed, so no gap is invented.
-    pub fn covering(&self, id: TaskId, now: jiff::Zoned, also: &[jiff::civil::Date]) -> Vec<Op> {
+    pub fn covering(
+        &self,
+        id: TaskId,
+        now: jiff::ZonedDateTime,
+        also: &[jiff::civil::Date],
+    ) -> Vec<Op> {
         let Some(task) = self.tasks.get(&id) else {
             return vec![Op::TaskDone { id, filled: false }];
         };

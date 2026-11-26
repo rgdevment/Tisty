@@ -46,7 +46,11 @@ pub fn noticed_in(word: &Word, spoken: &str) -> String {
     let date = i64::try_from(word.at)
         .ok()
         .and_then(|at| jiff::Timestamp::from_second(at).ok())
-        .map(|at| at.to_zoned(jiff::tz::TimeZone::system()).date().to_string())
+        .map(|at| {
+            at.to_zoned_datetime(jiff::tz::TimeZone::system())
+                .date()
+                .to_string()
+        })
         .unwrap_or_default();
     let (es, en) = match crate::config::bound(&word.to) {
         crate::config::Bound::Cloud { provider, email } => {

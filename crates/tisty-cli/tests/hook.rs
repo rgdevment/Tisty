@@ -223,7 +223,7 @@ fn a_hidden_task_and_the_diary_never_reach_a_starting_session() {
     agent.call("catch_up", json!({}));
     std::thread::sleep(std::time::Duration::from_millis(20));
     home.person().hides(secret);
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     home.person()
         .writes_in_the_diary(today, "Dear diary, nobody reads this");
 

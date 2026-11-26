@@ -149,13 +149,13 @@ pub struct LogEntry {
 }
 
 impl LogEntry {
-    pub fn zoned(&self) -> jiff::Zoned {
+    pub fn zoned(&self) -> jiff::ZonedDateTime {
         let zone = self
             .tz
             .as_deref()
             .and_then(|name| jiff::tz::TimeZone::get(name).ok())
             .unwrap_or_else(jiff::tz::TimeZone::system);
-        self.at.to_zoned(zone)
+        self.at.to_zoned_datetime(zone)
     }
 }
 
@@ -284,7 +284,7 @@ impl Task {
     pub fn counted_on(&self, zone: &jiff::tz::TimeZone) -> Option<jiff::civil::Date> {
         match (self.filled, self.date.as_ref()) {
             (true, Some(due)) => Some(due.at.date()),
-            _ => Some(self.completed_at?.to_zoned(zone.clone()).date()),
+            _ => Some(self.completed_at?.to_zoned_datetime(zone.clone()).date()),
         }
     }
 

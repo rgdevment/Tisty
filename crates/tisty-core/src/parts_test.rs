@@ -245,7 +245,7 @@ fn finishing_the_whole_lets_the_open_parts_go_and_keeps_the_closed_ones() {
         },
     ));
 
-    let ops = state.completing(whole, jiff::Zoned::now());
+    let ops = state.completing(whole, jiff::ZonedDateTime::now());
 
     assert!(ops.contains(&Op::TaskDrop { id: open }));
     assert!(!ops.contains(&Op::TaskDrop { id: done }));

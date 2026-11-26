@@ -352,7 +352,7 @@ fn allowed(
     if state.repeat_refused(task.id).is_some() {
         d.repeat = None;
     }
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     if matches!(&d.deadline, Some(Some(due)) if due.passed(&now)) {
         d.deadline = None;
     }

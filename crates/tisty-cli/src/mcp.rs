@@ -591,7 +591,7 @@ fn moved(task: &Task) -> Refused {
 }
 
 fn when(at: jiff::Timestamp) -> String {
-    at.to_zoned(jiff::tz::TimeZone::system())
+    at.to_zoned_datetime(jiff::tz::TimeZone::system())
         .strftime("%Y-%m-%d %H:%M")
         .to_string()
 }

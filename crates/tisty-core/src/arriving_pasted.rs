@@ -1,5 +1,4 @@
-use markup5ever_rcdom::{Node, NodeData};
-use std::rc::Rc;
+use htmd::node::{Node, NodeType};
 
 /// What a clipboard's html turns out to be, by what it holds rather than what it claims.
 pub(super) enum Arrived {
@@ -72,7 +71,7 @@ const FORMATTING: [&str; 27] = [
     "details",
 ];
 
-pub(super) fn arrived(tree: &Rc<Node>) -> Arrived {
+pub(super) fn arrived(tree: &Node) -> Arrived {
     if let Some(laid) = laid_out(tree) {
         return Arrived::Laid(laid);
     }
@@ -144,7 +143,7 @@ fn emoji_ahead(rest: &[char]) -> bool {
 }
 
 // The element that holds every word on the clipboard and lays them out by spaces: VS Code's, a terminal's.
-fn laid_out(tree: &Rc<Node>) -> Option<String> {
+fn laid_out(tree: &Node) -> Option<String> {
     let holder = first(tree, &|node| {
         style(node).is_some_and(|said| {
             let flat = said
@@ -225,35 +224,27 @@ fn spoken(line: &str) -> String {
     format!("{ticks}{pad}{line}{pad}{ticks}")
 }
 
-fn first(node: &Rc<Node>, found: &dyn Fn(&Rc<Node>) -> bool) -> Option<Rc<Node>> {
+fn first<'a>(node: &Node<'a>, found: &dyn Fn(&Node) -> bool) -> Option<Node<'a>> {
     if found(node) {
         return Some(node.clone());
     }
     if skipped(node) {
         return None;
     }
-    node.children
-        .borrow()
-        .iter()
-        .find_map(|child| first(child, found))
+    kids(node).find_map(|child| first(&child, found))
 }
 
-fn tag(node: &Node) -> Option<&str> {
-    match &node.data {
-        NodeData::Element { name, .. } => Some(&name.local),
-        _ => None,
-    }
+/// A node's children, each borrowed from the tree rather than from the node.
+pub(super) fn kids<'a>(node: &Node<'a>) -> impl Iterator<Item = Node<'a>> {
+    std::iter::successors(node.first_child(), Node::next_sibling)
+}
+
+fn tag<'a>(node: &'a Node) -> Option<&'a str> {
+    node.tag_name()
 }
 
 fn attr(node: &Node, wanted: &str) -> Option<String> {
-    match &node.data {
-        NodeData::Element { attrs, .. } => attrs
-            .borrow()
-            .iter()
-            .find(|one| &*one.name.local == wanted)
-            .map(|one| one.value.to_string()),
-        _ => None,
-    }
+    node.attr(wanted).map(|one| one.to_string())
 }
 
 fn style(node: &Node) -> Option<String> {
@@ -265,7 +256,7 @@ fn skipped(node: &Node) -> bool {
 }
 
 // A tag or a style that changes how words look is formatting; a paragraph, a line or a plain span is not.
-fn formatted(node: &Rc<Node>) -> bool {
+fn formatted(node: &Node) -> bool {
     if skipped(node) {
         return false;
     }
@@ -278,7 +269,7 @@ fn formatted(node: &Rc<Node>) -> bool {
         Some(name) => FORMATTING.contains(&name),
         None => false,
     };
-    shown || node.children.borrow().iter().any(formatted)
+    shown || kids(node).any(|child| formatted(&child))
 }
 
 fn painted(node: &Node) -> bool {
@@ -297,10 +288,12 @@ fn painted(node: &Node) -> bool {
         || super::html::written_hue(&style, attr(node, "color").as_deref()).is_some()
 }
 
-fn words(node: &Rc<Node>, pre: bool, out: &mut String) {
-    match &node.data {
-        NodeData::Text { contents } => {
-            let said = contents.borrow();
+fn words(node: &Node, pre: bool, out: &mut String) {
+    match node.node_type() {
+        NodeType::Text => {
+            let Some(said) = node.text() else {
+                return;
+            };
             for one in said.chars() {
                 match one {
                     '\u{a0}' => out.push(' '),
@@ -314,12 +307,12 @@ fn words(node: &Rc<Node>, pre: bool, out: &mut String) {
                 }
             }
         }
-        NodeData::Document => {
-            for child in node.children.borrow().iter() {
-                words(child, pre, out);
+        NodeType::Document => {
+            for child in kids(node) {
+                words(&child, pre, out);
             }
         }
-        NodeData::Element { .. } => {
+        NodeType::Element => {
             let name = tag(node).unwrap_or_default();
             if skipped(node) {
                 return;
@@ -348,8 +341,8 @@ fn words(node: &Rc<Node>, pre: bool, out: &mut String) {
             if block {
                 lined(out, pre);
             }
-            for child in node.children.borrow().iter() {
-                words(child, pre, out);
+            for child in kids(node) {
+                words(&child, pre, out);
             }
             if block {
                 lined(out, pre);

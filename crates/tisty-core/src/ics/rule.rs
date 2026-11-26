@@ -41,7 +41,7 @@ pub fn span(unit: Unit, steps: i64) -> Option<jiff::Span> {
 
 // The series is told in its own zone and Tisty keeps it on this clock, so its last day is read here.
 fn local_day(at: DateTime, zone: Option<&TimeZone>, here: &TimeZone) -> Date {
-    zone.and_then(|zone| at.to_zoned(zone.clone()).ok())
+    zone.and_then(|zone| at.to_zoned_datetime(zone.clone()).ok())
         .map_or(at.date(), |one| one.with_time_zone(here.clone()).date())
 }
 

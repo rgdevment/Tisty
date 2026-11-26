@@ -21,7 +21,7 @@ pub fn jot(
         &mut held(&session),
         &idea,
         &title,
-        jiff::Zoned::now().datetime(),
+        jiff::ZonedDateTime::now().datetime(),
         tisty_core::brainstorm::roll(),
     )
 }

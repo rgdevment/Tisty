@@ -113,7 +113,10 @@ pub fn when(stamp: &Stamp, here: &TimeZone) -> Option<When> {
         (None, false) => None,
     };
     let fixed = |zone: TimeZone| -> Option<When> {
-        let local = at.to_zoned(zone).ok()?.with_time_zone(here.clone());
+        let local = at
+            .to_zoned_datetime(zone)
+            .ok()?
+            .with_time_zone(here.clone());
         Some(When {
             spec: DateSpec::fixed(local.datetime(), name.clone()),
             unknown_zone: None,

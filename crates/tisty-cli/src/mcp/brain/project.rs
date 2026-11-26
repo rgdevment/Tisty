@@ -302,7 +302,9 @@ fn row(stage: Stage, moved: jiff::Timestamp, task: &Task, line: Option<&str>) ->
 }
 
 pub(super) fn day(at: jiff::Timestamp) -> String {
-    at.to_zoned(jiff::tz::TimeZone::system()).date().to_string()
+    at.to_zoned_datetime(jiff::tz::TimeZone::system())
+        .date()
+        .to_string()
 }
 
 #[cfg(test)]
