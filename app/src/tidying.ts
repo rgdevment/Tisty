@@ -65,28 +65,25 @@ export const goingWith = (all: Filed[], docs: Filed[]): Going[] => {
 export const filesGoing = (going: Going[]): string[] =>
   going.flatMap(({ tongues, pages }) => [...tongues, ...pages].map((one) => one.file));
 
-const withPages = (docs: number, pages: number): Word =>
-  docs === 1
-    ? pages === 1
-      ? "flagDropOnePageSure"
-      : "flagDropOnePagesSure"
-    : pages === 1
-      ? "flagDropAllPageSure"
-      : "flagDropAllPagesSure";
-
 const namedGoing = ({ doc, tongues }: Going): string =>
   tongues.length > 1 ? `${listOf([doc])} (${tonguesNamed(tongues)})` : listOf([doc]);
 
-export const dropAllAsked = (going: Going[]): string => {
-  const named = going
+const namedAll = (going: Going[]): string =>
+  going
     .map((one) => [namedGoing(one), ...one.pages.map((page) => `    ${listOf([page])}`)].join("\n"))
     .join("\n");
-  const many = String(going.length);
-  const pages = going.reduce((all, one) => all + one.pages.length, 0);
-  return pages
-    ? `${fill(withPages(going.length, pages), many, String(pages))}\n\n${named}`
-    : fill("flagDropAllSure", many, named);
-};
+
+/** Picked in the sidebar, they wait out the undo time before going, so the question does not say forever. */
+export const dropPickedAsked = (going: Going[]): string =>
+  going.length === 1 && going[0]
+    ? dropOneAsked(going[0])
+    : `${fill("dropManySure", String(going.length))}\n\n${namedAll(going)}`;
+
+// The languages beside it are the same row, so they go with it, and the question says so.
+export const dropOneAsked = ({ doc, tongues, pages }: Going): string =>
+  tongues.length > 1
+    ? fill("dropTonguesSure", doc.title || t("untitledDoc"), tonguesNamed(tongues))
+    : fill(pages.length ? "dropPagesSure" : "dropDocSure", doc.title || t("untitledDoc"));
 
 export const compactedBy = (doc: Filed, last = true): string =>
   doc.compacted

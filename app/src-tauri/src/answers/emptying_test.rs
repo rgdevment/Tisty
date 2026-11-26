@@ -251,6 +251,32 @@ fn a_folder_of_agents_that_holds_files_is_not_deleted_from_here() {
 }
 
 #[test]
+fn into_a_folder_of_agents_is_refused_and_moves_nothing() {
+    let mut shelf = shelf();
+    let root = Ulid::generate();
+    let d = FolderAdd {
+        name: tisty_core::agents::FOLDER.into(),
+        order: "a0".into(),
+        parent: None,
+        icon: Some(tisty_core::agents::ICON.into()),
+        color: None,
+        computer: None,
+    };
+    shelf.session.commit(Op::FolderAdd { id: root, d }).unwrap();
+    let claude = shelf.folder("Claude", Some(root));
+    let plain = shelf.folder("Plain", None);
+    let note = shelf.doc(Some(plain));
+
+    for target in [root, claude] {
+        let refused = shelf
+            .emptied(plain, Contents::Into(Some(target)))
+            .unwrap_err();
+        assert_eq!(refused.code, "agentsHoldOnlyRules");
+    }
+    assert_eq!(shelf.folder_of(note), Some(plain));
+}
+
+#[test]
 fn dropping_a_folder_deletes_a_document_and_its_other_language_once() {
     let mut shelf = shelf();
     let folder = shelf.folder("Guías", None);

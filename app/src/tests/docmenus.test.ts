@@ -89,7 +89,6 @@ const hands = () => {
     newDoc: vi.fn(),
     newDiagram: vi.fn(),
     bringIn: vi.fn(),
-    makeFolder: vi.fn(),
     makeFolderIn: vi.fn(),
     rename: vi.fn(),
     parcels: { takeParcel: vi.fn(), packUp: vi.fn() },
@@ -111,6 +110,8 @@ const pick = (choices: Choice[], key: string) => {
   if (!one) throw new Error(`no ${key}`);
   return one;
 };
+const into = (choices: Choice[], key: string, inner: string) =>
+  pick(pick(choices, key).into?.choices ?? [], inner);
 const flush = () => new Promise((ready) => setTimeout(ready, 0));
 const sent = () => calls.map((one) => one.cmd);
 
@@ -136,11 +137,12 @@ describe("the menu of the documents themselves", () => {
     pick(choices, "packAll").onPick?.();
     pick(choices, "newDiagram").onPick?.();
     pick(hereChoices(h), "newDiagram").onPick?.();
+    pick(hereChoices(h), "newFolder").onPick?.();
 
     expect(h.newDoc).toHaveBeenCalledWith("f1");
     expect(h.newDiagram.mock.calls).toEqual([["f1"], [undefined]]);
     expect(h.bringIn).toHaveBeenCalledWith("f1");
-    expect(h.makeFolder).toHaveBeenCalled();
+    expect(h.makeFolderIn.mock.calls).toEqual([["f1"], [undefined]]);
     expect(h.parcels.takeParcel).toHaveBeenCalled();
     expect(h.parcels.packUp).toHaveBeenCalledWith([], "tisty");
   });
@@ -154,12 +156,11 @@ describe("the menu of a folder", () => {
     pick(choices, "newDoc").onPick?.();
     pick(choices, "newFolder").onPick?.();
     pick(choices, "rename").onPick?.();
-    pick(choices, "import").onPick?.();
-    pick(choices, "unpack").onPick?.();
-    pick(choices, "packAll").onPick?.();
+    into(choices, "more", "import").onPick?.();
+    pick(choices, "packFolder").onPick?.();
     pick(choices, "away").onPick?.();
     pick(choices, "drop").onPick?.();
-    pick(choices, "newDiagram").onPick?.();
+    into(choices, "more", "newDiagram").onPick?.();
     await flush();
 
     expect(h.newDoc).toHaveBeenCalledWith("f1");
@@ -167,6 +168,7 @@ describe("the menu of a folder", () => {
     expect(h.makeFolderIn).toHaveBeenCalledWith("f1");
     expect(h.rename).toHaveBeenCalledWith(folder);
     expect(h.bringIn).toHaveBeenCalledWith("f1");
+    expect(h.parcels.packUp).toHaveBeenCalledWith(["dev_a-0001", "dev_a-0002"], "Casa");
     expect(h.dropFolder).toHaveBeenCalledWith(folder);
     expect(sent()).toContain("folder_away");
     expect(h.changed).toHaveBeenCalled();
@@ -453,11 +455,11 @@ describe("the menu of a document", () => {
     const choices = docChoices(doc, h);
 
     pick(choices, "newPage").onPick?.();
-    pick(choices, "pageOf").into?.choices[0]?.onPick?.();
-    pick(choices, "asPlain").onPick?.();
-    pick(choices, "takeOut").onPick?.();
-    pick(choices, "packIt").onPick?.();
-    pick(choices, "copy").onPick?.();
+    into(choices, "move", "pageOf").into?.choices[0]?.onPick?.();
+    into(choices, "copyAs", "asPlain").onPick?.();
+    into(choices, "exportAs", "takeOut").onPick?.();
+    into(choices, "exportAs", "packIt").onPick?.();
+    into(choices, "copyAs", "copy").onPick?.();
     pick(choices, "lock").onPick?.();
     pick(choices, "away").onPick?.();
     pick(choices, "drop").onPick?.();
@@ -478,7 +480,7 @@ describe("the menu of a document", () => {
   it("copies the link of that document and says so", async () => {
     const h = hands();
 
-    pick(docChoices(other, h), "asLink").onPick?.();
+    into(docChoices(other, h), "copyAs", "asLink").onPick?.();
     await flush();
 
     expect(linking.files).toEqual(["dev_a-0002"]);
@@ -490,7 +492,7 @@ describe("the menu of a document", () => {
     const h = hands();
     linking.refuses = true;
 
-    pick(docChoices(doc, h), "asLink").onPick?.();
+    into(docChoices(doc, h), "copyAs", "asLink").onPick?.();
     await flush();
 
     expect(h.fail).toHaveBeenCalledWith({ code: "noClipboard" });
@@ -509,14 +511,19 @@ describe("the menu of a document", () => {
   it("offers the PDF only for the document on screen", () => {
     const h = hands();
 
-    expect(pick(docChoices(other, h), "seePdf").off).toBe(true);
-    expect(pick(docChoices(doc, h), "seePdf").off).toBe(false);
+    const away = into(docChoices(other, h), "exportAs", "seePdf");
+    const here = into(docChoices(doc, h), "exportAs", "seePdf");
+
+    expect(away.hint).toBe(t("openToExport"));
+    away.onPick?.();
+    expect(h.failWith).toHaveBeenCalledWith(t("openToExport"));
+    expect(here.hint).toBeUndefined();
   });
 
-  it("offers the idea board only its copy, its shelving, hiding it and its deletion", () => {
+  it("offers the idea board only its shelving, hiding it and its deletion", () => {
     const board = docChoices(doc, hands(), true);
 
-    expect(board.map((one) => one.key)).toEqual(["copy", "away", "hide", "drop"]);
+    expect(board.map((one) => one.key)).toEqual(["away", "hide", "drop"]);
     expect(board[0]?.apart).toBe(false);
   });
 });
@@ -589,17 +596,30 @@ describe("the menus of the folders and documents of the computers in Agents", ()
     expect(calls).toEqual([]);
   });
 
-  it("offers on a document of another computer only to move, set its width, copy as text or link, take out and pack", () => {
+  it("offers on a document of another computer only to move, copy as text or link, take out and pack", () => {
     const h = inComputers();
-    const all = keys(docChoices(theirRule, h));
-    expect(all.sort()).toEqual(["asLink", "asPlain", "measure", "move", "packIt", "takeOut"]);
+    const choices = docChoices(theirRule, h);
+    const all = keys(choices);
+    expect(all.sort()).toEqual(["copyAs", "exportAs", "move"]);
+    const copies = pick(choices, "copyAs").into?.choices ?? [];
+    expect(keys(copies)).toEqual(["copy", "asPlain", "asLink"]);
+    expect(pick(copies, "copy").hint).toBe(t("notHereSaid"));
+    expect(keys(pick(choices, "exportAs").into?.choices ?? [])).toEqual(
+      expect.arrayContaining(["takeOut", "packIt"]),
+    );
     expect(all).not.toContain("drop");
   });
 
   it("leaves a document of this computer with its whole menu", () => {
     const h = inComputers();
     const mineAll = keys(docChoices(mineRule, h));
-    expect(mineAll).toEqual(expect.arrayContaining(["drop", "copy", "lock", "away", "newPage"]));
+    expect(mineAll).toEqual(expect.arrayContaining(["drop", "copyAs", "lock", "away", "newPage"]));
+  });
+
+  it("offers no text width on an agent's file, which shows as its card", () => {
+    const h = inComputers();
+    expect(keys(docChoices(mineRule, h))).not.toContain("measure");
+    expect(keys(docChoices(theirRule, h))).not.toContain("measure");
   });
 });
 
@@ -619,7 +639,7 @@ describe("moving inside Agents asks first", () => {
   const files = () => sent().filter((cmd) => cmd === "doc_file" || cmd === "folder_file");
   const land = (choices: Choice[]) => pick(pick(choices, "move").into?.choices ?? [], "a2");
 
-  it("does not move a document or a folder when the answer is no", async () => {
+  it("does not move a document when the answer is no", async () => {
     movingAnswer.now = preview;
     const asked: string[] = [];
     asksSure((said) => {
@@ -628,23 +648,29 @@ describe("moving inside Agents asks first", () => {
     });
     const h = inAgents();
     land(docChoices(doc, h)).onPick?.();
-    land(folderChoices(folder, h)).onPick?.();
     await flush();
-    expect(asked).toHaveLength(2);
-    expect(sent().filter((cmd) => cmd === "agents_moving")).toHaveLength(2);
+    expect(asked).toHaveLength(1);
+    expect(sent().filter((cmd) => cmd === "agents_moving")).toHaveLength(1);
     expect(files()).toEqual([]);
     expect(h.changed).not.toHaveBeenCalled();
   });
 
-  it("moves a document and a folder when the answer is yes", async () => {
+  it("moves a document when the answer is yes", async () => {
     movingAnswer.now = preview;
     asksSure(() => Promise.resolve(true));
     const h = inAgents();
     land(docChoices(doc, h)).onPick?.();
-    land(folderChoices(folder, h)).onPick?.();
     await flush();
-    expect(files()).toEqual(["doc_file", "folder_file"]);
-    expect(h.changed).toHaveBeenCalledTimes(2);
+    expect(files()).toEqual(["doc_file"]);
+    expect(h.changed).toHaveBeenCalledTimes(1);
+  });
+
+  it("never offers Agents as a place for a plain folder, which it does not take", () => {
+    const h = inAgents();
+    const offered = (pick(folderChoices(folder, h), "move").into?.choices ?? []).map(
+      (one) => one.key,
+    );
+    expect(offered).not.toContain("a2");
   });
 
   it("moves without asking when the core has nothing to say", async () => {
@@ -655,5 +681,74 @@ describe("moving inside Agents asks first", () => {
     await flush();
     expect(asked).not.toHaveBeenCalled();
     expect(files()).toEqual(["doc_file"]);
+  });
+});
+
+describe("the one shape of the menus", () => {
+  const keysOf = (choices: Choice[]) => choices.map((one) => one.key);
+
+  it("keeps the same choices in the same order for every kind of document", () => {
+    const h = hands();
+    const page = { ...other, pageOf: "d1" } as Filed;
+    const shapes = [
+      doc,
+      { ...doc, locked: true },
+      { ...doc, away: true, archived: true },
+      { ...doc, away: true },
+      page,
+    ].map((one) => keysOf(docChoices(one as Filed, h)));
+
+    for (const shape of shapes) expect(shape).toEqual(shapes[0]);
+  });
+
+  it("keeps a choice that does not apply in its place, with the reason, and refuses on pick", () => {
+    const h = hands();
+    const locked = docChoices({ ...doc, locked: true } as Filed, h);
+
+    for (const key of ["newPage", "drop"]) {
+      const one = pick(locked, key);
+      expect(one.hint).toBe(t("lockedSaid"));
+      expect(one.into).toBeUndefined();
+      one.onPick?.();
+    }
+    expect(h.failWith).toHaveBeenCalledTimes(2);
+    expect(h.failWith).toHaveBeenCalledWith(t("lockedSaid"));
+    expect(h.dropDoc).not.toHaveBeenCalled();
+    expect(h.newDoc).not.toHaveBeenCalled();
+  });
+
+  it("keeps the choices of a folder in the archive in place and refuses what it cannot do", () => {
+    const h = hands();
+    const shelved = { ...folder, away: true, archived: true } as unknown as Folded;
+    const live = folderChoices(folder, h);
+    const kept = folderChoices(shelved, h);
+
+    expect(keysOf(kept)).toEqual(keysOf(live));
+    for (const key of ["newDoc", "newFolder", "more", "rename", "move"]) {
+      expect(pick(kept, key).hint).toBe(t("inArchiveSaid"));
+      pick(kept, key).onPick?.();
+    }
+    expect(h.failWith).toHaveBeenCalledTimes(5);
+    expect(h.newDoc).not.toHaveBeenCalled();
+    expect(h.rename).not.toHaveBeenCalled();
+  });
+
+  it("keeps a folder with nothing in it from offering to export it", () => {
+    const h = hands();
+    h.papers = { folders: [folder], docs: [] } as unknown as Papers;
+    const one = pick(folderChoices(folder, h), "packFolder");
+
+    expect(one.hint).toBe(t("folderEmptySaid"));
+    one.onPick?.();
+    expect(h.parcels.packUp).not.toHaveBeenCalled();
+  });
+
+  it("keeps a diary book to copy, export and archive, and Ideas to archive, hide and delete", () => {
+    const h = hands();
+    const book = { ...doc, id: "b1", file: "dev_a-0003", diary: true } as unknown as Filed;
+    h.papers = { folders: [folder], docs: [doc, book] } as unknown as Papers;
+
+    expect(keysOf(docChoices(book, h))).toEqual(["copyAs", "exportAs", "away"]);
+    expect(keysOf(docChoices(doc, h, true))).toEqual(["away", "hide", "drop"]);
   });
 });

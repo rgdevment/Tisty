@@ -1,4 +1,4 @@
-import { folderShown } from "./agentsSync";
+import { agentsTree, folderShown, inAgents } from "./agentsSync";
 import { DEEPEST, type Folded } from "./core";
 import { t } from "./locales";
 import type { Choice } from "./ui/Menu";
@@ -44,6 +44,7 @@ export function destinations(
       .filter((one) => one.parent === at)
       .reduce((most, one) => Math.max(most, tallest(one.id)), 0);
   const tall = moving ? tallest(moving.id) : 0;
+  const walled = moving && !inAgents(moving.id, folders) ? agentsTree(folders) : new Set<string>();
 
   return [
     {
@@ -54,7 +55,7 @@ export function destinations(
       onPick: () => land(undefined),
     },
     ...folders
-      .filter((one) => one.id !== skip && !forbidden.has(one.id))
+      .filter((one) => one.id !== skip && !forbidden.has(one.id) && !walled.has(one.id))
       .filter((one) => !moving || deep(folders, one.id) + tall <= DEEPEST)
       .map((one) => ({
         key: one.id,

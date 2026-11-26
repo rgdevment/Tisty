@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
 import {
   type Afoot,
-  DEEPEST,
   type DoorDue,
   type Filed,
   type Folded,
@@ -12,7 +11,6 @@ import {
   type Task,
 } from "./core";
 import { decidesByBlock, decidesWhole } from "./deciding";
-import { deep } from "./folders";
 import { useNote } from "./glance";
 import { useListening } from "./listening";
 import { useMarking } from "./marking";
@@ -74,7 +72,8 @@ export function useWindow() {
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
   const [seen, byList] = useOnly(chosen);
 
-  const [makingFolder, setMakingFolder] = useState(false);
+  // Where the new folder goes: a folder's id, or null for the top of the library.
+  const [makingFolder, setMakingFolder] = useState<{ into: string | null } | null>(null);
   // Where a diagram being named will be made: a folder, or none for the diagrams' own.
   const [makingDiagram, setMakingDiagram] = useState<{ into?: string } | null>(null);
   const [renaming, setRenaming] = useState<Folded | null>(null);
@@ -125,7 +124,6 @@ export function useWindow() {
       .catch(() => {});
   };
 
-  const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
   // Words already said plainly are shown as they are, or each would carry a second «something failed».
   const told = useCallback(
     (problem: unknown) => setError(typeof problem === "string" ? problem : saidPlainly(problem)),
@@ -276,7 +274,6 @@ export function useWindow() {
     carried,
     setCarried,
     lookForAStar,
-    roomBelow,
     told,
     held,
     setHeld,

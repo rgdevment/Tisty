@@ -11,6 +11,7 @@ import type { Article } from "../settingsPages";
 import { landedOn } from "../settingsRows";
 import { sure } from "../sure";
 import { shown } from "../tongues";
+import { usePinned } from "../usePinned";
 import { title } from "../views";
 import About from "./About";
 import Board from "./Board";
@@ -81,6 +82,7 @@ export default function Stage() {
     underway,
   } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
+  const pinned = usePinned(papers);
   const agentsFolders = useMemo(() => agentsTree(papers.folders), [papers.folders]);
   const groups = useMemo(
     () => [
@@ -148,6 +150,7 @@ export default function Stage() {
       onMenu={folderMenu}
       onHereMenu={hereMenu}
       onDocMenu={docMenu}
+      pinned={pinned?.file ?? null}
     />
   ) : chosen.named === "docs" ? (
     <Docs

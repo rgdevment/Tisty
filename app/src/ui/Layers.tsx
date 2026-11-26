@@ -78,7 +78,6 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     editingList,
     error,
     greet,
-    here,
     leaving,
     load,
     lookAgain,
@@ -95,7 +94,6 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     papersChanged,
     ready,
     renaming,
-    roomBelow,
     setBacking,
     setAsked,
     setBehind,
@@ -223,20 +221,22 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
       {makingFolder && (
         <Naming
           title={
-            roomBelow
+            makingFolder.into
               ? fill(
                   "newFolderIn",
-                  papers.folders.filter((one) => one.id === here).map(folderShown)[0] ?? "",
+                  papers.folders
+                    .filter((one) => one.id === makingFolder.into)
+                    .map(folderShown)[0] ?? "",
                 )
               : t("newFolder")
           }
           invite={t("folderName")}
           most={FOLDER_NAME_AT_MOST}
-          onClose={() => setMakingFolder(false)}
+          onClose={() => setMakingFolder(null)}
           onName={(name, icon, colour) =>
-            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon, colour)
+            folderAdd(name, makingFolder.into ?? undefined, icon, colour)
               .then(() => {
-                setMakingFolder(false);
+                setMakingFolder(null);
                 papersChanged();
               })
               .catch((e) => setError(saidPlainly(e)))

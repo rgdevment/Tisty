@@ -435,3 +435,36 @@ describe("a list's own menu", () => {
     await vi.waitFor(() => expect(hands.gone).toHaveBeenCalledWith("L1"));
   });
 });
+
+describe("the library after Settings", () => {
+  const side = (chosen: Chosen) => (
+    <Sidebar
+      lists={[]}
+      tags={[]}
+      papers={papers}
+      counts={{}}
+      chosen={chosen}
+      onChoose={vi.fn()}
+      onFile={vi.fn()}
+      onHere={vi.fn()}
+      onMove={vi.fn()}
+      onFolderMenu={vi.fn()}
+      onDocMenu={vi.fn()}
+      onDocsMenu={vi.fn()}
+      onHereMenu={vi.fn()}
+      onListMenu={vi.fn()}
+    />
+  );
+
+  it("comes back with the folders that were open still open", () => {
+    const view = render(side({ named: "tasks" }));
+    fireEvent.click(screen.getByRole("button", { name: fill("openFolder", "Trabajo") }));
+    expect(screen.getByText("Clientes")).toBeTruthy();
+
+    view.rerender(side({ named: "keeping", tab: "summary" }));
+    expect(screen.queryByText("Clientes")).toBeNull();
+    view.rerender(side({ named: "tasks" }));
+
+    expect(screen.getByText("Clientes")).toBeTruthy();
+  });
+});

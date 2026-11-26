@@ -6,6 +6,7 @@ import { heard, play } from "./chime";
 import { type Afoot, type DoorDue, doorDue, keptForTheEnd, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
 import { departing } from "./departing";
+import { fireAll } from "./dropLater";
 import { CALENDAR, caughtBy, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
 import { t } from "./locales";
@@ -142,7 +143,9 @@ export function useListening({
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
+    // A hidden window has nobody to undo with, so what waits to be deleted goes now instead of in the dark.
     const gone = listen("withdrawn", () => {
+      fireAll();
       setStarring(false);
       setOffering(null);
     });

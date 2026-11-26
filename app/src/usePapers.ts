@@ -15,12 +15,13 @@ import {
   docsCatchUp,
   type Filed,
   type Folded,
-  folderDrop,
   noteTrouble,
   type Papers,
   taskPageImport,
 } from "./core";
 import { viewDiagram } from "./drawing";
+import { dropLater } from "./dropLater";
+import { folderDropAsked, folderDropped } from "./folderDropping";
 import { letAsideGo } from "./keptAside";
 import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
@@ -28,8 +29,7 @@ import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { cut } from "./saving";
 import { sure } from "./sure";
-import { dropAllAsked, filesGoing, type Going, goingWith } from "./tidying";
-import { tonguesNamed } from "./tongues";
+import { dropPickedAsked, filesGoing, type Going, goingWith } from "./tidying";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -129,15 +129,95 @@ export function usePapers({
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  const dropFolder = (folder: Folded) =>
-    sure(fill("dropFolderSure", folder.name))
-      .then((yes) => {
-        if (!yes) return;
-        if (here === folder.id) setHere(undefined);
-        setReturning(folder.parent ?? "unfiled");
-        return folderDrop(folder.id).then(papersChanged);
-      })
-      .catch((e) => setError(saidPlainly(e)));
+  const treeOf = (folder: string): Set<string> => {
+    const tree = new Set([folder]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const one of papers.folders) {
+        if (one.parent && tree.has(one.parent) && !tree.has(one.id)) {
+          tree.add(one.id);
+          grew = true;
+        }
+      }
+    }
+    return tree;
+  };
+
+  // An empty folder takes the plain question; one that holds something asks where it goes.
+  const dropFolder = async (folder: Folded) => {
+    const docsIn = papers.docs.filter((one) => one.folder === folder.id && !one.pageOf);
+    const kids = papers.folders.filter((one) => one.parent === folder.id);
+    // The core keeps a folder of Agents that still holds files; saying so now beats ten seconds of waiting for it.
+    if (docsIn.length + kids.length > 0 && inAgents(folder.id, papers.folders)) {
+      setError(t("agentsFolderHolds"));
+      return;
+    }
+    try {
+      const answer =
+        docsIn.length + kids.length === 0
+          ? (await sure(fill("dropFolderSure", folder.name)))
+            ? { contents: "up" as const }
+            : null
+          : await folderDropAsked({
+              folder,
+              up: papers.folders.find((one) => one.id === folder.parent) ?? null,
+              docs: docsIn.length,
+              folders: kids.length,
+              handsOnly: inAgents(folder.id, papers.folders),
+            });
+      if (!answer) return;
+      const tree = treeOf(folder.id);
+      const lost =
+        answer.contents === "drop"
+          ? papers.docs.filter((one) => one.folder && tree.has(one.folder))
+          : [];
+      // The core keeps the whole folder when one document inside cannot go: say so now, not in ten seconds.
+      const kept = lost.find((one) => stays(one));
+      if (kept)
+        return setError(
+          kept.locked ? fill("folderKeepsLocked", kept.title || t("untitledDoc")) : stays(kept),
+        );
+      if (here && tree.has(here)) setHere(undefined);
+      setReturning(folder.parent ?? "unfiled");
+      leaving(lost);
+      dropLater({
+        hides: answer.contents === "drop" ? [...tree, ...lost.map((one) => one.id)] : [folder.id],
+        moves:
+          answer.contents === "drop"
+            ? undefined
+            : {
+                from: folder.id,
+                to: answer.contents === "up" ? (folder.parent ?? null) : (answer.into ?? null),
+              },
+        said: fill("folderGone", folder.name),
+        run: () =>
+          folderDropped(folder.id, answer)
+            .then(() => {
+              for (const one of lost) gone(one.file);
+            })
+            .catch((e) => setError(saidPlainly(e)))
+            .finally(papersChanged),
+      });
+    } catch (e) {
+      setError(saidPlainly(e));
+    }
+  };
+
+  // The page closes as soon as its row hides, so nothing is written into what is about to go.
+  const leaving = (docs: Filed[]) => {
+    const open = chosenNow.current.doc;
+    if (open && docs.some((one) => one.file === open)) setChosen({ named: "docs" });
+  };
+
+  // As its menu: a locked document, or one its archived folder holds, says why instead of going.
+  const stays = (doc: Filed): string | null =>
+    doc.locked ? t("lockedSaid") : doc.away && !doc.archived ? t("folderIsAway") : null;
+
+  const goingIds = (going: Going[]) =>
+    going.flatMap(({ doc, tongues, pages }) => [doc, ...tongues, ...pages].map((one) => one.id));
+
+  const goingDocs = (going: Going[]) =>
+    going.flatMap(({ doc, tongues, pages }) => [doc, ...tongues, ...pages]);
 
   const wentAway = (one: Going) => {
     const files = filesGoing([one]);
@@ -191,50 +271,60 @@ export function usePapers({
   };
 
   const dropDoc = async (doc: Filed) => {
-    // The languages beside it are the same row, so they go with it, and the question says so.
+    const why = stays(doc);
+    if (why) return setError(why);
     const going = goingWith([doc], papers.docs);
-    const [{ tongues, pages }] = going;
-    const asked =
-      tongues.length > 1
-        ? fill("dropTonguesSure", doc.title || t("untitledDoc"), tonguesNamed(tongues))
-        : fill(pages.length ? "dropPagesSure" : "dropDocSure", doc.title || t("untitledDoc"));
+    const asked = dropPickedAsked(going);
     if (await droppedFromAgents(going, asked)) return;
-    return sure(asked)
-      .then((yes) => {
-        if (!yes) return;
-        return docDrop(doc.id).then(() => {
-          wentAway(going[0]);
-          returnTo(doc);
-          papersChanged();
-        });
-      })
-      .catch((e) => setError(saidPlainly(e)));
+    if (!(await sure(asked).catch(() => false))) return;
+    leaving(goingDocs(going));
+    returnTo(doc);
+    dropLater({
+      hides: goingIds(going),
+      said: fill("docGone", doc.title || t("untitledDoc")),
+      run: () =>
+        docDrop(doc.id)
+          .then(() => wentAway(going[0]))
+          .catch((e) => setError(saidPlainly(e)))
+          .finally(papersChanged),
+    });
   };
 
-  const dropDocs = async (all: Filed[]) => {
+  const dropDocs = async (picked: Filed[]) => {
+    const all = picked.filter((one) => !stays(one));
+    const kept = picked.find((one) => stays(one));
+    if (kept) setError(stays(kept));
+    if (!all.length) return;
     const going = goingWith(all, papers.docs);
-    const asked = dropAllAsked(going);
+    const asked = dropPickedAsked(going);
     if (await droppedFromAgents(going, asked)) return;
     if (!(await sure(asked))) return;
-    const went: Filed[] = [];
-    const refused: string[] = [];
-    for (const one of going) {
-      await docDrop(one.doc.id)
-        .then(() => {
-          wentAway(one);
-          went.push(one.doc);
-        })
-        .catch((e: unknown) => {
-          refused.push(fill("dropRefused", one.doc.title || t("untitledDoc"), saidPlainly(e)));
-        });
-    }
-    if (went[0]) returnTo(went[0]);
-    if (refused.length > 0) setError(refused.join(" · "));
-    papersChanged();
+    leaving(goingDocs(going));
+    if (going[0]) returnTo(going[0].doc);
+    dropLater({
+      hides: goingIds(going),
+      said:
+        going.length === 1
+          ? fill("docGone", going[0].doc.title || t("untitledDoc"))
+          : fill("docsGone", String(going.length)),
+      run: async () => {
+        const refused: string[] = [];
+        for (const one of going) {
+          await docDrop(one.doc.id)
+            .then(() => wentAway(one))
+            .catch((e: unknown) => {
+              refused.push(fill("dropRefused", one.doc.title || t("untitledDoc"), saidPlainly(e)));
+            });
+        }
+        if (refused.length > 0) setError(refused.join(" · "));
+        papersChanged();
+      },
+    });
   };
 
   const bringBack = (doc: Filed) => {
-    if (doc.pageOf) {
+    // A page goes back with its document, and the diary keeps its own place, so neither asks where.
+    if (doc.pageOf || doc.diary) {
       docAway(doc.id, false)
         .then(papersChanged)
         .catch((e) => setError(saidPlainly(e)));

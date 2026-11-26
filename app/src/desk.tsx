@@ -39,7 +39,6 @@ export function deskOf(state: State, data: Snapshot) {
     noted,
     afoot,
     setMenu,
-    setHere,
     carries,
     papers,
     board,
@@ -116,11 +115,7 @@ export function deskOf(state: State, data: Snapshot) {
     newDoc,
     newDiagram: (folder) => setMakingDiagram({ into: folder }),
     bringIn,
-    makeFolder: () => setMakingFolder(true),
-    makeFolderIn: (folder) => {
-      setHere(folder);
-      setMakingFolder(true);
-    },
+    makeFolderIn: (folder) => setMakingFolder({ into: folder ?? null }),
     rename: setRenaming,
     parcels,
     changed: papersChanged,
@@ -161,7 +156,10 @@ export function deskOf(state: State, data: Snapshot) {
       at,
       on: DIARY,
       label: t("diary"),
-      choices: [{ ...hideChoice(DIARY), apart: false }],
+      choices: [
+        { key: "today", icon: "♡", label: t("diaryOpenToday"), onPick: () => void toDiary() },
+        hideChoice(DIARY),
+      ],
     });
 
   const ideasMenu = (at: { x: number; y: number }) =>

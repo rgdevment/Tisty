@@ -17,6 +17,8 @@ export interface Carried {
   id: string;
   kind: Kind;
   tall: number;
+  /** Folders it may not land in: Agents makes no folder, so a plain one stays out of its tree. */
+  walled?: ReadonlySet<string>;
 }
 
 export interface Move {
@@ -45,6 +47,7 @@ export const fits = (carried: Carried, into: Spot, where: Where) => {
   if (carried.kind !== "folder") return true;
   const under = where === "in" ? [...into.line, into.id] : into.line;
   if (under.includes(carried.id)) return false;
+  if (carried.walled && under.some((one) => carried.walled?.has(one))) return false;
   const deep = where === "in" ? into.depth + 1 : into.depth;
   return deep + carried.tall <= DEEPEST;
 };

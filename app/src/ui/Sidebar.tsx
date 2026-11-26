@@ -17,10 +17,11 @@ import RailNotices from "./RailNotices";
 import SettingsNav, { type Finding } from "./SettingsNav";
 import SideBrainsty from "./SideBrainsty";
 import SideEdge, { FoldButton, useFoldKey } from "./SideEdge";
-import SideLibrary, { type Revealed } from "./SideLibrary";
+import SideLibrary, { type LibraryActs, type Revealed } from "./SideLibrary";
 import SideRail from "./SideRail";
 import SideTasks from "./SideTasks";
 import SyncFoot from "./SyncFoot";
+import { useFolds } from "./Tree";
 
 interface Props {
   lists: List[];
@@ -50,6 +51,7 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
+  acts?: LibraryActs;
   onListMenu?: (list: List, at: { x: number; y: number }) => void;
   room?: number;
   onSync?: () => Promise<unknown> | undefined;
@@ -84,6 +86,7 @@ export default function Sidebar({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  acts,
   onListMenu,
   room = 0,
   onSync,
@@ -106,6 +109,7 @@ export default function Sidebar({
   const folded = breadth.folded;
   const [leaning, setLeaning] = useState<Lean>("docs");
   const [revealing, setRevealing] = useState<Revealed | null>(null);
+  const folds = useFolds();
   const reveal = (folder?: string) => {
     setLeaning("docs");
     onHere(folder);
@@ -162,6 +166,7 @@ export default function Sidebar({
           {onBrainsty && <SideBrainsty on={chosen.named === "brainsty"} onOpen={onBrainsty} />}
           <SideLibrary
             papers={papers}
+            folds={folds}
             chosen={chosen}
             leaning={leaning}
             onLean={setLeaning}
@@ -182,6 +187,7 @@ export default function Sidebar({
             onDocMenu={onDocMenu}
             onDocsMenu={onDocsMenu}
             onHereMenu={onHereMenu}
+            acts={acts}
           />
         </>
       )}

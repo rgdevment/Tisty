@@ -11,7 +11,10 @@ pub fn doc_copy(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<tisty_core::docs::Doc> {
-    held(&session).copy_doc(&id)
+    let mut session = held(&session);
+    let doc = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    super::placing::may_copy(&session, doc)?;
+    session.copy_doc(&id)
 }
 
 #[tauri::command(async)]
@@ -139,7 +142,8 @@ fn landing(session: &Session, at: tisty_core::model::FolderId) -> Answer<()> {
     if !session.state.folders.contains_key(&at) {
         return Err(Refusal::of("noSuchFolder"));
     }
-    folder_open(&session.state, at, true)
+    folder_open(&session.state, at, true)?;
+    super::placing::may_make(session, Some(at), None, tisty_core::places::Making::Import)
 }
 
 #[derive(serde::Serialize, Clone, Copy, Default)]

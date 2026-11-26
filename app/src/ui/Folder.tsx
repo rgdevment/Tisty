@@ -38,6 +38,8 @@ interface Props {
   onMenu?: (folder: Folded, at: { x: number; y: number }) => void;
   onHereMenu?: (at: { x: number; y: number }) => void;
   onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
+  /** The Ideas sheet's file: it and the diary stand in the sidebar on their own, never as loose documents. */
+  pinned?: string | null;
 }
 
 export default function Folder({
@@ -49,6 +51,7 @@ export default function Folder({
   onMenu,
   onHereMenu,
   onDocMenu,
+  pinned,
 }: Props) {
   const [shut, setShut] = useState<Set<string>>(new Set());
   const [allForgotten, setAllForgotten] = useState(false);
@@ -81,7 +84,9 @@ export default function Folder({
       !one.pageOf &&
       (folder
         ? one.folder === folder.id
-        : one.folder === null || !folders.some((at) => at.id === one.folder)),
+        : (one.folder === null || !folders.some((at) => at.id === one.folder)) &&
+          !one.diary &&
+          one.file !== pinned),
   );
   const trail: Folded[] = [];
   for (let at = folder?.parent; at; ) {

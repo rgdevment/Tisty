@@ -2,6 +2,7 @@ import { fireEvent, render, renderHook, screen, waitFor, within } from "@testing
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Marked, Task } from "../core";
+import { fireAll, useHiddenGoing } from "../dropLater";
 import { dayOf } from "../format";
 import { asideWords, letAsideGo, setAside } from "../keptAside";
 import { fill, t } from "../locales";
@@ -276,6 +277,12 @@ describe("a set marked in one go", () => {
 });
 
 describe("deleting a set", () => {
+  const goneNow = async () => {
+    const before = called("docs").length;
+    fireAll();
+    await waitFor(() => expect(called("docs").length).toBeGreaterThan(before));
+  };
+
   const hands = () => ({
     chosen: { named: "docs" as const, doc: "d-2" },
     setChosen: vi.fn(),
@@ -307,11 +314,11 @@ describe("deleting a set", () => {
 
     await result.current.dropDocs(all);
 
-    expect(asked).toEqual([
-      `${fill("flagDropAllPageSure", "2", "1")}\n\n· Draft A\n    · Draft B\n· Draft C`,
-    ]);
-    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
+    expect(asked).toEqual([`${fill("dropManySure", "2")}\n\n· Draft A\n    · Draft B\n· Draft C`]);
+    expect(called("doc_drop")).toEqual([]);
     expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+    await goneNow();
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
   });
 
   it("lets go of the words a save left behind for each document and page that went", async () => {
@@ -327,6 +334,7 @@ describe("deleting a set", () => {
       doc({ id: "D1", file: "d-1", title: "Draft A" }),
       doc({ id: "D2", file: "d-2", title: "Draft B", pageOf: "D1" }),
     ]);
+    await goneNow();
 
     expect(unansweredWords("d-1")).toBeUndefined();
     expect(unansweredWords("d-2")).toBeUndefined();
@@ -347,7 +355,8 @@ describe("deleting a set", () => {
       doc({ id: "D2", file: "d-2", title: "Draft B", pageOf: "D1" }),
     ]);
 
-    expect(asked).toEqual([`${t("flagDropOnePageSure")}\n\n· Draft A\n    · Draft B`]);
+    expect(asked).toEqual([fill("dropPagesSure", "Draft A")]);
+    await goneNow();
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
   });
 
@@ -364,7 +373,8 @@ describe("deleting a set", () => {
       doc({ id: "D3", file: "d-3", title: "Draft C" }),
     ]);
 
-    expect(asked).toEqual([fill("flagDropAllSure", "2", "· Draft A\n· Draft C")]);
+    expect(asked).toEqual([`${fill("dropManySure", "2")}\n\n· Draft A\n· Draft C`]);
+    await goneNow();
   });
 
   it("names and lets go of every language the store deletes with a document, the archived one too", async () => {
@@ -384,6 +394,7 @@ describe("deleting a set", () => {
     await waitFor(() => expect(result.current.papers.docs).toHaveLength(2));
 
     await result.current.dropDoc(ipc.docs[0] as Filed);
+    await goneNow();
 
     expect(asked).toEqual([
       fill("dropTonguesSure", "Notes", [tongueName("en"), tongueName("es")].join(", ")),
@@ -408,9 +419,10 @@ describe("deleting a set", () => {
     await waitFor(() => expect(result.current.papers.docs).toHaveLength(3));
 
     await result.current.dropDocs(ipc.docs as Filed[]);
+    await goneNow();
 
     const both = [tongueName("en"), tongueName("es")].join(", ");
-    expect(asked).toEqual([fill("flagDropAllSure", "2", `· Notes (${both})\n· Draft C`)]);
+    expect(asked).toEqual([`${fill("dropManySure", "2")}\n\n· Notes (${both})\n· Draft C`]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
     expect(given.setError).not.toHaveBeenCalled();
   });
@@ -431,9 +443,10 @@ describe("deleting a set", () => {
 
     const [first, , page] = ipc.docs as Filed[];
     await result.current.dropDocs([page, first]);
+    await goneNow();
 
     const both = [tongueName("en"), tongueName("es")].join(", ");
-    expect(asked).toEqual([`${t("flagDropOnePageSure")}\n\n· Notes (${both})\n    · Anexo`]);
+    expect(asked).toEqual([fill("dropTonguesSure", "Notes", both)]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
   });
 
@@ -447,12 +460,13 @@ describe("deleting a set", () => {
       doc({ id: "D1", file: "d-1", title: "Draft A" }),
       doc({ id: "D3", file: "d-3", title: "Draft C" }),
     ]);
+    await goneNow();
 
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
     expect(given.setError).toHaveBeenCalledTimes(1);
   });
 
-  it("stays on the document whose delete is refused, and names every refusal", async () => {
+  it("names every refusal, and closes the open page when the delete is confirmed, not when it runs", async () => {
     asksSure(() => Promise.resolve(true));
     ipc.gone = ["D1", "D2"];
     const given = hands();
@@ -464,16 +478,19 @@ describe("deleting a set", () => {
       doc({ id: "D3", file: "d-3", title: "Draft C", folder: "F1" }),
     ]);
 
+    expect(called("doc_drop")).toEqual([]);
+    expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+    expect(given.setReturning).toHaveBeenCalledWith("unfiled");
+    await goneNow();
+
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D2", "D3"]);
-    expect(given.setChosen).not.toHaveBeenCalled();
-    expect(given.setReturning).toHaveBeenCalledWith("F1");
     const why = saidPlainly({ code: "noSuchDoc" });
     expect(given.setError).toHaveBeenCalledWith(
       `${fill("dropRefused", "Draft A", why)} · ${fill("dropRefused", "Draft B", why)}`,
     );
   });
 
-  it("leaves the open document once its own delete is answered, never before", async () => {
+  it("leaves the open document as soon as the delete is confirmed, before any of it runs", async () => {
     asksSure(() => Promise.resolve(true));
     const given = { ...hands(), chosen: { named: "docs" as const, doc: "d-1" } };
     const answered: string[] = [];
@@ -487,41 +504,43 @@ describe("deleting a set", () => {
       doc({ id: "D2", file: "d-2", title: "Draft B" }),
     ]);
 
-    expect(answered).toEqual(["left after 1", "focus after 2"]);
+    expect(answered).toEqual(["left after 0", "focus after 0"]);
     expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+    await goneNow();
   });
 
-  it("leaves the document open when its own delete is answered, though another was open at first", async () => {
+  it("leaves the page that is open when the delete is confirmed, whichever was open before", async () => {
     asksSure(() => Promise.resolve(true));
     const given = { ...hands(), chosen: { named: "docs" as const, doc: "d-1" } };
-    const answered: number[] = [];
-    given.setChosen.mockImplementation(() => answered.push(called("doc_drop").length));
     const { result, rerender } = renderHook((chosen) => usePapers({ ...given, chosen }), {
       initialProps: given.chosen,
     });
-    ipc.dropping = (id) => {
-      if (id === "D1") rerender({ named: "docs", doc: "d-2" });
-    };
+    rerender({ named: "docs", doc: "d-9" });
 
     await result.current.dropDocs([
       doc({ id: "D1", file: "d-1", title: "Draft A" }),
       doc({ id: "D2", file: "d-2", title: "Draft B" }),
     ]);
+    await goneNow();
 
-    expect(answered).toEqual([2]);
+    expect(given.setChosen).not.toHaveBeenCalled();
   });
 
-  it("stays on a document deleted alone when its delete is refused", async () => {
+  it("shows a document deleted alone again, and says why, when its delete is refused", async () => {
     asksSure(() => Promise.resolve(true));
     ipc.gone = ["D2"];
     const given = hands();
     const { result } = renderHook(() => usePapers(given));
+    const hidden = renderHook(() => useHiddenGoing());
 
     await result.current.dropDoc(doc({ id: "D2", file: "d-2", title: "Draft B" }));
 
+    expect(hidden.result.current.has("D2")).toBe(true);
+    expect(called("doc_drop")).toEqual([]);
+    await goneNow();
+
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D2"]);
-    expect(given.setChosen).not.toHaveBeenCalled();
-    expect(given.setReturning).not.toHaveBeenCalled();
+    expect(hidden.result.current.has("D2")).toBe(false);
     expect(given.setError).toHaveBeenCalledWith(saidPlainly({ code: "noSuchDoc" }));
   });
 
@@ -532,6 +551,7 @@ describe("deleting a set", () => {
     const { result } = renderHook(() => usePapers(hands()));
 
     await result.current.dropDoc(doc({ id: "D1", file: "d-1", title: "Draft A" }));
+    await goneNow();
 
     expect(asideWords("d-1")).toBeUndefined();
     expect(asideWords("d-9")).toBe("palabras de d-9");

@@ -482,27 +482,6 @@ pub fn doc_let_go(session: tauri::State<'_, Mutex<Session>>, file: String) -> An
     held(&session).let_go_of(&file)
 }
 
-#[tauri::command]
-pub fn doc_new(
-    session: tauri::State<'_, Mutex<Session>>,
-    folder: Option<String>,
-    page_of: Option<String>,
-    existing: Option<bool>,
-) -> Answer<tisty_core::docs::Doc> {
-    let folder = folder
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-    let page_of = page_of
-        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
-        .transpose()?;
-    doc_made(
-        &mut held(&session),
-        folder,
-        page_of,
-        existing.unwrap_or(false),
-    )
-}
-
 pub(crate) fn doc_made(
     session: &mut Session,
     folder: Option<tisty_core::model::FolderId>,

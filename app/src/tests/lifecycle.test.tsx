@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Papers } from "../core";
+import { fireAll } from "../dropLater";
 import { AT_A_GLANCE, SHOWN } from "../glance";
 import { fill, filled, t } from "../locales";
 import { sure } from "../sure";
@@ -38,6 +39,7 @@ const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
   copied: [] as string[],
+  dropped: [] as { id: string; contents: unknown; into: unknown }[],
   seq: 0,
 }));
 
@@ -311,10 +313,20 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       return Promise.resolve(null);
     }
     case "folder_drop": {
+      const going = store.folders.find((one) => one.id === args.id);
+      store.dropped.push({ id: String(args.id), contents: args.contents, into: args.into });
       store.folders = store.folders.filter((one) => one.id !== args.id);
-      store.docs = store.docs.map((one) =>
-        one.folder === args.id ? { ...one, folder: null } : one,
-      );
+      const home = args.contents === "into" ? (args.into ?? null) : (going?.parent ?? null);
+      if (args.contents === "drop") {
+        store.docs = store.docs.filter((one) => one.folder !== args.id);
+      } else {
+        store.docs = store.docs.map((one) =>
+          one.folder === args.id ? { ...one, folder: home as string | null } : one,
+        );
+        store.folders = store.folders.map((one) =>
+          one.parent === args.id ? { ...one, parent: home as string | null } : one,
+        );
+      }
       return Promise.resolve(null);
     }
     case "folder_add": {
@@ -333,6 +345,11 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
   }
 }
 
+afterEach(async () => {
+  fireAll();
+  await new Promise((done) => setTimeout(done, 0));
+});
+
 beforeEach(() => {
   ipc.calls = [];
   store.folders = [];
@@ -340,6 +357,7 @@ beforeEach(() => {
   store.bodies = {};
   store.writes = [];
   store.copied = [];
+  store.dropped = [];
   store.seq = 0;
   picked.path = Promise.resolve(null);
   taking.files = 0;
@@ -404,10 +422,16 @@ function menuFor(rowLabel: string | RegExp): HTMLElement {
 
 const SETTLES_LONG_ENOUGH = 900;
 
-async function chooseFor(rowLabel: string | RegExp, itemLabel: string) {
+async function chooseFor(rowLabel: string | RegExp, itemLabel: string, inside?: string) {
   fireEvent.contextMenu(menuFor(rowLabel), { clientX: 5, clientY: 5 });
   await userEvent.click(await screen.findByRole("menuitem", { name: itemLabel }));
+  if (inside) await userEvent.click(await screen.findByRole("menuitem", { name: inside }));
 }
+
+const deletedNow = async (left: number) => {
+  fireAll();
+  await waitFor(() => expect(store.docs).toHaveLength(left));
+};
 
 async function goOn() {
   fireEvent.click(await screen.findByRole("button", { name: t("sureGoOn") }));
@@ -940,15 +964,17 @@ describe("deleting a document", () => {
     expect(screen.getAllByRole("dialog", { name: t("sureTitle") })).toHaveLength(1);
 
     await goOn();
-    await waitFor(() => expect(store.docs).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Alpha" })).toBeNull());
+    await deletedNow(1);
     expect(screen.getAllByRole("dialog", { name: t("sureTitle") })).toHaveLength(1);
     await goOn();
     await new Promise((settle) => setTimeout(settle, 100));
-    expect(store.docs).toHaveLength(1);
+    await deletedNow(1);
 
     await new Promise((settle) => setTimeout(settle, SETTLING_MS));
     await goOn();
-    await waitFor(() => expect(store.docs).toHaveLength(0));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Beta" })).toBeNull());
+    await deletedNow(0);
   });
 
   it("leaves the editor alone when a document deleted elsewhere is not the one open", async () => {
@@ -1019,7 +1045,7 @@ describe("duplicating a document", () => {
     seedDoc({ title: "Recipe" });
     await boot();
 
-    await chooseFor("Recipe", t("duplicate"));
+    await chooseFor("Recipe", t("copyAs"), t("duplicate"));
 
     await screen.findByRole("button", { name: "Recipe copy" });
     expect(screen.getByRole("button", { name: "Recipe" })).toBeTruthy();
@@ -1092,8 +1118,9 @@ describe("what a folder's own menu can do", () => {
     await userEvent.keyboard("{Escape}");
 
     fireEvent.contextMenu(menuFor("Cuatro"), { clientX: 5, clientY: 5 });
-    await screen.findByRole("menuitem", { name: t("newDoc") });
-    expect(screen.queryByRole("menuitem", { name: t("newFolder") })).toBeNull();
+    const full = await screen.findByRole("menuitem", { name: t("newFolder") });
+    expect(full.getAttribute("title")).toBe(t("tooDeepSaid"));
+    expect(screen.getByRole("menuitem", { name: t("newDoc") }).getAttribute("title")).toBeNull();
   });
 
   it("renames the folder from the sheet the menu opens", async () => {
@@ -1121,16 +1148,49 @@ describe("what a folder's own menu can do", () => {
     );
   });
 
-  it("deletes the folder and leaves what was inside it unfiled", async () => {
-    const work = seedFolder({ name: "Trabajo" });
+  it("deletes the folder once the undo time is over and moves what was inside it up to the folder above", async () => {
+    const above = seedFolder({ name: "Oficina" });
+    const work = seedFolder({ name: "Trabajo", parent: above.id });
     seedDoc({ title: "Dentro", folder: work.id });
     await boot();
 
-    await chooseFor("Trabajo", t("deleteIt"));
+    await chooseFor("Trabajo", t("deleteSome"));
+    await userEvent.click(await screen.findByRole("button", { name: t("folderDropYes") }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Trabajo" })).toBeNull());
+    expect(store.dropped).toEqual([]);
+    fireAll();
+    await waitFor(() => expect(store.folders).toHaveLength(1));
+    expect(store.dropped).toEqual([{ id: work.id, contents: "up", into: undefined }]);
+    expect(store.docs[0].folder).toBe(above.id);
+  });
+
+  it("asks the plain question of a folder with nothing in it", async () => {
+    const empty = seedFolder({ name: "Vacia" });
+    await boot();
+
+    await chooseFor("Vacia", t("deleteSome"));
     await goOn();
 
-    await waitFor(() => expect(store.folders).toHaveLength(0));
-    expect(store.docs[0].folder).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Vacia" })).toBeNull());
+    fireAll();
+    await waitFor(() =>
+      expect(store.dropped).toEqual([{ id: empty.id, contents: "up", into: undefined }]),
+    );
+  });
+
+  it("brings a deleted folder back when the delete is undone before it runs", async () => {
+    seedFolder({ name: "Vacia" });
+    await boot();
+
+    await chooseFor("Vacia", t("deleteSome"));
+    await goOn();
+    await userEvent.click(await screen.findByRole("button", { name: /Undo/ }));
+
+    expect(await screen.findByRole("button", { name: "Vacia" })).toBeTruthy();
+    fireAll();
+    await new Promise((soon) => setTimeout(soon, 20));
+    expect(store.dropped).toEqual([]);
   });
 });
 
@@ -1164,7 +1224,7 @@ describe("what the menus reach for outside the tree", () => {
     seedDoc({ title: "Acta" });
     await boot();
 
-    await chooseFor("Acta", t("copyPlain"));
+    await chooseFor("Acta", t("copyAs"), t("copyPlain"));
 
     await waitFor(() => expect(store.copied).toHaveLength(1));
     expect(await screen.findByText(t("copied"))).toBeTruthy();
@@ -1178,7 +1238,7 @@ describe("what the menus reach for outside the tree", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: t("importDoc") }));
     await waitFor(() => expect(store.docs).toHaveLength(0));
 
-    await chooseFor("Trabajo", t("importDoc"));
+    await chooseFor("Trabajo", t("moreToMake"), t("importDoc"));
     await waitFor(() => expect(store.docs).toHaveLength(0));
   });
 
@@ -1215,7 +1275,7 @@ describe("what the menus reach for outside the tree", () => {
     picked.path = Promise.resolve("D:/salida");
     await boot();
 
-    await chooseFor("Acta", t("takeOut"));
+    await chooseFor("Acta", t("exportAs"), t("takeOut"));
 
     await waitFor(() => expect(screen.getByText(t("takenOutAlone"))).toBeTruthy());
   });
@@ -1365,7 +1425,7 @@ describe("what the menus reach for outside the tree", () => {
     parcel.docs = 1;
     await boot();
 
-    await chooseFor("Acta", t("packIt"));
+    await chooseFor("Acta", t("exportAs"), t("packIt"));
 
     await waitFor(() => expect(parcel.packed).toHaveLength(1));
     expect(parcel.packed[0].which).toEqual([doc.file]);
@@ -1466,7 +1526,7 @@ describe("what the menus reach for outside the tree", () => {
     taking.left = 3;
     await boot();
 
-    await chooseFor("Acta", t("takeOut"));
+    await chooseFor("Acta", t("exportAs"), t("takeOut"));
 
     await waitFor(() => expect(screen.getByText(fill("takenLesser", "3"))).toBeTruthy());
   });
@@ -1475,7 +1535,7 @@ describe("what the menus reach for outside the tree", () => {
     seedDoc({ title: "Acta" });
     await boot();
 
-    await chooseFor("Acta", t("takeOut"));
+    await chooseFor("Acta", t("exportAs"), t("takeOut"));
 
     await waitFor(() => expect(screen.queryByText(t("takenOutAlone"))).toBeNull());
   });

@@ -69,6 +69,9 @@ fn fits(session: &Session, id: FolderId, into: Option<FolderId>) -> Answer<()> {
         return Err(Refusal::of("noSuchFolder"));
     }
     folder_open(state, at, true)?;
+    if tisty_core::agents::holds_folder(state, at) {
+        return Err(Refusal::of("agentsHoldOnlyRules"));
+    }
     if at == id || state.would_swallow(id, at) {
         return Err(Refusal::of("intoItself"));
     }

@@ -7,6 +7,16 @@ const store = vi.hoisted(() => ({
   looks: [] as (string | undefined)[][],
   shelves: [] as unknown[],
   listed: 0,
+  making: [] as unknown[],
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string, args: { folder?: string; making?: string }) => {
+    if (cmd !== "doc_new") return Promise.resolve(null);
+    store.folders.push(args.folder);
+    store.making.push(args.making);
+    return Promise.resolve({ id: `mac0-000${store.folders.length}`, title: "" });
+  },
 }));
 
 vi.mock("../core", () => ({
@@ -43,6 +53,7 @@ beforeEach(() => {
   store.looks = [];
   store.shelves = [];
   store.listed = 0;
+  store.making = [];
 });
 
 describe("making a document that another one will point at", () => {
@@ -87,6 +98,7 @@ describe("making a document for a new diagram", () => {
     const made = await drafted("Pagos ñandú", "flowchart", "01H");
 
     expect(store.folders).toEqual(["01H"]);
+    expect(store.making).toEqual(["diagram"]);
     expect(store.wrote[0].body).toBe(
       `# Pagos ñandú\n\n\`\`\`mermaid\n${startOf("flowchart", "en")}\`\`\`\n`,
     );

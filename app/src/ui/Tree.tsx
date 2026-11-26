@@ -1,21 +1,32 @@
 import { useEffect, useRef, useState } from "react";
+import type { AgentKind } from "../agentDocs";
 import {
   agentsDrawn,
   agentsPaint,
+  agentsTree,
   askAgents,
   folderShown,
   holdsTistySkills,
+  inAgents,
   ofAnother,
 } from "../agentsSync";
 import type { Filed, Folded, Papers } from "../core";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
 import { led } from "../leading";
 import { fill, t } from "../locales";
+import { placeOf, rulesOf, useRuling } from "../places";
 import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
 import { useAgentsStage, useSkillsRow } from "./AgentsMark";
 import { FolderMark } from "./AssistantMark";
-import { grouped, inSkill, KIND_GLYPH, type SkillGroup, useAgentRows } from "./agentRows";
+import {
+  type Drawn,
+  grouped,
+  inSkill,
+  KIND_GLYPH,
+  type SkillGroup,
+  useAgentRows,
+} from "./agentRows";
 import {
   type Carried,
   DEEPEST,
@@ -32,10 +43,18 @@ import {
 } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-import { letterOf, modKey, shortcut } from "./macKeys";
+import { letterOf, modKey, onMac, shortcut } from "./macKeys";
 import { TistySkillsRow } from "./TistySkills";
 
 const STIRS = 4;
+
+const KINDS: AgentKind[] = ["rule", "skill", "memory"];
+
+const KIND_WORD = {
+  rule: "agentsKindRule",
+  skill: "agentsKindSkill",
+  memory: "agentsKindMemory",
+} as const;
 
 const yearOf = (book: Filed): number => Number(book.title.match(/[0-9]{4}/)?.[0] ?? 0);
 
@@ -44,8 +63,19 @@ const guestSaid = (doc: Filed) => {
   return doc.guest ? fill("guestDoc", doc.guest) : t("guestDocPlain");
 };
 
+type Folds = ReturnType<typeof useFolds>;
+
+/** Which folders and documents stand open; kept by whoever outlives the tree, so Settings does not shut them. */
+export const useFolds = () => {
+  // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const [spread, setSpread] = useState<Set<string>>(new Set());
+  return { opened, setOpened, spread, setSpread };
+};
+
 interface Props {
   papers: Papers;
+  folds?: Folds;
   pinned?: string | null;
   ideas?: number;
   ideasMarked?: number;
@@ -68,10 +98,16 @@ interface Props {
   onFolderMenu?: (folder: Folded, at: { x: number; y: number }) => void;
   onHereMenu?: (at: { x: number; y: number }) => void;
   onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
+  /// The documents picked with Ctrl or Shift and a click, for one action over all of them.
+  picked?: ReadonlySet<string>;
+  onPicked?: (docs: string[]) => void;
+  onDelete?: (row: { id: string; kind: "doc" | "folder" }) => void;
+  onRename?: (folder: Folded) => void;
 }
 
 export default function Tree({
   papers,
+  folds,
   pinned,
   ideas,
   ideasMarked,
@@ -93,7 +129,12 @@ export default function Tree({
   onFolderMenu,
   onHereMenu,
   onDocMenu,
+  picked,
+  onPicked,
+  onDelete,
+  onRename,
 }: Props) {
+  useRuling();
   const { root, stage, stance } = useAgentsStage(papers);
   const skillsRow = useSkillsRow(stance);
   const hidden = useHidden();
@@ -102,9 +143,8 @@ export default function Tree({
   const agentsVeiled = !unfolded && agentsHidden(hidden, root);
   const unborn = !root && !agentsVeiled && !unfolded;
   const agentRows = useAgentRows(papers);
-  // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
-  const [opened, setOpened] = useState<Set<string>>(new Set());
-  const [spread, setSpread] = useState<Set<string>>(new Set());
+  const own = useFolds();
+  const { opened, setOpened, spread, setSpread } = folds ?? own;
   const [over, setOver] = useState<string | null>(null);
   const [lifted, setLifted] = useState<{ id: string; kind: "doc" | "folder"; name: string } | null>(
     null,
@@ -158,17 +198,46 @@ export default function Tree({
   const grab = (e: React.PointerEvent, id: string, kind: Kind) => {
     if (e.button !== 0 || e.ctrlKey) return;
     const tall = kind === "folder" ? tallOf(id) : 0;
-    holding.current = { id, kind, tall, x: e.clientX, y: e.clientY, on: false };
+    const walled =
+      kind === "folder" && !inAgents(id, papers.folders) ? agentsTree(papers.folders) : undefined;
+    holding.current = { id, kind, tall, walled, x: e.clientX, y: e.clientY, on: false };
     took.current = false;
     setLifted(null);
   };
 
-  const tapped = (go: () => void) => () => {
+  const tapped = (go: (e: React.MouseEvent) => void) => (e: React.MouseEvent) => {
     if (took.current) {
       took.current = false;
       return;
     }
-    go();
+    go(e);
+  };
+
+  const anchor = useRef<string | null>(null);
+  const isDoc = (id: string) => papers.docs.some((one) => one.id === id);
+
+  // Ctrl or Cmd adds one, Shift adds the run since the last one; a plain click lets them all go.
+  const picking = (e: React.MouseEvent, id: string): boolean => {
+    if (!onPicked) return false;
+    const now = new Set(picked ?? []);
+    if (e.ctrlKey || e.metaKey) {
+      if (now.has(id)) now.delete(id);
+      else now.add(id);
+      anchor.current = id;
+      onPicked([...now]);
+      return true;
+    }
+    if (e.shiftKey && anchor.current) {
+      const order = rows()
+        .map((row) => row.dataset.row ?? "")
+        .filter(isDoc);
+      const [from, to] = [order.indexOf(anchor.current), order.indexOf(id)].sort((a, b) => a - b);
+      if (from >= 0) onPicked([...new Set([...now, ...order.slice(from, to + 1)])]);
+      return true;
+    }
+    anchor.current = id;
+    if (now.size) onPicked([]);
+    return false;
   };
 
   const lit = (x: number, y: number) => {
@@ -209,7 +278,7 @@ export default function Tree({
       if (!held.on) {
         if (Math.hypot(e.clientX - held.x, e.clientY - held.y) < STIRS) return;
         held.on = true;
-        setCarried({ id: held.id, kind: held.kind, tall: held.tall });
+        setCarried({ id: held.id, kind: held.kind, tall: held.tall, walled: held.walled });
         if (!rolling.current) rolling.current = requestAnimationFrame(roll);
       }
       e.preventDefault();
@@ -227,7 +296,7 @@ export default function Tree({
       setOver(null);
       const found = spotAt(e.clientX, e.clientY);
       const move = settled(
-        { id: held.id, kind: held.kind, tall: held.tall },
+        { id: held.id, kind: held.kind, tall: held.tall, walled: held.walled },
         found?.spot ?? null,
         found?.where ?? "in",
       );
@@ -307,6 +376,23 @@ export default function Tree({
     if (reached && !listed.current?.querySelector(`[data-row="${reached}"]`)) setReached(null);
   });
 
+  // What holds the open document opens once when it is opened, and folds again when asked.
+  const shownOpen = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!open || shownOpen.current === open) return;
+    const doc = papers.docs.find((one) => one.file === open);
+    if (!doc) return;
+    shownOpen.current = open;
+    const up = doc.pageOf ? papers.docs.find((one) => one.id === doc.pageOf) : undefined;
+    const row = agentRows.get(doc.file);
+    const holders = [
+      up?.id,
+      doc.diary || up?.diary ? DIARY : undefined,
+      row?.skill ? `skill:${doc.folder ?? ""}:${row.level}:${row.skill}` : undefined,
+    ].filter((one): one is string => Boolean(one));
+    if (holders.length) setSpread((were) => new Set([...were, ...holders]));
+  });
+
   const stops = (id: string) => (reached ?? first) === id;
 
   const walk = (from: string, by: number) => {
@@ -335,6 +421,12 @@ export default function Tree({
       e.preventDefault();
       return walk(row.id, e.key === "ArrowDown" ? 1 : -1);
     }
+    if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      const all = rows();
+      const to = e.key === "Home" ? all[0] : all[all.length - 1];
+      return to && walk(to.dataset.row ?? "", 0);
+    }
     if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
       e.preventDefault();
       const box = (e.target as HTMLElement).getBoundingClientRect();
@@ -342,11 +434,31 @@ export default function Tree({
       if (row.kind === "doc") {
         const doc = papers.docs.find((one) => one.id === row.id);
         if (doc) onDocMenu?.(doc, at);
-      } else if (row.id !== "unfiled") {
+      } else if (row.id === "unfiled") {
+        onHereMenu?.(at);
+      } else {
         const folder = papers.folders.find((one) => one.id === row.id);
         if (folder) onFolderMenu?.(folder, at);
       }
       return;
+    }
+    const deleting = e.key === "Delete" || (onMac && e.metaKey && e.key === "Backspace");
+    if (deleting && row.id !== "unfiled") {
+      e.preventDefault();
+      // As its menu: an archived folder comes back before it can go.
+      const shelved =
+        row.kind === "folder" && papers.folders.some((one) => one.id === row.id && one.away);
+      return shelved || onDelete?.({ id: row.id, kind: row.kind });
+    }
+    if (e.key === "F2" && row.kind === "folder") {
+      e.preventDefault();
+      // As its menu: a folder of Agents is named after its assistant, and one archived waits to come back.
+      const folder = papers.folders.find((one) => one.id === row.id);
+      return folder && !folder.away && !inAgents(folder.id, papers.folders) && onRename?.(folder);
+    }
+    if (e.key === "Escape" && picked?.size) {
+      e.preventDefault();
+      return onPicked?.([]);
     }
     if (e.key === "Escape" && lifted) {
       e.preventDefault();
@@ -356,7 +468,13 @@ export default function Tree({
       modKey(e) &&
       letterOf(e) === "x" &&
       row.id !== "unfiled" &&
-      !papers.docs.some((one) => one.id === row.id && (one.pageOf || (one.away && !one.archived)))
+      !papers.docs.some(
+        (one) =>
+          one.id === row.id &&
+          (one.pageOf ||
+            (one.away && !one.archived) ||
+            !rulesOf(placeOf(one, papers, pinned)).moves),
+      )
     ) {
       e.preventDefault();
       return setLifted(row);
@@ -563,6 +681,7 @@ export default function Tree({
   };
 
   const paper = (doc: Filed, depth: number, page = false, inGroup = false) => {
+    const rules = rulesOf(placeOf(doc, papers, pinned));
     const row = page ? undefined : agentRows.get(doc.file);
     const name = row
       ? inGroup
@@ -573,7 +692,7 @@ export default function Tree({
         : doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
-    const closed = !unfolded && !spread.has(doc.id) && !pages.some((one) => one.file === open);
+    const closed = !unfolded && !spread.has(doc.id);
     const mark = worn.mark ? (
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
@@ -601,15 +720,15 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page || inGroup || doc.away ? undefined : doc.id}
+          data-drop={page || inGroup || doc.away || !rules.moves ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
-          data-drop-holds={takesPages(doc) ? "yes" : "no"}
+          data-drop-holds={takesPages(doc) && rules.pages ? "yes" : "no"}
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
           className={`group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover ${
             acting === doc.id ? "bg-active " : ""
-          }${over === doc.id ? "bg-accent-soft" : ""}${
+          }${over === doc.id || picked?.has(doc.id) ? "bg-accent-soft" : ""}${
             over === `${doc.id}:before`
               ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"
               : ""
@@ -645,22 +764,24 @@ export default function Tree({
           )}
           <button
             type="button"
-            onPointerDown={(e) => !page && grab(e, doc.id, "doc")}
+            onPointerDown={(e) => !page && rules.moves && grab(e, doc.id, "doc")}
             data-row={doc.id}
             tabIndex={stops(doc.id) ? 0 : -1}
             onFocus={() => setReached(doc.id)}
             onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
             aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
-            onClick={tapped(() => onOpen(doc))}
+            onClick={tapped((e) => !picking(e, doc.id) && onOpen(doc))}
             title={row ? `${row.level} · ${row.name}` : undefined}
             aria-label={
-              lifted?.id === doc.id
-                ? fill("liftedIs", name)
-                : doc.away
-                  ? `${name} — ${t("isArchived")}`
-                  : doc.flagged
-                    ? `${name} — ${t("docFlagged")}`
-                    : name
+              picked?.has(doc.id)
+                ? fill("pickedIs", name)
+                : lifted?.id === doc.id
+                  ? fill("liftedIs", name)
+                  : doc.away
+                    ? `${name} — ${t("isArchived")}`
+                    : doc.flagged
+                      ? `${name} — ${t("docFlagged")}`
+                      : name
             }
             aria-current={open === doc.file ? "true" : undefined}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${
@@ -739,8 +860,7 @@ export default function Tree({
   };
 
   const skill = (group: SkillGroup, depth: number) => {
-    const closed =
-      !unfolded && !spread.has(group.key) && !group.docs.some((one) => one.file === open);
+    const closed = !unfolded && !spread.has(group.key);
     const mark = <Glyph name={KIND_GLYPH.skill} className="h-[13px] w-[13px]" />;
     const toggle = fill(closed ? "agentsSkillShow" : "agentsSkillHide", group.label);
     return (
@@ -799,6 +919,32 @@ export default function Tree({
     );
   };
 
+  // Inside an assistant's folder its rules, skills and memory stand apart, only as drawn: no file moves.
+  const byKind = (
+    drawn: Drawn[],
+    depth: number,
+  ): (Drawn | { kind: AgentKind; heading: React.ReactNode })[] => {
+    const kindOf = (one: Drawn): AgentKind | undefined =>
+      "skill" in one ? "skill" : agentRows.get(one.doc.file)?.kind;
+    const kinds = KINDS.filter((kind) => drawn.some((one) => kindOf(one) === kind));
+    if (kinds.length < 2 || drawn.some((one) => !kindOf(one))) return drawn;
+    return kinds.flatMap((kind) => [
+      {
+        kind,
+        heading: (
+          <li
+            key={`kind-${kind}`}
+            className="pt-1.5 pb-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+            style={{ paddingLeft: `${8 + depth * STEP + 4}px` }}
+          >
+            {t(KIND_WORD[kind])}
+          </li>
+        ),
+      },
+      ...drawn.filter((one) => kindOf(one) === kind),
+    ]);
+  };
+
   // With no idea written yet, Ideas still stands in the library, and opening it makes the sheet.
   const ideasRow = () => (
     <li key={BRAINSTORM} className="relative">
@@ -842,9 +988,7 @@ export default function Tree({
   );
 
   const diary = (onToday: () => void) => {
-    const holds = (book: Filed) =>
-      book.file === open || pagesOf(book.id).some((one) => one.file === open);
-    const closed = !unfolded && !spread.has(DIARY) && !diaries.some(holds);
+    const closed = !unfolded && !spread.has(DIARY);
     const mark = <Glyph name="book-heart" className="diary-mark h-[14px] w-[14px]" />;
     return (
       <li key={DIARY} className="relative">
@@ -1005,8 +1149,12 @@ export default function Tree({
         {!closed && (
           <ul id={`holds-${folder.id}`}>
             {kids.flatMap((child) => [branch(child, depth + 1)])}
-            {grouped(papersIn, agentRows).map((one) =>
-              "doc" in one ? paper(one.doc, depth + 1) : skill(one.skill, depth + 1),
+            {byKind(grouped(papersIn, agentRows), depth + 1).map((one) =>
+              "kind" in one
+                ? one.heading
+                : "doc" in one
+                  ? paper(one.doc, depth + 1)
+                  : skill(one.skill, depth + 1),
             )}
             {tistySkillsHere && <TistySkillsRow depth={depth + 1} step={STEP} />}
             {!agentsDrawn(under(folder.id), papers.folders, root).length &&
@@ -1167,11 +1315,6 @@ export default function Tree({
     <div className="mt-2">
       <button
         type="button"
-        onContextMenu={(e) => {
-          if (!onHereMenu) return;
-          e.preventDefault();
-          onHereMenu({ x: e.clientX, y: e.clientY });
-        }}
         onClick={() => fold("away")}
         aria-expanded={opened.has("away")}
         aria-label={t("archived")}
@@ -1224,6 +1367,7 @@ function Grip({
   return (
     <button
       type="button"
+      tabIndex={-1}
       onClick={onPress}
       aria-label={label}
       aria-expanded={open}

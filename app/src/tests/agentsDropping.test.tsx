@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dropAsked } from "../agentsDropping";
 import type { Reach } from "../agentsSync";
 import type { Filed, Folded } from "../core";
+import { fireAll } from "../dropLater";
 import { fill, t } from "../locales";
 import { asksSure } from "../sure";
-import { dropAllAsked, goingWith } from "../tidying";
+import { dropPickedAsked, goingWith } from "../tidying";
 import { tonguesNamed } from "../tongues";
 import AgentsDropping from "../ui/AgentsDropping";
 import { namesJoined, waitingOf } from "../ui/AgentsReview";
@@ -125,7 +126,15 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => asksSure(null));
+afterEach(() => {
+  asksSure(null);
+  fireAll();
+});
+
+const later = async () => {
+  await act(async () => fireAll());
+  await waitFor(() => expect(called("docs").length).toBeGreaterThan(1));
+};
 
 const dropping = async (one: Filed, answer: string) => {
   render(<AgentsDropping />);
@@ -230,7 +239,7 @@ describe("deleting a skill or rule of Agents", () => {
     act(() => {
       going = hook.result.current.dropDocs([SKILL, RULE]);
     });
-    const listed = dropAllAsked(goingWith([SKILL, RULE], DOCS));
+    const listed = dropPickedAsked(goingWith([SKILL, RULE], DOCS));
     expect(
       await screen.findByText((_, node) => node?.tagName === "P" && node.textContent === listed),
     ).toBeTruthy();
@@ -300,6 +309,8 @@ describe("deleting what no agent keeps", () => {
     await act(() => hook.result.current.dropDoc(NOTE));
     expect(called("agents_reach")).toEqual([]);
     expect(plain).toEqual([fill("dropDocSure", "Groceries")]);
+    expect(called("doc_drop")).toEqual([]);
+    await later();
     expect(called("doc_drop").map((one) => one.args)).toEqual([{ id: "N1" }]);
   });
 
@@ -308,6 +319,7 @@ describe("deleting what no agent keeps", () => {
     const { hook } = await loaded();
     await act(() => hook.result.current.dropDoc(SKILL));
     expect(plain).toEqual([said(SKILL)]);
+    await later();
     expect(called("doc_drop").map((one) => one.args)).toEqual([{ id: "S1" }]);
     expect(called("agents_drop")).toEqual([]);
   });

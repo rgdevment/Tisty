@@ -1,22 +1,28 @@
 import { movedOnceSure } from "./agentsMoving";
+import { folderShown, inAgents } from "./agentsSync";
 import { chosenWidth, railed, useBreadth } from "./breadth";
-import { docFile, folderFile } from "./core";
+import { docAway, docFile, type Filed, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
-import { hereChoices } from "./docMenus";
+import { hereChoices, NEW_DOC_KEY } from "./docMenus";
+import { destinations } from "./folders";
 import { cameFrom } from "./guide/help";
-import { t } from "./locales";
+import { fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import AgentsDropping from "./ui/AgentsDropping";
 import AgentsKeeper from "./ui/AgentsKeeper";
 import { WEEK } from "./ui/Ahead";
 import Calendars from "./ui/Calendars";
+import DropUndo from "./ui/DropUndo";
+import FolderDropping from "./ui/FolderDropping";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
 import LinkQuestions from "./ui/LinkQuestions";
 import Margins from "./ui/Margins";
+import NewDocKey from "./ui/NewDocKey";
 import News from "./ui/News";
 import Palette from "./ui/Palette";
 import Sidebar from "./ui/Sidebar";
+import type { LibraryActs } from "./ui/SideLibrary";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
@@ -67,6 +73,34 @@ export default function App() {
     toIdeas,
   } = desk;
   const side = chosenWidth(railed(kept, chosen.named === "keeping"));
+  const standing = papers.folders.find((one) => one.id === here);
+  // One at a time, so each lands against what the one before it left.
+  const eachOf = (docs: Filed[], one: (doc: Filed) => Promise<unknown>) =>
+    docs
+      .reduce<Promise<unknown>>((before, doc) => before.then(() => one(doc)), Promise.resolve())
+      .catch((e) => setError(saidPlainly(e)))
+      .finally(papersChanged);
+  const acts: LibraryActs = {
+    newDoc: () => hands.newDoc(here ?? undefined),
+    newTitle: `${fill(
+      inAgents(standing?.id, papers.folders) ? "agentsNewRuleIn" : "newDocIn",
+      standing ? folderShown(standing) : t("unfiled"),
+    )} · ${NEW_DOC_KEY}`,
+    dropDocs: (docs) => (docs.length === 1 ? desk.dropDoc(docs[0]) : desk.dropDocs(docs)),
+    dropFolder: desk.dropFolder,
+    rename: desk.setRenaming,
+    moveDocs: (docs, at) =>
+      setMenu({
+        at,
+        label: t("moveHere"),
+        choices: destinations(papers.folders, "", (folder) =>
+          eachOf(docs, (doc) =>
+            movedOnceSure("doc", doc.id, folder, () => docFile(doc.id, folder)),
+          ),
+        ),
+      }),
+    awayDocs: (docs) => eachOf(docs, (doc) => docAway(doc.id, true)),
+  };
   const openNetwork = () => {
     if (chosen.named === "brainsty") return;
     choose({
@@ -89,6 +123,9 @@ export default function App() {
         <News />
         <AgentsKeeper />
         <AgentsDropping />
+        <FolderDropping folders={papers.folders} />
+        <DropUndo />
+        <NewDocKey onNew={acts.newDoc} />
         <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
         <Palette />
@@ -129,6 +166,7 @@ export default function App() {
           onHereMenu={hereMenu}
           onListMenu={listMenu}
           room={desk.room}
+          acts={acts}
           onDocsMenu={(at) =>
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }

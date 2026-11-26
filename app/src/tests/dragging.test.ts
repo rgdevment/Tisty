@@ -237,3 +237,21 @@ describe("what the window must not promise", () => {
     expect(fits({ id: "d2", kind: "doc", tall: 0 }, deep, "in")).toBe(true);
   });
 });
+
+describe("a plain folder dragged toward Agents", () => {
+  const walled = new Set(["ag", "claude"]);
+  const carried = { id: "work", kind: "folder" as const, tall: 1, walled };
+
+  it("does not land in Agents nor in a folder inside it", () => {
+    expect(fits(carried, folder({ id: "ag" }), "in")).toBe(false);
+    expect(fits(carried, folder({ id: "claude", line: ["ag"], depth: 1 }), "after")).toBe(false);
+    expect(
+      settled(carried, doc({ line: ["ag", "claude"], parent: "claude" }), "before"),
+    ).toBeNull();
+  });
+
+  it("still lands beside Agents and anywhere else", () => {
+    expect(fits(carried, folder({ id: "ag" }), "after")).toBe(true);
+    expect(fits(carried, folder({ id: "home" }), "in")).toBe(true);
+  });
+});

@@ -188,6 +188,11 @@ const words = {
     "Tisty nunca trajo este archivo. Si lo traes a Agentes, queda como está, como un documento de este equipo.",
   ],
   agentsMoreTitle: ["Bring another file", "Traer otro archivo"],
+  agentsNewRule: ["New rule", "Regla nueva"],
+  agentsNewRuleIn: ["New rule in {name}", "Regla nueva en {name}"],
+  agentsKindRule: ["Rules", "Reglas"],
+  agentsKindSkill: ["Skills", "Skills"],
+  agentsKindMemory: ["Memory", "Memoria"],
   agentsMoreLead: [
     "These are the agent files on this computer that are not in Agents yet. Choose what to bring:",
     "Estos son los archivos de agentes de este equipo que todavía no están en Agentes. Elige qué traer:",

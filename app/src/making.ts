@@ -1,5 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
 import { fenced, type Start, startOf } from "tisty-diagrams/read";
-import { docNew, docs, docWrite, type Folded, folderAdd } from "./core";
+import { type Doc, docNew, docs, docWrite, type Folded, folderAdd } from "./core";
 import { trail } from "./folders";
 import { locale, t } from "./locales";
 import { docCard } from "./markdown";
@@ -45,7 +46,7 @@ export const drafted = async (name: string, kind: Start, into?: string): Promise
   const folder = await homeOf(into);
   const source = startOf(kind, locale());
   const head = `# ${said}\n\n`;
-  const made = await docNew(folder);
+  const made = await invoke<Doc>("doc_new", { folder, making: "diagram" });
   await docWrite(made.id, `${head}${fenced(source)}\n`);
   return { id: made.id, title: said, folder, at: new TextEncoder().encode(head).length, source };
 };

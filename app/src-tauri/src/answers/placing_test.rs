@@ -203,3 +203,50 @@ fn a_page_is_made_only_in_a_book_that_takes_pages() {
     assert_eq!(page_of(shelf.diary), Some("diaryHoldsOnlyDays"));
     assert_eq!(page_of(shelf.plain), None);
 }
+
+#[test]
+fn neither_ideas_nor_the_diary_is_copied() {
+    let shelf = shelf();
+    let copy = |doc| code(may_copy(&shelf.session, doc));
+
+    assert_eq!(copy(shelf.ideas), Some("ideasAreOne"));
+    assert_eq!(copy(shelf.ideas_page), Some("ideasAreOne"));
+    assert_eq!(copy(shelf.diary), Some("diaryIsOne"));
+    assert_eq!(copy(shelf.plain), None);
+    assert_eq!(copy(shelf.agents_doc), None);
+}
+
+#[test]
+fn a_plain_folder_does_not_move_into_agents_and_one_of_its_own_does() {
+    let mut shelf = shelf();
+    let claude = folder(&mut shelf.session, "Claude", None);
+    shelf.session.state.folders.get_mut(&claude).unwrap().parent = Some(shelf.agents);
+    let shelve = |what, into| code(may_shelve(&shelf.session, what, into));
+
+    assert_eq!(
+        shelve(shelf.work, Some(shelf.agents)),
+        Some("agentsHoldOnlyRules")
+    );
+    assert_eq!(
+        shelve(shelf.work, Some(claude)),
+        Some("agentsHoldOnlyRules")
+    );
+    assert_eq!(shelve(claude, Some(shelf.agents)), None);
+    assert_eq!(shelve(claude, None), None);
+    assert_eq!(shelve(shelf.work, None), None);
+}
+
+#[test]
+fn nothing_is_imported_into_agents() {
+    let mut shelf = shelf();
+    let agents = shelf.agents;
+    let refused =
+        super::super::carrying::imported(&mut shelf.session, "# Imported\n", Some(agents))
+            .unwrap_err();
+
+    assert_eq!(refused.code, "agentsHoldOnlyRules");
+    assert!(
+        super::super::carrying::imported(&mut shelf.session, "# Imported\n", Some(shelf.work))
+            .is_ok()
+    );
+}

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAttended } from "../attended";
 import type { Filed, Folded, Papers } from "../core";
+import { useGoing, useHiddenGoing } from "../dropLater";
 import { capped, exactly } from "../format";
 import { fill, t } from "../locales";
 import { sifted } from "../sifting";
@@ -11,12 +12,24 @@ import Glyph from "./Glyph";
 import LibraryGlance from "./LibraryGlance";
 import { useFades } from "./room";
 import { Leaning } from "./SideTasks";
-import Tree from "./Tree";
+import Tree, { type useFolds } from "./Tree";
 
 export type Revealed = { folder: string; at: number };
 
+/// What the library does with the rows themselves: make, delete, rename and act on several at once.
+export interface LibraryActs {
+  newDoc: () => void;
+  newTitle: string;
+  dropDocs: (docs: Filed[]) => void;
+  dropFolder: (folder: Folded) => void;
+  rename: (folder: Folded) => void;
+  moveDocs: (docs: Filed[], at: { x: number; y: number }) => void;
+  awayDocs: (docs: Filed[]) => void;
+}
+
 interface Props {
   papers: Papers;
+  folds?: ReturnType<typeof useFolds>;
   chosen: Chosen;
   leaning: Lean;
   onLean: (on: Lean) => void;
@@ -37,6 +50,7 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
+  acts?: LibraryActs;
 }
 
 export default function SideLibrary(props: Props) {
@@ -96,11 +110,16 @@ function Wide({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  acts,
   revealing,
+  folds,
   title,
   hidden,
 }: Props & { title: React.ReactNode; hidden: boolean }) {
   const [sifting, setSifting] = useState(false);
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+  const going = useHiddenGoing();
+  const handed = useGoing().flatMap((one) => (one.moves ? [one.moves] : []));
   const [query, setQuery] = useState("");
   const pinned = usePinned(papers);
   const pane = useFades<HTMLDivElement>();
@@ -109,7 +128,30 @@ function Wide({
     if (!hidden && pane.current) pane.current.scrollTop = scrolled.current;
   }, [hidden, pane]);
   const asked = sifting ? query.trim() : "";
-  const seen = { ...papers, docs: shown(papers.docs, chosen.doc) };
+  const landing = (at: string | null): string | null => {
+    const moved = handed.find((one) => one.from === at);
+    return moved ? landing(moved.to) : at;
+  };
+  const seen = {
+    folders: papers.folders
+      .filter((one) => !going.has(one.id))
+      .map((one) => (handed.length ? { ...one, parent: landing(one.parent) } : one)),
+    docs: shown(papers.docs, chosen.doc)
+      .filter((one) => !going.has(one.id))
+      .map((one) => (handed.length ? { ...one, folder: landing(one.folder ?? null) } : one)),
+  };
+  const pickedDocs = seen.docs.filter((one) => picked.has(one.id));
+  const pick = (ids: string[]) => setPicked(new Set(ids));
+  const dropped = (row: { id: string; kind: "doc" | "folder" }) => {
+    if (!acts) return;
+    if (row.kind === "folder") {
+      const folder = seen.folders.find((one) => one.id === row.id);
+      return folder && acts.dropFolder(folder);
+    }
+    const docs = picked.has(row.id) ? pickedDocs : seen.docs.filter((one) => one.id === row.id);
+    pick([]);
+    if (docs.length) acts.dropDocs(docs);
+  };
   const left = sifted(seen, asked);
   const nothing = Boolean(asked) && !left.docs.length && !left.folders.length;
   const close = () => {
@@ -136,6 +178,17 @@ function Wide({
             >
               <Glyph name="filter" className="h-[13px] w-[13px]" />
             </button>
+            {acts && (
+              <button
+                type="button"
+                onClick={acts.newDoc}
+                title={acts.newTitle}
+                className="flex h-6 items-center gap-1 rounded-l-md bg-accent-soft pr-1.5 pl-1.5 text-[11.5px] font-semibold text-accent hover:bg-active"
+              >
+                <Glyph name="plus" className="h-[11px] w-[11px]" />
+                {t("newShort")}
+              </button>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -143,10 +196,13 @@ function Wide({
                 onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
               }}
               aria-label={t("docsActions")}
+              title={t("docsActions")}
               aria-haspopup="menu"
-              className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+              className={`grid h-6 place-items-center text-faint hover:bg-hover hover:text-ink ${
+                acts ? "w-5 rounded-r-md bg-accent-soft text-accent" : "w-6 rounded-md"
+              }`}
             >
-              <Glyph name="plus" className="h-[13px] w-[13px]" />
+              <Glyph name={acts ? "chevron" : "plus"} className="h-[11px] w-[11px]" />
             </button>
             <Leaning toward="tasks" label={t("shrinkLibrary")} onLean={onLean} />
           </span>
@@ -165,6 +221,7 @@ function Wide({
           <div className={nothing ? "hidden" : undefined}>
             <Tree
               papers={left}
+              folds={folds}
               pinned={pinned?.file ?? null}
               ideas={pinned?.ideas}
               ideasMarked={pinned?.marked}
@@ -186,9 +243,28 @@ function Wide({
               onFolderMenu={onFolderMenu}
               onHereMenu={onHereMenu}
               onDocMenu={onDocMenu}
+              picked={picked}
+              onPicked={acts ? pick : undefined}
+              onDelete={acts ? dropped : undefined}
+              onRename={acts?.rename}
             />
           </div>
         </div>
+        {acts && pickedDocs.length > 1 && (
+          <PickedBar
+            many={pickedDocs.length}
+            onMove={(at) => acts.moveDocs(pickedDocs, at)}
+            onAway={() => {
+              acts.awayDocs(pickedDocs);
+              pick([]);
+            }}
+            onDrop={() => {
+              acts.dropDocs(pickedDocs);
+              pick([]);
+            }}
+            onLetGo={() => pick([])}
+          />
+        )}
       </div>
     </div>
   );
@@ -230,5 +306,55 @@ function Sift({
         <Glyph name="close" className="h-3 w-3" />
       </button>
     </form>
+  );
+}
+
+function PickedBar({
+  many,
+  onMove,
+  onAway,
+  onDrop,
+  onLetGo,
+}: {
+  many: number;
+  onMove: (at: { x: number; y: number }) => void;
+  onAway: () => void;
+  onDrop: () => void;
+  onLetGo: () => void;
+}) {
+  const act = "rounded-md bg-hover px-2 py-1 hover:bg-active";
+  return (
+    <div
+      role="toolbar"
+      aria-label={fill("pickedMany", String(many))}
+      className="mx-4 mt-1 flex items-center gap-1.5 rounded-[10px] border border-hair bg-bg p-1.5 text-[11.5px] text-ink shadow-lift"
+    >
+      <span className="px-1 text-faint">{fill("pickedMany", String(many))}</span>
+      <button
+        type="button"
+        className={act}
+        onClick={(e) => {
+          const box = e.currentTarget.getBoundingClientRect();
+          onMove({ x: box.left, y: box.top - 4 });
+        }}
+      >
+        {t("moveTo")}
+      </button>
+      <button type="button" className={act} onClick={onAway}>
+        {t("putAway")}
+      </button>
+      <button type="button" className={`${act} text-urgent`} onClick={onDrop}>
+        {t("deleteIt")}
+      </button>
+      <button
+        type="button"
+        onClick={onLetGo}
+        aria-label={t("pickedLetGo")}
+        title={t("pickedLetGo")}
+        className="ml-auto grid size-5 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+      >
+        <Glyph name="close" className="h-3 w-3" />
+      </button>
+    </div>
   );
 }

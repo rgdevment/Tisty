@@ -1308,7 +1308,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_backable,
         answers::papers::doc_write,
         answers::papers::doc_order,
-        answers::papers::doc_new,
+        answers::placing::doc_new,
         answers::brainstorming::jot,
         answers::brainstorming::brainstorm_of,
         answers::brainstorming::brainstorm_begun,

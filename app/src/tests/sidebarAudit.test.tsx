@@ -1,14 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Folded, Papers } from "../core";
 import { docChoices, folderChoices, type Hands, hereChoices } from "../docMenus";
 import { showAll } from "../hiding";
 import { adopt, fill, locale, t } from "../locales";
+import { placesRules } from "../places";
 import type { Choice } from "../ui/Menu";
 import Tree from "../ui/Tree";
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve([["work", "x"]]),
+  invoke: (cmd: string) =>
+    Promise.resolve(
+      cmd === "places_rules"
+        ? {
+            plain: { makes: [], pages: true, moves: true, copies: true },
+            agents: { makes: [], pages: true, moves: true, copies: true },
+            ideas: { makes: [], pages: false, moves: false, copies: false },
+            diary: { makes: [], pages: false, moves: false, copies: true },
+          }
+        : [["work", "x"]],
+    ),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -44,7 +55,6 @@ const handsFor = (papers: Papers, showing: string | null = null) => {
     newDoc: vi.fn(),
     newDiagram: vi.fn(),
     bringIn: vi.fn(),
-    makeFolder: vi.fn(),
     makeFolderIn: vi.fn(),
     rename: vi.fn(),
     parcels: { takeParcel: vi.fn(), packUp: vi.fn() },
@@ -64,12 +74,16 @@ const handsFor = (papers: Papers, showing: string | null = null) => {
 const shown = (choices: Choice[]) => choices.filter((one) => !one.off);
 const keysOf = (choices: Choice[]) => shown(choices).map((one) => one.key);
 
+beforeAll(async () => {
+  await placesRules();
+});
+
 beforeEach(() => {
   showAll();
 });
 
 describe("the menus of the documents sidebar", () => {
-  it.fails("gives a diary book only the choices a diary book takes", () => {
+  it("gives a diary book only the choices a diary book takes", () => {
     const h = handsFor({ folders: [], docs: [book] });
 
     const offered = keysOf(docChoices(book, h));
@@ -79,7 +93,7 @@ describe("the menus of the documents sidebar", () => {
     }
   });
 
-  it.fails("keeps diagrams, folders, import and unpack out of the plus menu inside Agents", () => {
+  it("keeps diagrams, folders, import and unpack out of the plus menu inside Agents", () => {
     const h = handsFor({ folders: [agentsRoot, agentsClaude], docs: [] });
 
     const offered = keysOf(hereChoices(h, "a2"));
@@ -89,7 +103,7 @@ describe("the menus of the documents sidebar", () => {
     }
   });
 
-  it.fails("creates a folder at the root when the root menu picks New folder (fix through makeFolderIn)", () => {
+  it("creates a folder at the root when the root menu picks New folder (fix through makeFolderIn)", () => {
     const h = handsFor({ folders: [casa], docs: [] });
 
     hereChoices(h)
@@ -99,7 +113,7 @@ describe("the menus of the documents sidebar", () => {
     expect(h.makeFolderIn).toHaveBeenCalledWith(undefined);
   });
 
-  it.fails("keeps every folder and document menu to at most ten visible choices", () => {
+  it("keeps every folder and document menu to at most ten visible choices", () => {
     const papers = { folders: [casa], docs: [doc, sibling] } as Papers;
     const open = handsFor(papers, doc.file);
     const closed = handsFor(papers, null);
@@ -118,21 +132,18 @@ describe("the tree of the documents sidebar", () => {
   const draw = (papers: Papers, props: Partial<Parameters<typeof Tree>[0]> = {}) =>
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} {...props} />);
 
-  it.fails("keeps a document dropped on Ideas or on a diary book from becoming a page", () => {
+  it("keeps a document dropped on Ideas or on a diary book from becoming a page", () => {
     const board = paper({ id: "i1", file: "ideas-1", title: "Ideas" });
     const { container } = draw(
       { folders: [], docs: [board, book] },
       { pinned: board.file, open: book.file, onDiary: vi.fn(), onPage: vi.fn() },
     );
 
-    const holds = (id: string) =>
-      container.querySelector<HTMLElement>(`[data-drop="${id}"]`)?.dataset.dropHolds;
-
-    expect(holds("i1")).toBe("no");
-    expect(holds("b1")).toBe("no");
+    expect(container.querySelector('[data-drop="i1"]')).toBeNull();
+    expect(container.querySelector('[data-drop="b1"]')).toBeNull();
   });
 
-  it.fails("keeps every folder chevron out of the tab order", () => {
+  it("keeps every folder chevron out of the tab order", () => {
     const folders = [
       folder({ id: "f1", name: "uno" }),
       folder({ id: "f2", name: "dos" }),
@@ -148,7 +159,7 @@ describe("the tree of the documents sidebar", () => {
     expect(stops).toHaveLength(1);
   });
 
-  it.fails("folds a document whose page is the open one", () => {
+  it("folds a document whose page is the open one", () => {
     const home = paper({ id: "d1", file: "dev_a-0001", title: "Libro" });
     const page = paper({ id: "p1", file: "dev_a-0009", title: "Hoja", pageOf: "d1" });
     const { container } = draw({ folders: [], docs: [home, page] }, { open: page.file });
@@ -160,7 +171,7 @@ describe("the tree of the documents sidebar", () => {
     expect(container.querySelector("#pages-d1")).toBeNull();
   });
 
-  it.fails("folds the diary group while one of its books is open", () => {
+  it("folds the diary group while one of its books is open", () => {
     const { container } = draw(
       { folders: [], docs: [book] },
       { open: book.file, onDiary: vi.fn() },
@@ -172,7 +183,7 @@ describe("the tree of the documents sidebar", () => {
     expect(container.querySelector("#pages-diary")).toBeNull();
   });
 
-  it.fails("opens the New document menu from the keyboard on the unfiled row", () => {
+  it("opens the New document menu from the keyboard on the unfiled row", () => {
     const onHereMenu = vi.fn();
     draw({ folders: [], docs: [] }, { onHereMenu });
 
@@ -184,7 +195,7 @@ describe("the tree of the documents sidebar", () => {
     expect(onHereMenu).toHaveBeenCalled();
   });
 
-  it.fails("does not offer New document from a right click on the Archived header", () => {
+  it("does not offer New document from a right click on the Archived header", () => {
     const onHereMenu = vi.fn();
     const old = paper({ id: "d1", file: "dev_a-0001", archived: true, away: true });
     draw({ folders: [], docs: [old] }, { onHereMenu });
@@ -209,11 +220,5 @@ describe("the texts of the documents sidebar", () => {
 });
 
 describe("what the documents sidebar still lacks", () => {
-  it.todo("selects several rows at once");
-  it.todo("deletes the focused row with the Delete key");
-  it.todo("renames the focused row with F2");
-  it.todo("jumps to the first and last row with Home and End");
-  it.todo("starts a New document from a keyboard shortcut");
-  it.todo("undoes a delete");
   it.todo("keeps deleted documents in a trash");
 });

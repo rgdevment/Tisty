@@ -245,6 +245,35 @@ describe("the loose papers, which belong to no folder", () => {
     expect(screen.queryByRole("button", { name: /Contrato/ })).toBeNull();
   });
 
+  it("leaves out the Ideas sheet and the diary, which stand in the sidebar on their own", () => {
+    render(
+      <Folder
+        folder={null}
+        folders={folders}
+        docs={[
+          { id: "e", file: "0005", title: "Suelto", folder: null, archived: false, away: false },
+          { id: "i", file: "0006", title: "Lluvia", folder: null, archived: false, away: false },
+          {
+            id: "y",
+            file: "0007",
+            title: "Año",
+            folder: null,
+            archived: false,
+            away: false,
+            diary: true,
+          },
+        ]}
+        pinned="0006"
+        onOpen={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Suelto/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Lluvia/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Año/ })).toBeNull();
+  });
+
   it("has no trail and no folders of its own", () => {
     loose();
 

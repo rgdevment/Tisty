@@ -49,6 +49,49 @@ pub(crate) fn may_make(
     }
 }
 
+pub(crate) fn may_copy(session: &Session, doc: DocId) -> Answer<()> {
+    let state = &session.state;
+    let Some(kept) = state.docs.get(&doc) else {
+        return Err(Refusal::of("noSuchDoc"));
+    };
+    places(session).may_copy(state, kept).map_err(refused)
+}
+
+/// AGENTS makes no folder of its own, so only a folder that is already one of its own moves inside.
+pub(crate) fn may_shelve(
+    session: &Session,
+    folder: FolderId,
+    into: Option<FolderId>,
+) -> Answer<()> {
+    let places = places(session);
+    match places.of_folder(Some(folder)) {
+        Place::Agents => Ok(()),
+        _ => places.may_make(into, Making::Folder).map_err(refused),
+    }
+}
+
+/// A diagram is a document to the store, so the window says which it is making and AGENTS refuses it here.
+#[tauri::command]
+pub fn doc_new(
+    session: tauri::State<'_, Mutex<Session>>,
+    folder: Option<String>,
+    page_of: Option<String>,
+    existing: Option<bool>,
+    making: Option<Making>,
+) -> Answer<tisty_core::docs::Doc> {
+    let folder = folder
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let page_of = page_of
+        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
+        .transpose()?;
+    let mut session = held(&session);
+    if let Some(what) = making.filter(|what| *what != Making::Doc) {
+        may_make(&session, folder, page_of, what)?;
+    }
+    super::papers::doc_made(&mut session, folder, page_of, existing.unwrap_or(false))
+}
+
 #[derive(serde::Serialize)]
 pub struct Ruling {
     plain: Rules,

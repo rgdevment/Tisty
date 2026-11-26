@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { DoorDue, Snapshot, Task } from "../core";
+import { dropLater } from "../dropLater";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
 
@@ -268,5 +269,19 @@ describe("the card for an assistant turned away at the door", () => {
 
     expect(door()).toBeTruthy();
     expect(screen.getByText("An agent tried to come in.")).toBeTruthy();
+  });
+});
+
+describe("a delete still waiting when the window withdraws", () => {
+  it("goes now, since nobody is left to undo it", async () => {
+    await started();
+    const run = vi.fn(() => Promise.resolve());
+    dropLater({ hides: [], said: "x", run });
+
+    await act(async () => {
+      for (const fn of bus.heard.get("withdrawn") ?? []) fn({ payload: null });
+    });
+
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
   });
 });
