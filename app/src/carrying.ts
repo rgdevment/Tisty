@@ -51,6 +51,7 @@ export function carrying(
   let soon: ReturnType<typeof setTimeout> | undefined;
   let expire: ReturnType<typeof setTimeout> | undefined;
   let later: ReturnType<typeof setTimeout> | undefined;
+  let astir: string | undefined;
 
   const go = (way: Way): Promise<Carried | undefined> => {
     if (gone || folder === undefined) return Promise.resolve(undefined);
@@ -68,6 +69,8 @@ export function carrying(
       awry({ why: "slow" });
       running = false;
     }, TAKING_LONG);
+    // Read as the round sets out, so whatever lands after it still moves the mark the glance weighs.
+    const marked = way === "push" ? undefined : folderAstir().catch(() => undefined);
 
     return syncNow(way)
       .then((answer) => {
@@ -82,6 +85,11 @@ export function carrying(
         }
         if (!busy && answer.owed && !answer.deferred && way !== "push") owed = owing(owed, "push");
         if (!busy && !answer.deferred) toldAside(null);
+        if (!busy && !answer.deferred && mine === round) {
+          void marked?.then((mark) => {
+            if (!gone && mark !== undefined) astir = mark;
+          });
+        }
         if (mine !== round) return busy ? "busy" : answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is
@@ -140,7 +148,6 @@ export function carrying(
       })
       .catch(() => {});
 
-  let astir: string | undefined;
   // The provider also says when this machine's own upload landed, so its word is weighed like a glance.
   const stirred = (heard = false) => {
     if (gone) return;
