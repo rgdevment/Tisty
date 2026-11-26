@@ -72,9 +72,6 @@ jobs:
     name: earlier releases on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    permissions:
-      contents: read
-      attestations: read
     strategy:
       fail-fast: false
       # Building the test that meets a release is two minutes and meeting it four seconds, so one job a system meets them all.
@@ -93,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           trees=""
-          while IFS='|' read -r release _ _ _ built; do
+          while IFS='|' read -r release _ _ _ built _; do
             [ "$built" = built ] || continue
             git fetch --quiet --depth=1 origin "refs/tags/v$release:refs/tags/v$release"
             git worktree add --quiet --detach "earlier/$release" "v$release"
@@ -129,9 +126,9 @@ jobs:
           handed=$(grep -c . <<< "$RELEASES")
           met=0
           failed=""
-          while IFS='|' read -r release schema shape accepts built <&3; do
+          while IFS='|' read -r release schema shape accepts built sha256 <&3; do
             echo "::group::$release"
-            if bash scripts/meet-earlier.sh "$release" "$schema" "$shape" "$accepts" "$built" < /dev/null; then
+            if bash scripts/meet-earlier.sh "$release" "$schema" "$shape" "$accepts" "$built" "$sha256" < /dev/null; then
               met=$((met + 1))
             else
               failed+=" $release"
