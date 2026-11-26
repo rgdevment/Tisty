@@ -11,8 +11,8 @@
     "./studio": "./src/studio.ts"
   },
   "peerDependencies": {
-    "@xyflow/react": "*",
-    "@xyflow/system": "*",
+    "@xyflow/react": "^13.0.2",
+    "@xyflow/system": "^1.0.0",
     "react": "*"
   },
   "peerDependenciesMeta": {
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "*",
-    "jsdom": "*",
+    "jsdom": "^31.0.1",
     "mermaid": "*",
     "vitest": "*"
   }

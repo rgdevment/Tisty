@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@tisty/contracts": "file:../../contracts/dist/typescript",
-    "jsdom": "*",
+    "jsdom": "^31.0.1",
     "vitest": "*"
   }
 }

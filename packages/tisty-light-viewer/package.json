@@ -27,7 +27,7 @@
     "@solidjs/testing-library": "1.0.0-rc.2",
     "@solidjs/vite-plugin": "3.0.1",
     "@vitest/coverage-v8": "*",
-    "jsdom": "*",
+    "jsdom": "^31.0.1",
     "typescript": "*",
     "vite": "*",
     "vitest": "*"
