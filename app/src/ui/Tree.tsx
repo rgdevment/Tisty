@@ -46,6 +46,7 @@ import {
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { letterOf, modKey, onMac, shortcut } from "./macKeys";
+import { pagesIn, remembered, standingIn, treeIndex } from "./treeIndex";
 
 const STIRS = 4;
 
@@ -155,6 +156,7 @@ export default function Tree({
     () => (root ? agentGroups(papers.docs, papers.folders, agentRows, root) : null),
     [papers, agentRows, root],
   );
+  const index = useMemo(() => treeIndex(papers.docs), [papers.docs]);
   // What Global draws in its groups is not drawn again where it is kept.
   const projected = useMemo(
     () =>
@@ -603,18 +605,14 @@ export default function Tree({
     (unborn ? AGENTS : undefined) ??
     "unfiled";
 
-  const inside = (folder: string | null) =>
-    papers.docs.filter(
+  const inside = remembered((folder: string | null) =>
+    standingIn(index, folder).filter(
       (one) =>
-        one !== pin &&
-        !gathered(one) &&
-        !one.pageOf &&
-        !projected.has(one.id) &&
-        one.folder === folder &&
-        one.away === shelved(folder),
-    );
+        one !== pin && !gathered(one) && !projected.has(one.id) && one.away === shelved(folder),
+    ),
+  );
 
-  const pagesOf = (id: string) => papers.docs.filter((one) => one.pageOf === id);
+  const pagesOf = (id: string) => pagesIn(index, id);
 
   /// The shelf keeps the whole of a folder that was put away, and the loose ones under it in a row.
   const shelves = papers.folders.filter(
