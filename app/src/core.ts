@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { writeHtml, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
 import type { PieceShowing } from "./pieceWindow";
@@ -1107,6 +1107,7 @@ export const stillAtOdds = (ids: string[]): Promise<string[]> => invoke("still_a
 export const leaveHere = (anyway?: boolean): Promise<string[]> => invoke("leave_here", { anyway });
 
 export const copied = (text: string): Promise<void> => writeText(text);
+export const copiedHtml = (html: string, plain: string): Promise<void> => writeHtml(html, plain);
 
 export const weighs = (reference: string): Promise<number> => invoke("weighs", { reference });
 
