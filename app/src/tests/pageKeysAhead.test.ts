@@ -483,3 +483,37 @@ describe("a Backspace that comes before the page shows the letter it takes", () 
     expect(text()).toBe("# Hol");
   });
 });
+
+describe("a right-click on a line just begun", () => {
+  const titled = {
+    body: "# a1",
+    placed: '<h1 id="a1" data-at="0-4"><span data-src="2-4">a1</span></h1>',
+  };
+
+  const begunUnderTitle = () => {
+    const text = opened(titled);
+    caretAt(wordsEnd("a1"));
+    asked("insertParagraph");
+    const ghost = document.createElement("p");
+    ghost.setAttribute("data-ghost", "");
+    document.querySelector(".page")?.append(ghost);
+    return { text, ghost };
+  };
+
+  const rightDown = (on: Element, button: number) =>
+    on.dispatchEvent(new MouseEvent("mousedown", { button, bubbles: true, cancelable: true }));
+
+  it("keeps the line begun, so what comes next is written on it", () => {
+    const { text, ghost } = begunUnderTitle();
+    rightDown(ghost, 2);
+    asked("insertText", undefined, "x");
+    expect(text()).toBe("# a1\n\nx");
+  });
+
+  it("lets a plain click put the caret where it lands, as before", () => {
+    const { text, ghost } = begunUnderTitle();
+    rightDown(ghost, 0);
+    asked("insertText", undefined, "x");
+    expect(text()).toBe("# a1x\n\n");
+  });
+});

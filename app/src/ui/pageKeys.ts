@@ -21,6 +21,7 @@ import type { Laying } from "./pageLaying";
 import { nested } from "./pageLists";
 import { swappedItem } from "./pageMoving";
 import {
+  atGhost,
   besideBox,
   brokenBy,
   caretLaidOn,
@@ -510,6 +511,14 @@ export const keysOn = (
     if ((event.target as Element | null)?.closest?.(FOCUS_KEPT)) event.preventDefault();
   };
 
+  const onOwnLine = (target: Node | null) => {
+    if (!target) return false;
+    if (atGhost(target, 0)) return true;
+    const block = elementOf(target)?.closest(".page [data-at]");
+    const at = caret.chosen();
+    return Boolean(block && at?.collapsed && block.contains(at.startContainer));
+  };
+
   // The page's events come from its own window, so a key is told by what it carries, not by its class.
   const moved = (event: Event) => {
     const key = "key" in event ? String(event.key) : null;
@@ -519,6 +528,9 @@ export const keysOn = (
     if (key !== null && !walked && !key.startsWith("Arrow") && !/^(Home|End|Page)/.test(key))
       return;
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;
+    // A right-click on the line being written opens the page's menu for it, so the place kept for it stays.
+    const menuAsked = key === null && (event as MouseEvent).button === 2;
+    if (menuAsked && onOwnLine(event.target as Node | null)) return;
     const across = key !== null && !walked && Boolean(held.ctrlKey || held.metaKey);
     if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across || walked === "line")
       writer.leftFrom = caret.blockStart();
