@@ -49,7 +49,7 @@ import {
 import { placeOf } from "./pagePlaces";
 import { startIn } from "./pageSpots";
 import { wholeReach } from "./pageWholes";
-import { choiceKept, keptUnlaid, type Writer } from "./pageWriter";
+import { choiceKept, keptUnlaid, titleBegun, type Writer } from "./pageWriter";
 
 export type Retaken = (kind: string, named: StaticRange | undefined, standing: Standing) => void;
 
@@ -159,8 +159,8 @@ export const deletingOn = (
 
   const emptied = (text: string) => {
     put({ from: 0, to: text.length, insert: "" }, 0, true);
-    if (!page.documentElement.classList.contains("untitled"))
-      writer.kept = { node: page.body, offset: -1, at: 0, lead: "# ", tail: "" };
+    const begun = titleBegun(page);
+    if (begun) writer.kept = { node: page.body, offset: -1, at: 0, ...begun };
   };
 
   const tookBeside = (kind: string, gone: Span) => {

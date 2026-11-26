@@ -51,6 +51,46 @@ export const nothingPast = (edge: Range, back: boolean) => {
   return rest === "" || (!back && rest === "\n" && inCode(edge.startContainer));
 };
 
+const TAKEN_WHOLE = `${PIECES}, br, hr, input`;
+
+const holdsSomething = (one: Node) =>
+  one.nodeType === Node.TEXT_NODE
+    ? shownWords((one as Text).data) !== ""
+    : (one as Element).matches(TAKEN_WHOLE);
+
+const pastSubtree = (one: Node, root: Node): Node | null => {
+  let at: Node | null = one;
+  while (at && at !== root && !at.nextSibling) at = at.parentNode;
+  return at && at !== root ? at.nextSibling : null;
+};
+
+// A caret at the very edge of the words, or in a block drawn empty, leaves the browser's own delete nothing to take.
+export const nothingToTake = (node: Node, offset: number, back: boolean) => {
+  const sheet = elementOf(node)?.closest(".page");
+  if (!sheet) return false;
+  const text = node.nodeType === Node.TEXT_NODE;
+  const length = text ? (node as Text).length : node.childNodes.length;
+  if (text && (back ? offset > 0 : offset < length)) return false;
+  const walk = sheet.ownerDocument.createTreeWalker(
+    sheet,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+  );
+  let next: Node | null;
+  if (back) {
+    walk.currentNode = !text && offset > 0 ? node.childNodes[offset - 1] : node;
+    if (!text && offset > 0) while (walk.lastChild());
+    next = !text && offset > 0 ? walk.currentNode : walk.previousNode();
+  } else {
+    next = !text && offset < length ? node.childNodes[offset] : pastSubtree(node, sheet);
+    if (next) walk.currentNode = next;
+  }
+  while (next && next !== sheet) {
+    if (holdsSomething(next)) return false;
+    next = back ? walk.previousNode() : walk.nextNode();
+  }
+  return true;
+};
+
 export const titleAloneLeft = (was: string, left: string) =>
   /^#[ \t]*\r?\n?$/.test(left) || (/^#[ \t]/.test(was) && !left.trim());
 

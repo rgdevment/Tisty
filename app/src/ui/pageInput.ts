@@ -13,6 +13,7 @@ import {
   inOneCodeBlock,
   joined,
   leftOver,
+  nothingToTake,
   pastWhole,
 } from "./pageInputEdges";
 import { puttingOn } from "./pageLaidOver";
@@ -206,7 +207,17 @@ export const inputOn = (
       return behind.hold(kind, true);
     }
     behind.dropped();
-    if (deleting.keyedDelete(kind, standing)) event.preventDefault();
+    if (deleting.keyedDelete(kind, standing)) return event.preventDefault();
+    // A page behind the words may leave its own caret where nothing is to take, and WebKit then sends no beforeinput.
+    const own = caret.chosen();
+    if (
+      standing.lagging &&
+      own?.collapsed &&
+      nothingToTake(own.startContainer, own.startOffset, back)
+    ) {
+      event.preventDefault();
+      inputTaken(kind, undefined, null, null, standing);
+    }
   };
 
   const lineBroken = (event: KeyboardEvent) => {

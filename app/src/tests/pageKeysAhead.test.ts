@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { joinedAcross } from "../ui/pageMarks";
-import { type PageWriting, writtenOn } from "../ui/pageWriting";
+import { type PageWriting, type Turns, writtenOn } from "../ui/pageWriting";
 
 const TITLE = '<h1 id="t" data-at="0-4"><span data-src="2-3">T</span></h1>';
 const ANTES = '<p data-at="5-11"><span data-src="5-10">Antes</span></p>';
@@ -88,7 +88,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-const opened = ({ body, placed }: Shown) => {
+const opened = ({ body, placed }: Shown, turns?: Turns) => {
   let text = body;
   document.body.innerHTML = `<article class="page">${placed}</article>`;
   writing = writtenOn(document, {
@@ -104,6 +104,7 @@ const opened = ({ body, placed }: Shown) => {
     ask: () => {},
     blocks: () => {},
     acts: () => {},
+    turns,
   });
   return () => text;
 };
@@ -386,5 +387,99 @@ describe("a delete the page cannot place yet", () => {
     for (const letter of "- ") asked("insertText", undefined, letter);
     asked("deleteContentBackward");
     expect(text()).toBe("# T\n\n```\nuno\n- \n```\n");
+  });
+});
+
+describe("a key that comes before the page shows an undo that emptied it", () => {
+  const titled = {
+    body: "# a",
+    placed: '<h1 id="a" data-at="0-3"><span data-src="2-3">a</span></h1>',
+  };
+  const typedTitle = (): Turns => ({
+    undone: [{ from: 0, removed: "", added: "# a", at: 0 }],
+    redone: [],
+  });
+
+  it("writes the next letter as the title, as a Backspace that emptied it would", () => {
+    const text = opened(titled, typedTitle());
+    caretAt(wordsEnd("a"));
+    asked("historyUndo");
+    expect(text()).toBe("");
+    asked("insertText", undefined, "H");
+    asked("insertText", undefined, "o");
+    expect(text()).toBe("# Ho");
+  });
+
+  it("writes the next letter as the title after a redo that emptied it", () => {
+    const text = opened(titled, {
+      undone: [],
+      redone: [{ from: 0, removed: "", added: "# a", at: 0 }],
+    });
+    caretAt(wordsEnd("a"));
+    asked("historyRedo");
+    expect(text()).toBe("");
+    asked("insertText", undefined, "H");
+    expect(text()).toBe("# H");
+  });
+
+  it("writes an untitled page's first letter bare after an undo that emptied it", () => {
+    document.documentElement.classList.add("untitled");
+    try {
+      const text = opened(
+        { body: "a", placed: '<p data-at="0-1"><span data-src="0-1">a</span></p>' },
+        { undone: [{ from: 0, removed: "", added: "a", at: 0 }], redone: [] },
+      );
+      caretAt(wordsEnd("a"));
+      asked("historyUndo");
+      expect(text()).toBe("");
+      asked("insertText", undefined, "H");
+      expect(text()).toBe("H");
+    } finally {
+      document.documentElement.classList.remove("untitled");
+    }
+  });
+});
+
+describe("a Backspace that comes before the page shows the letter it takes", () => {
+  it("takes the title's letter on the key alone, as WebKit sends no beforeinput on an empty title", () => {
+    const text = opened({
+      body: "# a",
+      placed: '<h1 id="a" data-at="0-3"><span data-src="2-3">a</span></h1>',
+    });
+    caretAt(wordsEnd("a"));
+    asked("deleteContentBackward", backFrom(wordsEnd("a")));
+    expect(text()).toBe("");
+    (document.querySelector(".page") as Element).innerHTML =
+      '<h1 data-title="Título" data-ghost=""></h1>';
+    writing?.drawn();
+    asked("insertText", undefined, "a");
+    expect(text()).toBe("# a");
+    expect(pressed("Backspace")).toBe(true);
+    expect(text()).toBe("");
+  });
+
+  it("takes the title's next letter on the key alone while the page left its caret before the title", () => {
+    const text = opened({
+      body: "# Hola",
+      placed: '<h1 id="hola" data-at="0-6"><span data-src="2-6">Hola</span></h1>',
+    });
+    caretAt(wordsEnd("Hola"));
+    asked("deleteContentBackward", backFrom(wordsEnd("Hola")));
+    expect(text()).toBe("# Hol");
+    caretAt([document.querySelector(".page") as Node, 0]);
+    expect(pressed("Backspace")).toBe(true);
+    expect(text()).toBe("# Ho");
+  });
+
+  it("leaves the key to the browser while its own caret still has letters to take", () => {
+    const text = opened({
+      body: "# Hola",
+      placed: '<h1 id="hola" data-at="0-6"><span data-src="2-6">Hola</span></h1>',
+    });
+    caretAt(wordsEnd("Hola"));
+    asked("deleteContentBackward", backFrom(wordsEnd("Hola")));
+    caretAt([words("Hola"), 2]);
+    expect(pressed("Backspace")).toBe(false);
+    expect(text()).toBe("# Hol");
   });
 });

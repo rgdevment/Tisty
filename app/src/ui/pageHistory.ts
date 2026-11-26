@@ -1,7 +1,7 @@
 import type { Caret } from "./pageCaret";
 import { changeOf, type Edit } from "./pageEdits";
 import type { Laying } from "./pageLaying";
-import { recorded, type Turns, turnOf, type Writer } from "./pageWriter";
+import { recorded, type Turns, titleBegun, turnOf, type Writer } from "./pageWriter";
 
 type Stack = Turns["undone"];
 
@@ -36,8 +36,14 @@ export const historyOn = (writer: Writer, caret: Caret, laying: Laying) => {
       at: back.at,
       after: back.after,
     });
-    writer.kept = { node: page.body, offset: -1, at: forward ? (back.after ?? back.at) : back.at };
     const next = text.slice(0, back.from) + back.removed + text.slice(end);
+    // A key that comes before the emptied page is drawn still writes the title, as after a Backspace.
+    writer.kept = {
+      node: page.body,
+      offset: -1,
+      at: forward ? (back.after ?? back.at) : back.at,
+      ...(next === "" ? titleBegun(page) : null),
+    };
     hands.write(next);
     laying.laidOut(text, next, { from: back.from, to: end, insert: back.removed });
   };
