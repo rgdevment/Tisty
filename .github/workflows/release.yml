@@ -91,7 +91,7 @@ jobs:
       HAS_UPDATER_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
       HAS_PFX: ${{ secrets.PFX_BASE64 != '' }}
       HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
-      HAS_GIST: ${{ secrets.GIST_TOKEN != '' }}
+      HAS_HOMEBREW_TAP: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
       STORE_PUBLISH: ${{ vars.STORE_PUBLISH }}
       HAS_STORE_APP_ID: ${{ vars.STORE_APP_ID != '' }}
       HAS_STORE_TENANT: ${{ secrets.STORE_TENANT_ID != '' }}
@@ -156,7 +156,7 @@ jobs:
               want APPLE_ID "$HAS_APPLE_ID"
               want APPLE_APP_PASSWORD "$HAS_APPLE_APP_PASSWORD"
               want APPLE_TEAM_ID "$HAS_APPLE_TEAM_ID"
-              want GIST_TOKEN "$HAS_GIST"
+              want HOMEBREW_TAP_TOKEN "$HAS_HOMEBREW_TAP"
             fi
             # A switch turned on is a promise to publish there; only a stable version goes.
             if [[ "$GITHUB_REF" != *-* ]]; then
@@ -1918,7 +1918,7 @@ jobs:
       group: release-homebrew
       cancel-in-progress: false
     env:
-      GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
       - name: Update the tap
         run: |
@@ -1965,7 +1965,7 @@ jobs:
 
           git clone https://github.com/rgdevment/homebrew-tap.git /tmp/tap
           git -C /tmp/tap config --local http.extraheader \
-            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GIST_TOKEN" | base64 -w0)"
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$HOMEBREW_TAP_TOKEN" | base64 -w0)"
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
