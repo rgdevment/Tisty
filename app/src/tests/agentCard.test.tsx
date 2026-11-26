@@ -635,12 +635,12 @@ describe("an agent document's card", () => {
     expect(screen.queryByRole("button", { name: "Overwrite with Tisty" })).toBeNull();
   });
 
-  it("says a file held by a clash waits for the person to choose, whoever else is named", () => {
+  it("says a file held by a clash waits for the person to choose, and still names who else holds it", () => {
     shown(card([place({ state: "held" }, { clash: true, heldBy: ["claude · tone.md"] })]));
     expect(
       screen.getByText(/stays as it was until you choose which document writes it/),
     ).toBeTruthy();
-    expect(screen.queryByText(/changed or left Agents/)).toBeNull();
+    expect(screen.getByText(/claude · tone.md changed or left Agents/)).toBeTruthy();
   });
 
   it("says a held file waits for the person's choice when no document is named as holding it", () => {

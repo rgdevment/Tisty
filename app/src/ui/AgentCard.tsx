@@ -127,11 +127,10 @@ function Notices({ hands }: { hands: CardHands }) {
       {doc.places
         .filter((one) => one.said.state === "held")
         .map((one) => (
-          <p key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
-            {one.clash || one.heldBy.length === 0
-              ? t("agentHeldClash")
-              : fill("agentHeldSaid", one.heldBy.join(", "))}
-          </p>
+          <div key={one.at} className="mt-3 text-[12.5px] text-hue-amber">
+            {(one.clash || one.heldBy.length === 0) && <p>{t("agentHeldClash")}</p>}
+            {one.heldBy.length > 0 && <p>{fill("agentHeldSaid", one.heldBy.join(", "))}</p>}
+          </div>
         ))}
       {doc.places
         .filter((one) => one.said.state === "unled")

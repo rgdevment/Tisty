@@ -42,7 +42,7 @@ const placed = (copies: readonly Copy[]): { one: Copy; at: number }[] => {
           return { one, at: last };
         });
     })
-    .sort((one, two) => two.at - one.at);
+    .sort((one, two) => Number(two.at > one.at) - Number(two.at < one.at));
 };
 
 /** Newest first, versions in the order they come, and each file's original fixed at the end. */

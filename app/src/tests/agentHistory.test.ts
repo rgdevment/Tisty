@@ -113,6 +113,14 @@ describe("the history of an agent's file", () => {
     ]);
   });
 
+  it("keeps each file's undated copies together, in the order the files came", () => {
+    const other = "/home/me/.codex/AGENTS.md";
+    const copies = [copy(2, undefined), copy(1, undefined), copy(7, undefined, { at: other })];
+    expect(
+      timeline([], copies).map((row) => (row.kind === "copy" ? `${row.one.at}#${row.one.n}` : "")),
+    ).toEqual(["/home/me/.claude/CLAUDE.md#2", "/home/me/.claude/CLAUDE.md#1", `${other}#7`]);
+  });
+
   it("names a copy by its file and number, and a version by its print", () => {
     const one = copy(2, undefined);
     expect(copyKey(one)).toBe("copy:2:/home/me/.claude/CLAUDE.md");
