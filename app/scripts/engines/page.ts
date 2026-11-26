@@ -127,6 +127,8 @@ const dressedUp = (page: Document) => {
   void diagrams(page, false, () => true).catch(noted("diagrams"));
 };
 
+let redrawn = 0;
+
 const writtenIn = (page: Document) => {
   writer = writtenOn(page, {
     text: () => text,
@@ -135,8 +137,12 @@ const writtenIn = (page: Document) => {
     },
     shown: () => {},
     redraw: (now) => {
+      redrawn += 1;
+      const turn = redrawn;
       void drawing(
         docPlaced(now).then((drawn) => {
+          // The app's page drops a drawing that a newer one took the place of, and so does this one.
+          if (turn !== redrawn) return;
           const sheet = page.querySelector(".page");
           if (sheet) freshen(sheet, drawn);
           worn(page, () => true, reaching());
