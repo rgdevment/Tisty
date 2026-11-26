@@ -646,6 +646,14 @@ fn round_after(session: &Mutex<Session>, files: &[String]) -> (usize, std::time:
     (told, started.elapsed())
 }
 
+// A slow disk narrows the gap (4.5x seen on a macOS runner, 40x on a fast one), while reading under the lock again leaves it near 1x.
+fn clearly_shorter(after: std::time::Duration, before: std::time::Duration) {
+    assert!(
+        after * 2 < before,
+        "{after:?} is not under half of {before:?}"
+    );
+}
+
 fn worst_wait_while<T>(
     session: &Mutex<Session>,
     probe: &str,
@@ -799,7 +807,7 @@ fn the_round_holds_the_session_for_less_time_than_reading_every_file_under_it() 
         waited_after.as_millis()
     );
     assert_eq!((told_before, told_after), (many, many));
-    assert!(after * 5 < before, "{after:?} is not a fifth of {before:?}");
+    clearly_shorter(after, before);
 
     let ((quiet_before, still_before), _) =
         worst_wait_while(&session, &probe, || round_before(&session, &files));
@@ -1154,7 +1162,7 @@ fn a_thousand_documents_changed_from_outside_never_cost_the_window_its_own_save(
         the_state_tells(&session, saved, &last),
         "the state tells another body than the one of the window"
     );
-    assert!(after * 5 < before, "{after:?} is not a fifth of {before:?}");
+    clearly_shorter(after, before);
 }
 
 struct Conflict {
