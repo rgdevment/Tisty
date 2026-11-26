@@ -2,7 +2,14 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { patched } from "../ui/pagePatching";
-import { placeCopied, placedAt, placeOf, placesSettled, placeWritten } from "../ui/pagePlaces";
+import {
+  keyWritten,
+  placeCopied,
+  placedAt,
+  placeOf,
+  placesSettled,
+  placeWritten,
+} from "../ui/pagePlaces";
 import { near, type Span } from "./nearing";
 
 // A toy core: blocks apart by a blank line, a quote holding its paragraph, a picture with a card for it.
@@ -343,5 +350,92 @@ describe("the places a key moves, read only through the page's places", () => {
     const guilty = roots.flatMap(walk).filter((one) => judged(readFileSync(one, "utf8")));
 
     expect(guilty).toEqual([]);
+  });
+});
+
+describe("the places moved by a key the browser wrote", () => {
+  const BOLD =
+    '<p data-at="0-24"><span data-src="0-4">Uno </span><strong><span data-src="6-9">dos</span></strong><span data-src="11-16"> tres</span></p>' +
+    '<p data-at="26-30"><span data-src="26-30">Dos.</span></p>' +
+    '<p data-at="32-36"><span data-src="32-36">Fin.</span></p>';
+
+  const read = (html = BOLD) => {
+    document.body.innerHTML = `<article class="page">${html}</article>`;
+    const [first, second, third] = Array.from(document.querySelectorAll(".page > p"));
+    const spans = Array.from(first.querySelectorAll("span"));
+    return { first, second, third, spans };
+  };
+
+  it("moves the end of the span and of the block that holds it, and the places after it in the block", () => {
+    const { first, spans } = read();
+    keyWritten(first, spans[1], 9, 2);
+    expect(spans.map((one) => one.getAttribute("data-src"))).toEqual(["0-4", "6-11", "13-18"]);
+    expect(first.getAttribute("data-at")).toBe("0-26");
+  });
+
+  it("leaves the places before the key alone, and the start of the span", () => {
+    const { first, spans } = read();
+    keyWritten(first, spans[2], 16, 1);
+    expect(spans.map((one) => one.getAttribute("data-src"))).toEqual(["0-4", "6-9", "11-17"]);
+    expect(first.getAttribute("data-at")).toBe("0-25");
+  });
+
+  it("moves them back for a letter taken away", () => {
+    const { first, spans } = read();
+    keyWritten(first, spans[1], 8, -1);
+    expect(spans.map((one) => one.getAttribute("data-src"))).toEqual(["0-4", "6-8", "10-15"]);
+    expect(first.getAttribute("data-at")).toBe("0-23");
+  });
+
+  it("reads the later blocks moved though their attributes wait", () => {
+    const { first, second, third, spans } = read();
+    keyWritten(first, spans[0], 4, 3);
+    expect(second.getAttribute("data-at")).toBe("26-30");
+    expect(placeOf(second)).toEqual([29, 33]);
+    expect(placeOf(second.querySelector("span"), "data-src")).toEqual([29, 33]);
+    expect(placeOf(third)).toEqual([35, 39]);
+    expect(placeOf(first)).toEqual([0, 27]);
+  });
+
+  it("writes the later blocks when the places settle", () => {
+    const { first, second, third, spans } = read();
+    keyWritten(first, spans[0], 4, 3);
+    placesSettled(document);
+    expect(second.getAttribute("data-at")).toBe("29-33");
+    expect(second.querySelector("span")?.getAttribute("data-src")).toBe("29-33");
+    expect(third.getAttribute("data-at")).toBe("35-39");
+  });
+
+  it("adds up the keys that follow each other before the places settle", () => {
+    const { first, second, third, spans } = read();
+    keyWritten(first, spans[0], 4, 1);
+    keyWritten(first, spans[0], 5, 2);
+    expect(placeOf(second)).toEqual([29, 33]);
+    placesSettled(document);
+    expect(third.getAttribute("data-at")).toBe("35-39");
+  });
+
+  it("settles the blocks of an earlier key when the next key is in another block", () => {
+    const { first, second, third, spans } = read();
+    keyWritten(first, spans[0], 4, 1);
+    keyWritten(second, second.querySelector("span") as Element, 30, 1);
+    expect(first.getAttribute("data-at")).toBe("0-25");
+    expect(second.getAttribute("data-at")).toBe("27-32");
+    expect(third.getAttribute("data-at")).toBe("33-37");
+    expect(placeOf(third)).toEqual([34, 38]);
+  });
+
+  it("moves nothing for a key that changed no bytes", () => {
+    const { first, second, spans } = read();
+    keyWritten(first, spans[0], 4, 0);
+    expect(first.getAttribute("data-at")).toBe("0-24");
+    expect(placeOf(second)).toEqual([26, 30]);
+  });
+
+  it("has no later block to move after the last one", () => {
+    const { third } = read();
+    keyWritten(third, third.querySelector("span") as Element, 36, 2);
+    expect(third.getAttribute("data-at")).toBe("32-38");
+    expect(placeOf(third.querySelector("span"), "data-src")).toEqual([32, 38]);
   });
 });

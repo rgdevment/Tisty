@@ -139,6 +139,7 @@ export const handsOn = (page, frame) => {
     copied,
     wordBack,
     wordForward,
+    onMac,
     page,
     frame,
   };
@@ -149,10 +150,12 @@ export const opened = async (page, url) => {
   await page.waitForFunction(() => window.enginesReady === true, null, { timeout: 120_000 });
 };
 
-export const launched = async (type, url, launch = {}) => {
+// With `native` the page lets the browser write plain words itself, as the switch does in the app.
+export const launched = async (type, url, launch = {}, native = false) => {
   const browser = await type.launch({ headless: true, ...launch });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 1400 } });
+    if (native) await page.addInitScript(() => localStorage.setItem("tisty.nativeTyping", "everywhere"));
     await opened(page, url);
     return { browser, page };
   } catch (error) {

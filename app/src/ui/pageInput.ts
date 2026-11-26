@@ -19,6 +19,7 @@ import { puttingOn } from "./pageLaidOver";
 import type { Laying } from "./pageLaying";
 import { headingAt } from "./pageLists";
 import { escapeTaken } from "./pageMarks";
+import type { Native } from "./pageNative";
 import { atGhost, inCode, onSheet, unwritable } from "./pageNodes";
 import { pastingOn } from "./pagePasting";
 import { placeOf } from "./pagePlaces";
@@ -48,6 +49,7 @@ export const inputOn = (
   history: PageHistory,
   formats: Formats,
   begun: Begun,
+  native: Native,
 ) => {
   const { page, hands } = writer;
   const putting = puttingOn(writer, laying);
@@ -185,6 +187,8 @@ export const inputOn = (
   const asked = (event: InputEvent) => {
     if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
       return;
+    // Plain words in plain spans the browser writes itself; the page reads them back once it has.
+    if (native.taken(event)) return;
     event.preventDefault();
     const [named] = event.getTargetRanges?.() ?? [];
     keyTaken(lineKind(event.inputType), named, event.data, event.dataTransfer);

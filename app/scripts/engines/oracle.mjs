@@ -10,7 +10,9 @@ const OPENED_MS = 400;
 const DRAWN_EVERY = 5;
 const SETTLE_MS = 3000;
 
-const lettersOf = (text) => text.normalize("NFC").match(/\p{L}/gu) ?? [];
+// The x of a done step's box is its mark, not a letter written: an empty step ended by Enter takes it with it.
+const lettersOf = (text) =>
+  text.replace(/^([ \t>]*[-*+][ \t]+)\[[xX]\]/gm, "$1[ ]").normalize("NFC").match(/\p{L}/gu) ?? [];
 
 const lettersLost = (was, now) => {
   const before = lettersOf(was);

@@ -119,16 +119,34 @@ const clickedAt = async (page, frame, where) => {
   await page.waitForTimeout(150);
 };
 
+// Off a Mac the same moves have other keys, and a delete to the line's start is a choice to it and a Backspace.
+const OFF_MAC = {
+  "Meta+z": ["Control+z"],
+  "Meta+Shift+z": ["Control+y"],
+  "Meta+ArrowLeft": ["Home"],
+  "Meta+ArrowRight": ["End"],
+  "Alt+ArrowLeft": ["Control+ArrowLeft"],
+  "Alt+ArrowRight": ["Control+ArrowRight"],
+  "Alt+Shift+ArrowLeft": ["Control+Shift+ArrowLeft"],
+  "Alt+Backspace": ["Control+Backspace"],
+  "Meta+Backspace": ["Shift+Home", "Backspace"],
+};
+
+const pressed = async ({ press, onMac }, key, many = 1) => {
+  const keys = (await onMac()) ? [key] : (OFF_MAC[key] ?? [key]);
+  for (let time = 0; time < many; time++) for (const one of keys) await press(one);
+};
+
 const TAKEN = {
   type: ({ typed }, [said]) => typed(said),
-  press: ({ press }, [key]) => press(key),
-  mark: async ({ press, typed }, [said]) => {
-    await press("Meta+ArrowLeft");
-    await typed(said);
+  press: (hands, [key]) => pressed(hands, key),
+  mark: async (hands, [said]) => {
+    await pressed(hands, "Meta+ArrowLeft");
+    await hands.typed(said);
   },
-  choose: async ({ press, typed }, [how, many, then, what]) => {
-    await press(how, many);
-    await (then === "type" ? typed(what) : press(what));
+  choose: async (hands, [how, many, then, what]) => {
+    await pressed(hands, how, many);
+    await (then === "type" ? hands.typed(what) : pressed(hands, what));
   },
   click: ({ page, frame }, [across, along]) => clickedAt(page, frame, [across, along, false]),
   beside: ({ page, frame }, [across]) => clickedAt(page, frame, [across, 0, true]),

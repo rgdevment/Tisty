@@ -1,5 +1,12 @@
 import { namesSum, type PlacedNear, summed } from "../placing";
-import { keyMoved, placeCopied, placeOf, TITLE_OF_SHEET } from "./pagePlaces";
+import {
+  keyMoved,
+  placeCopied,
+  placeNamed,
+  placeOf,
+  placesTaken,
+  TITLE_OF_SHEET,
+} from "./pagePlaces";
 
 // What the page lends or links in a block is laid by its own dressing, which only a whole drawing runs.
 const WHOLE_ONLY = "code.language-widget, figure.widget, .doc-card";
@@ -188,4 +195,94 @@ export const patched = (
     else sheet.prepend(one);
   });
   return laid;
+};
+
+const PLACED = "[data-at], [data-src], [data-placed]";
+// Dressing rewrites where a picture or a link points and adds looks of its own; a heading's name follows its words.
+const DRESSED = new Set(["contenteditable", "spellcheck", "src", "href", "style", "id"]);
+const dressing = (name: string) => placeNamed(name) || DRESSED.has(name);
+
+const evenWords = (said: string | null) =>
+  (said ?? "").replace(/\u00A0/g, " ").replace(/\u200B/g, "");
+
+const placedIn = (block: Element) => [block, ...block.querySelectorAll(PLACED)];
+
+// The classes the core gives are all still there; dressing may add its own.
+const classesKept = (old: Element, fresh: Element) =>
+  Array.from(fresh.classList).every((one) => old.classList.contains(one));
+
+// Dressing adds to what the core drew and never takes away, so the core's own names and words are what must agree.
+const drawnAlike = (old: Element, fresh: Element, nested: boolean, last: boolean) => {
+  if (old.tagName !== fresh.tagName || !classesKept(old, fresh)) return false;
+  if (nested && old.parentElement?.tagName !== fresh.parentElement?.tagName) return false;
+  for (const name of fresh.getAttributeNames())
+    if (name !== "class" && !dressing(name) && old.getAttribute(name) !== fresh.getAttribute(name))
+      return false;
+  if (fresh.tagName !== "SPAN" || fresh.attributes.length !== 1) return true;
+  // A blank typed at a line's end is written, but the core draws the line without it.
+  const words = (one: Element) => {
+    const said = evenWords(one.textContent);
+    return last ? said.replace(/\s+$/, "") : said;
+  };
+  return words(old) === words(fresh);
+};
+
+const blockAlike = (old: Element, fresh: Element) => {
+  const olds = placedIn(old);
+  const freshes = placedIn(fresh);
+  const end = freshes.length - 1;
+  return (
+    olds.length === freshes.length &&
+    freshes.every((one, at) => drawnAlike(olds[at], one, at > 0, at === end))
+  );
+};
+
+const namesTaken = (olds: readonly Element[], freshes: readonly Element[]) => {
+  freshes.forEach((one, at) => {
+    if (one.id && olds[at] && olds[at].id !== one.id) olds[at].id = one.id;
+  });
+};
+
+// A fold taken over comes back closed, so the ones open before stay open, found again in their order.
+const foldsKept = (going: Element) => {
+  const open = folds([going]).map((one) => one.open);
+  return (laid: Element) =>
+    folds([laid]).forEach((one, at) => {
+      if (open[at]) one.open = true;
+    });
+};
+
+/** The browser wrote the words already: blocks the core draws alike only take its places, and the rest are drawn anew. */
+export const matched = (sheet: Element, near: PlacedNear): Element[] | null => {
+  if (near.whole) return null;
+  const old = Array.from(sheet.querySelectorAll(":scope > [data-at]"));
+  const { count, from, to } = near;
+  const kept = old.length - (count - to);
+  if (count < to || kept < from) return null;
+  if (!linedUp(old, near, kept, 0) || !namedAlike(sheet, old, near, kept)) return null;
+  const fresh = sheet.ownerDocument.createElement("template");
+  fresh.innerHTML = near.html;
+  const drawn = Array.from(fresh.content.children);
+  const redrawn = old.slice(from, kept);
+  if (drawn.length !== redrawn.length) return null;
+  const alike = drawn.map((one, at) => blockAlike(redrawn[at], one));
+  const changed = drawn.filter((_, at) => !alike[at]);
+  if (changed.some((one) => one.matches(WHOLE_ONLY) || one.querySelector(WHOLE_ONLY))) return null;
+  const taken: Element[] = [];
+  for (const [at, one] of drawn.entries()) {
+    const going = redrawn[at];
+    if (alike[at]) {
+      placesTaken(placedIn(going), placedIn(one));
+      namesTaken(placedIn(going), placedIn(one));
+      continue;
+    }
+    if (going.id && !one.hasAttribute("id")) one.id = going.id;
+    const reopened = foldsKept(going);
+    const laid = going.tagName === one.tagName ? going : one;
+    if (laid === one) going.replaceWith(one);
+    else takenOver(going, one);
+    reopened(laid);
+    taken.push(laid);
+  }
+  return taken;
 };

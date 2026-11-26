@@ -292,6 +292,8 @@ export default function Sheet(props: Readonly<Props>) {
   const turnsOn = useRef<{ file?: string; turns: Turns }>({ turns: turnsAnew() });
   const alreadyShown = useRef<string | null>(null);
   const [arrived, setArrived] = useState(0);
+  // A page asked to be drawn anew with the same words is drawn all the same: the page it shows may not match them.
+  const [redrawn, setRedrawn] = useState(0);
   const shownFile = useRef<string | null | undefined>(null);
   const shownBody = useRef<string | null>(null);
   const dresser = useRef<((blocks: readonly Element[]) => void) | null>(null);
@@ -1038,6 +1040,7 @@ export default function Sheet(props: Readonly<Props>) {
     redraw: (now) => {
       alreadyShown.current = null;
       setDrawn(now);
+      setRedrawn((many) => many + 1);
     },
     near: docPlacedNear,
     dressed: (_sheet, laid) => dresser.current?.(laid),
@@ -1368,7 +1371,7 @@ export default function Sheet(props: Readonly<Props>) {
           onTask={(id) => said.current.onTask?.(id)}
           onTaskDone={props.onTaskDone && ((id, title) => said.current.onTaskDone?.(id, title))}
           onTaskStep={props.onTaskStep && ((...asked) => said.current.onTaskStep?.(...asked))}
-          again={`${arrived}:${props.again ?? ""}`}
+          again={`${arrived}:${redrawn}:${props.again ?? ""}`}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onDiagramExport={fixed ? undefined : diagramOut}
           onPiece={piece}

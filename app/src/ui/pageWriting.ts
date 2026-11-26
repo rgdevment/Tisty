@@ -12,6 +12,7 @@ import { inputOn } from "./pageInput";
 import { keysOn } from "./pageKeys";
 import { layingOn } from "./pageLaying";
 import type { Act } from "./pageMoving";
+import { nativeOn } from "./pageNative";
 import { elementOf, inCode, onSheet, opened, shownWords, undressed } from "./pageNodes";
 import { linkList, linkMatch, tagList, tagMatch } from "./pageTags";
 import { composingKey, type Hands, writerOf } from "./pageWriter";
@@ -131,7 +132,11 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
     input.caughtUp();
   };
 
-  const input = inputOn(writer, caret, laying, history, formats, begun);
+  const native = nativeOn(writer, caret, laying, () => {
+    offerLists();
+    beside.besideLine();
+  });
+  const input = inputOn(writer, caret, laying, history, formats, begun, native);
   const choosing = choosingOn(writer, caret, laying, beside);
   const keys = keysOn(writer, caret, laying, history, formats, beside, lists, choosing);
   const chooser = (event: KeyboardEvent) => {
@@ -157,6 +162,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   for (const first of EDGE_FIRST) page.addEventListener(first, keys.edgeLaid, true);
   page.addEventListener("mousedown", keys.edgeClicked, true);
   page.addEventListener("beforeinput", input.asked);
+  page.addEventListener("input", native.written);
   page.addEventListener("compositionstart", input.started);
   page.addEventListener("compositionend", input.ended);
   page.addEventListener("mousedown", keys.moved);
@@ -284,6 +290,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
       page.removeEventListener("mousedown", keys.ticking);
       page.removeEventListener("keydown", keys.moved);
       page.removeEventListener("beforeinput", input.asked);
+      page.removeEventListener("input", native.written);
       for (const one of LEFT_BEHIND) page.removeEventListener(one, otherInput, true);
       for (const first of EDGE_FIRST) page.removeEventListener(first, keys.edgeLaid, true);
       page.removeEventListener("mousedown", keys.edgeClicked, true);

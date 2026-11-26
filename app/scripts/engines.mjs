@@ -11,7 +11,12 @@ const ENGINES = {
   chromium: { name: "Chromium", type: chromium },
   edge: { name: "Edge", type: chromium, launch: { channel: "msedge" } },
 };
-const asked = process.argv.slice(2);
+const native = process.argv.includes("--native");
+const onlyAt = process.argv.indexOf("--only");
+const only = onlyAt > 0 ? process.argv[onlyAt + 1] : null;
+const asked = process.argv
+  .slice(2)
+  .filter((one, at, all) => one !== "--native" && one !== "--only" && all[at - 1] !== "--only");
 const unknown = asked.filter((one) => !Object.hasOwn(ENGINES, one));
 if (unknown.length > 0) {
   console.error(`no engine called ${unknown.join(", ")}: the engines are ${Object.keys(ENGINES).join(", ")}`);
@@ -29,7 +34,7 @@ const heardSaid = (heard) =>
   });
 
 const ranIn = async (engine, url) => {
-  const { browser, page } = await launched(engine.type, url, engine.launch);
+  const { browser, page } = await launched(engine.type, url, engine.launch, native);
   try {
     const mac = await macIn(page);
     const agent = await page.evaluate(() => navigator.userAgent);
@@ -39,7 +44,7 @@ const ranIn = async (engine, url) => {
     await listening(page);
     const results = new Map();
     for (const one of CASES) {
-      if (one.macOnly && !mac) continue;
+      if ((one.macOnly && !mac) || (one.slowOnly && native) || (only && one.name !== only)) continue;
       const frame = await sheetOf(page, one.doc);
       await page.waitForTimeout(400);
       let threw = null;
@@ -86,7 +91,7 @@ const toldWhereRan = (runs) => {
   for (const { engine, mac, results } of runs) {
     console.log(`${engine.name} on ${mac ? "macOS" : "Windows"} ran ${results.size} of ${CASES.length} cases`);
     for (const one of CASES.filter((left) => !results.has(left.name)))
-      console.log(`   left out ${one.name}, Mac only: ${one.macOnly}`);
+      console.log(`   left out ${one.name}, ${one.macOnly ? `Mac only: ${one.macOnly}` : `slow way only: ${one.slowOnly}`}`);
   }
 };
 

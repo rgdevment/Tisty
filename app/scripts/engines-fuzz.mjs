@@ -21,6 +21,7 @@ const { values: asked } = parseArgs({
     steps: { type: "string" },
     engine: { type: "string" },
     replay: { type: "string" },
+    native: { type: "boolean" },
   },
 });
 
@@ -71,7 +72,7 @@ const shrunk = async (replayed, steps, fault, until) => {
 };
 
 const againOf = (name, { seed, steps, replayed }) =>
-  `     again: node app/scripts/engines-fuzz.mjs --engine ${name.toLowerCase()} --seed ${seed} ${
+  `     again: node app/scripts/engines-fuzz.mjs --engine ${name.toLowerCase()}${asked.native ? " --native" : ""} --seed ${seed} ${
     replayed ? `--replay '${JSON.stringify(steps)}'` : `--steps ${steps.length}`
   }`;
 
@@ -130,7 +131,7 @@ const walkedAll = async (name, page, url, walks) => {
 const ranIn = async ([name, engine], walks) => {
   const server = await served();
   try {
-    const { browser, page } = await launched(engine, server.url);
+    const { browser, page } = await launched(engine, server.url, {}, asked.native);
     try {
       return await walkedAll(name, page, server.url, walks);
     } finally {

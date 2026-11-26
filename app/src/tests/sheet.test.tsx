@@ -7,6 +7,7 @@ import Sheet from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
   drawn: "",
+  draws: 0,
   near: null as Promise<unknown> | null,
   opened: [] as {
     said: string;
@@ -38,8 +39,10 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
-    if (cmd === "doc_drawn" || cmd === "doc_placed")
+    if (cmd === "doc_drawn" || cmd === "doc_placed") {
+      ipc.draws += 1;
       return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
+    }
     if (cmd === "mends_in") return Promise.resolve(ipc.mends);
     if (cmd === "doc_placed_near" && ipc.near) return ipc.near;
     return Promise.resolve(null);
@@ -127,6 +130,7 @@ const shown = async (container: HTMLElement, said?: string) =>
 
 beforeEach(() => {
   ipc.drawn = DRAWN;
+  ipc.draws = 0;
   ipc.opened = [];
   ipc.near = null;
   ipc.left = 0;
@@ -342,9 +346,15 @@ describe("the sheet in the main window", () => {
 
   it("walks back with Ctrl+Z only through the changes of the document in view", async () => {
     const writes: string[] = [];
+    // A write that comes late is rare and only under load, so where it came from is kept to be read when it does.
+    const whence: string[] = [];
     ipc.drawn = '<h1 data-at="0-9"><span data-src="2-9">Compras</span></h1>';
+    const written = (text: string) => {
+      writes.push(text);
+      whence.push(new Error(`wrote ${JSON.stringify(text)}`).stack ?? "");
+    };
     const sheet = (file: string, value: string) => (
-      <Sheet file={file} value={value} label="Compras" onWrite={(text) => writes.push(text)} />
+      <Sheet file={file} value={value} label="Compras" onWrite={written} />
     );
     const view = render(sheet("a3f1-0001", "# Compras\n"));
     const page = await loaded(await shown(view.container));
@@ -371,7 +381,7 @@ describe("the sheet in the main window", () => {
         new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }),
       );
     await new Promise((done) => setTimeout(done, 400));
-    expect(writes.slice(before)).toEqual([]);
+    expect(writes.slice(before), whence.slice(before).join("\n---\n")).toEqual([]);
   });
 
   it("never takes back with Ctrl+Z the words another hand wrote meanwhile", async () => {
@@ -816,5 +826,48 @@ describe("an agent's file left for another document with the blocks menu used", 
 
     expect(thrown).toEqual([]);
     expect(page.documentElement.classList.contains("agent")).toBe(true);
+  });
+});
+
+describe("a page the native typing had to draw again", () => {
+  it("is drawn again even when the words are the same", async () => {
+    localStorage.setItem("tisty.nativeTyping", "on");
+    try {
+      ipc.drawn = '<h1 data-at="0-9"><span data-src="2-9">Compras</span></h1>';
+      const view = render(
+        <Sheet
+          file="a3f1-0001"
+          value="# Compras
+"
+          label="Compras"
+          onWrite={() => {}}
+        />,
+      );
+      const page = await loaded(await shown(view.container));
+      await waitFor(() =>
+        expect(page.querySelector(".page")?.getAttribute("contenteditable")).toBe("true"),
+      );
+      const span = page.querySelector("[data-src]") as Element;
+      const words = span.firstChild as Text;
+      await new Promise((done) => setTimeout(done, 400));
+      const before = ipc.draws;
+      page.getSelection()?.collapse(words, 7);
+      const event = new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: "s",
+        bubbles: true,
+        cancelable: true,
+      });
+      expect(page.querySelector(".page")?.dispatchEvent(event)).toBe(true);
+      words.insertData(7, "s");
+      span.appendChild(page.createElement("br"));
+      page
+        .querySelector(".page")
+        ?.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
+      await waitFor(() => expect(ipc.draws).toBeGreaterThan(before));
+      await waitFor(() => expect(page.querySelector("br")).toBeNull());
+    } finally {
+      localStorage.removeItem("tisty.nativeTyping");
+    }
   });
 });

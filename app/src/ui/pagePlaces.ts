@@ -138,3 +138,49 @@ export const keyMoved = (
   const still = joins && was ? [...was.laid].filter((one) => !going.includes(one)) : [];
   moving.set(page, { sheet, first, from: start, by: total, laid: new Set([...still, ...laid]) });
 };
+
+const nextBlock = (top: Element) => {
+  let next = top.nextElementSibling;
+  while (next && !next.hasAttribute("data-at")) next = next.nextElementSibling;
+  return next;
+};
+
+// A key the browser wrote moves its own block at once, and the blocks after it wait to move as a drawn key's do.
+export const keyWritten = (top: Element, span: Element, to: number, by: number) => {
+  const sheet = top.parentElement;
+  if (by === 0 || !sheet) return;
+  const page = top.ownerDocument;
+  const next = nextBlock(top);
+  const was = pending(page);
+  const joins = was !== null && was.first === next;
+  if (was && !joins) placesSettled(page);
+  for (const one of [top, ...top.querySelectorAll(ANY)]) {
+    const around = one === span || one.contains(span);
+    for (const name of NAMES) {
+      const at = spanned(one.getAttribute(name));
+      if (!at || (!around && at[0] < to)) continue;
+      one.setAttribute(name, around ? `${at[0]}-${at[1] + by}` : `${at[0] + by}-${at[1] + by}`);
+    }
+  }
+  const start = next ? spanned(next.getAttribute("data-at"))?.[0] : undefined;
+  const total = (joins && was ? was.by : 0) + by;
+  if (!next || start === undefined || total === 0) {
+    moving.delete(page);
+    return;
+  }
+  const laid = joins && was ? was.laid : new Set<Element>();
+  moving.set(page, { sheet, first: next, from: start, by: total, laid });
+};
+
+export const placeNamed = (name: string) => (NAMES as readonly string[]).includes(name);
+
+// A block the core drew alike takes the core's places onto the elements it already shows, one for one.
+export const placesTaken = (olds: readonly Element[], freshes: readonly Element[]) => {
+  freshes.forEach((one, at) => {
+    for (const name of NAMES) {
+      const value = one.getAttribute(name);
+      if (value !== null && olds[at]?.getAttribute(name) !== value)
+        olds[at]?.setAttribute(name, value);
+    }
+  });
+};

@@ -38,6 +38,7 @@ export const PIECES = [
 export const LONG = `# Largo\n\n${Array.from({ length: 120 }, (_, n) => `Párrafo número ${n} con algo de texto para rellenar.`).join("\n\n")}\n`;
 
 const NO_LINE_DELETE_ON_WINDOWS = "Windows has no key that deletes back to the start of a line";
+const HELD_DRAWINGS = "keys written by the browser never wait on a drawing of the core";
 
 const MISSING_PICTURE = PIECES.replace("](mini.png)", "](missing.png)");
 
@@ -1561,6 +1562,7 @@ export const CASES = [
   },
   {
     name: "keysAheadOfAnOlderDrawingLeaveAPictureAboveInPlace",
+    slowOnly: HELD_DRAWINGS,
     doc: "# Adelante\n\nAntes\n\n![Rina](rina.png)\n\nTercero\n",
     run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
       await clickAt("Tercero");
@@ -1575,6 +1577,7 @@ export const CASES = [
   },
   {
     name: "keysAheadOfAnOlderDrawingLeaveAPageBreakAboveInPlace",
+    slowOnly: HELD_DRAWINGS,
     doc: "# Adelante\n\nAntes\n\n---\n\nTercero\n",
     run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
       await clickAt("Tercero");
@@ -1589,6 +1592,7 @@ export const CASES = [
   },
   {
     name: "keysAheadOfAnOlderDrawingUnderATableAreNotLost",
+    slowOnly: HELD_DRAWINGS,
     doc: "# Adelante\n\nAntes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nTercero\n",
     run: async ({ clickAt, press, drawingsHeld, oneDrawingLet }) => {
       await clickAt("Tercero");

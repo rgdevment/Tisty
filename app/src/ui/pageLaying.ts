@@ -13,7 +13,7 @@ import { type Change, holdingOn } from "./pageHolding";
 import { lateOn } from "./pageLate";
 import { joinedApart } from "./pageLists";
 import { opened } from "./pageNodes";
-import { patched } from "./pagePatching";
+import { matched, patched } from "./pagePatching";
 import { placesSettled } from "./pagePlaces";
 import { recorded, type Writer } from "./pageWriter";
 
@@ -54,6 +54,10 @@ export const layingOn = (
   let over = false;
   let unlaid = 0;
   let placed: Placed | null = null;
+  // What the core holds while the browser writes ahead of it, with the check it holds it under.
+  let behind: Reckoned | null = null;
+  let catching: ReturnType<typeof setTimeout> | undefined;
+  let drawing = 0;
   const holding = holdingOn(page);
 
   const reckonedOf = (text: string, unit: number): Reckoned => {
@@ -78,6 +82,7 @@ export const layingOn = (
   // The same page shows the next document, so a drawing still queued by this writer must never land on it.
   const stop = () => {
     over = true;
+    clearTimeout(catching);
     holding.stop();
     told();
     return unlaid > 0;
@@ -136,6 +141,83 @@ export const layingOn = (
     if (hands.text() === now) drawn(laid);
   };
 
+  // The page already shows what the browser wrote: a block the core draws alike only takes its places.
+  const matchOne = async (known: Reckoned, now: string, asked: Edit) => {
+    if (over) return;
+    const was = known.text;
+    const one = inWholeChars(was, asked);
+    const removed = bytesIn(was, one.from, one.to);
+    const added = bytesIn(one.insert);
+    const from = byteFrom(known, was, one.from);
+    const edit = { from, to: from + removed, insert: one.insert };
+    const check = checkAfter(known.check, edit);
+    const held = { text: now, check, unit: one.from + one.insert.length, byte: from + added };
+    // The core goes on from its own check, also when a slow key already waits to be told after this.
+    if (hands.text() === now || writer.reckoned?.text === now) writer.reckoned = held;
+    else if (behind?.text === now) behind = held;
+    const sent = { body: now, was: known.check, now: check, edit };
+    const near = await answered(hands.near(sent, from, from + added), NEAR_PATIENCE_MS);
+    // A composition open over the page holds nodes of its own, which no drawing may take before it ends.
+    await composed();
+    if (over || hands.text() !== now) return;
+    const sheet = page.querySelector(".page");
+    if (sheet) placesSettled(page);
+    // Blocks taken over lose the caret's nodes, so where it stood, or what was chosen, is laid again after.
+    const stood = caret.caretSpan();
+    const taken = sheet && near && matched(sheet, near);
+    if (!sheet || !taken) {
+      writer.kept = { node: page.body, offset: -1, at: caret.caretSpan()?.from ?? held.unit };
+      return redrawn({ from, removed, by: added - removed });
+    }
+    if (taken.length) {
+      if (stood) {
+        const chosenFrom = stood.from === stood.to ? undefined : stood.from;
+        writer.kept = { node: page.body, offset: -1, at: stood.to, chosenFrom };
+      }
+      hands.dressed(sheet, taken);
+      opened(page, taken);
+      drawn(taken);
+    }
+    rested(now);
+  };
+
+  const caughtUp = (upTo = hands.text()) => {
+    clearTimeout(catching);
+    const known = behind;
+    behind = null;
+    if (!known || over) return;
+    // Keys that undid each other leave the text the core holds, and its check with it.
+    if (known.text === upTo) {
+      if (writer.reckoned?.text === upTo) writer.reckoned = known;
+      return;
+    }
+    unlaid += 1;
+    const step = laying
+      .then(() => matchOne(known, upTo, changeOf(known.text, upTo)))
+      .catch(recovered);
+    laying = step.finally(() => {
+      unlaid -= 1;
+    });
+  };
+
+  /** A key the browser wrote is already in the words and on the page; the core hears of it once the keys rest. */
+  const typedNatively = (was: string, now: string, one: Edit, from: number) => {
+    const known = reckonedOf(was, one.from);
+    behind ??= known;
+    const edit = { from, to: from + bytesIn(was, one.from, one.to), insert: one.insert };
+    writer.reckoned = {
+      text: now,
+      check: checkAfter(known.check, edit),
+      unit: one.from + one.insert.length,
+      byte: from + bytesIn(one.insert),
+    };
+    rested(now);
+    clearTimeout(catching);
+    catching = setTimeout(caughtUp, RESTED_MS);
+  };
+
+  const idle = () => drawing === 0;
+
   const recovered = (error: unknown) => {
     reported(error);
     if (over) return;
@@ -155,10 +237,13 @@ export const layingOn = (
     if (page.documentElement.classList.contains("untitled")) writer.whole = true;
     // A page left with nothing written waits at its title, which only a whole drawing lays.
     if (!now.trim()) writer.whole = true;
+    caughtUp(was);
     unlaid += 1;
+    drawing += 1;
     const step = laying.then(() => layOne(was, now, asked)).catch(recovered);
     laying = step.finally(() => {
       unlaid -= 1;
+      drawing -= 1;
     });
   };
 
@@ -204,5 +289,15 @@ export const layingOn = (
 
   const late = lateOn(writer, put, () => over);
 
-  return { put, late, laidOut, stop, landed: holding.landed, heldAcross };
+  return {
+    put,
+    late,
+    laidOut,
+    stop,
+    landed: holding.landed,
+    heldAcross,
+    typedNatively,
+    caughtUp,
+    idle,
+  };
 };
