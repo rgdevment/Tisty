@@ -472,6 +472,7 @@ fn hooks_repointed(
         true => hooks::without_those(kind, &was, place, &ask.hooks),
         false => hooks::repointed(kind, &was, place, &ask.hooks),
     }
+    .and_then(|now| user_hooks::repointed(kind, &now, place, &ask.hooks))
     .ok_or_else(|| Stuck::HooksPuzzling(shown.clone()))?;
     match now == was {
         true => Err(Stuck::Moved(shown)),

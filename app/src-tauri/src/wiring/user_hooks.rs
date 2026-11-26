@@ -11,6 +11,8 @@ use super::{Stuck, here, json, running};
 
 const SLACK_SECONDS: u64 = 2;
 const ANYTHING: &str = "*";
+const ANY_HOOK: &str = "run-hook --name";
+const NAMED_ROOT: &str = "tisty-";
 
 pub struct Hook<'a> {
     pub name: &'a str,
@@ -46,6 +48,53 @@ fn root(kind: Kind, name: &str) -> String {
         Kind::Antigravity => format!("tisty-{name}"),
         _ => "hooks".to_string(),
     }
+}
+
+fn roots(kind: Kind, text: &str) -> Vec<String> {
+    match kind {
+        Kind::Antigravity => json::value(text)
+            .and_then(|doc| doc.as_object().cloned())
+            .map(|doc| {
+                doc.keys()
+                    .filter(|key| key.starts_with(NAMED_ROOT))
+                    .cloned()
+                    .collect()
+            })
+            .unwrap_or_default(),
+        _ => vec!["hooks".to_string()],
+    }
+}
+
+pub fn programs(kind: Kind, text: &str) -> Vec<running::Program> {
+    roots(kind, text)
+        .iter()
+        .flat_map(|root| hooks::runs_of(kind, text, &marked(kind, ANY_HOOK, root)))
+        .flat_map(|run| run.programs)
+        .collect()
+}
+
+// Only the program moves: each hook keeps its name, its agents and the words the person approved.
+pub fn repointed(kind: Kind, text: &str, place: &Place, said: &[String]) -> Option<String> {
+    let mut now = text.to_string();
+    for root in roots(kind, text) {
+        let marked = marked(kind, ANY_HOOK, &root);
+        let runs = hooks::runs_of(kind, &now, &marked);
+        let next = running::repointed(
+            &now,
+            &runs,
+            |one| hooks::named(one, place, said),
+            &running::New {
+                command: &place.command,
+                spoken: &kind.quoted(place),
+                windows: hooks::windows(place),
+            },
+        )?;
+        if !hooks::sound_of(kind, &now, &next, &marked) {
+            return None;
+        }
+        now = next;
+    }
+    Some(now)
 }
 
 fn marked<'a>(kind: Kind, mark: &'a str, root: &'a str) -> Marked<'a> {

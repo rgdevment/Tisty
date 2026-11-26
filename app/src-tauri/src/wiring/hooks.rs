@@ -393,7 +393,8 @@ pub(super) fn runs_of(kind: Kind, text: &str, marked: &Marked) -> Vec<Run> {
 
 fn stray(kind: Kind, text: &str, place: &Place) -> Vec<Stray> {
     let mut all: Vec<Stray> = Vec::new();
-    for program in runs(kind, text).into_iter().flat_map(|run| run.programs) {
+    let own = runs(kind, text).into_iter().flat_map(|run| run.programs);
+    for program in own.chain(super::user_hooks::programs(kind, text)) {
         let leads = leads(place, &program.said);
         if leads.astray() && !all.iter().any(|one| one.said == program.said) {
             all.push(Stray {
@@ -405,7 +406,7 @@ fn stray(kind: Kind, text: &str, place: &Place) -> Vec<Stray> {
     all
 }
 
-fn named(program: &Program, place: &Place, named: &[String]) -> bool {
+pub(super) fn named(program: &Program, place: &Place, named: &[String]) -> bool {
     named.contains(&program.said) && leads(place, &program.said).astray()
 }
 

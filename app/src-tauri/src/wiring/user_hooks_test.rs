@@ -471,3 +471,110 @@ fn a_hook_is_never_added_to_a_list_that_is_not_a_list_or_to_a_file_that_is_not_j
         );
     }
 }
+
+const SIX: [Kind; 6] = [
+    Kind::Claude,
+    Kind::Codex,
+    Kind::Cursor,
+    Kind::Gemini,
+    Kind::Copilot,
+    Kind::Antigravity,
+];
+
+fn moved(home: &Path, command: &str) -> Place {
+    Place {
+        command: command.to_string(),
+        ..place(home)
+    }
+}
+
+fn written(kind: Kind, here: &Place, text: &str) {
+    let at = kind.file(here).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(at, text).unwrap();
+}
+
+#[test]
+fn a_persons_hook_left_on_a_tisty_that_is_gone_is_told_like_tistys_own() {
+    for kind in SIX {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = moved(tmp.path(), "/opt/old/tisty");
+        let here = moved(tmp.path(), "/opt/new/tisty");
+        written(kind, &here, &with(kind, "", &old, &GUARD).unwrap());
+
+        let seen = hooks::seen(kind, &here).unwrap();
+
+        assert_eq!(seen.stray.len(), 1, "{kind:?} {seen:?}");
+        assert_eq!(seen.stray[0].said, "/opt/old/tisty", "{kind:?}");
+        assert!(seen.stray[0].gone, "{kind:?}");
+    }
+}
+
+#[test]
+fn a_persons_hook_on_this_tisty_is_never_told_astray() {
+    for kind in SIX {
+        let tmp = tempfile::tempdir().unwrap();
+        let here = moved(tmp.path(), "/opt/new/tisty");
+        written(kind, &here, &with(kind, "", &here, &GUARD).unwrap());
+
+        assert!(
+            hooks::seen(kind, &here).unwrap().stray.is_empty(),
+            "{kind:?}"
+        );
+    }
+}
+
+#[test]
+fn fixing_moves_only_the_program_of_every_persons_hook_and_keeps_the_rest() {
+    let other = Hook {
+        name: "audit.py",
+        event: Event::Stop,
+        tools: Tools::Any,
+        timeout: 9,
+    };
+    for kind in SIX {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = moved(tmp.path(), "/opt/old/tisty");
+        let here = moved(tmp.path(), "/opt/new/tisty");
+        let own = hooks::with(kind, "", &old).unwrap();
+        let both = with(kind, &own, &old, &GUARD).unwrap();
+        let was = with(kind, &both, &old, &other).unwrap();
+        let named = ["/opt/old/tisty".to_string()];
+
+        let own_fixed = hooks::repointed(kind, &was, &here, &named).unwrap();
+        let now = repointed(kind, &own_fixed, &here, &named).unwrap();
+
+        assert!(!now.contains("/opt/old/"), "{kind:?} {now}");
+        assert_eq!(
+            now,
+            was.replace("/opt/old/tisty", "/opt/new/tisty"),
+            "{kind:?}"
+        );
+        for hook in [&GUARD, &other] {
+            let one = standing_in(kind, &now, &here, hook.name);
+            assert!(
+                one.present && one.here && !one.apart,
+                "{kind:?} {}",
+                hook.name
+            );
+        }
+        assert!(
+            hooks::hooked(kind, &now) && !hooks::apart(kind, &now),
+            "{kind:?}"
+        );
+    }
+}
+
+#[test]
+fn fixing_leaves_a_persons_hook_that_points_at_a_program_not_named() {
+    for kind in SIX {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = moved(tmp.path(), "/opt/old/tisty");
+        let here = moved(tmp.path(), "/opt/new/tisty");
+        let was = with(kind, "", &old, &GUARD).unwrap();
+
+        let now = repointed(kind, &was, &here, &["/opt/other/tisty".to_string()]).unwrap();
+
+        assert_eq!(now, was, "{kind:?}");
+    }
+}

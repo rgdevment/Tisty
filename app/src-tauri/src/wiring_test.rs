@@ -1060,3 +1060,78 @@ fn a_hook_file_written_by_a_mend_keeps_the_copy_of_what_was_before_for_codex_and
         assert!(!read_of(&at).contains("/old/tisty"), "{id}");
     }
 }
+
+fn persons_hook_here(id: &str, home: &Path, command: &str) {
+    let kind = hooks::kind(id).unwrap();
+    let here = place(home, command);
+    let at = kind.file(&here).unwrap();
+    let was = std::fs::read_to_string(&at).unwrap_or_default();
+    let hook = user_hooks::Hook {
+        name: "guard.sh",
+        event: tisty_core::agents::Event::BeforeTool,
+        tools: tisty_core::agents::Tools::Shell,
+        timeout: 5,
+    };
+    let now = user_hooks::with(kind, &was, &here, &hook).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(at, now).unwrap();
+}
+
+#[test]
+fn one_fix_repoints_the_persons_own_hooks_with_tistys_in_every_agent() {
+    for id in ALL_HOOKED {
+        let tmp = tempfile::tempdir().unwrap();
+        wired_here(id, tmp.path(), "/old/tisty");
+        hooked_here(id, tmp.path(), "/old/tisty");
+        persons_hook_here(id, tmp.path(), "/old/tisty");
+        let at = hooks::kind(id)
+            .unwrap()
+            .file(&place(tmp.path(), "/opt/tisty"))
+            .unwrap();
+
+        let (connection, hooks) = mended(id, tmp.path(), &both());
+
+        assert!(connection.is_none() && hooks.is_none(), "{id}");
+        let after = looked(id, tmp.path(), "/opt/tisty");
+        let hooks = after.hooks.unwrap();
+        assert!(
+            after.wired && hooks.on && hooks.stray.is_empty(),
+            "{id} {hooks:?}"
+        );
+        let text = read_of(&at);
+        assert!(
+            text.contains("run-hook") && !text.contains("/old/tisty"),
+            "{id} {text}"
+        );
+    }
+}
+
+#[test]
+fn only_the_persons_own_hook_left_behind_still_asks_for_a_fix() {
+    for id in ALL_HOOKED {
+        let tmp = tempfile::tempdir().unwrap();
+        wired_here(id, tmp.path(), "/opt/tisty");
+        persons_hook_here(id, tmp.path(), "/old/tisty");
+
+        let hooks = looked(id, tmp.path(), "/opt/tisty").hooks.unwrap();
+
+        assert!(!hooks.on, "{id}");
+        assert_eq!(hooks.stray.len(), 1, "{id} {hooks:?}");
+        assert_eq!(hooks.stray[0].said, "/old/tisty", "{id}");
+        let ask = Mend {
+            connection: None,
+            hooks: vec!["/old/tisty".into()],
+            hooks_out: false,
+        };
+        let (_, stuck) = mended(id, tmp.path(), &ask);
+        assert!(stuck.is_none(), "{id} {stuck:?}");
+        assert!(
+            looked(id, tmp.path(), "/opt/tisty")
+                .hooks
+                .unwrap()
+                .stray
+                .is_empty(),
+            "{id}"
+        );
+    }
+}
