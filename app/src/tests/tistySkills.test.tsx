@@ -54,7 +54,7 @@ const skills = (more: Partial<TistySkills> = {}): TistySkills => ({
   leftover: [],
   skills: SKILLS,
   landing: [
-    { assistant: "cursor", at: "/h/.cursor/skills/tisty/SKILL.md", standing: "write" },
+    { assistant: "codex", at: "/h/.agents/skills/tisty/SKILL.md", standing: "write" },
     {
       assistant: "codex",
       at: "/h/.agents/skills/next-agent/SKILL.md",
@@ -195,11 +195,11 @@ describe("Tisty's own skills", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText("Where they go on this computer")).toBeTruthy();
-    expect(screen.getByText("/h/.cursor/skills")).toBeTruthy();
+    expect(screen.queryByText("/h/.cursor/skills")).toBeNull();
     expect(screen.getByText("/h/.agents/skills")).toBeTruthy();
-    expect(screen.getByText("Codex · Copilot · Gemini · DeepSeek Harness")).toBeTruthy();
+    expect(screen.getByText("Codex · Copilot · Gemini · DeepSeek Harness · Cursor")).toBeTruthy();
     expect(
-      screen.getByText(/Codex, Copilot, Gemini and DeepSeek Harness share this folder/),
+      screen.getByText(/Codex, Copilot, Gemini, DeepSeek Harness and Cursor share this folder/),
     ).toBeTruthy();
     expect(screen.getByText(/Claude Code already has them through the Tisty plugin/)).toBeTruthy();
     expect(screen.getByText(/installed the Tisty plugin in Cursor/)).toBeTruthy();
@@ -231,7 +231,7 @@ describe("Tisty's own skills", () => {
     const on = skills({
       on: true,
       landing: [
-        { assistant: "cursor", at: "/h/.cursor/skills/tisty/SKILL.md", standing: "upToDate" },
+        { assistant: "claude", at: "/h/.claude/skills/tisty/SKILL.md", standing: "upToDate" },
         {
           assistant: "codex",
           at: "/h/.agents/skills/tisty/SKILL.md",

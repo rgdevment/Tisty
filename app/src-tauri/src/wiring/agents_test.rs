@@ -902,3 +902,143 @@ fn a_global_skill_put_aside_in_claude_keeps_writing_in_the_shared_folder() {
     assert_eq!(gated.named(&in_shared.files), ["b"]);
     assert!(!in_shared.target.held());
 }
+
+fn home_of(folders: &[&str]) -> (tempfile::TempDir, Homes) {
+    let tmp = tempfile::tempdir().unwrap();
+    for one in folders {
+        std::fs::create_dir_all(tmp.path().join("home").join(one)).unwrap();
+    }
+    let homes = Homes::with(&tmp.path().join("home"), &[]);
+    (tmp, homes)
+}
+
+fn landings_of(homes: &Homes, level: &str) -> Vec<(String, PathBuf)> {
+    let docs = vec![(
+        "a".to_string(),
+        doc(level, Kind::Skill, "pdf/SKILL.md", "pdf\n"),
+    )];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let mut all: Vec<(String, PathBuf)> = targets(homes, &gated.gate, &ledger)
+        .into_iter()
+        .map(|one| (one.target.assistant, one.target.at))
+        .collect();
+    all.sort();
+    all
+}
+
+#[test]
+fn a_global_skill_with_cursor_and_codex_lands_once_in_the_shared_folder_owned_by_codex() {
+    let (tmp, homes) = home_of(&[".cursor", ".codex"]);
+    let home = tmp.path().join("home");
+    assert_eq!(
+        landings_of(&homes, GLOBAL),
+        [(
+            "codex".to_string(),
+            home.join(".agents/skills/pdf/SKILL.md")
+        )]
+    );
+    assert!(!home.join(".cursor/skills").exists());
+}
+
+#[test]
+fn a_global_skill_with_only_cursor_and_claude_lands_in_the_shared_folder_and_claudes() {
+    let (tmp, homes) = home_of(&[".cursor", ".claude"]);
+    let home = tmp.path().join("home");
+    assert_eq!(
+        landings_of(&homes, GLOBAL),
+        [
+            (
+                "claude".to_string(),
+                home.join(".claude/skills/pdf/SKILL.md")
+            ),
+            (
+                "cursor".to_string(),
+                home.join(".agents/skills/pdf/SKILL.md")
+            ),
+        ]
+    );
+}
+
+#[test]
+fn a_global_skill_with_only_claude_lands_only_in_claudes_folder() {
+    let (tmp, homes) = home_of(&[".claude"]);
+    assert_eq!(
+        landings_of(&homes, GLOBAL),
+        [(
+            "claude".to_string(),
+            tmp.path().join("home/.claude/skills/pdf/SKILL.md")
+        )]
+    );
+}
+
+#[test]
+fn a_cursor_level_skill_still_lands_in_cursors_own_folder() {
+    let (tmp, homes) = home_of(&[".cursor", ".codex"]);
+    assert_eq!(
+        landings_of(&homes, "cursor"),
+        [(
+            "cursor".to_string(),
+            tmp.path().join("home/.cursor/skills/pdf/SKILL.md")
+        )]
+    );
+}
+
+#[test]
+fn cursor_reads_the_shared_skills_folder_with_the_others() {
+    let (tmp, homes) = home_of(&[".cursor", ".codex", ".gemini"]);
+    let shared = tmp.path().join("home/.agents/skills/pdf/SKILL.md");
+    let readers: Vec<&str> = readers_of(&homes, &shared, "codex")
+        .iter()
+        .map(|one| one.id)
+        .collect();
+    assert!(readers.contains(&"cursor"), "{readers:?}");
+    assert!(readers.contains(&"gemini"), "{readers:?}");
+}
+
+#[test]
+fn cursor_twin_maps_a_file_in_cursors_skills_to_its_shared_copy_and_nothing_else() {
+    let (tmp, homes) = home_of(&[".cursor", ".codex"]);
+    let home = tmp.path().join("home");
+    assert_eq!(
+        cursor_twin(&homes, &home.join(".cursor/skills/pdf/scripts/x.py")),
+        Some((
+            home.join(".cursor/skills/pdf"),
+            home.join(".agents/skills/pdf/scripts/x.py")
+        ))
+    );
+    assert_eq!(
+        cursor_twin(&homes, &home.join(".agents/skills/pdf/SKILL.md")),
+        None
+    );
+    assert_eq!(cursor_twin(&homes, &home.join(".cursor/AGENTS.md")), None);
+    assert_eq!(cursor_twin(&homes, &home.join(".cursor/skills")), None);
+}
+
+#[test]
+fn only_a_global_skill_is_left_for_the_shared_folder_in_cursors() {
+    let (tmp, homes) = home_of(&[".cursor", ".codex"]);
+    let home = tmp.path().join("home");
+    let at = home.join(".cursor/skills/pdf/SKILL.md");
+    assert!(left_for_shared(
+        &homes,
+        &card(GLOBAL, Kind::Skill, "pdf/SKILL.md"),
+        &at
+    ));
+    assert!(!left_for_shared(
+        &homes,
+        &card("cursor", Kind::Skill, "pdf/SKILL.md"),
+        &at
+    ));
+    assert!(!left_for_shared(
+        &homes,
+        &card(GLOBAL, Kind::Rule, "pdf.md"),
+        &at
+    ));
+    let elsewhere = home.join(".claude/skills/pdf/SKILL.md");
+    assert!(!left_for_shared(
+        &homes,
+        &card(GLOBAL, Kind::Skill, "pdf/SKILL.md"),
+        &elsewhere
+    ));
+}

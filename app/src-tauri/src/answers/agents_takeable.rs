@@ -36,3 +36,7 @@ fn rules_and_skills(homes: &Homes) -> Vec<Found> {
         .collect();
     agents::found(&spots)
 }
+
+#[cfg(test)]
+#[path = "agents_takeable_test.rs"]
+mod tests;

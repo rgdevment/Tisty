@@ -97,3 +97,7 @@ pub(crate) fn retired(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "cursor_copies_test.rs"]
+mod tests;
