@@ -31,6 +31,7 @@ const look: AgentsLook = {
   folder: null,
   docs: 0,
   changes: 0,
+  vanished: 0,
   waiting: 0,
   unagreed: 0,
   proposed: 0,

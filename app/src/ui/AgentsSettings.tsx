@@ -7,6 +7,7 @@ import {
   type AssistantSeen,
   agentsLead,
   agentsLook,
+  agentsRestore,
   agentsStage,
   agentsState,
   agentsTurn,
@@ -130,7 +131,39 @@ export default function AgentsSettings({
         <Syncing look={look} answered={answered} hideButton={hideButton} />
       )}
       {stage !== "syncs" && look && <Stayed look={look} />}
+      {look && look.vanished > 0 && (
+        <Vanished
+          many={look.vanished}
+          onWrite={() =>
+            quietly("wiring", agentsRestore(), (done) => {
+              if (done.failed === 1)
+                setTrouble({ card: "wiring", text: t("agentsVanishedFailedOne") });
+              else if (done.failed > 1)
+                setTrouble({
+                  card: "wiring",
+                  text: fill("agentsVanishedFailed", String(done.failed)),
+                });
+              looked();
+              window.dispatchEvent(new Event(AGENTS_CHANGED));
+            })
+          }
+        />
+      )}
     </Card>
+  );
+}
+
+function Vanished({ many, onWrite }: Readonly<{ many: number; onWrite: () => void }>) {
+  return (
+    <>
+      <p className="mt-2 text-[12.5px] text-soft">
+        {many === 1 ? t("agentsVanishedOne") : fill("agentsVanished", String(many))}
+      </p>
+      <p className="mt-0.5 text-[11.5px] text-faint">{t("agentsVanishedWhy")}</p>
+      <button type="button" onClick={onWrite} className={small}>
+        {many === 1 ? t("agentsVanishedDoOne") : t("agentsVanishedDo")}
+      </button>
+    </>
   );
 }
 

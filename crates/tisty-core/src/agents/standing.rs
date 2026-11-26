@@ -388,6 +388,30 @@ pub fn overwrite(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<()
     Ok(())
 }
 
+/// A file Tisty wrote that was taken away whole, with nothing beside it changed by hand.
+pub fn vanished(ledger: &Ledger, target: &Target) -> bool {
+    let absent = std::fs::symlink_metadata(&target.at)
+        .is_err_and(|why| why.kind() == std::io::ErrorKind::NotFound);
+    let gone = absent && ledger.written(&target.at).is_some();
+    if !gone || writable(ledger, target).is_err() {
+        return false;
+    }
+    match target.shipped() {
+        true => shipped_here(ledger, &target.at) && beside(ledger, target).is_none(),
+        false => matches!(
+            standing(ledger, target),
+            Standing::Outside { now: None, .. }
+        ),
+    }
+}
+
+pub fn restored(data: &Path, ledger: &mut Ledger, target: &Target) -> Result<(), Refused> {
+    if !vanished(ledger, target) {
+        return Err(Refused::Changed);
+    }
+    written(data, ledger, target, Some(&None))
+}
+
 fn written(
     data: &Path,
     ledger: &mut Ledger,

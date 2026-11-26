@@ -1747,3 +1747,116 @@ fn a_target_is_held_only_once_it_is_told_to_and_a_blank_document_alone_is_wordle
     assert!(!two.wordless(), "only one document alone has no words left");
     assert!(!room.target(".claude/CLAUDE.md", Vec::new()).wordless());
 }
+
+fn doc_target(room: &Room) -> Target {
+    room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Rules.\n")],
+    )
+}
+
+#[test]
+fn a_documents_file_taken_away_whole_is_written_again_once() {
+    let mut room = room();
+    let target = doc_target(&room);
+    room.round(std::slice::from_ref(&target));
+    let wanted = read(&target);
+    std::fs::remove_file(&target.at).unwrap();
+    assert!(vanished(&room.ledger, &target));
+    restored(room.data.path(), &mut room.ledger, &target).unwrap();
+    assert_eq!(read(&target), wanted);
+    assert_eq!(room.one_round(&target), Standing::UpToDate);
+    assert!(!vanished(&room.ledger, &target));
+    assert_eq!(
+        restored(room.data.path(), &mut room.ledger, &target),
+        Err(Refused::Changed)
+    );
+}
+
+#[test]
+fn a_documents_file_changed_by_hand_is_not_vanished_and_stays_as_written() {
+    let mut room = room();
+    let target = doc_target(&room);
+    room.round(std::slice::from_ref(&target));
+    room.put(&target, "My own rules.\n");
+    assert!(!vanished(&room.ledger, &target));
+    assert_eq!(
+        restored(room.data.path(), &mut room.ledger, &target),
+        Err(Refused::Changed)
+    );
+    assert_eq!(read(&target), "My own rules.\n");
+}
+
+#[test]
+fn a_file_tisty_never_wrote_is_not_vanished() {
+    let room = room();
+    let target = doc_target(&room);
+    assert!(!vanished(&room.ledger, &target));
+}
+
+#[test]
+fn a_paused_or_held_agent_does_not_bring_a_vanished_file_back() {
+    let mut room = room();
+    let mut target = doc_target(&room);
+    room.round(std::slice::from_ref(&target));
+    std::fs::remove_file(&target.at).unwrap();
+    assert!(vanished(&room.ledger, &target));
+
+    target.hold();
+    assert!(!vanished(&room.ledger, &target));
+    assert_eq!(
+        restored(room.data.path(), &mut room.ledger, &target),
+        Err(Refused::Changed)
+    );
+    assert!(!target.at.exists());
+
+    let target = doc_target(&room);
+    room.ledger.turn("codex", false);
+    assert!(!vanished(&room.ledger, &target));
+    assert!(restored(room.data.path(), &mut room.ledger, &target).is_err());
+    assert!(!target.at.exists());
+}
+
+#[test]
+fn tistys_own_skill_file_taken_away_is_written_again() {
+    let mut room = room();
+    let target = room.shipped("Tisty 1.50.\n");
+    room.one_round(&target);
+    std::fs::remove_file(&target.at).unwrap();
+    assert!(vanished(&room.ledger, &target));
+    restored(room.data.path(), &mut room.ledger, &target).unwrap();
+    assert_eq!(read(&target), "Tisty 1.50.\n");
+    assert_eq!(room.one_round(&target), Standing::UpToDate);
+    assert!(!vanished(&room.ledger, &target));
+}
+
+#[test]
+fn a_whole_skill_folder_taken_away_brings_every_file_back() {
+    let mut room = room();
+    let both = room.next_agent("Tisty 1.50.\n", "MIT.\n");
+    room.round(&both);
+    std::fs::remove_dir_all(both[0].at.parent().unwrap()).unwrap();
+    for target in &both {
+        assert!(vanished(&room.ledger, target));
+        restored(room.data.path(), &mut room.ledger, target).unwrap();
+    }
+    assert_eq!(read(&both[0]), "MIT.\n");
+    assert_eq!(read(&both[1]), "Tisty 1.50.\n");
+    assert_eq!(room.round(&both), vec![Standing::UpToDate; 2]);
+}
+
+#[test]
+fn a_skill_file_taken_away_beside_one_changed_by_hand_is_not_vanished() {
+    let mut room = room();
+    let both = room.next_agent("Tisty 1.50.\n", "MIT.\n");
+    room.round(&both);
+    std::fs::remove_file(&both[1].at).unwrap();
+    room.put(&both[0], "MIT, with my line.\n");
+    assert!(!vanished(&room.ledger, &both[1]));
+    assert_eq!(
+        restored(room.data.path(), &mut room.ledger, &both[1]),
+        Err(Refused::Changed)
+    );
+    assert!(!both[1].at.exists());
+    assert_eq!(read(&both[0]), "MIT, with my line.\n");
+}

@@ -297,6 +297,28 @@ const words = {
     "{name} files no longer belong to any rule or skill in Agents.",
     "{name} archivos ya no son de ninguna regla ni skill de Agentes.",
   ],
+  agentsVanishedOne: [
+    "1 of your agents' files is no longer there.",
+    "1 archivo de tus agentes ya no está.",
+  ],
+  agentsVanished: [
+    "{name} of your agents' files are no longer there.",
+    "{name} archivos de tus agentes ya no están.",
+  ],
+  agentsVanishedWhy: [
+    "Tisty wrote them and something took them away. Only those come back; a file you changed by hand stays as it is.",
+    "Tisty los escribió y algo los quitó. Solo vuelven esos; un archivo que cambiaste a mano se queda como está.",
+  ],
+  agentsVanishedDoOne: ["Write it again", "Escribirlo otra vez"],
+  agentsVanishedDo: ["Write them again", "Escribirlos otra vez"],
+  agentsVanishedFailedOne: [
+    "1 could not be written again. Open it in Agents to see why.",
+    "1 no se pudo escribir otra vez. Ábrelo en Agentes para ver por qué.",
+  ],
+  agentsVanishedFailed: [
+    "{name} could not be written again. Open them in Agents to see why.",
+    "{name} no se pudieron escribir otra vez. Ábrelos en Agentes para ver por qué.",
+  ],
   agentsSettingsStayedOne: [
     "1 file you left with your agents when you deleted it from Agents.",
     "1 archivo que dejaste en tus agentes al eliminarlo de Agentes.",

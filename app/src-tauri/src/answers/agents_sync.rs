@@ -232,6 +232,8 @@ pub struct Look {
     pub docs: usize,
     /// Files changed outside Tisty, or on both sides, that wait for the person.
     pub changes: usize,
+    /// Files Tisty wrote that were taken away whole and can be written again as they were.
+    pub vanished: usize,
     /// Documents from another computer that wait for «apply here» or «not on this computer».
     pub waiting: usize,
     /// Documents whose words the person has not approved, held back from every agent's file.
@@ -407,6 +409,10 @@ pub(crate) fn looked_with(
         folder: root.map(|at| at.to_string()),
         docs,
         changes: changes + asked + unled.len(),
+        vanished: placed
+            .iter()
+            .filter(|one| agents::vanished(ledger, &one.target))
+            .count(),
         waiting: waiting_here(seen, homes),
         unagreed: seen.gate.unagreed(),
         proposed: seen.proposed,
