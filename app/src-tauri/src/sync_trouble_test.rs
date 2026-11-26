@@ -63,7 +63,7 @@ fn a_spent_day_is_said_as_what_it_is() {
 
 #[test]
 fn a_round_left_for_later_that_moved_nothing_is_not_said_to_have_just_synced() {
-    use super::answers::storing::synced_now;
+    use crate::answers::storing::synced_now;
     let waiting = |reason| tisty_carrier::Deferred {
         reason,
         left: 1,
