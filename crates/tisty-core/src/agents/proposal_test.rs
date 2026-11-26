@@ -64,3 +64,17 @@ fn a_proposal_that_changes_the_computer_mark_is_retargeted() {
     assert_eq!(proposable(RULE, &marked), Err(Unfit::Retargeted));
     assert_eq!(proposable(&marked, &other), Err(Unfit::Retargeted));
 }
+
+#[test]
+fn a_hook_takes_no_proposal_even_one_that_changes_nothing() {
+    let trigger = crate::agents::Trigger {
+        event: crate::agents::Event::Stop,
+        tools: crate::agents::Tools::Any,
+        timeout: 5,
+        agents: vec!["codex".into()],
+    };
+    let hook = crate::agents::hook_doc("done.sh", None, &trigger, "exit 0\n").unwrap();
+    let proposed = hook.replace("exit 0", "exit 2");
+    assert_eq!(proposable(&hook, &proposed), Err(Unfit::Hook));
+    assert_eq!(proposable(&hook, &hook), Err(Unfit::Hook));
+}

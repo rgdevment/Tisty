@@ -375,3 +375,52 @@ fn a_ledger_from_before_computers_reads_without_the_new_fields() {
     assert_eq!(ledger.chosen("/h/CLAUDE.md"), None);
     assert_eq!(ledger.let_in_words("doc-a"), None);
 }
+
+fn hook_yes(name: &str, print: &str) -> HookYes {
+    HookYes {
+        print: print.into(),
+        name: name.into(),
+        script: "sum".into(),
+        event: "stop".into(),
+        tools: "any".into(),
+        timeout: 5,
+        agents: vec!["codex".into()],
+    }
+}
+
+#[test]
+fn a_hooks_yes_is_kept_found_by_file_or_name_and_dropped() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.register_hook("file-1", hook_yes("a.sh", "p1"));
+    ledger.register_hook("file-2", hook_yes("a.sh.py", "p2"));
+    ledger.keep(data.path()).unwrap();
+
+    let mut again = Ledger::open(data.path(), "machine-a");
+    assert_eq!(again.hook_yes("file-1").unwrap().print, "p1");
+    assert_eq!(again.hook_named("a.sh.py").unwrap().0, "file-2");
+    assert_eq!(again.hook_named("a.sh").unwrap().0, "file-1");
+    assert_eq!(again.hook_named("a"), None);
+    assert_eq!(again.hooks().count(), 2);
+    assert_eq!(again.drop_hook("file-1").unwrap().name, "a.sh");
+    assert_eq!(again.drop_hook("file-1"), None);
+    assert_eq!(again.hook_yes("file-1"), None);
+}
+
+#[test]
+fn registering_a_hook_again_replaces_its_yes() {
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.register_hook("file-1", hook_yes("a.sh", "old"));
+    ledger.register_hook("file-1", hook_yes("a.sh", "new"));
+    assert_eq!(ledger.hooks().count(), 1);
+    assert_eq!(ledger.hook_yes("file-1").unwrap().print, "new");
+}
+
+#[test]
+fn a_hooks_yes_never_travels_to_another_computer() {
+    let data = tempfile::tempdir().unwrap();
+    let mut ledger = Ledger::fresh("machine-a");
+    ledger.register_hook("file-1", hook_yes("a.sh", "p1"));
+    ledger.keep(data.path()).unwrap();
+    assert_eq!(Ledger::open(data.path(), "machine-b").hooks().count(), 0);
+}

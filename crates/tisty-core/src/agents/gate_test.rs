@@ -1190,3 +1190,87 @@ fn the_card_of_a_document_let_in_here_is_told_and_one_left_out_has_none() {
     assert!(gate.card_here(&unagreed).is_none());
     assert!(gate.for_here().any(|(file, _)| file == mine));
 }
+
+fn guard_trigger() -> crate::agents::Trigger {
+    crate::agents::Trigger {
+        event: crate::agents::Event::BeforeTool,
+        tools: crate::agents::Tools::Shell,
+        timeout: 5,
+        agents: vec!["claude-code".into()],
+    }
+}
+
+fn guard(computer: Option<&str>, script: &str) -> String {
+    let computer = computer.map(|one| DeviceId(one.into()));
+    crate::agents::hook_doc("guard.sh", computer.as_ref(), &guard_trigger(), script).unwrap()
+}
+
+fn yes_for(_world: &World, body: &str) -> crate::agents::HookYes {
+    crate::agents::yes_of(body).unwrap().0
+}
+
+#[test]
+fn a_hook_waits_for_its_own_yes_whatever_else_this_computer_agreed() {
+    let mut world = world();
+    let root = world.root;
+    let body = guard(None, "exit 2\n");
+    let (_, file) = world.made_in(HERE, &body, true, Some(root));
+    world.ledger.take(&file, true);
+    world
+        .ledger
+        .let_in(&file, &crate::docs::print_of_text(&body));
+    let gate = world.gate();
+    assert_eq!(gate.seen(&file), Some(Seen::HookWaiting));
+    assert!(gate.admitted().is_empty());
+}
+
+#[test]
+fn a_hook_with_a_yes_to_exactly_its_words_is_registered_and_never_admitted() {
+    let mut world = world();
+    let root = world.root;
+    let body = guard(None, "exit 2\n");
+    let (_, file) = world.made_in(HERE, &body, true, Some(root));
+    let yes = yes_for(&world, &body);
+    world.ledger.register_hook(&file, yes);
+    let gate = world.gate();
+    assert_eq!(gate.seen(&file), Some(Seen::HookRegistered));
+    assert!(gate.admitted().is_empty());
+}
+
+#[test]
+fn a_hook_whose_words_changed_after_its_yes_waits_again() {
+    let mut world = world();
+    let root = world.root;
+    let body = guard(None, "exit 2\n");
+    let (id, file) = world.made_in(HERE, &body, true, Some(root));
+    let yes = yes_for(&world, &body);
+    world.ledger.register_hook(&file, yes);
+    let changed = guard(None, "exit 0\n");
+    world.written(HERE, id, &file, &changed, true);
+    assert_eq!(world.gate().seen(&file), Some(Seen::HookWaiting));
+}
+
+#[test]
+fn a_hook_written_by_an_agent_is_not_agreed_even_with_a_yes() {
+    let mut world = world();
+    let root = world.root;
+    let body = guard(None, "exit 2\n");
+    let (_, file) = world.made_in(AGENT, &body, false, Some(root));
+    let yes = yes_for(&world, &body);
+    world.ledger.register_hook(&file, yes);
+    assert_eq!(world.gate().seen(&file), Some(Seen::NotAgreed));
+}
+
+#[test]
+fn a_hook_for_another_computer_or_in_another_place_is_apart_before_it_waits() {
+    let mut world = world();
+    let root = world.root;
+    let (_, there) = world.made_in(HERE, &guard(Some(THERE), "exit 2\n"), true, Some(root));
+    let (_, here_in_root) = world.made_in(HERE, &guard(Some(HERE), "exit 2\n"), true, Some(root));
+    let mine = world.computer_folder(HERE, HERE);
+    let (_, here) = world.made_in(HERE, &guard(Some(HERE), "exit 2\n"), true, Some(mine));
+    let gate = world.gate();
+    assert_eq!(gate.seen(&there), Some(Seen::Apart));
+    assert_eq!(gate.seen(&here_in_root), Some(Seen::Apart));
+    assert_eq!(gate.seen(&here), Some(Seen::HookWaiting));
+}

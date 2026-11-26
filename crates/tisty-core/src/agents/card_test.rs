@@ -279,3 +279,67 @@ fn bringing_a_change_in_keeps_the_computer_mark() {
 fn a_card_with_an_unknown_flag_beside_a_computer_mark_is_still_not_read() {
     assert!(Card::of(&marked(&format!(", on-{ON}, utf16"))).is_none());
 }
+
+fn stop_trigger() -> Trigger {
+    Trigger {
+        event: crate::agents::Event::Stop,
+        tools: crate::agents::Tools::Any,
+        timeout: 30,
+        agents: vec!["codex".into(), "cursor".into()],
+    }
+}
+
+#[test]
+fn a_hook_document_reads_back_as_a_hook_card_with_its_trigger_and_script() {
+    let body = hook_doc("done.sh", None, &stop_trigger(), "echo done\n").unwrap();
+    let card = Card::of(&body).unwrap();
+    assert_eq!(card.kind, Kind::Hook);
+    assert_eq!(card.kind.word(), "hook");
+    assert_eq!(card.level, GLOBAL);
+    assert_eq!(card.name, "done.sh");
+    assert_eq!(card.trigger, Some(stop_trigger()));
+    assert_eq!(rendered(&body).unwrap(), b"echo done\n");
+}
+
+#[test]
+fn a_hook_made_for_one_computer_keeps_the_mark() {
+    let me = device(ON);
+    let body = hook_doc("done.py", Some(&me), &stop_trigger(), "print(1)\n").unwrap();
+    assert_eq!(Card::of(&body).unwrap().computer, Some(me));
+}
+
+#[test]
+fn a_hook_card_with_a_bad_level_name_or_missing_trigger_is_not_a_card() {
+    let body = hook_doc("done.sh", None, &stop_trigger(), "x\n").unwrap();
+    let not_global = body.replace("global/hook", "codex/hook");
+    let bad_name = body.replace("done.sh", "Done.exe");
+    let lines = stop_trigger().lines();
+    let without = body.replace(&lines, "");
+    for broken in [not_global, bad_name, without] {
+        assert!(Card::of(&broken).is_none(), "{broken}");
+    }
+}
+
+#[test]
+fn a_hook_is_refused_a_bad_name_and_never_made_from_a_file_on_disk() {
+    assert_eq!(
+        hook_doc("Done.sh", None, &stop_trigger(), "x\n"),
+        Err(Refused::Name)
+    );
+    assert_eq!(
+        hook_doc("done.exe", None, &stop_trigger(), "x\n"),
+        Err(Refused::Name)
+    );
+    assert_eq!(
+        doc_of(GLOBAL, Kind::Hook, "done.sh", b"x\n"),
+        Err(Refused::Name)
+    );
+}
+
+#[test]
+fn a_hook_script_without_a_final_newline_and_with_crlf_comes_back_byte_for_byte() {
+    for script in ["a\r\nb", "no end", "a\nb\n"] {
+        let body = hook_doc("x.ps1", None, &stop_trigger(), script).unwrap();
+        assert_eq!(rendered(&body).unwrap(), script.as_bytes(), "{script:?}");
+    }
+}
