@@ -27,7 +27,7 @@ fn words(session: &Session) -> &'static Words {
 }
 
 fn now() -> DateTime {
-    jiff::Zoned::now().datetime()
+    jiff::ZonedDateTime::now().datetime()
 }
 
 #[tauri::command(async)]

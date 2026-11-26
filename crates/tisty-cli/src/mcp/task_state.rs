@@ -160,7 +160,8 @@ fn written(
     page: Option<String>,
 ) -> Result<&'static str, String> {
     let (_, mut store) = opened(paths).map_err(|_| "the store could not be opened".to_string())?;
-    let signed = tisty_core::assistant_notes::signed_by(&assistant(), &jiff::Zoned::now(), words);
+    let signed =
+        tisty_core::assistant_notes::signed_by(&assistant(), &jiff::ZonedDateTime::now(), words);
     let mut sides = None;
     let mut written_over = false;
     tisty_core::task_docs::noted_beside(paths, &mut store, id, |was, _| {

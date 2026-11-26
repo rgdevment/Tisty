@@ -78,7 +78,7 @@ pub(super) fn discovered() -> Value {
         "resultType": "complete",
         "supportedVersions": VERSIONS,
         "capabilities": offered(),
-        "instructions": instructions(jiff::Zoned::now().date()),
+        "instructions": instructions(jiff::ZonedDateTime::now().date()),
         "ttlMs": until_the_day_turns(),
         "cacheScope": "public",
         "_meta": { "io.modelcontextprotocol/serverInfo": who() },
@@ -87,7 +87,7 @@ pub(super) fn discovered() -> Value {
 
 /// The instructions name today, so a copy kept past midnight would teach the wrong date.
 pub(super) fn until_the_day_turns() -> i64 {
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     now.tomorrow()
         .and_then(|then| then.start_of_day())
         .map(|turn| turn.timestamp().as_millisecond() - now.timestamp().as_millisecond())
@@ -109,7 +109,7 @@ pub(super) fn legacy_greeting(params: &Value) -> Value {
         "protocolVersion": speaking,
         "capabilities": offered(),
         "serverInfo": who(),
-        "instructions": instructions(jiff::Zoned::now().date()),
+        "instructions": instructions(jiff::ZonedDateTime::now().date()),
     })
 }
 

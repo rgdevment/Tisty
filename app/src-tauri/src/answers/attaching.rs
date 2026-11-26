@@ -217,7 +217,7 @@ fn noted(session: &tauri::State<'_, Mutex<Session>>, kept: &tisty_core::attach::
 pub fn owed(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<String>> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let session = held(&session);
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     Ok(session
         .state
         .owed_since(id, today)
@@ -249,8 +249,10 @@ pub fn complete(
         session.commit_all(closing.ops)?;
     }
     let ops = match also.is_empty() {
-        true => session.state.completing(id, jiff::Zoned::now()),
-        false => session.state.covering(id, jiff::Zoned::now(), &also),
+        true => session.state.completing(id, jiff::ZonedDateTime::now()),
+        false => session
+            .state
+            .covering(id, jiff::ZonedDateTime::now(), &also),
     };
     session.commit_all(ops)?;
     if let Some(said) = &closing.said {

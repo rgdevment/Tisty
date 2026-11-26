@@ -55,7 +55,7 @@ fn whole_in(state: &mut State, list: Option<ulid::Ulid>) -> TaskId {
 }
 
 fn drafted(text: &str) -> Draft {
-    tisty_nl::parse(text, &jiff::Zoned::now(), "es").into()
+    tisty_nl::parse(text, &jiff::ZonedDateTime::now(), "es").into()
 }
 
 fn in_doc(doc: &str, before: &str) -> Born {

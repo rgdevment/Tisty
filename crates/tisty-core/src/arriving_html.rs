@@ -1,10 +1,9 @@
 use htmd::element_handler::{HandlerResult, Handlers};
+use htmd::node::Node;
 use htmd::options::{BulletListMarker, HrStyle, Options};
 use htmd::{Element, HtmlToMarkdown};
-use markup5ever_rcdom::{Node, NodeData};
-use std::rc::Rc;
 
-use super::pasted::Arrived;
+use super::pasted::{Arrived, kids};
 
 pub(super) const SKIPPED: [&str; 11] = [
     "script", "style", "head", "noscript", "template", "iframe", "object", "embed", "button",
@@ -49,15 +48,13 @@ fn opened_past(html: &str, most: usize) -> bool {
     false
 }
 
-fn deeper_than(tree: &Rc<Node>, most: usize) -> bool {
+fn deeper_than(tree: &Node, most: usize) -> bool {
     let mut waiting = vec![(tree.clone(), 0usize)];
     while let Some((node, depth)) = waiting.pop() {
         if depth > most {
             return true;
         }
-        for child in node.children.borrow().iter() {
-            waiting.push((child.clone(), depth + 1));
-        }
+        waiting.extend(kids(&node).map(|child| (child, depth + 1)));
     }
     false
 }
@@ -93,10 +90,10 @@ fn converted(html: &str, pasted: bool) -> String {
         .add_handler(vec!["details"], folded)
         .add_handler(vec!["b"], bolded)
         .add_handler(vec!["img"], pictured)
-        .add_handler(vec!["hr"], |_: &dyn Handlers, _: Element| {
+        .add_handler(vec!["hr"], |_: &dyn Handlers, _: &Element| {
             Some(HandlerResult::from("\n\n---\n\n"))
         })
-        .add_handler(vec!["summary"], |_: &dyn Handlers, _: Element| {
+        .add_handler(vec!["summary"], |_: &dyn Handlers, _: &Element| {
             Some(HandlerResult::from(""))
         })
         .build();
@@ -104,16 +101,16 @@ fn converted(html: &str, pasted: bool) -> String {
         return String::new();
     };
     // Reading the tree walks it by recursion; nothing is said, and the page lands the plain text instead.
-    if deeper_than(&tree, NESTED_AT_MOST) {
+    if deeper_than(&tree.root(), NESTED_AT_MOST) {
         return String::new();
     }
     // A file says what it is by its tags; only a clipboard needs reading for what was meant.
     if !pasted {
-        return converter.tree_to_markdown(&tree);
+        return converter.convert(&tree).unwrap_or_default();
     }
-    match super::pasted::arrived(&tree) {
+    match super::pasted::arrived(&tree.root()) {
         Arrived::Laid(said) | Arrived::Written(said) => said,
-        Arrived::Formatted => converter.tree_to_markdown(&tree),
+        Arrived::Formatted => converter.convert(&tree).unwrap_or_default(),
     }
 }
 
@@ -201,35 +198,21 @@ fn broken(html: &str) -> String {
 }
 
 fn attr(element: &Element, name: &str) -> Option<String> {
-    element
-        .attrs
-        .iter()
-        .find(|one| &*one.name.local == name)
-        .map(|one| one.value.to_string())
+    element.node.attr(name).map(|one| one.to_string())
 }
 
 fn inner(handlers: &dyn Handlers, element: &Element) -> String {
-    handlers.walk_children(element.node).content
+    handlers.walk_children_content(element.node, element.context)
 }
 
 // Highlighted code paints its words with the same tags, and a mark inside code would change the code.
-fn coded(node: &Rc<Node>) -> bool {
+fn coded(node: &Node) -> bool {
     within(node, &["pre", "code"])
 }
 
-fn within(node: &Rc<Node>, tags: &[&str]) -> bool {
-    let mut at = node.clone();
-    loop {
-        let up = at.parent.take();
-        at.parent.set(up.clone());
-        let Some(up) = up.and_then(|one| one.upgrade()) else {
-            return false;
-        };
-        if matches!(&up.data, NodeData::Element { name, .. } if tags.contains(&&*name.local)) {
-            return true;
-        }
-        at = up;
-    }
+fn within(node: &Node, tags: &[&str]) -> bool {
+    std::iter::successors(node.parent(), Node::parent)
+        .any(|up| up.tag_name().is_some_and(|name| tags.contains(&name)))
 }
 
 // A space just inside a tag belongs to the sentence, not to the mark, or the words around it run together.
@@ -250,21 +233,21 @@ fn pen(raw: &str, hue: Option<&str>) -> HandlerResult {
     }
 }
 
-fn marked(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
-    let words = inner(handlers, &element);
+fn marked(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
+    let words = inner(handlers, element);
     if coded(element.node) {
         return Some(words.into());
     }
-    let hue = attr(&element, "data-pen")
+    let hue = attr(element, "data-pen")
         .filter(|one| tisty_markdown::vocab::pen(one))
         .or_else(|| {
-            styled(&element, &["background-color", "background"]).and_then(|one| nearest(one, true))
+            styled(element, &["background-color", "background"]).and_then(|one| nearest(one, true))
         });
     Some(pen(&words, hue.as_deref()))
 }
 
-fn underlined(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
-    let words = inner(handlers, &element);
+fn underlined(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
+    let words = inner(handlers, element);
     Some(match coded(element.node) {
         true => words.into(),
         false => wrapped(&words, "++", "++"),
@@ -272,14 +255,14 @@ fn underlined(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult
 }
 
 // Pasted pages colour words with `style` or `<font color>`; the language has a pen of the nearest palette colour.
-fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
+fn painted(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
     if coded(element.node) {
         return handlers.fallback(element);
     }
     if spaced_apart(element.node) {
         return Some(" ".into());
     }
-    let style = attr(&element, "style")
+    let style = attr(element, "style")
         .unwrap_or_default()
         .to_ascii_lowercase()
         .replace(' ', "");
@@ -295,18 +278,18 @@ fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
     // A link's own colour is how a page shows it is a link, not a colour anyone chose for its words.
     let hue = match within(element.node, &["a"]) {
         true => None,
-        false => styled(&element, &["background-color", "background"])
+        false => styled(element, &["background-color", "background"])
             .and_then(|one| nearest(one, true))
             .or_else(|| {
-                styled(&element, &["color"])
-                    .or_else(|| attr(&element, "color").and_then(|one| rgb(&one)))
+                styled(element, &["color"])
+                    .or_else(|| attr(element, "color").and_then(|one| rgb(&one)))
                     .and_then(|one| nearest(one, false))
             }),
     };
     if !heavy && !slanted && hue.is_none() {
         return handlers.fallback(element);
     }
-    let mut out = inner(handlers, &element);
+    let mut out = inner(handlers, element);
     if slanted {
         out = wrapped(&out, "*", "*").content;
     }
@@ -320,47 +303,38 @@ fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
 }
 
 // Chromium copies the space between two tags as a span holding one no-break space, styled like its words; it meant a plain space.
-fn spaced_apart(node: &Rc<Node>) -> bool {
-    let children = node.children.borrow();
-    let [only] = children.as_slice() else {
-        return false;
-    };
-    match &only.data {
-        NodeData::Text { contents } => &**contents.borrow() == "\u{a0}",
+fn spaced_apart(node: &Node) -> bool {
+    let mut children = kids(node);
+    match (children.next(), children.next()) {
+        (Some(only), None) => only.text().is_some_and(|said| &*said == "\u{a0}"),
         _ => false,
     }
 }
 
 // Google Docs wraps a whole copy in a bold tag that says it is not bold.
-fn bolded(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
-    let style = attr(&element, "style").unwrap_or_default().replace(' ', "");
+fn bolded(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
+    let style = attr(element, "style").unwrap_or_default().replace(' ', "");
     if style.contains("font-weight:normal") || style.contains("font-weight:400") {
-        return Some(inner(handlers, &element).into());
+        return Some(inner(handlers, element).into());
     }
     handlers.fallback(element)
 }
 
 // A picture written into the page itself would put megabytes of letters in the text.
-fn pictured(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
-    match attr(&element, "src").is_some_and(|one| one.trim_start().starts_with("data:")) {
-        true => Some(attr(&element, "alt").unwrap_or_default().into()),
+fn pictured(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
+    match attr(element, "src").is_some_and(|one| one.trim_start().starts_with("data:")) {
+        true => Some(attr(element, "alt").unwrap_or_default().into()),
         false => handlers.fallback(element),
     }
 }
 
-fn folded(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
-    let title = element
-        .node
-        .children
-        .borrow()
-        .iter()
-        .find(
-            |one| matches!(&one.data, NodeData::Element { name, .. } if &*name.local == "summary"),
-        )
-        .map(|one| handlers.walk_children(one).content)
+fn folded(handlers: &dyn Handlers, element: &Element) -> Option<HandlerResult> {
+    let title = kids(element.node)
+        .find(|one| one.tag_name() == Some("summary"))
+        .map(|one| handlers.walk_children_content(&one, element.context))
         .unwrap_or_default();
     let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
-    let body = inner(handlers, &element);
+    let body = inner(handlers, element);
     let body = body.trim();
     Some(format!("\n\n:::details {title}\n\n{body}\n\n:::\n\n").into())
 }

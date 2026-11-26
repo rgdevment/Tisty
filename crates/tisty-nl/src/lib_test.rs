@@ -27,7 +27,7 @@ fn a_span_counts_letters_and_not_bytes() {
 
 use super::*;
 
-fn now() -> Zoned {
+fn now() -> ZonedDateTime {
     "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
 }
 
@@ -56,7 +56,7 @@ fn offered(input: &str, locale: &str) -> Option<(String, String, String)> {
 
 #[test]
 fn a_bare_three_is_this_afternoon_and_not_tomorrow_dawn() {
-    let seven: Zoned = "2026-08-05T07:00:00[America/Santiago]".parse().unwrap();
+    let seven: ZonedDateTime = "2026-08-05T07:00:00[America/Santiago]".parse().unwrap();
     let p = parse("tomar café a las 3", &seven, "es");
     let at = p.date.expect("a date");
 
@@ -67,7 +67,7 @@ fn a_bare_three_is_this_afternoon_and_not_tomorrow_dawn() {
 
 #[test]
 fn the_same_three_rolls_over_once_the_afternoon_is_gone() {
-    let evening: Zoned = "2026-08-05T18:00:00[America/Santiago]".parse().unwrap();
+    let evening: ZonedDateTime = "2026-08-05T18:00:00[America/Santiago]".parse().unwrap();
     let p = parse("tomar café a las 3", &evening, "es");
     let at = p.date.expect("a date");
 

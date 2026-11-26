@@ -54,7 +54,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused> {
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     let (state, store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, &said)));
@@ -301,7 +301,7 @@ const PRINT_HELD: usize = 16;
 
 pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, store) = opened(paths)?;
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
 
     let listed = lists::open_by_name(&state);
     let named: Vec<&str> = listed.iter().map(|(name, _)| *name).collect();

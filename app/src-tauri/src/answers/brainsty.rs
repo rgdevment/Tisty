@@ -49,7 +49,7 @@ pub async fn brain_card(
             brain::kept_out(&session.paths.docs(), &session.state),
         )
     };
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     elsewhere(move || brain::card_of(&paths, &id, today, |one| !hidden.contains(one))).await
 }
 

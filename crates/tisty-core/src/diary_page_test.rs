@@ -50,7 +50,7 @@ fn closed(state: &mut State, title: &str, on: &str) {
     let noon: Date = on.parse().unwrap();
     let ms = noon
         .at(12, 0, 0, 0)
-        .to_zoned(jiff::tz::TimeZone::UTC)
+        .to_zoned_datetime(jiff::tz::TimeZone::UTC)
         .unwrap()
         .timestamp()
         .as_millisecond();

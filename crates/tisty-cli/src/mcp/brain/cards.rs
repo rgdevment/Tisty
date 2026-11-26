@@ -86,7 +86,7 @@ fn of_kind(kind: &str) -> &'static [&'static str] {
 
 fn card_of(paths: &Paths, state: &State, base: Option<&Brain>, id: &str) -> Option<Card> {
     let gate = Gate::new(paths, state);
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     base?.card(id, today, |one| gate.sees(one)).ok().flatten()
 }
 
@@ -184,7 +184,7 @@ pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value,
     if let Some(kind) = text(args, "links") {
         return linked(which, card, &kind, args);
     }
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     let line = state_line(paths, &state, task);
     let (mut said, told) = match card {
         Some(card) => {

@@ -276,11 +276,11 @@ pub fn table_canon(
 ) -> Answer<String> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
     caught("table_canon", || {
-        canon(&words, &typed, &jiff::Zoned::now(), &spoken)
+        canon(&words, &typed, &jiff::ZonedDateTime::now(), &spoken)
     })
 }
 
-pub fn canon(words: &str, typed: &str, now: &jiff::Zoned, spoken: &str) -> String {
+pub fn canon(words: &str, typed: &str, now: &jiff::ZonedDateTime, spoken: &str) -> String {
     let made = tisty_markdown::canon::canonical(words, typed);
     let dated = words.split_whitespace().next() == Some("date");
     if !dated || made.parse::<jiff::civil::Date>().is_ok() {

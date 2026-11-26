@@ -563,7 +563,9 @@ mod there {
     }
 
     fn parts(at: jiff::Timestamp) -> Retained<NSDateComponents> {
-        let civil = at.to_zoned(jiff::tz::TimeZone::system()).datetime();
+        let civil = at
+            .to_zoned_datetime(jiff::tz::TimeZone::system())
+            .datetime();
         let parts = NSDateComponents::new();
         parts.setYear(civil.year().into());
         parts.setMonth(civil.month().into());

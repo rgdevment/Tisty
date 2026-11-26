@@ -215,7 +215,7 @@ fn written(
         kept.as_ref().map(|one| (one.at.clone(), one.mark))
     };
     if let Some((at, mark)) = kept {
-        let now = jiff::Zoned::now();
+        let now = jiff::ZonedDateTime::now();
         let line = lined(&now, mark, gravity, channel, said, facts);
         if !roll(&at) || quiet && said_lately(&at, &line) {
             INSIDE.with(|inside| inside.set(false));
@@ -275,7 +275,7 @@ fn said_lately(at: &Path, line: &str) -> bool {
 }
 
 /// A file that just began says what wrote it, since the lines that told it were rolled away.
-fn headed(now: &jiff::Zoned, mark: char) -> String {
+fn headed(now: &jiff::ZonedDateTime, mark: char) -> String {
     lined(
         now,
         mark,
@@ -291,7 +291,7 @@ fn headed(now: &jiff::Zoned, mark: char) -> String {
 }
 
 fn lined(
-    now: &jiff::Zoned,
+    now: &jiff::ZonedDateTime,
     mark: char,
     gravity: Gravity,
     channel: &'static str,

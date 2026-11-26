@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { saidKinds } from "../src/reading";
 import { dressed, escaped, PAGE_CSS, shell, TITLED, TOKENS } from "../src/shell";
 import { source } from "./source";
@@ -30,9 +30,20 @@ describe("the shell of a drawn page", () => {
   });
 
   it("carries the host's tokens, and none that could close the style", () => {
-    document.documentElement.style.setProperty("--tisty-ink", "#111111");
-    document.documentElement.style.setProperty("--tisty-soft", "red}</style><script>");
-    const said = shell("<p>x</p>", false);
+    // A browser refuses such a value from setProperty, so it is handed over as read instead.
+    const worn: Record<string, string> = {
+      "--tisty-ink": "#111111",
+      "--tisty-soft": "red}</style><script>",
+    };
+    const reading = vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      getPropertyValue: (token: string) => worn[token] ?? "",
+    } as CSSStyleDeclaration);
+    let said: string;
+    try {
+      said = shell("<p>x</p>", false);
+    } finally {
+      reading.mockRestore();
+    }
     expect(said).toContain("--tisty-ink:#111111");
     expect(said).not.toContain("--tisty-soft:");
   });

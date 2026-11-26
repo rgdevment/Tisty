@@ -8,8 +8,10 @@ use tisty_core::{Config, Op, Paths, State, Store, Tag, TaskId};
 use ulid::Ulid;
 
 // The served tisty runs in Santiago, so what the person says «today» has to be Santiago's today too.
-fn here() -> jiff::Zoned {
-    jiff::Zoned::now().in_tz("America/Santiago").unwrap()
+fn here() -> jiff::ZonedDateTime {
+    jiff::ZonedDateTime::now()
+        .in_tz("America/Santiago")
+        .unwrap()
 }
 
 const PHONE: &str = "dev_phone001";

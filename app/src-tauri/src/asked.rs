@@ -41,7 +41,7 @@ pub(crate) struct View {
 
 pub(crate) fn ahead(
     spec: &tisty_core::DateSpec,
-    now: &jiff::Zoned,
+    now: &jiff::ZonedDateTime,
     code: &'static str,
 ) -> Result<(), Refusal> {
     if spec.passed(now) {
@@ -107,7 +107,7 @@ pub(crate) fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, R
 
 pub(crate) fn repeated(
     change: &Change,
-    now: &jiff::Zoned,
+    now: &jiff::ZonedDateTime,
 ) -> Result<Option<Option<tisty_core::model::Repeat>>, Refusal> {
     if change.no_repeat {
         return Ok(Some(None));
@@ -128,7 +128,7 @@ pub(crate) fn repeated(
 pub(crate) fn recalled(
     task: &Task,
     change: &Change,
-    now: &jiff::Zoned,
+    now: &jiff::ZonedDateTime,
 ) -> Result<Option<Vec<tisty_core::DateSpec>>, Refusal> {
     if change.remind.is_none() && change.unremind.is_none() {
         return Ok(None);
@@ -158,7 +158,7 @@ pub(crate) fn recalled(
 pub(crate) fn dated_field(
     raw: Option<&str>,
     cleared: bool,
-    now: &jiff::Zoned,
+    now: &jiff::ZonedDateTime,
     spoken: &str,
 ) -> Result<Option<Option<tisty_core::DateSpec>>, Refusal> {
     match (raw, cleared) {

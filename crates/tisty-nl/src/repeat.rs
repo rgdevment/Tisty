@@ -1,4 +1,4 @@
-use jiff::Zoned;
+use jiff::ZonedDateTime;
 use tisty_core::DateSpec;
 use tisty_core::model::{Cadence, Repeat, Unit};
 
@@ -14,7 +14,7 @@ pub struct Took {
     pub first: Option<DateSpec>,
 }
 
-pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
+pub fn take(text: &str, masked: &str, now: &ZonedDateTime, v: &Vocabulary) -> Took {
     let words = crate::words(masked);
 
     for (i, (at, word)) in words.iter().enumerate() {
@@ -100,7 +100,7 @@ fn weekly(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     ))
 }
 
-fn next_weekday(now: &Zoned, which: usize) -> Option<DateSpec> {
+fn next_weekday(now: &ZonedDateTime, which: usize) -> Option<DateSpec> {
     let today = now.date();
     let from = today.weekday().to_monday_zero_offset() as usize;
     let ahead = (which + 7 - from) % 7;

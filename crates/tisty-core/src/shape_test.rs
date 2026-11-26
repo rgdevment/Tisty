@@ -6,7 +6,7 @@ use crate::event::DeviceId;
 use ulid::Ulid;
 
 fn when() -> jiff::civil::Date {
-    at(4 * MONTH).to_zoned(here()).date()
+    at(4 * MONTH).to_zoned_datetime(here()).date()
 }
 
 fn here() -> jiff::tz::TimeZone {
@@ -52,7 +52,7 @@ const MONTH: i64 = 60 * 60 * 24 * 31;
 #[test]
 fn a_backfilled_turn_lands_in_the_month_it_covered() {
     let id = Ulid::generate();
-    let covered = at(0).to_zoned(here()).date();
+    let covered = at(0).to_zoned_datetime(here()).date();
     let marked = at(3 * MONTH);
 
     let mut d = TaskAdd::new("take the pill", "a0");
@@ -74,7 +74,7 @@ fn a_backfilled_turn_lands_in_the_month_it_covered() {
         "the pill was July's, whatever day you got round to ticking it"
     );
 
-    let stamped = marked.to_zoned(here()).date();
+    let stamped = marked.to_zoned_datetime(here()).date();
     let other = format!("{:04}-{:02}", stamped.year(), stamped.month());
     assert_eq!(
         told.months
@@ -201,5 +201,5 @@ fn the_beginning_is_the_earliest_closing_and_not_the_first_one_read() {
 
     let told = shape(&State::replay(&events), 18, &here(), when());
 
-    assert_eq!(told.since, Some(at(0).to_zoned(here()).date()));
+    assert_eq!(told.since, Some(at(0).to_zoned_datetime(here()).date()));
 }

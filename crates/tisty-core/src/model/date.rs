@@ -52,7 +52,7 @@ impl DateSpec {
         self.at.date()
     }
 
-    pub fn passed(&self, now: &jiff::Zoned) -> bool {
+    pub fn passed(&self, now: &jiff::ZonedDateTime) -> bool {
         match self.has_time {
             true => match self.instant(now.time_zone()) {
                 Ok(at) => at < now.timestamp(),
@@ -68,7 +68,7 @@ impl DateSpec {
         } else {
             jiff::tz::TimeZone::get(&self.tz)?
         };
-        Ok(self.at.to_zoned(zone)?.timestamp())
+        Ok(self.at.to_zoned_datetime(zone)?.timestamp())
     }
 }
 

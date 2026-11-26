@@ -3,7 +3,7 @@ mod resolve;
 mod scan;
 mod vocab;
 
-use jiff::Zoned;
+use jiff::ZonedDateTime;
 use serde::{Deserialize, Serialize};
 use tisty_core::{
     DateSpec, Priority, Tag,
@@ -74,7 +74,7 @@ impl From<Parsed> for Draft {
     }
 }
 
-pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
+pub fn parse(input: &str, now: &ZonedDateTime, locale: &str) -> Parsed {
     let v = vocab::for_locale(locale);
     let tz = now.time_zone().iana_name().unwrap_or("UTC");
     let taken = take_markers(input, v);
@@ -172,7 +172,7 @@ pub fn parse_priority(raw: &str, locale: &str) -> Option<Priority> {
         .or_else(|| vocab::EN.priority(raw))
 }
 
-pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
+pub fn parse_date(input: &str, now: &ZonedDateTime, locale: &str) -> Option<DateSpec> {
     let input = input.trim();
     let tz = now.time_zone().iana_name().unwrap_or("UTC");
 
@@ -195,7 +195,7 @@ struct Timed {
     offers: Vec<Offer>,
 }
 
-fn timed(text: &str, now: &Zoned, tz: &str, v: &vocab::Vocabulary) -> Timed {
+fn timed(text: &str, now: &ZonedDateTime, tz: &str, v: &vocab::Vocabulary) -> Timed {
     let protected = protect_quoted(text);
     let tokens = scan::tokenize(&protected);
     let scanned = scan::scan(&tokens, v);
@@ -266,7 +266,7 @@ fn resolved(
     text: &str,
     tokens: &[scan::Token],
     found: &scan::Found,
-    now: &Zoned,
+    now: &ZonedDateTime,
     tz: &str,
 ) -> Option<Read> {
     let date = found.anchor.and_then(|a| resolve::to_date(a, now));

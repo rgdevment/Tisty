@@ -285,7 +285,9 @@ pub(crate) fn set_aside(paths: &crate::Paths, at: &Path, held: &[u8], why: &str)
     {
         return true;
     }
-    let stamp = jiff::Zoned::now().strftime("%Y%m%dT%H%M%S").to_string();
+    let stamp = jiff::ZonedDateTime::now()
+        .strftime("%Y%m%dT%H%M%S")
+        .to_string();
     let named = at.file_name().unwrap_or_default().to_string_lossy();
     let mut aside = paths.private().join(format!("{named}{DISPLACED}{stamp}"));
     for again in 1..100 {

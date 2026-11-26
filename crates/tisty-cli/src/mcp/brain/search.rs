@@ -21,7 +21,7 @@ use super::tally::{Tally, what_to_try};
 
 pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
 
     if let Some(source) = text(args, "source") {
         if text(args, "query").is_some() {

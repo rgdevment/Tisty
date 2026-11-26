@@ -134,7 +134,7 @@ pub(super) fn written_today(
     super::papers::writing::keeps(said)?;
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
     let words = diary::words_for(&tisty_core::model::spoken(config.locale.as_deref()));
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let today = now.date();
     let who = super::task_notes::assistant();
     let signed = tisty_core::assistant_notes::signed_by(&who, &now, said);

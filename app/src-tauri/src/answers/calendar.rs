@@ -80,7 +80,7 @@ pub fn ics_read(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answ
     let (calendar, stamp) = calendar_at(&path)?;
     let mut session = held(&session);
     session.reload()?;
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let found = calendar
         .items
         .iter()
@@ -148,7 +148,7 @@ pub fn ics_take(
     }
     let mut session = held(&session);
     session.reload()?;
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let wanted = picked.len();
     let mut made = 0;
     for item in picked.iter().filter_map(|at| calendar.items.get(*at)) {
@@ -209,7 +209,7 @@ pub fn save_to_calendar(
         .tasks
         .get(&id)
         .ok_or_else(|| Refusal::of("notATaskId"))?;
-    let now = jiff::Zoned::now();
+    let now = jiff::ZonedDateTime::now();
     let link = crate::viewing::task_link(&id.to_string());
     let entry = tisty_core::calendar::entry(task, &link, &now)
         .ok_or_else(|| Refusal::of("calendarUndated"))?;

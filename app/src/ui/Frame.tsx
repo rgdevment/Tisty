@@ -121,9 +121,10 @@ export default function Frame(props: Readonly<Props>) {
     // A frame moved in the page loads its first words again, so whatever is newer is put back.
     const loaded = () => {
       const page = held.contentDocument;
+      const root = page?.documentElement;
       const sheet = page?.querySelector(".page");
       // A document already wired keeps its listeners, and wiring it twice would answer every click twice.
-      if (!page || !sheet || page.documentElement.hasAttribute("data-wired")) return;
+      if (!page || !root || !sheet || root.hasAttribute("data-wired")) return;
       page.documentElement.setAttribute("data-wired", "");
       page.addEventListener("keydown", unnavigated);
       undressed();

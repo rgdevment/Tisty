@@ -18,7 +18,7 @@ pub(crate) fn opening(paths: &Paths, client: &str) -> Option<String> {
     speaking_as(client);
     let agent = registered(paths)?;
     let (state, agent) = seen_by(paths, agent).ok().flatten()?;
-    let today = jiff::Zoned::now().date();
+    let today = jiff::ZonedDateTime::now().date();
     let mut lines = vec![
         "Tisty holds the person's tasks and documents; you reach them through its MCP tools."
             .to_string(),

@@ -93,8 +93,8 @@ written once with the crates that carry it.
 | `@types/trusted-types` | 2.0.7 | MIT |
 | `@types/unist` | 3.0.3 | MIT |
 | `@upsetjs/venn.js` | 2.0.0 | MIT |
-| `@xyflow/react` | 12.12.0 | MIT |
-| `@xyflow/system` | 0.0.83 | MIT |
+| `@xyflow/react` | 13.0.2 | MIT |
+| `@xyflow/system` | 1.0.0 | MIT |
 | `chevrotain` | 13.2.0 | Apache-2.0 |
 | `classcat` | 5.0.5 | MIT |
 | `commander` | 7.2.0 | MIT |
@@ -166,6 +166,7 @@ written once with the crates that carry it.
 | `points-on-curve` | 0.2.0 | MIT |
 | `points-on-path` | 0.2.1 | MIT |
 | `react` | 19.3.1 | MIT |
+| `react-compiler-runtime` | 1.0.0 | MIT |
 | `react-dom` | 19.3.1 | MIT |
 | `robust-predicates` | 3.0.3 | Unlicense |
 | `roughjs` | 4.6.6 | MIT |
@@ -180,11 +181,10 @@ written once with the crates that carry it.
 | `stylis` | 4.4.0 | MIT |
 | `tinyexec` | 1.3.1 | MIT |
 | `ts-dedent` | 2.3.0 | MIT |
-| `use-sync-external-store` | 1.7.0 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
-| `zustand` | 4.5.7 | MIT |
+| `zustand` | 5.1.0 | MIT |
 
-## In the core (359 crates)
+## In the core (354 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -255,6 +255,7 @@ written once with the crates that carry it.
 | `dunce` | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
 | `ed25519` | 3.0.0 | Apache-2.0 OR MIT |
 | `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
+| `ego-tree` | 0.11.1 | ISC |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
 | `emojis` | 0.9.1 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `encoding_rs` | 0.8.44 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
@@ -295,8 +296,7 @@ written once with the crates that carry it.
 | `hex-conservative` | 0.2.3 | CC0-1.0 |
 | `hkdf` | 0.13.0 | MIT OR Apache-2.0 |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
-| `htmd` | 0.5.6 | Apache-2.0 |
-| `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
+| `htmd` | 0.6.0 | Apache-2.0 |
 | `html5ever` | 0.40.1 | MIT OR Apache-2.0 |
 | `http` | 1.5.0 | MIT OR Apache-2.0 |
 | `http-body` | 1.1.0 | MIT |
@@ -323,10 +323,10 @@ written once with the crates that carry it.
 | `inout` | 0.2.6 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.19 | MIT OR Apache-2.0 |
-| `jiff` | 0.2.46 | Unlicense OR MIT |
-| `jiff-core` | 0.1.8 | Unlicense OR MIT |
-| `jiff-tzdb` | 0.1.10 | Unlicense OR MIT |
-| `jiff-tzdb-platform` | 0.1.3 | Unlicense OR MIT |
+| `jiff` | 1.0.1 | Unlicense OR MIT |
+| `jiff-core` | 1.0.1 | Unlicense OR MIT |
+| `jiff-tzdb` | 1.0.0 | Unlicense OR MIT |
+| `jiff-tzdb-platform` | 1.0.0 | Unlicense OR MIT |
 | `json-patch` | 4.2.0 | MIT/Apache-2.0 |
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
@@ -341,9 +341,7 @@ written once with the crates that carry it.
 | `mac-notification-sys` | 0.6.15 | MIT/Apache-2.0 |
 | `machine-uid` | 0.6.0 | MIT |
 | `maplit` | 1.0.2 | MIT/Apache-2.0 |
-| `markup5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `markup5ever` | 0.40.0 | MIT OR Apache-2.0 |
-| `markup5ever_rcdom` | 0.38.0+unofficial | MIT OR Apache-2.0 |
 | `math-core` | 0.9.0 | MIT |
 | `math-core-renderer-internal` | 0.9.0 | MIT |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
@@ -440,7 +438,6 @@ written once with the crates that carry it.
 | `stable_deref_trait` | 1.2.1 | MIT OR Apache-2.0 |
 | `stable-arena` | 0.3.0 | Apache-2.0 OR MIT |
 | `static_assertions` | 1.1.0 | MIT OR Apache-2.0 |
-| `string_cache` | 0.9.0 | MIT OR Apache-2.0 |
 | `string_cache` | 0.11.0 | MIT OR Apache-2.0 |
 | `strsim` | 0.11.1 | MIT |
 | `strum` | 0.28.0 | MIT |
@@ -505,7 +502,6 @@ written once with the crates that carry it.
 | `uuid` | 1.29.3 | Apache-2.0 OR MIT |
 | `walkdir` | 2.5.0 | Unlicense/MIT |
 | `want` | 0.3.2 | MIT |
-| `web_atoms` | 0.2.6 | MIT OR Apache-2.0 |
 | `web_atoms` | 0.3.0 | MIT OR Apache-2.0 |
 | `web-time` | 1.1.0 | MIT OR Apache-2.0 |
 | `webview2-com` | 0.39.1 | MIT |
@@ -534,14 +530,13 @@ written once with the crates that carry it.
 | `writeable` | 0.6.4 | Unicode-3.0 |
 | `wry` | 0.57.3 | Apache-2.0 OR MIT |
 | `xattr` | 1.7.0 | MIT OR Apache-2.0 |
-| `xml5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `yoke` | 0.8.4 | Unicode-3.0 |
 | `zerocopy` | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | `zerofrom` | 0.1.8 | Unicode-3.0 |
 | `zeroize` | 1.9.2 | Apache-2.0 OR MIT |
 | `zerotrie` | 0.2.5 | Unicode-3.0 |
 | `zerovec` | 0.11.9 | Unicode-3.0 |
-| `zip` | 9.7.0 | MIT |
+| `zip` | 9.7.2 | MIT |
 | `zlib-rs` | 0.6.8 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.4 | Apache-2.0 |
@@ -5480,6 +5475,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### `react-compiler-runtime` — MIT
+
+```text
+MIT License
+
+Copyright (c) the react-compiler-runtime authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The package ships no licence file. Its text is at https://github.com/facebook/react
+```
+
 ### `react-dom` — MIT
 
 ```text
@@ -5795,32 +5818,6 @@ SOFTWARE.
 MIT License
 
 Copyright (c) 2018 Tamino Martinius
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-### `use-sync-external-store` — MIT
-
-```text
-MIT License
-
-Copyright (c) Meta Platforms, Inc. and affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

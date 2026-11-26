@@ -158,13 +158,14 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
             edges={edges}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}
-            colorMode={dark ? "dark" : "light"}
+            forceColorMode={dark ? "dark" : "light"}
             connectionMode={ConnectionMode.Loose}
             deleteKeyCode={null}
             zoomOnDoubleClick={false}
             minZoom={0.2}
             fitView
             fitViewOptions={FITTED}
+            elevateEdgesOnSelect={false}
             proOptions={{ hideAttribution: true }}
             onNodesChange={moved}
             onNodeClick={(e, node) => {

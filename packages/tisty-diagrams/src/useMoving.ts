@@ -51,7 +51,8 @@ export const useMoving = (hands: MovingHands) => {
   };
 
   // A drag, a nudge with the arrow keys or a lane's new size is written once it ends.
-  const moved = (changes: NodeChange[]) => {
+  const moved = (batch: Iterable<NodeChange>) => {
+    const changes = [...batch];
     const choice = choiceAfter(hands.chosen, changes, (id) => id.startsWith(GROUP));
     if (choice) hands.choose(choice);
     const spots = new Map(moving);

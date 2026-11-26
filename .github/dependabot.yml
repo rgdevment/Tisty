@@ -42,8 +42,6 @@ updates:
     ignore:
       - dependency-name: windows-future
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-      # Its nodes are the ones htmd hands over, so it moves only when htmd does.
-      - dependency-name: markup5ever_rcdom
     groups:
       rust:
         patterns:

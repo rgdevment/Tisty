@@ -328,10 +328,13 @@ fn kept(shelf: &Path, print: &str, body: &[u8], replaced: jiff::Timestamp) -> Re
 
 // The limit counts from the day a version was replaced, which for a body that arrives is not today.
 fn dated(at: &Path, replaced: jiff::Timestamp) {
+    let Ok(when) = std::time::SystemTime::try_from(replaced) else {
+        return;
+    };
     let _ = std::fs::OpenOptions::new()
         .write(true)
         .open(at)
-        .and_then(|file| file.set_modified(replaced.into()));
+        .and_then(|file| file.set_modified(when));
 }
 
 fn as_kept(shelf: &Path, print: &str) -> Option<Vec<u8>> {
