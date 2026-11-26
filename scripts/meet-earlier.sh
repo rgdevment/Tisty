@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-[ $# -eq 5 ] || { echo "usage: meet-earlier.sh <release> <schema> <shape> <accepts> <built>" >&2; exit 2; }
-release=$1 schema=$2 shape=$3 accepts=$4 built=$5
+[ $# -eq 6 ] || { echo "usage: meet-earlier.sh <release> <schema> <shape> <accepts> <built> <sha256>" >&2; exit 2; }
+release=$1 schema=$2 shape=$3 accepts=$4 built=$5 sha256=$6
 
 built_from_its_tree() {
   local tree="earlier/$release" its_own="earlier/built/$release" shared_by_every_build=earlier/target/debug/examples
@@ -34,9 +34,14 @@ released() {
   else
     gh release download "v$release" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir "$kept"
   fi
+  [ -n "$sha256" ] || { echo "::error::$file has no sha256 pinned in .github/earlier-releases.json"; exit 1; }
   # A kept file is checked like a fresh one: the cache is not trusted more than the release.
-  gh attestation verify "$kept/$file" --repo "$GITHUB_REPOSITORY" \
-    --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+  # macOS's own sha256sum reads no checklist from stdin unless it is told "-".
+  if command -v sha256sum > /dev/null; then
+    echo "$sha256  $kept/$file" | sha256sum --check --strict -
+  else
+    echo "$sha256  $kept/$file" | shasum -a 256 -c -
+  fi
   case "$file" in
     *.zip) unzip -q "$kept/$file" -d "$unpacked" ;;
     *) tar xzf "$kept/$file" -C "$unpacked" ;;
