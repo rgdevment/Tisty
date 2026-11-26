@@ -198,7 +198,7 @@ Si este equipo todavía no te dejó leer los archivos de tus agentes, por ejempl
 
 ### Buscar de nuevo
 
-**Buscar de nuevo** está en el botón derecho de Agentes misma, en el estado 2, traída sin sincronizar, y en el 3, sincronizando. Vuelve a buscar en este equipo tus agentes y sus archivos, como la primera vez: si instalaste uno nuevo, le crea su subcarpeta, y abre **Traer otro archivo** con **solo lo nuevo ya marcado**. Lo que ya está en Agentes aparece atenuado con **ya está en Agentes**, y la memoria del agente viene sin marcar, como siempre. Revisa las casillas y pulsa **Traer**.
+**Buscar de nuevo** es el **⟳** junto al nombre, arriba en Agentes, y también está en el botón derecho de Agentes misma, en el estado 2, traída sin sincronizar, y en el 3, sincronizando. Vuelve a buscar en este equipo tus agentes y sus archivos, como la primera vez: si instalaste uno nuevo, le crea su subcarpeta, y abre **Traer otro archivo** con **solo lo nuevo ya marcado**. Lo que ya está en Agentes aparece atenuado con **ya está en Agentes**, y la memoria del agente viene sin marcar, como siempre. Revisa las casillas y pulsa **Traer**.
 
 **Un ejemplo.** Marisol tenía Agentes sincronizando con Claude y Codex. Una tarde instala Gemini CLI, le pide que recuerde el nombre de su perra, y escribe una skill nueva para Claude en `~/.claude/skills/informe/`. Botón derecho sobre **Agentes** y **Buscar de nuevo**:
 
@@ -217,6 +217,10 @@ La memoria que Marisol dejó fuera sigue ahí: la próxima vez que busque de nue
 **Ahora no** lo cierra.
 
 ![El aviso Traer otro archivo abierto con Buscar de nuevo, sin nada que traer: arriba la línea No encontré nada nuevo. Esto es lo que hay en cada agente:, y debajo tres líneas, cada una con el icono de su agente: el globo de conversación naranja con Claude · ya está en Agentes, la terminal verde azulado con Codex · ya está en Agentes y la brújula verde con Gemini · ya está en Agentes; ninguna casilla; abajo a la derecha, Ahora no y Traer](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17-buscar-de-nuevo.png)
+
+**«2 nuevos».** Cuando vuelves a la ventana de Tisty, como mucho una vez por minuto, Tisty cuenta los nombres en las carpetas de reglas y skills de tus agentes, sin abrir ningún archivo. Si apareció una regla o una skill desde la última vez que buscaste de nuevo, el **⟳** dice cuántas, como **⟳ 2 nuevos**. Nada entra solo: púlsalo para verlas. Solo cuenta en un equipo que ya dio permiso, y entre una vez y otra no vigila el disco.
+
+![Arriba en Agentes, su nombre y, al lado, ⟳ 2 nuevos en el color de acento](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/es-17b-buscar-de-nuevo-nuevos.png)
 
 **En un equipo que todavía no te dio permiso**, como un segundo equipo donde Agentes llegó traída, **Buscar de nuevo** abre en cambio el aviso de la primera vez, con sus nombres y tamaños y sus dos botones. No abre ningún archivo ni crea ninguna subcarpeta antes de tu **Traer** o tu **Traer y sincronizar**.
 
@@ -408,9 +412,25 @@ agent: global/skill/pdf/scripts/extraer.py
 
 Una skill de Global se escribe una sola vez donde la leen varios a la vez:
 
-- en `~/.claude/skills/pdf/`, para Claude Code;
-- en `~/.cursor/skills/pdf/`, para Cursor;
-- en `~/.agents/skills/pdf/`, una sola copia que leen Codex, Copilot, Gemini y DeepSeek Harness.
+- en `~/.agents/skills/pdf/`, una sola copia que leen Codex, Copilot, Gemini, DeepSeek Harness y Cursor;
+- en `~/.claude/skills/pdf/`, para Claude Code, el único agente que no lee esa carpeta.
+
+`~/.agents/skills` es la carpeta del estándar [Agent Skills](https://agentskills.io), que ya leen la mayoría de los agentes. Tisty no escribe enlaces: cada agente recibe una copia real, así que un cambio en uno nunca llega a otro.
+
+**Si un Tisty anterior también la escribió en `~/.cursor/skills/`,** Cursor la veía dos veces. Ahora Tisty retira esa copia solo, con respaldo, una vez escrita la de `~/.agents/skills`, y solo si sigue como Tisty la escribió. Si la cambiaste, Tisty no la toca: te pregunta, como con cualquier [archivo que dejaste en tus agentes](#archivos-que-dejaste-en-tus-agentes).
+
+#### Qué lee cada agente
+
+| Agente | Skills de Global | Sus propias skills | Reglas de Global |
+| :-- | :-- | :-- | :-- |
+| **Claude Code** | `~/.claude/skills/` | `~/.claude/skills/` | `~/.claude/CLAUDE.md` y `rules/` |
+| **Codex** | `~/.agents/skills/` | `~/.agents/skills/` | `~/.codex/AGENTS.md` |
+| **GitHub Copilot CLI** | `~/.agents/skills/` | `~/.copilot/skills/` | `~/.copilot/copilot-instructions.md` e `instructions/` |
+| **Gemini CLI** | `~/.agents/skills/` | `~/.gemini/skills/` | `~/.gemini/tisty-rules.md`, a través de `GEMINI.md` |
+| **Cursor** | `~/.agents/skills/` | `~/.cursor/skills/` | Ninguna: sus reglas viven en sus ajustes |
+| **DeepSeek Harness** | `~/.agents/skills/` | `~/.agents/skills/` | su `AGENTS.md` |
+
+No hay carpeta compartida para reglas ni hooks: cada agente lee su propio archivo, así que Tisty escribe las reglas de Global y sus hooks en cada uno.
 
 Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombre de la ficha, su `description` va debajo en una línea discreta, y el resto, como `disable-model-invocation: true`, va en filas chicas del cuadro de datos. El script se guarda en un bloque de código y se escribe tal cual, sin el bloque: la fila **Formato** del cuadro de datos dice el tipo del script, como SH · LF, y en un documento Markdown, Markdown · LF.
 
@@ -440,7 +460,7 @@ Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de
 | **Codex** | `~/.codex` | `CODEX_HOME` | `AGENTS.md`, y `AGENTS.override.md` si tienes un documento para él | `~/.agents/skills/` | — |
 | **GitHub Copilot CLI** | `~/.copilot` | `COPILOT_HOME` | `copilot-instructions.md` y lo que va en `instructions/` | `skills/` en su carpeta; las de Global, en `~/.agents/skills/` | — |
 | **Gemini CLI** | `~/.gemini` | `GEMINI_CLI_HOME`, la carpeta que contiene `.gemini` | `tisty-rules.md`, y la línea `@tisty-rules.md` en `GEMINI.md` | `skills/` en su carpeta; las de Global, en `~/.agents/skills/` | `GEMINI.md` |
-| **Cursor** | `~/.cursor` | — | Ninguna: sus reglas viven en sus ajustes | `skills/` en su carpeta | — |
+| **Cursor** | `~/.cursor` | — | Ninguna: sus reglas viven en sus ajustes | `skills/` en su carpeta; las de Global, en `~/.agents/skills/` | — |
 
 Lo que hace Tisty con cada uno:
 

@@ -157,10 +157,9 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 | Agente | Carpeta |
 | :-- | :-- |
 | **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/next-agent/` |
-| **Cursor** | `~/.cursor/skills/…`, con las mismas tres carpetas |
-| **Codex**, **GitHub Copilot**, **Gemini CLI** y **DeepSeek Harness** | `~/.agents/skills/…`, una sola copia que leen los cuatro |
+| **Codex**, **GitHub Copilot**, **Gemini CLI**, **DeepSeek Harness** y **Cursor** | `~/.agents/skills/…`, una sola copia que leen los cinco |
 
-`~` es tu carpeta de usuario: `C:\Users\tú` en Windows y `/Users/tú` en macOS. La ficha muestra solo las carpetas de los agentes que tienes en este equipo. La compartida dice «Codex · Copilot · Gemini · DeepSeek Harness» y lo advierte: «Codex, Copilot, Gemini y DeepSeek Harness comparten esta carpeta: encenderlos o apagarlos aquí vale para los cuatro.».
+`~` es tu carpeta de usuario: `C:\Users\tú` en Windows y `/Users/tú` en macOS. La ficha muestra solo las carpetas de los agentes que tienes en este equipo. La compartida dice «Codex · Copilot · Gemini · DeepSeek Harness · Cursor» y lo advierte: «Codex, Copilot, Gemini, DeepSeek Harness y Cursor comparten esta carpeta: encenderlos o apagarlos aquí vale para los cinco.». Una copia que un Tisty anterior escribió en `~/.cursor/skills/` se va sola, con respaldo, mientras siga como Tisty la escribió.
 
 ### Encenderlas
 
