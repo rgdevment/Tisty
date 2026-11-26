@@ -8,6 +8,7 @@ import { inOneCodeBlock, leftOver } from "./pageInputEdges";
 import { mendedOver, type Putting } from "./pageLaidOver";
 import {
   closing,
+  fenceShutOnBreak,
   hardBreak,
   leftBehind,
   openedAbove,
@@ -85,6 +86,8 @@ export const typingOn = (
     coded: boolean,
     mend: Mend | null,
   ) => {
+    const shut = one.from === one.to && fenceShutOnBreak(text, one.from);
+    if (shut) return put(shut.edit, shut.caret);
     const blankLine =
       text[one.from - 1] === "\n" &&
       /\r?\n$/.test(text.slice(0, one.from - 1)) &&

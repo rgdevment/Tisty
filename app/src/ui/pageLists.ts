@@ -55,9 +55,15 @@ const sameLevelAbove = (text: string, start: number, it: Indent) => {
 
 const newlines = (run: string | undefined) => (run?.match(/\n/g) ?? []).length;
 
+const breakOf = (text: string) => (text.includes("\r\n") ? "\r\n" : "\n");
+
 export const opening = (text: string, at: number, seed: string) => {
   const before = text.slice(0, at);
   if (!before.trim()) return "";
+  // A fence left open runs to the end of the page, so a line begun under it closes it first.
+  const shut = text.slice(at).trim() ? "" : (openUpTo(text, at)?.open.shut ?? "");
+  const nl = breakOf(text);
+  if (shut) return `${before.endsWith("\n") ? "" : nl}${shut}${nl}${nl}`;
   const lines = before.replace(/\s+$/, "").split("\n");
   const joins = isItem(seed) && isItem(lines[lines.length - 1] ?? "");
   const have = newlines(/(?:\r?\n)*$/.exec(before)?.[0]);
@@ -329,7 +335,12 @@ const IN_QUOTE = /^[ \t]*>/;
 export const STANDS_ALONE =
   /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}(?:[ \t]|$)|`{3,}|~{3,}|\||(?:-[ \t]*){3,}$|(?:\*[ \t]*){3,}$|(?:_[ \t]*){3,}$|=+[ \t]*$)/;
 
-type Fence = { readonly mark: string; readonly quoted: boolean; readonly within: number };
+type Fence = {
+  readonly mark: string;
+  readonly quoted: boolean;
+  readonly within: number;
+  readonly shut: string;
+};
 
 // A fence closes only on a run of its own mark at least as long, or where the quote it opened in ends.
 export const fenceWalker = () => {
@@ -391,7 +402,36 @@ const fenceAfter = (was: Fence | null, raw: string): Fence | null => {
   const opened = fenceLine(line);
   if (!opened || (opened.mark[0] === "`" && opened.rest.includes("`"))) return null;
   const within = LISTED.test(line) ? widthOf(opened.lead) : 0;
-  return { mark: opened.mark, quoted: opened.quotes !== "", within };
+  const lead = `${opened.quotes}${" ".repeat(widthOf(opened.lead) - widthOf(opened.quotes))}`;
+  return { mark: opened.mark, quoted: opened.quotes !== "", within, shut: `${lead}${opened.mark}` };
+};
+
+const openUpTo = (text: string, at: number) => {
+  let open: Fence | null = null;
+  let opened = 0;
+  let from = 0;
+  for (const raw of text.slice(0, at).split("\n")) {
+    const next = fenceAfter(open, raw);
+    if (next && next !== open) opened = from;
+    open = next;
+    from += raw.length + 1;
+  }
+  return open && { open, end: opened + lineAt(text, opened).line.length };
+};
+
+// A fence that arrives whole, pasted or from a dead key, has no closing one yet, so its first Enter writes it as the third mark would.
+export const fenceShutOnBreak = (text: string, at: number): Moved | null => {
+  if (text.slice(at).trim()) return null;
+  const left = openUpTo(text, at);
+  if (!left || at < left.end || text.slice(left.end).trim()) return null;
+  const { shut, mark } = left.open;
+  const nl = breakOf(text);
+  const lead = shut.slice(0, shut.length - mark.length);
+  const tail = text.endsWith("\n") ? nl : "";
+  return {
+    edit: { from: left.end, to: text.length, insert: `${nl}${lead}${nl}${shut}${tail}` },
+    caret: left.end + nl.length + lead.length,
+  };
 };
 
 // Words written where a closing fence begins would push it off its own line, so a break and the line's lead follow them.
