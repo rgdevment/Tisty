@@ -2476,6 +2476,20 @@ export const CASES = [
     now: "Z",
   },
   {
+    name: "aFenceArrivedWholeAtTheEndIsClosedByEnter",
+    doc: "# Código\n\nAntes\n",
+    run: async ({ clickAt, press, typed, page }) => {
+      await clickAt("Antes");
+      await press("Enter");
+      await page.keyboard.insertText("```");
+      await page.waitForTimeout(150);
+      await press("Enter");
+      await typed("dentro");
+    },
+    was: "",
+    now: "\n```\ndentro\n```\n",
+  },
+  {
     name: "commandAThenTypingReplacesAPageOpeningWithCode",
     doc: "```js\nconst a = 1;\n```\n\nDespués y más\n",
     run: async ({ clickAt, command, typed }) => {
