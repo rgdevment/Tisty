@@ -19,8 +19,6 @@ import {
   MARKED_FOR,
   markLately,
   putBlock,
-  SLASHED,
-  type Slashed,
   stagesIn,
   type Widths,
   widened,
@@ -31,7 +29,7 @@ import { copied, copyAttached, type Mend, opened } from "../core";
 import type { Signing } from "../crediting";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { DOC, taskCard } from "../markdown";
 import type { Moved } from "../paging";
 import { type Held, type PiecePlace, viewPiece } from "../pieceWindow";
@@ -47,6 +45,7 @@ import { embedGone } from "./embeds";
 import { FrameThumb } from "./frameThumb";
 import { useKeptHeight } from "./heights";
 import { edited, HOST } from "./hosting";
+import { insertChoices } from "./InsertMenu";
 import type { CardsShown } from "./liveCards";
 import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, TitleRow, useFrameScroll, type Viewing } from "./liveSheet";
@@ -155,6 +154,10 @@ type MenuShown = {
   label?: string;
   find?: string;
   foot?: string;
+  row?: Choice[];
+  none?: (sought: string) => string;
+  wide?: number;
+  tallest?: number;
   unpicked?: (sought?: string) => void;
 };
 
@@ -175,6 +178,10 @@ const sourceIn = (text: string, at: number) => {
 
 // Pictures, diagrams and the sheets they push down can arrive this long after a page is drawn.
 const HELD_FOR = 4000;
+
+// The Insert menu is as wide as its rows need, its shortcuts in one row over them, and its list scrolls past this.
+const INSERT_WIDE = 320;
+const INSERT_TALL = 440;
 
 const NAMED_WAIT = 3000;
 const NAMED_STEP = 100;
@@ -633,6 +640,7 @@ export default function Sheet(props: Readonly<Props>) {
     setMenu({
       ...asked,
       choices: seatedChoices(asked.choices, still, () => lost(t("choiceLost"))),
+      row: asked.row && seatedChoices(asked.row, still, () => lost(t("choiceLost"))),
       unpicked: unpicked && ((sought) => still() && unpicked(sought)),
     });
   };
@@ -643,46 +651,16 @@ export default function Sheet(props: Readonly<Props>) {
   const blockMenu = (at: { x: number; y: number; top?: number }, slash: boolean) => {
     const writer = pageWriter.current?.hands;
     if (!writer) return;
-    const kinds = said.current.asking?.kinds ?? [];
-    const steps = stagesIn(latest.current).length > 0;
     // On a task's page every heading is a section, made from its own button, never from the words.
     const sections =
       shown.current?.document.documentElement.classList.contains("untitled") ?? false;
     let picked = false;
     const back = () => shown.current?.focus();
-    const offered = SLASHED.filter(
-      (one) =>
-        (!("ask" in one.put) || kinds.includes(one.put.ask)) &&
-        (one.key !== "step" || steps) &&
-        !(sections && /^h\d$/.test(one.key)),
-    );
-    // Blocks come first and the formats after them, so a word sought finds a block before a mark.
-    const ordered = [
-      ...offered.filter((one) => !("wrap" in one.put)),
-      ...offered.filter((one) => "wrap" in one.put),
-    ];
-    // A step is named by its number, so it is chosen from the page's own steps, as the Markdown view offers them.
-    const stepsOf = (one: Slashed): Choice[] =>
-      stagesIn(latest.current).map((words, at) => {
-        const named = `[[#${at + 1}]]`;
-        return {
-          key: named,
-          label: `${at + 1}. ${words}`,
-          onPick: () => {
-            picked = true;
-            back();
-            liveWriter(writer).slashed({ ...one, put: { inline: named, at: named.length } });
-          },
-        };
-      });
-    const choices: Choice[] = ordered.map((one, index) => ({
-      key: one.key,
-      label: t(one.label),
-      glyph: one.icon,
-      mark: one.hint,
-      apart: "wrap" in one.put && !("wrap" in (ordered[index - 1]?.put ?? {})),
-      into: one.key === "step" ? { label: t(one.label), choices: stepsOf(one) } : undefined,
-      onPick: () => {
+    const { choices, row } = insertChoices({
+      kinds: said.current.asking?.kinds ?? [],
+      steps: stagesIn(latest.current),
+      sections,
+      pick: (one) => {
         picked = true;
         back();
         // A table is written from its cells, so the page is drawn whole and its first head opens.
@@ -691,7 +669,7 @@ export default function Sheet(props: Readonly<Props>) {
         if (table && laid)
           tables.freshAt(bytesAt(latest.current, laid.from + laid.insert.indexOf("|")));
       },
-    }));
+    });
     let closed = false;
     const stood = writer.caretAt();
     const resume = writer.held();
@@ -707,10 +685,15 @@ export default function Sheet(props: Readonly<Props>) {
       });
     shownOn({
       ...at,
-      label: t("blocksOf"),
+      label: t("insertOf"),
       choices,
-      find: t("blockFind"),
-      foot: t("slashKeys"),
+      row,
+      find: t("insertFind"),
+      foot: t("insertKeys"),
+      none: (sought) =>
+        slash ? `${t("insertNone")} ${fill("insertNoneKept", sought)}` : t("insertNone"),
+      wide: INSERT_WIDE,
+      tallest: INSERT_TALL,
       unpicked,
     });
   };
@@ -1419,6 +1402,10 @@ export default function Sheet(props: Readonly<Props>) {
           choices={menu.choices}
           find={menu.find}
           foot={menu.foot}
+          row={menu.row}
+          none={menu.none}
+          wide={menu.wide}
+          tallest={menu.tallest}
           keeps
           onClose={(sought) => {
             menu.unpicked?.(sought);

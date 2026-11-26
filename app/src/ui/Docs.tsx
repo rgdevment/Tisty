@@ -1,7 +1,6 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
-import type { Asking } from "tisty-editor/edit";
 import type { Design } from "tisty-editor/read";
 import { acrossOf, type Head, laidIn, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { agentsTree } from "../agentsSync";
@@ -9,7 +8,6 @@ import { fold, RAIL, sideWidth, useBreadth, useMeasure, WIDE_WINDOW } from "../b
 import type { Citing } from "../citing";
 import { asPlain } from "../copying";
 import {
-  attachPasted,
   docAway,
   docBack,
   docBackable,
@@ -36,14 +34,12 @@ import {
 import type { Today } from "../diary";
 import { viewDiagram } from "../drawing";
 import { brainstormIn, notedIn, withDesign, withLandscape, withPaper, withSheets } from "../front";
-import { keptAll, PASTED_UP_TO } from "../kept";
 import { setAside } from "../keptAside";
 import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
-import { attachedPicked } from "../reshaping";
 import {
   allUnanswered,
   busy,
@@ -77,6 +73,7 @@ import { ClashBar, SaveLine, StuckBar } from "./SaveBars";
 import { type LoadedSheet, sheetLoaded } from "./sheetLoaded";
 import { pageFor } from "./sheets";
 import { sizedPapers } from "./sizedPapers";
+import { useSlashAsks } from "./slashAsks";
 import { CompactBar, MarkBar, StirredBar } from "./Tidied";
 import Tongues, { standingHead } from "./Tongues";
 import { cardFor, useAgentShelf } from "./useAgentCard";
@@ -622,69 +619,17 @@ export default function Docs({
   const [picked, setPicked] = useState<Picked | null>(null);
   const leafy = Boolean(own && !own.pageOf);
   const { linkable, headsOf } = useLinkable(known, open?.file);
-  const slashAsks = useMemo<Asking | undefined>(
-    () =>
-      bolted
-        ? undefined
-        : {
-            kinds: leafy
-              ? [
-                  "newPage",
-                  "page",
-                  "doc",
-                  "newDoc",
-                  "newTask",
-                  "task",
-                  "icon",
-                  "file",
-                  "diagram",
-                  "diagramFrom",
-                ]
-              : ["doc", "newDoc", "newTask", "task", "icon", "file", "diagram", "diagramFrom"],
-            tags,
-            linkable,
-            headsOf,
-            pasted: (files) =>
-              keptAll(
-                files.map((one) =>
-                  one.size > PASTED_UP_TO
-                    ? Promise.reject({ code: "attachmentTooBig", name: "650 MB" })
-                    : one
-                        .arrayBuffer()
-                        .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
-                ),
-                onError,
-              ),
-            lost: (notice) => onError(notice ?? t("attachmentLost")),
-            ask: (kind, at, put, first, before) => {
-              if (kind === "file") {
-                // An attachment as a document's first words would become its title.
-                if (first) return onError(t("fileNeedsTitle"));
-                pick({ multiple: true })
-                  .then(attachedPicked)
-                  .then((all) => keptAll(all, onError))
-                  .then((text) => {
-                    if (text && !put(text)) onError(t("attachmentLost"));
-                  })
-                  .catch((error_) => onError(saidPlainly(error_)));
-                return;
-              }
-              // A card as a document's first words would become its title, which the core refuses.
-              if (kind !== "icon" && first)
-                return onError(
-                  t(
-                    kind.startsWith("diagram")
-                      ? "diagramNeedsTitle"
-                      : kind === "task" || kind === "newTask"
-                        ? "taskNeedsTitle"
-                        : "leafNeedsTitle",
-                  ),
-                );
-              setPicked({ kind, at, put, file: open?.file, before });
-            },
-          },
-    [bolted, leafy, onError, open?.file, tags, linkable, headsOf],
-  );
+  const slashAsks = useSlashAsks({
+    bolted,
+    leafy,
+    lodged: { agents: inAgents, diary: inDiary, agentFile: agent.doc !== null || agent.held },
+    file: open?.file,
+    tags,
+    linkable,
+    headsOf,
+    onError,
+    onPicked: setPicked,
+  });
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const tongues = useMemo(() => tonguesOf(known, above ?? own), [known, above, own]);

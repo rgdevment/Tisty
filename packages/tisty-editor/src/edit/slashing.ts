@@ -462,8 +462,10 @@ export const offered =
     const slash = asked.from;
     const word = context.state.sliceDoc(asked.word, context.pos);
     const { say } = context.state.facet(hosted);
+    // The formats are worn by words already written, from the bar and the keys, so the menu only adds.
     const shown = SLASHED.filter(
       (one) =>
+        !("wrap" in one.put) &&
         (!oneLine || inLine(one.put)) &&
         (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
         (one.key !== "step" || (asking?.()?.steps?.().length ?? 0) > 0) &&
