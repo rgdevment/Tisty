@@ -199,25 +199,24 @@ fn registered(session: &Session, file: &str, print: &str) -> Answer<HookLook> {
     {
         return Err(Refusal::of("agentHookNameTaken"));
     }
-    if let Some(was) = ledger.hook_yes(file) {
-        let left: Vec<String> = match was.name == yes.name {
-            true => was
-                .agents
-                .iter()
-                .filter(|one| !yes.agents.contains(one))
-                .cloned()
-                .collect(),
-            false => was.agents.clone(),
-        };
-        user_hooks::unregister(&was.name, &left).map_err(super::wired::stuck)?;
-        if was.name != yes.name {
-            agents::drop_script(session.paths.data(), &was.name);
-        }
-    }
+    let was = ledger.hook_yes(file).cloned();
     let data = session.paths.data();
     agents::keep_script(data, &yes, &bytes).map_err(super::agents_sync::refused)?;
     let hook = hook_of(&open.card, &open.trigger);
     user_hooks::register(&hook, &open.trigger.agents).map_err(super::wired::stuck)?;
+    if let Some(was) = was {
+        let renamed = was.name != yes.name;
+        let left: Vec<String> = was
+            .agents
+            .iter()
+            .filter(|one| renamed || !yes.agents.contains(one))
+            .cloned()
+            .collect();
+        user_hooks::unregister(&was.name, &left).map_err(super::wired::stuck)?;
+        if renamed {
+            agents::drop_script(data, &was.name);
+        }
+    }
     ledger.register_hook(file, yes);
     ledger.keep(data).map_err(super::agents_sync::refused)?;
     looked(session, file)
@@ -249,6 +248,9 @@ struct Trial {
 // A dry run executes for real, so it takes this computer's yes, or the print of the script just shown.
 fn trial(session: &Session, file: &str, print: &str) -> Answer<Trial> {
     let open = opened(session, file)?;
+    if !matches!(open.seen, Seen::HookWaiting | Seen::HookRegistered) {
+        return Err(Refusal::of("agentHookChangedSince"));
+    }
     let data = session.paths.data();
     let kept = open
         .ledger
