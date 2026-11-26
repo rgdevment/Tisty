@@ -6,6 +6,7 @@ import type { SkillGroup } from "./agentRows";
 import Glyph from "./Glyph";
 import HooksRow, { tistyHookLines } from "./HooksRow";
 import { TistySkillsRow } from "./TistySkills";
+import UserHookRows from "./UserHooks";
 
 /// What makes a button one row of the tree: reached by the arrow keys, never a folder nor a place to drop.
 export type RowOf = (key: string) => ButtonHTMLAttributes<HTMLButtonElement>;
@@ -21,16 +22,43 @@ interface Props {
   agents: readonly Wired[] | null;
   onHooks?: () => void;
   onNewRule?: (level: string) => void;
+  onNewHook?: () => void;
 }
 
-function Heading({ label, depth, step }: Readonly<{ label: Word; depth: number; step: number }>) {
+function Heading({
+  label,
+  depth,
+  step,
+  add,
+}: Readonly<{ label: Word; depth: number; step: number; add?: ReactNode }>) {
   return (
     <li
-      className="pt-1.5 pb-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+      className="flex items-center pt-1.5 pb-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase"
       style={{ paddingLeft: `${8 + depth * step + 4}px` }}
     >
       {t(label)}
+      {add}
     </li>
+  );
+}
+
+function AddButton({
+  label,
+  rowKey,
+  rowOf,
+  onAdd,
+}: Readonly<{ label: string; rowKey: string; rowOf: RowOf; onAdd: () => void }>) {
+  return (
+    <button
+      type="button"
+      {...rowOf(rowKey)}
+      onClick={onAdd}
+      aria-label={label}
+      title={label}
+      className="ml-auto mr-1 grid h-5 w-5 place-items-center rounded-md text-faint normal-case hover:bg-hover hover:text-ink"
+    >
+      <Glyph name="plus" className="h-[12px] w-[12px]" />
+    </button>
   );
 }
 
@@ -57,16 +85,12 @@ function AgentHeading({
     >
       <span className="truncate">{named}</span>
       {onNewRule && (
-        <button
-          type="button"
-          {...rowOf(`rules:${level}`)}
-          onClick={() => onNewRule(level)}
-          aria-label={asked}
-          title={asked}
-          className="ml-auto mr-1 grid h-5 w-5 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-        >
-          <Glyph name="plus" className="h-[12px] w-[12px]" />
-        </button>
+        <AddButton
+          label={asked}
+          rowKey={`rules:${level}`}
+          rowOf={rowOf}
+          onAdd={() => onNewRule(level)}
+        />
       )}
     </li>
   );
@@ -81,6 +105,7 @@ export const groupsDrawn = (
 ): boolean =>
   groups.rules.length > 0 ||
   groups.skills.length > 0 ||
+  groups.hooks.length > 0 ||
   tistySkills ||
   (hooks && tistyHookLines(agents).length > 0);
 
@@ -96,8 +121,11 @@ export default function AgentGroupRows({
   agents,
   onHooks,
   onNewRule,
+  onNewHook,
 }: Readonly<Props>) {
   const showsSkills = groups.skills.length > 0 || tistySkills;
+  const tistyHooks = tistyHookLines(agents).length > 0 && !!onHooks;
+  const showsHooks = tistyHooks || groups.hooks.length > 0 || !!onNewHook;
   return (
     <>
       {groups.rules.length > 0 && <Heading label="agentGroupRules" depth={depth} step={step} />}
@@ -119,14 +147,29 @@ export default function AgentGroupRows({
       {showsSkills && <Heading label="agentGroupSkills" depth={depth} step={step} />}
       {groups.skills.map((one) => ("doc" in one ? paper(one.doc, depth) : skill(one.skill, depth)))}
       {tistySkills && <TistySkillsRow depth={depth} step={step} rowOf={rowOf} />}
-      {tistyHookLines(agents).length > 0 && onHooks && (
-        <>
-          <Heading label="agentGroupHooks" depth={depth} step={step} />
-          <li style={{ paddingLeft: `${8 + depth * step}px` }}>
-            <HooksRow agents={agents} onOpen={onHooks} rowOf={rowOf} />
-          </li>
-        </>
+      {showsHooks && (
+        <Heading
+          label="agentGroupHooks"
+          depth={depth}
+          step={step}
+          add={
+            onNewHook && (
+              <AddButton
+                label={t("agentHookNew")}
+                rowKey="hooks:new"
+                rowOf={rowOf}
+                onAdd={onNewHook}
+              />
+            )
+          }
+        />
       )}
+      {tistyHooks && onHooks && (
+        <li style={{ paddingLeft: `${8 + depth * step}px` }}>
+          <HooksRow agents={agents} onOpen={onHooks} rowOf={rowOf} />
+        </li>
+      )}
+      <UserHookRows hooks={groups.hooks} depth={depth} paper={paper} rowOf={rowOf} />
     </>
   );
 }

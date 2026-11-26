@@ -8,13 +8,20 @@ export interface HookLine {
   readonly id: string;
   readonly name: string;
   readonly on: boolean;
+  /// The agent runs them only once the person approves them there, as Codex does with `/hooks`.
+  readonly byHand: boolean;
 }
 
 /// Tisty's own hooks, one line per connected agent; hooks brought by its plugin run too.
 export const tistyHookLines = (agents: readonly Wired[] | null): HookLine[] =>
   (agents ?? [])
     .filter((one) => one.wired && !!one.hooks)
-    .map((one) => ({ id: one.id, name: one.name, on: !!(one.hooks?.on || one.hooks?.plugged) }));
+    .map((one) => ({
+      id: one.id,
+      name: one.name,
+      on: !!(one.hooks?.on || one.hooks?.plugged),
+      byHand: one.id.endsWith("codex"),
+    }));
 
 interface Props {
   /// What Settings already read of the connected agents; nothing more is read to draw these rows.
@@ -44,7 +51,14 @@ export default function HooksRow({ agents, onOpen, rowOf }: Readonly<Props>) {
               title={`${said} · ${t("agentGroupHooksOpen")}`}
               className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-[13px] text-ink hover:bg-hover"
             >
-              <span className="truncate">{here}</span>
+              <span className="min-w-0">
+                <span className="block truncate">{here}</span>
+                {one.on && one.byHand && (
+                  <span className="block truncate text-[11.5px] text-soft">
+                    {t("agentGroupHooksCodex")}
+                  </span>
+                )}
+              </span>
               <StateDot on={one.on} />
             </button>
           </li>

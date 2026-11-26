@@ -8,7 +8,7 @@ type Span = (usize, usize);
 #[derive(Debug)]
 pub struct Run {
     pub event: &'static str,
-    root: &'static str,
+    root: String,
     pub programs: Vec<Program>,
     pub all_read: bool,
     pub moment: String,
@@ -71,7 +71,7 @@ fn listed(raw: &[u8], object: usize, name: &str) -> Option<Span> {
 pub struct Spoken<'a> {
     pub mark: &'a str,
     /// The object that holds the events: `hooks` for most, the hook's own name for Antigravity.
-    pub root: &'static str,
+    pub root: &'a str,
     /// Its `command` line is run by a POSIX shell, on Windows too.
     pub posix: bool,
 }
@@ -173,7 +173,7 @@ fn run(
         .to_string();
     Run {
         event,
-        root: spoken.root,
+        root: spoken.root.to_string(),
         moment,
         all_read: !programs.is_empty() && programs.len() == fields.len(),
         programs,
@@ -311,7 +311,7 @@ pub fn repointed(
 
 pub fn taken_out(text: &str, run: &Run) -> Option<String> {
     match run.only_in_list {
-        true => json::unset(text, run.root, run.event),
+        true => json::unset(text, &run.root, run.event),
         false => json::cut(text, run.list, run.span),
     }
 }

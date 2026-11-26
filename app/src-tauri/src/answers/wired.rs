@@ -148,7 +148,7 @@ pub fn mend(
     })
 }
 
-fn stuck(why: wiring::Stuck) -> Refusal {
+pub(crate) fn stuck(why: wiring::Stuck) -> Refusal {
     match why {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
         wiring::Stuck::Shut => Refusal::of("wslShut"),

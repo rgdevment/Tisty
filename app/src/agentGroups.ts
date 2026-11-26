@@ -15,6 +15,8 @@ export interface AgentGroups {
   readonly rules: readonly RulesOf[];
   /// Skills for all computers, a skill of several files drawn as one.
   readonly skills: readonly Drawn[];
+  /// The person's own hooks, for all computers or for this one: each runs only once registered here.
+  readonly hooks: readonly Filed[];
   /// For all computers yet in no group: drawn where it is kept, as before.
   readonly left: readonly Filed[];
   /// Agent folders at the root whose every document is drawn in a group, so they are not drawn.
@@ -46,6 +48,8 @@ const isRule = (row: AgentRow | undefined): row is AgentRow =>
 
 const isSkill = (row: AgentRow | undefined): row is AgentRow =>
   row?.everyone === true && row.kind === "skill";
+
+const isHook = (row: AgentRow | undefined): boolean => row?.kind === "hook";
 
 // A folder under a computer's own one says so, and so does every folder below it.
 const forAll = (folder: Folded | undefined): boolean => !!folder && !folder.agents;
@@ -88,8 +92,20 @@ export const agentGroups = (
     const row = rows.get(doc.file);
     if (isRule(row)) rules.set(row.level, [...(rules.get(row.level) ?? []), doc]);
     else if (isSkill(row)) skills.push(doc);
-    else left.push(doc);
+    else if (!isHook(row)) left.push(doc);
   }
+  const hooks = docs.filter((one) => {
+    const folder = one.folder ? byId.get(one.folder) : undefined;
+    const here = forAll(folder) || folder?.agents?.mine === true;
+    return (
+      !one.pageOf &&
+      !one.away &&
+      !!one.folder &&
+      tree.has(one.folder) &&
+      here &&
+      isHook(rows.get(one.file))
+    );
+  });
   for (const level of agentsHere(folders)) if (!rules.has(level)) rules.set(level, []);
   const drawnElsewhere = new Set(left.map((one) => one.folder));
   const emptied = new Set(
@@ -107,6 +123,7 @@ export const agentGroups = (
       .sort(([one], [two]) => rank(one) - rank(two) || one.localeCompare(two))
       .map(([level, kept]) => ({ level, named: named(level), docs: kept })),
     skills: grouped(skills, rows),
+    hooks,
     left,
     emptied,
   };

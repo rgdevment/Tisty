@@ -51,6 +51,9 @@ pub enum Seen {
     Away,
     Plain,
     Unread,
+    /// A hook runs code, so it waits for this computer's own yes to these exact words, never for «apply here».
+    HookWaiting,
+    HookRegistered,
 }
 
 #[derive(Debug, Default)]
@@ -275,6 +278,9 @@ fn admitted(
     if computer != card.computer {
         return (Seen::Apart, None);
     }
+    if card.kind == Kind::Hook {
+        return (hook_seen(ledger, kept), None);
+    }
     if ledger.left(&kept.file) {
         return (Seen::DeclinedHere, None);
     }
@@ -295,6 +301,14 @@ fn admitted(
         card,
     };
     (Seen::Admitted, Some(admitted))
+}
+
+fn hook_seen(ledger: &Ledger, kept: &Kept) -> Seen {
+    let yes = ledger.hook_yes(&kept.file).map(|yes| yes.print.as_str());
+    match yes.is_some() && yes == kept.agreed.as_deref() {
+        true => Seen::HookRegistered,
+        false => Seen::HookWaiting,
+    }
 }
 
 // Words last approved elsewhere, or never approved and made elsewhere, are another computer's until this one chooses.
@@ -336,7 +350,14 @@ fn folders_by_person(state: &State, mut at: Option<FolderId>) -> bool {
 // What this computer once wrote and now fails, or left by an agent's hand, holds its file as it is.
 fn held(asked: &Asked, seen: Option<Seen>, file: &str) -> bool {
     match seen {
-        Some(Seen::Admitted | Seen::DeclinedHere | Seen::Plain | Seen::OtherComputer) => false,
+        Some(
+            Seen::Admitted
+            | Seen::DeclinedHere
+            | Seen::Plain
+            | Seen::OtherComputer
+            | Seen::HookWaiting
+            | Seen::HookRegistered,
+        ) => false,
         Some(
             Seen::NotAgreed
             | Seen::PlacedByAgent

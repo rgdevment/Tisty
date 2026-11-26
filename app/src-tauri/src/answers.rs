@@ -62,6 +62,7 @@ pub mod tongues;
 pub mod turns;
 pub mod twinning;
 pub mod updating;
+pub mod user_hooks;
 pub mod vouching;
 pub mod weaving;
 pub mod wired;

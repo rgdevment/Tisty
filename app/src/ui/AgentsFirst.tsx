@@ -101,6 +101,7 @@ const COUNT_WORDS: Record<FileSeen["kind"], [Word, Word]> = {
   rule: ["agentsCountRule", "agentsCountRules"],
   skill: ["agentsCountSkill", "agentsCountSkills"],
   memory: ["agentsCountMemory", "agentsCountMemories"],
+  hook: ["agentsCountHook", "agentsCountHooks"],
 };
 
 const counted = (one: AssistantSeen, rows: Offered[]): string => {

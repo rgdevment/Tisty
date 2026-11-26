@@ -134,6 +134,50 @@ The plugin's record is one of your agent's files, so Tisty reads it only with a 
 
 If Tisty knows the plugin brings them and the ones left from before point at a Tisty that is gone, **Fix** removes them, because with the plugin's they would run twice, and it tells you first: «The Tisty plugin already brings its hooks, so these are removed. Tisty first reads its records (installed_plugins.json and settings.json) to make sure.». Those records are read with your click, right before removing them. If the plugin no longer brings them, none is removed: «The Tisty plugin no longer brings Claude Code's hooks, so these were not removed. Look again to see how they are now.».
 
+## Your own hooks
+
+Besides Tisty's, you can write your own: a script your agent runs at a moment you choose, for example one that stops an `rm -rf` before it runs.
+
+### Making one
+
+1. In the sidebar, **Agents › Global › Hooks**, press **+**.
+2. **New hook** asks for the name, the kind of script (`.ps1`, `.sh`, `.py` or `.js`), **When** (when a session starts, when you send a message, before or after a tool, when a turn ends), the tools (terminal, writing files, MCP or any), the seconds at most and the agents. **Only this computer** comes ticked: that way it is born in your computer's folder; unticked, in Global, for all.
+3. **Create** opens its page. The script goes in the code block, and the trigger in its `hook-` lines: `hook-event`, `hook-tools`, `hook-timeout` and `hook-agents`. If one of those lines is missing, repeated or unreadable, the hook is not registered.
+
+### Register
+
+**Register**, under the hook, shows you the whole script and the files it will touch: «Register guard.ps1 on this computer». With **Yes, register**, Tisty keeps the script on this computer, in Tisty's data folder, and puts in each chosen agent a single line that calls it: `tisty run-hook --name guard.ps1 --agent codex`.
+
+- **It is one yes per hook and per computer.** **Apply here** never registers a hook, and another computer asks again.
+- **If its words change**, it stops running until you register it again, on every computer: the row says «Changed since you registered it: it does not run until you register it again».
+- **If you delete or archive it**, Tisty takes it out of every agent.
+- **Codex** runs it only once you approve it there: «Approve it in Codex with /hooks».
+
+| Agent | Where | What it lacks |
+| :-- | :-- | :-- |
+| **Claude Code** | `~/.claude/settings.json` | |
+| **Codex** | `~/.codex/hooks.json` | |
+| **Cursor** | `~/.cursor/hooks.json` | |
+| **GitHub Copilot** | `~/.copilot/hooks/tisty.json` | MCP tools |
+| **Antigravity CLI** | `~/.gemini/config/hooks.json`, under `tisty-` and the name | When you send a message |
+| **Gemini CLI** | `~/.gemini/settings.json` | |
+
+### What it gets and what it gives back
+
+The script gets on its input the same the agent sends, plus `TISTY_HOOK_EVENT` and `TISTY_HOOK_AGENT`.
+
+- **It ends with 0:** it lets the call through.
+- **It ends with 2 before a tool:** it stops it, and the agent reads what it wrote to stderr. Tisty turns that into what each agent understands.
+- **Anything else**, an error, a missing interpreter or its time running out: it lets the call through.
+
+They are registered in this computer's agents, not in a WSL distro's. On Windows, `.ps1` runs with Windows PowerShell, `.sh` with Git's bash (never WSL's), `.py` with `py -3` and `.js` with Node. With the agents' door closed, none runs.
+
+### Verify
+
+**Verify** says, agent by agent, what is in its file today: «Registered, runs this Tisty», «Not in its file», «Runs another Tisty», «Written your own way: left as it is» or «Has no such moment». **Try it once** runs the script for real, on this computer, with a sample of what the agent would send, and tells you how it ended: «It ended with 2: it stops the call», with what it wrote. Before you register it, it shows you the script and asks **Run it**. An agent may see another PATH than Tisty: what runs in the try may not run there.
+
+No agent makes, changes or proposes a hook: through MCP it is always refused.
+
 ## Tisty's skills
 
 A skill is a folder with a `SKILL.md`: your agent always reads its description, and the rest only when what you ask fits it. Tisty brings three, inside the app:

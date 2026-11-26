@@ -39,6 +39,7 @@ mod spelling;
 mod starting;
 mod summing;
 mod surviving;
+mod sync_trouble;
 mod tray;
 mod unsealing;
 mod update;
@@ -56,6 +57,7 @@ pub(crate) use refusing::{behind_here, where_it_comes_from};
 pub(crate) use session::Session;
 pub(crate) use summing::{Coming, Counted, Habit, coming, recurring, tags_in_use, tally};
 use surviving::caught;
+pub(crate) use sync_trouble::{said, said_carrying};
 pub(crate) use weighing::weighed;
 
 use tisty_core::{
@@ -319,107 +321,6 @@ fn placed(beside: Option<Placing>, fresh: &str) -> Placing {
     match beside {
         Some((folder, page_of, order)) => (folder, page_of, tisty_core::order::after(&order)),
         None => (None, None, fresh.to_string()),
-    }
-}
-
-fn said(trouble: tisty_carrier::Trouble) -> Refusal {
-    let (provider, why) = told_apart(&trouble);
-    let refusal = refused_for(trouble);
-    told_in_the_log(refusal.code, provider, why);
-    refusal
-}
-
-fn told_apart(trouble: &tisty_carrier::Trouble) -> (Option<String>, Option<String>) {
-    use tisty_carrier::Trouble;
-    match trouble {
-        Trouble::CloudFull { provider }
-        | Trouble::CloudEmptied { provider }
-        | Trouble::CloudLost { provider }
-        | Trouble::CloudElsewhere { provider, .. }
-        | Trouble::CloudSpent { provider } => (Some(provider.clone()), None),
-        Trouble::Broke(why)
-        | Trouble::Unreadable(why)
-        | Trouble::Refused(why)
-        | Trouble::NotNow(why)
-        | Trouble::StuckOn { why, .. } => (None, Some(why.clone())),
-        _ => (None, None),
-    }
-}
-
-fn refused_for(trouble: tisty_carrier::Trouble) -> Refusal {
-    match trouble {
-        tisty_carrier::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
-        tisty_carrier::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
-        tisty_carrier::Trouble::Newer(who) => Refusal::about("syncNewer", who),
-        tisty_carrier::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
-        tisty_carrier::Trouble::Refused(why) => Refusal::about("syncRefused", why),
-        tisty_carrier::Trouble::Broke(_) => Refusal::of("syncFailed"),
-        tisty_carrier::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
-        tisty_carrier::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
-        tisty_carrier::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
-        tisty_carrier::Trouble::Shape(at) => Refusal::about("syncShape", at),
-        tisty_carrier::Trouble::Needs(release) => Refusal::about("syncNeeds", release),
-        tisty_carrier::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
-        tisty_carrier::Trouble::CloudFull { provider } => Refusal::about("cloudFull", provider),
-        tisty_carrier::Trouble::CloudEmptied { provider } => {
-            Refusal::about("cloudEmptied", provider)
-        }
-        tisty_carrier::Trouble::CloudLost { provider } => Refusal::about("cloudLost", provider),
-        tisty_carrier::Trouble::CloudElsewhere { provider, found } => {
-            Refusal::about("cloudElsewhere", format!("{provider} · {found}"))
-        }
-        tisty_carrier::Trouble::SameName(who) => {
-            Refusal::about("sameName", tisty_core::config::nicknamed(&who))
-        }
-        tisty_carrier::Trouble::CloudSpent { provider } => Refusal::about("cloudSpent", provider),
-        tisty_carrier::Trouble::StuckOn { name, .. } => match name.strip_prefix("docs/") {
-            Some(_) => Refusal::about("syncStuckDoc", name),
-            None => Refusal::about(
-                "syncStuckHistory",
-                tisty_core::config::nicknamed(name.split('/').nth(1).unwrap_or_default()),
-            ),
-        },
-        tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),
-        tisty_carrier::Trouble::Moved(_) => Refusal::of("movedUnderfoot"),
-        tisty_carrier::Trouble::Sealed(_) => Refusal::of("cloudSealed"),
-        tisty_carrier::Trouble::Sealing(_) => Refusal::of("cloudSealing"),
-        tisty_carrier::Trouble::Unsealed(_) => Refusal::of("cloudUnsealed"),
-        tisty_carrier::Trouble::OtherPhrase(_) => Refusal::of("cloudOtherPhrase"),
-        tisty_carrier::Trouble::MarkDamaged(_) => Refusal::of("cloudMarkDamaged"),
-        tisty_carrier::Trouble::OtherPerson(_) => Refusal::of("otherPerson"),
-    }
-}
-
-// What a provider or the system says is English and technical, so the person reads a sentence and the log keeps it.
-fn told_in_the_log(code: &'static str, provider: Option<String>, why: Option<String>) {
-    let mut facts = vec![("code", Fact::Code(code))];
-    facts.extend(provider.map(|one| ("provider", Fact::Id(one))));
-    facts.extend(why.map(|one| ("why", Fact::Why(one))));
-    match code {
-        "cloudNotNow" | "movedUnderfoot" | "cloudSealing" => {
-            witness::standing(channel::SYNC, "a sync could not be finished", &facts)
-        }
-        _ => witness::warn(channel::SYNC, "a sync could not be finished", &facts),
-    }
-}
-
-/// As `said`, with a document that held the round back named by its title.
-fn said_carrying(paths: &tisty_core::Paths, trouble: tisty_carrier::Trouble) -> Refusal {
-    let refusal = said(trouble);
-    let titled = refusal
-        .name
-        .as_deref()
-        .filter(|_| refusal.code == "syncStuckDoc")
-        .and_then(|name| name.strip_prefix("docs/"))
-        .and_then(|leaf| leaf.strip_suffix(".md"))
-        .and_then(|id| tisty_core::docs::title_of(&paths.docs(), id))
-        .filter(|title| !title.trim().is_empty());
-    match titled {
-        Some(title) => Refusal {
-            name: Some(title),
-            ..refusal
-        },
-        None => refusal,
     }
 }
 
@@ -1056,6 +957,11 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::agent_docs::agent_doc,
         answers::agent_history::agent_history,
         answers::agent_docs::agent_rule_new,
+        answers::user_hooks::agent_hook_new,
+        answers::user_hooks::agent_hook_look,
+        answers::user_hooks::agent_hook_register,
+        answers::user_hooks::agent_hook_unregister,
+        answers::user_hooks::agent_hook_try,
         answers::agents_moving::agents_moving,
         answers::agent_rows::agents_rows,
         answers::agents::agent_turn,
@@ -1491,7 +1397,3 @@ mod ordering;
 #[cfg(test)]
 #[path = "lib_restored.rs"]
 mod restored;
-
-#[cfg(test)]
-#[path = "lib_sync_said.rs"]
-mod sync_said;

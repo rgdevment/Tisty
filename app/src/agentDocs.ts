@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Line } from "./agentsSync";
 import { valuesIn } from "./front";
 
-export type AgentKind = "rule" | "skill" | "memory";
+export type AgentKind = "rule" | "skill" | "memory" | "hook";
 
 export type Said =
   | { state: "synced" }
@@ -50,7 +50,9 @@ export type Here =
   | "apart"
   | "contested"
   | "aside"
-  | "away";
+  | "away"
+  | "hookWaiting"
+  | "hookRegistered";
 
 export interface Proposal {
   readonly print: string;
@@ -101,7 +103,7 @@ export interface AgentDoc {
 }
 
 const LEVEL = /^[a-z0-9-]{1,40}$/;
-const KINDS = new Set(["rule", "skill", "memory"]);
+const KINDS = new Set(["rule", "skill", "memory", "hook"]);
 const FLAGS = new Set(["crlf", "as-is", "bom", "open-end"]);
 const ON_COMPUTER = /^on-[a-z0-9_]{1,48}$/;
 const BARRED = /[\\:,[\]"'#\p{Cc}]/u;

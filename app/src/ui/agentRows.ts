@@ -8,6 +8,7 @@ export const KIND_GLYPH: Record<AgentKind, string> = {
   rule: "book-text",
   skill: "puzzle",
   memory: "brain",
+  hook: "bolt",
 };
 
 const SKILL_FILE = "skill.md";

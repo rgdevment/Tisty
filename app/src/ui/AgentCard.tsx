@@ -11,7 +11,12 @@ import Glyph from "./Glyph";
 import { useSharedRow } from "./sharedRow";
 import { type AgentShelf, type CardHands, type CardProps, useAgentCard } from "./useAgentCard";
 
-const KIND = { rule: "agentRule", skill: "agentSkill", memory: "agentMemory" } as const;
+const KIND = {
+  rule: "agentRule",
+  skill: "agentSkill",
+  memory: "agentMemory",
+  hook: "agentHook",
+} as const;
 
 const STATE: Record<Said["state"], { word: Parameters<typeof t>[0]; tone: string; glyph: string }> =
   {

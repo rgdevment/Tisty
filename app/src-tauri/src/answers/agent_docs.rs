@@ -218,6 +218,8 @@ fn here_word(seen: Seen, agreed_here: bool, stance: Stance) -> &'static str {
         Seen::OtherComputer => "otherComputer",
         Seen::Apart => "apart",
         Seen::Away | Seen::Plain | Seen::Unread => "away",
+        Seen::HookWaiting => "hookWaiting",
+        Seen::HookRegistered => "hookRegistered",
     }
 }
 
@@ -361,6 +363,11 @@ pub(crate) fn rule_made(session: &mut Session, level: &str) -> Answer<tisty_core
     let Some(seed) = rule_for_all(session, level) else {
         return rule_of_all(session, level).ok_or_else(|| Refusal::of("agentNoPlace"));
     };
+    let global = global_made(session)?;
+    super::papers::made_with(session, Some(global), None, &seed)
+}
+
+pub(crate) fn global_made(session: &mut Session) -> Answer<tisty_core::model::FolderId> {
     let root =
         super::agents_sync::root_of(&session.state).ok_or_else(|| Refusal::of("noSuchFolder"))?;
     // Global put away is asked about as it is, never made a second time beside it.
@@ -392,7 +399,7 @@ pub(crate) fn rule_made(session: &mut Session, level: &str) -> Answer<tisty_core
     };
     crate::folder_open(&session.state, global, true)?;
     super::placing::may_make(session, Some(global), None, tisty_core::places::Making::Doc)?;
-    super::papers::made_with(session, Some(global), None, &seed)
+    Ok(global)
 }
 
 #[tauri::command(async)]

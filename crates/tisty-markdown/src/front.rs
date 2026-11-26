@@ -135,7 +135,7 @@ fn said_in(all: &[Field], key: &str) -> Option<String> {
 /// The key an agent document's card stands under, read by the engine that writes the agent's file.
 pub const AGENT: &str = "agent";
 
-pub const AGENT_KINDS: [&str; 3] = ["rule", "skill", "memory"];
+pub const AGENT_KINDS: [&str; 4] = ["rule", "skill", "memory", "hook"];
 pub const AGENT_FLAGS: [&str; 4] = ["crlf", "as-is", "bom", "open-end"];
 /// Opens the flag naming the one computer a card is for: `on-dev_ab12cd34`.
 pub const AGENT_ON: &str = "on-";

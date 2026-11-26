@@ -318,7 +318,7 @@ title: claude · CLAUDE.md
 The first value has three parts, separated by `/`:
 
 - **The level**: `global`, or an agent: `claude`, `codex`, `copilot`, `gemini` or `cursor`.
-- **The kind**: `rule`, `skill` or `memory`.
+- **The kind**: `rule`, `skill`, `memory` or `hook`. A `hook` is always of level `global` and also carries its `hook-` lines, as [[Hooks and skills|Hooks-and-Skills]] tells.
 - **The name**: the file's path inside the agent's folder, such as `CLAUDE.md`, `rules/style.md` or `pr/SKILL.md`.
 
 **A computer's document carries one more mark**: `on-` and that computer's code, as in `on-dev_ab12cd34`. Tisty puts it there, not you. A Global or root document does not carry it, because it belongs to all.

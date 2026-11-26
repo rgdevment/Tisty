@@ -81,7 +81,7 @@ impl Kind {
         }
     }
 
-    fn client(self) -> &'static str {
+    pub(super) fn client(self) -> &'static str {
         match self {
             Kind::Claude => "claude-code",
             Kind::Cursor => "cursor",
@@ -241,21 +241,33 @@ impl Kind {
 
     fn run(self, place: &Place, moment: &str, seconds: u64) -> Value {
         let args = ["hook", self.client(), moment];
+        let named = format!("tisty-{moment}");
+        self.run_with(place, &args, seconds, moment == BEFORE, &named)
+    }
+
+    pub(super) fn run_with(
+        self,
+        place: &Place,
+        args: &[&str],
+        seconds: u64,
+        never_fails: bool,
+        named: &str,
+    ) -> Value {
         match self {
             Kind::Claude => json!({
                 "type": "command", "command": place.command, "args": args, "timeout": seconds
             }),
-            Kind::Cursor => json!({ "command": self.spoken(place, &args), "timeout": seconds }),
+            Kind::Cursor => json!({ "command": self.spoken(place, args), "timeout": seconds }),
             Kind::Gemini => json!({
-                "name": format!("tisty-{moment}"), "type": "command",
-                "command": self.spoken(place, &args), "timeout": seconds * 1_000
+                "name": named, "type": "command",
+                "command": self.spoken(place, args), "timeout": seconds * 1_000
             }),
             Kind::Codex | Kind::Antigravity => json!({
-                "type": "command", "command": self.spoken(place, &args), "timeout": seconds
+                "type": "command", "command": self.spoken(place, args), "timeout": seconds
             }),
             // Copilot refuses the call when this hook fails, so it goes through a shell that never does.
-            Kind::Copilot if moment == BEFORE => {
-                let said = self.spoken(place, &args);
+            Kind::Copilot if never_fails => {
+                let said = self.spoken(place, args);
                 let (shell, never_fails) = match windows(place) {
                     true => ("powershell", format!("{said}; exit 0")),
                     false => ("bash", format!("{said} || true")),
@@ -270,12 +282,12 @@ impl Kind {
         }
     }
 
-    fn spoken(self, place: &Place, args: &[&str]) -> String {
+    pub(super) fn spoken(self, place: &Place, args: &[&str]) -> String {
         format!("{} {}", self.quoted(place), args.join(" "))
     }
 
     // On Windows Codex runs a hook through cmd.exe and the others through PowerShell; elsewhere, a POSIX shell.
-    fn quoted(self, place: &Place) -> String {
+    pub(super) fn quoted(self, place: &Place) -> String {
         match (windows(place), self) {
             (true, Kind::Codex) => format!("\"{}\"", place.command),
             (true, _) => format!("& '{}'", place.command.replace('\'', "''")),
@@ -284,7 +296,7 @@ impl Kind {
     }
 }
 
-fn windows(place: &Place) -> bool {
+pub(super) fn windows(place: &Place) -> bool {
     place.os == Os::Windows && place.distro.is_none()
 }
 
@@ -341,23 +353,48 @@ fn named_apart(kind: Kind, text: &str) -> bool {
     })
 }
 
+/// Which entries are whose: Tisty's own by `hook <client>`, each of the person's hooks by its own mark.
+pub(super) struct Marked<'a> {
+    pub mark: &'a str,
+    pub root: &'a str,
+    pub events: &'a [&'static str],
+}
+
+fn own<R>(kind: Kind, then: impl FnOnce(&Marked) -> R) -> R {
+    let mark = kind.mark();
+    then(&Marked {
+        mark: &mark,
+        root: kind.root(),
+        events: kind.events(),
+    })
+}
+
 fn own_ways(kind: Kind, text: &str) -> usize {
-    let runs = runs(kind, text);
+    own(kind, |marked| ways_of(kind, text, marked))
+}
+
+pub(super) fn ways_of(kind: Kind, text: &str, marked: &Marked) -> usize {
+    let runs = runs_of(kind, text, marked);
     runs.iter().filter(|run| !run.all_read).count()
 }
 
 fn runs(kind: Kind, text: &str) -> Vec<Run> {
+    own(kind, |marked| runs_of(kind, text, marked))
+}
+
+pub(super) fn runs_of(kind: Kind, text: &str, marked: &Marked) -> Vec<Run> {
     let spoken = Spoken {
-        mark: &kind.mark(),
-        root: kind.root(),
+        mark: marked.mark,
+        root: marked.root,
         posix: kind == Kind::Claude,
     };
-    running::found(text, kind.events(), &spoken)
+    running::found(text, marked.events, &spoken)
 }
 
 fn stray(kind: Kind, text: &str, place: &Place) -> Vec<Stray> {
     let mut all: Vec<Stray> = Vec::new();
-    for program in runs(kind, text).into_iter().flat_map(|run| run.programs) {
+    let own = runs(kind, text).into_iter().flat_map(|run| run.programs);
+    for program in own.chain(super::user_hooks::programs(kind, text)) {
         let leads = leads(place, &program.said);
         if leads.astray() && !all.iter().any(|one| one.said == program.said) {
             all.push(Stray {
@@ -369,7 +406,7 @@ fn stray(kind: Kind, text: &str, place: &Place) -> Vec<Stray> {
     all
 }
 
-fn named(program: &Program, place: &Place, named: &[String]) -> bool {
+pub(super) fn named(program: &Program, place: &Place, named: &[String]) -> bool {
     named.contains(&program.said) && leads(place, &program.said).astray()
 }
 
@@ -384,14 +421,26 @@ pub fn without_those(kind: Kind, text: &str, place: &Place, said: &[String]) -> 
 }
 
 fn taken_out(kind: Kind, text: &str, which: impl Fn(&Run) -> bool) -> Option<String> {
+    own(kind, |marked| taken_out_of(kind, text, marked, which))
+}
+
+pub(super) fn taken_out_of(
+    kind: Kind,
+    text: &str,
+    marked: &Marked,
+    which: impl Fn(&Run) -> bool,
+) -> Option<String> {
     let mut now = text.to_string();
-    while let Some(run) = runs(kind, &now).into_iter().find(|run| which(run)) {
+    while let Some(run) = runs_of(kind, &now, marked)
+        .into_iter()
+        .find(|run| which(run))
+    {
         now = running::taken_out(&now, &run)?;
     }
-    if kind.root() != HOOKS && emptied_root(&now, kind.root()) {
-        now = json::unset_top(&now, kind.root())?;
+    if marked.root != HOOKS && emptied_root(&now, marked.root) {
+        now = json::unset_top(&now, marked.root)?;
     }
-    sound(kind, text, &now).then_some(now)
+    sound_of(kind, text, &now, marked).then_some(now)
 }
 
 // A hook named Tisty's with nothing left in it would still stand in the person's file.
@@ -424,16 +473,24 @@ pub fn with(kind: Kind, text: &str, place: &Place) -> Option<String> {
     }
     let mut now = without(kind, text)?;
     if now.trim().is_empty() {
-        now = match kind {
-            Kind::Cursor | Kind::Copilot => "{\n  \"version\": 1\n}\n".to_string(),
-            _ => "{\n}\n".to_string(),
-        };
+        now = blank(kind);
     }
     let now = pushed(now, kind.root(), kind.entries(place))?;
     (sound(kind, text, &now) && hooked(kind, &now)).then_some(now)
 }
 
-fn pushed(text: String, root: &str, entries: Vec<(&'static str, Value)>) -> Option<String> {
+pub(super) fn blank(kind: Kind) -> String {
+    match kind {
+        Kind::Cursor | Kind::Copilot => "{\n  \"version\": 1\n}\n".to_string(),
+        _ => "{\n}\n".to_string(),
+    }
+}
+
+pub(super) fn pushed(
+    text: String,
+    root: &str,
+    entries: Vec<(&'static str, Value)>,
+) -> Option<String> {
     let mut now = text;
     for (event, entry) in entries {
         let piece = serde_json::to_string_pretty(&entry).ok()?;
@@ -449,32 +506,35 @@ fn pushed(text: String, root: &str, entries: Vec<(&'static str, Value)>) -> Opti
 }
 
 fn sound(kind: Kind, was: &str, now: &str) -> bool {
+    own(kind, |marked| sound_of(kind, was, now, marked))
+}
+
+pub(super) fn sound_of(kind: Kind, was: &str, now: &str, marked: &Marked) -> bool {
     let kept = json::same_but(was, now, |doc| {
         doc.remove("version");
-        let root = kind.root();
+        let root = marked.root;
         if let Some(Value::Object(hooks)) = doc.get_mut(root) {
-            let named = kind.events().iter().copied();
-            named.for_each(|event| others_alone(kind, hooks, event));
+            let named = marked.events.iter().copied();
+            named.for_each(|event| others_alone(marked.mark, hooks, event));
         }
         let bare = |it: &Value| it.as_object().is_some_and(serde_json::Map::is_empty);
         if doc.get(root).is_some_and(bare) {
             doc.remove(root);
         }
     });
-    kept && own_ways(kind, was) == own_ways(kind, now)
+    kept && ways_of(kind, was, marked) == ways_of(kind, now, marked)
 }
 
 // Read back apart from what cut it, so whatever is not Tisty's has to be there still.
-fn others_alone(kind: Kind, hooks: &mut serde_json::Map<String, Value>, event: &str) {
+fn others_alone(mark: &str, hooks: &mut serde_json::Map<String, Value>, event: &str) {
     let Some(Value::Array(groups)) = hooks.get_mut(event) else {
         return;
     };
-    let mark = kind.mark();
     groups.retain_mut(|group| {
         let Some(Value::Array(inner)) = group.get_mut(HOOKS) else {
-            return !ours(group, &mark);
+            return !ours(group, mark);
         };
-        inner.retain(|one| !ours(one, &mark));
+        inner.retain(|one| !ours(one, mark));
         !inner.is_empty()
     });
     if groups.is_empty() {
@@ -482,7 +542,7 @@ fn others_alone(kind: Kind, hooks: &mut serde_json::Map<String, Value>, event: &
     }
 }
 
-fn ours(run: &Value, mark: &str) -> bool {
+pub(super) fn ours(run: &Value, mark: &str) -> bool {
     let fields =
         ["command", "commandWindows", "exec", "bash", "powershell"].map(|named| run.get(named));
     let args = run.get("args").and_then(Value::as_array);

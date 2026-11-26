@@ -327,6 +327,7 @@ pub fn target_of(homes: &Homes, card: &Card) -> Option<(PathBuf, PathBuf)> {
             };
             fits.then(|| (root.clone(), under(&root, &card.name)))
         }
+        Kind::Hook => None,
     }
 }
 
@@ -714,6 +715,7 @@ pub fn card_at(homes: &Homes, at: &Path) -> Option<(&'static str, Kind, String)>
             bom: false,
             open_end: false,
             computer: None,
+            trigger: None,
         };
         let (_, there) = target_of(homes, &card)?;
         agents::same_file(&there, at).then_some((one.id, kind, name))
