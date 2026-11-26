@@ -123,7 +123,7 @@ fn seed(
     here_only: Option<&tisty_core::event::DeviceId>,
 ) -> Answer<String> {
     if !agents::hook_name(name) {
-        return Err(Refusal::of("agentHookName"));
+        return Err(Refusal::of("agentHookNameBad"));
     }
     agents::hook_doc(name, here_only, trigger, NEW_SCRIPT).map_err(super::agents_sync::refused)
 }
@@ -157,19 +157,40 @@ fn made(session: &mut Session, asked: &NewHook) -> Answer<tisty_core::docs::Doc>
     }
     let me = session.config.device_id.clone();
     let body = seed(&asked.name, &trigger, (!asked.everyone).then_some(&me))?;
-    let global = super::agent_docs::global_made(session)?;
-    super::papers::made_with(session, Some(global), None, &body)
+    let at = match asked.everyone {
+        true => super::agent_docs::global_made(session)?,
+        false => mine_made(session, &me)?,
+    };
+    super::papers::made_with(session, Some(at), None, &body)
+}
+
+// A hook for this computer alone lives in this computer's own folder, the one its `on-` line names.
+fn mine_made(
+    session: &mut Session,
+    me: &tisty_core::event::DeviceId,
+) -> Answer<tisty_core::model::FolderId> {
+    let root =
+        super::agents_sync::root_of(&session.state).ok_or_else(|| Refusal::of("noSuchFolder"))?;
+    let (at, made) = agents::computer_folder(&session.state, root, me);
+    if let Some(op) = made {
+        session
+            .commit_all(vec![op])
+            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    }
+    crate::folder_open(&session.state, at, true)?;
+    super::placing::may_make(session, Some(at), None, tisty_core::places::Making::Doc)?;
+    Ok(at)
 }
 
 fn registered(session: &Session, file: &str, print: &str) -> Answer<HookLook> {
     let open = opened(session, file)?;
     let fits = matches!(open.seen, Seen::HookWaiting | Seen::HookRegistered);
     if !fits || open.print != print {
-        return Err(Refusal::of("agentHookChanged"));
+        return Err(Refusal::of("agentHookChangedSince"));
     }
     let mut ledger = open.ledger;
     if !ledger.named() {
-        return Err(Refusal::of("agentNoMachine"));
+        return Err(Refusal::of("agentHookNoMachine"));
     }
     let (yes, bytes) = agents::yes_of(&open.body).map_err(super::agents_sync::refused)?;
     let data = session.paths.data();
@@ -218,7 +239,7 @@ fn trial(session: &Session, file: &str, print: &str) -> Answer<Trial> {
         None if print == open.print => {
             agents::rendered(&open.body).map_err(super::agents_sync::refused)?
         }
-        None => return Err(Refusal::of("agentHookChanged")),
+        None => return Err(Refusal::of("agentHookChangedSince")),
     };
     Ok(Trial {
         name: open.card.name.clone(),

@@ -24,7 +24,7 @@ export const AGENTS_NAME = "AGENTS";
 export interface FileSeen {
   at: string;
   name: string;
-  kind: "rule" | "skill" | "memory";
+  kind: "rule" | "skill" | "memory" | "hook";
   skip: string | null;
   held: boolean;
 }
@@ -119,7 +119,7 @@ export interface AgentRow {
   file: string;
   /// Outside every computer's own folder, so it is for all of them.
   everyone: boolean;
-  kind: "rule" | "skill" | "memory";
+  kind: "rule" | "skill" | "memory" | "hook";
   level: string;
   name: string;
   label: string;

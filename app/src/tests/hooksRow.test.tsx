@@ -122,9 +122,9 @@ describe("tistyHookLines", () => {
         agent("copilot", "Copilot", { wired: false }),
       ]),
     ).toEqual([
-      { id: "claude", name: "Claude", on: true },
-      { id: "codex", name: "Codex", on: false },
-      { id: "gemini", name: "Gemini", on: true },
+      { id: "claude", name: "Claude", on: true, byHand: false },
+      { id: "codex", name: "Codex", on: false, byHand: true },
+      { id: "gemini", name: "Gemini", on: true, byHand: false },
     ]);
   });
 

@@ -107,7 +107,10 @@ export const docNamed = ({ title, of }: NamedDoc): string => {
   return fill("agentDocOther", title, of.name);
 };
 
-const hereSaid = (here: Exclude<Here, "applied" | "away">, rivals: readonly NamedDoc[]): string => {
+const hereSaid = (
+  here: Exclude<Here, "applied" | "away" | "hookWaiting" | "hookRegistered">,
+  rivals: readonly NamedDoc[],
+): string => {
   if (rivals.length === 0) return t(HERE_SAID[here]);
   const named = rivals.map(docNamed).join(", ");
   if (here === "aside") return fill("agentHereOtherRules", named);
@@ -139,7 +142,8 @@ export function HereNote({
   onAgree: () => void;
   onSettle: () => void;
 }) {
-  if (here === "applied" || here === "away") return null;
+  if (here === "applied" || here === "away" || here === "hookWaiting" || here === "hookRegistered")
+    return null;
   const waits = here === "waiting" || here === "approvedWaiting" || here === "contested";
   const choice = rivals.length > 0;
   const thisSaid =

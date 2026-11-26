@@ -49,12 +49,13 @@ import { letterOf, modKey, onMac, shortcut } from "./macKeys";
 
 const STIRS = 4;
 
-const KINDS: AgentKind[] = ["rule", "skill", "memory"];
+const KINDS: AgentKind[] = ["rule", "skill", "memory", "hook"];
 
 const KIND_WORD = {
   rule: "agentsKindRule",
   skill: "agentsKindSkill",
   memory: "agentsKindMemory",
+  hook: "agentsKindHook",
 } as const;
 
 const yearOf = (book: Filed): number => Number(book.title.match(/[0-9]{4}/)?.[0] ?? 0);
@@ -108,6 +109,7 @@ interface Props {
   agents?: readonly Wired[] | null;
   onHooks?: () => void;
   onNewRule?: (level: string) => void;
+  onNewHook?: () => void;
 }
 
 export default function Tree({
@@ -141,6 +143,7 @@ export default function Tree({
   agents = null,
   onHooks,
   onNewRule,
+  onNewHook,
 }: Props) {
   useRuling();
   const { root, stage, stance } = useAgentsStage(papers);
@@ -164,6 +167,7 @@ export default function Tree({
           .concat(
             (groups?.skills ?? []).flatMap((one) => ("doc" in one ? [one.doc] : one.skill.docs)),
           )
+          .concat(groups?.hooks ?? [])
           .map((one) => one.id),
       ),
     [groups],
@@ -1213,6 +1217,7 @@ export default function Tree({
                 agents={agents}
                 onHooks={onHooks}
                 onNewRule={onNewRule}
+                onNewHook={onNewHook}
               />
             )}
             {!agentsDrawn(under(folder.id), papers.folders, root).length &&

@@ -10,9 +10,11 @@ import { landedOn } from "../settingsRows";
 import { sifted } from "../sifting";
 import { shown } from "../tongues";
 import { usePinned } from "../usePinned";
+import { HOOK_AGENTS } from "../userHooks";
 import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
 import LibraryGlance from "./LibraryGlance";
+import NewHookAsk from "./NewHookAsk";
 import { useFades } from "./room";
 import { Leaning } from "./SideTasks";
 import Tree, { type useFolds } from "./Tree";
@@ -124,6 +126,7 @@ function Wide({
   agents,
   onTrouble,
 }: Props & { title: React.ReactNode; hidden: boolean }) {
+  const [hookAsked, setHookAsked] = useState(false);
   const newRule = (level: string) =>
     newRuleForAll(level)
       .then((made) => onChoose({ named: "docs", doc: made.id }))
@@ -262,9 +265,23 @@ function Wide({
               agents={agents}
               onHooks={() => onChoose(landedOn({ page: "agents", shelf: "wired" }))}
               onNewRule={newRule}
+              onNewHook={() => setHookAsked(true)}
             />
           </div>
         </div>
+        {hookAsked && (
+          <NewHookAsk
+            connected={(agents ?? [])
+              .filter((one) => one.wired && !!one.hooks)
+              .map((one) => one.id)
+              .filter((id) => HOOK_AGENTS.some(([known]) => known === id))}
+            onMade={(made) => {
+              setHookAsked(false);
+              onChoose({ named: "docs", doc: made.id });
+            }}
+            onClose={() => setHookAsked(false)}
+          />
+        )}
         {acts && pickedDocs.length > 1 && (
           <PickedBar
             many={pickedDocs.length}

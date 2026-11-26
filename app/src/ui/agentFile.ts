@@ -43,6 +43,8 @@ const NOT_HERE = {
   apart: "agentFileSyncsApart",
   contested: "agentFileSyncsContested",
   aside: "agentFileSyncsAside",
+  hookWaiting: "agentHookWaiting",
+  hookRegistered: "agentHookRegistered",
 } as const;
 
 const syncsOf = (doc: AgentDoc): string => {
