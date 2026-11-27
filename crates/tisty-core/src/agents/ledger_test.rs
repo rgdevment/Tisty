@@ -424,3 +424,98 @@ fn a_hooks_yes_never_travels_to_another_computer() {
     ledger.keep(data.path()).unwrap();
     assert_eq!(Ledger::open(data.path(), "machine-b").hooks().count(), 0);
 }
+
+fn ledger_files(data: &Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(super::super::folder(data))
+        .unwrap()
+        .map(|one| one.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| name.starts_with("ledger"))
+        .collect();
+    names.sort();
+    names
+}
+
+#[test]
+fn a_distro_ledger_keeps_to_its_own_file_and_never_touches_this_computers() {
+    let data = tempfile::tempdir().unwrap();
+    let mut mine = Ledger::fresh("machine-a");
+    mine.consent(true);
+    mine.keep(data.path()).unwrap();
+    let at = super::super::folder(data.path()).join("ledger.json");
+    let before = std::fs::read(&at).unwrap();
+
+    let mut distro = Ledger::of_distro(data.path(), "machine-a", "{ABC-12}").unwrap();
+    assert!(!distro.consented());
+    distro.take_tisty_skills(true);
+    distro.keep(data.path()).unwrap();
+
+    assert_eq!(std::fs::read(&at).unwrap(), before);
+    assert_eq!(
+        ledger_files(data.path()),
+        ["ledger.json", "ledger.wsl.abc-12.json"]
+    );
+    let again = Ledger::of_distro(data.path(), "machine-a", "abc-12").unwrap();
+    assert!(again.tisty_skills() && !again.consented());
+    let windows = Ledger::open(data.path(), "machine-a");
+    assert!(windows.consented() && !windows.tisty_skills());
+}
+
+#[test]
+fn two_distros_keep_their_own_consent() {
+    let data = tempfile::tempdir().unwrap();
+    let mut one = Ledger::of_distro(data.path(), "machine-a", "aa-01").unwrap();
+    one.consent(true);
+    one.keep(data.path()).unwrap();
+    let other = Ledger::of_distro(data.path(), "machine-a", "bb-02").unwrap();
+    assert!(!other.consented());
+    assert!(
+        Ledger::of_distro(data.path(), "machine-a", "aa-01")
+            .unwrap()
+            .consented()
+    );
+}
+
+#[test]
+fn a_distro_ledger_needs_a_registry_id_and_a_computer_name() {
+    let data = tempfile::tempdir().unwrap();
+    for id in ["", "a/b", "..", "Ubuntu", "{}", r"ab\cd"] {
+        assert!(
+            Ledger::of_distro(data.path(), "machine-a", id).is_none(),
+            "{id:?}"
+        );
+    }
+    assert!(Ledger::of_distro(data.path(), "", "abc-12").is_none());
+    let mut braced = Ledger::of_distro(data.path(), "machine-a", "{ABC-12}").unwrap();
+    braced.consent(true);
+    braced.keep(data.path()).unwrap();
+    assert!(
+        Ledger::of_distro(data.path(), "machine-a", "abc-12")
+            .unwrap()
+            .consented()
+    );
+}
+
+#[test]
+fn a_distro_ledger_written_for_another_computer_grants_nothing_here() {
+    let data = tempfile::tempdir().unwrap();
+    let mut distro = Ledger::of_distro(data.path(), "machine-a", "abc-12").unwrap();
+    distro.consent(true);
+    distro.keep(data.path()).unwrap();
+    let elsewhere = Ledger::of_distro(data.path(), "machine-b", "abc-12").unwrap();
+    assert!(!elsewhere.consented());
+}
+
+#[test]
+fn applying_to_a_distro_never_takes_the_document_while_this_computer_does() {
+    let data = tempfile::tempdir().unwrap();
+    let at = Path::new("/home/rina/.claude/CLAUDE.md");
+
+    let mut distro = Ledger::of_distro(data.path(), "machine-a", "abc-12").unwrap();
+    distro.applied_to(at, ["dev_here-0001".to_string()]);
+    assert!(!distro.took("dev_here-0001"));
+    assert_eq!(distro.applied_at(at).collect::<Vec<_>>(), ["dev_here-0001"]);
+
+    let mut mine = Ledger::open(data.path(), "machine-a");
+    mine.applied_to(at, ["dev_here-0001".to_string()]);
+    assert!(mine.took("dev_here-0001"));
+}

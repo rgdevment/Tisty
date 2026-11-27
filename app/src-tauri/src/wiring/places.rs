@@ -308,8 +308,22 @@ fn home_where(passwd: &str, wanted: impl Fn(&[&str]) -> bool) -> Option<String> 
     })
 }
 
-#[cfg(windows)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Registered {
+    pub name: String,
+    pub uid: u32,
+    pub id: String,
+}
+
 pub fn distros() -> Vec<(String, u32)> {
+    registered()
+        .into_iter()
+        .map(|one| (one.name, one.uid))
+        .collect()
+}
+
+#[cfg(windows)]
+pub fn registered() -> Vec<Registered> {
     use winreg::RegKey;
     use winreg::enums::HKEY_CURRENT_USER;
     let Ok(lxss) = RegKey::predef(HKEY_CURRENT_USER)
@@ -317,24 +331,24 @@ pub fn distros() -> Vec<(String, u32)> {
     else {
         return Vec::new();
     };
-    let mut found: Vec<(String, u32)> = lxss
+    let mut found: Vec<Registered> = lxss
         .enum_keys()
         .flatten()
-        .filter_map(|guid| {
-            let one = lxss.open_subkey(&guid).ok()?;
+        .filter_map(|id| {
+            let one = lxss.open_subkey(&id).ok()?;
             let name: String = one.get_value("DistributionName").ok()?;
             let uid: u32 = one.get_value("DefaultUid").unwrap_or(1000);
-            Some((name, uid))
+            Some(Registered { name, uid, id })
         })
         // Docker's own distros run its engine, never a person's assistants.
-        .filter(|(name, _)| !name.starts_with("docker-desktop"))
+        .filter(|one| !one.name.starts_with("docker-desktop"))
         .collect();
     found.sort();
     found
 }
 
 #[cfg(not(windows))]
-pub fn distros() -> Vec<(String, u32)> {
+pub fn registered() -> Vec<Registered> {
     Vec::new()
 }
 
@@ -423,19 +437,103 @@ fn distro_bins(root: &Path, home: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+fn read_conf(name: &str) -> (PathBuf, String) {
+    let root = distro_root(name);
+    let conf = std::fs::read_to_string(root.join("etc").join("wsl.conf")).unwrap_or_default();
+    (root, conf)
+}
+
+fn read_passwd(root: &Path) -> Option<String> {
+    std::fs::read_to_string(root.join("etc").join("passwd")).ok()
+}
+
+fn linux_home(passwd: &str, conf: &str, uid: u32) -> Option<String> {
+    user_in(conf)
+        .and_then(|user| home_of(passwd, &user))
+        .or_else(|| home_in(passwd, uid))
+}
+
+fn uid_of(passwd: &str, home: &str) -> Option<u32> {
+    passwd.lines().find_map(|line| {
+        let parts: Vec<&str> = line.split(':').collect();
+        (parts.len() > 5 && parts[5] == home).then(|| parts[2].parse().ok())?
+    })
+}
+
+/// The default user's home as Windows reaches it, from the distro's own `/etc/passwd` and `/etc/wsl.conf`.
+pub fn home_under(root: &Path, passwd: &str, conf: &str, uid: u32) -> Option<PathBuf> {
+    reached_under(root, &linux_home(passwd, conf, uid)?)
+}
+
+fn reached_under(root: &Path, linux_home: &str) -> Option<PathBuf> {
+    let steps = linux_home.trim_start_matches('/').split('/');
+    let home = steps
+        .filter(|step| !step.is_empty())
+        .try_fold(root.to_path_buf(), |at, step| {
+            (step != "." && step != "..").then(|| at.join(step))
+        })?;
+    (home != root).then_some(home)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DistroHome {
+    pub root: PathBuf,
+    pub home: PathBuf,
+    pub linux: String,
+    pub uid: u32,
+}
+
+/// Where Agents may write: never root's home, nor a home on a Windows drive two distros could share.
+pub fn agents_home(root: &Path, passwd: &str, conf: &str, uid: u32) -> Option<DistroHome> {
+    let linux = linux_home(passwd, conf, uid)?;
+    let owner = uid_of(passwd, &linux)?;
+    let (mount, _) = told_by(conf);
+    let on_a_drive = linux.starts_with(&format!("{}/", mount.trim_end_matches('/')));
+    if owner == 0 || on_a_drive {
+        return None;
+    }
+    Some(DistroHome {
+        root: root.to_path_buf(),
+        home: reached_under(root, &linux)?,
+        linux,
+        uid: owner,
+    })
+}
+
+/// Read only when the distro is running or the person clicked: reading its files starts it.
+pub fn distro_home(name: &str, uid: u32) -> Option<DistroHome> {
+    let (root, conf) = read_conf(name);
+    agents_home(&root, &read_passwd(&root)?, &conf, uid)
+}
+
+/// Whether the home belongs to the user Tisty writes as there, asked of the distro itself.
+#[cfg(windows)]
+pub fn owned_by(name: &str, home: &DistroHome) -> bool {
+    use std::os::windows::process::CommandExt;
+    let child = std::process::Command::new("wsl.exe")
+        .args(["-d", name, "--exec", "stat", "-c", "%u", &home.linux])
+        .creation_flags(0x0800_0000)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+    child
+        .ok()
+        .and_then(answered)
+        .and_then(|said| String::from_utf8_lossy(&said).trim().parse::<u32>().ok())
+        == Some(home.uid)
+}
+
+#[cfg(not(windows))]
+pub fn owned_by(_: &str, _: &DistroHome) -> bool {
+    false
+}
+
 /// A distro as a place: reading its files over `\\wsl.localhost` starts it when it was stopped.
 pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
-    let root = distro_root(name);
-    let passwd = std::fs::read_to_string(root.join("etc").join("passwd")).ok()?;
-    let conf = std::fs::read_to_string(root.join("etc").join("wsl.conf")).unwrap_or_default();
-    let linux_home = user_in(&conf)
-        .and_then(|user| home_of(&passwd, &user))
-        .or_else(|| home_in(&passwd, uid))?;
+    let (root, conf) = read_conf(name);
+    let home = home_under(&root, &read_passwd(&root)?, &conf, uid)?;
     let (mount, open) = told_by(&conf);
-    let home = linux_home
-        .trim_start_matches('/')
-        .split('/')
-        .fold(root.clone(), |at, step| at.join(step));
     let bins = distro_bins(&root, &home);
     Some(Place {
         distro: Some(name.to_string()),

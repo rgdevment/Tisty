@@ -20,7 +20,7 @@ pub use agreeing::{Agreeing, Approved, Hand, agreeing};
 pub use builtin::{BUILTIN, Bundled, Locked, builtin, bundled, locked, skill_of};
 pub use card::{Card, Endings, GLOBAL, KEY, Kind, brought, doc_of, hook_doc, meant_for, rendered};
 pub use found::{Found, Place, Skip, brought_in, found};
-pub use gate::{Admitted, Asked, Gate, Seen, gate, unclaimed};
+pub use gate::{Admitted, Asked, Gate, Seen, gate, gate_holding, unclaimed};
 pub use homes::{
     KNOWN, Told, assistant_folders, assistant_root, home_here, inside_an_assistant, told_here,
 };

@@ -113,6 +113,8 @@ pub fn fresh_rule(level: &str, taken: impl Fn(&str) -> bool) -> Option<String> {
 pub struct Homes {
     home: PathBuf,
     told: tisty_core::agents::Told,
+    /// A WSL distro's root: nothing is written outside it, and what is written there is read by Linux.
+    fence: Option<PathBuf>,
 }
 
 impl Homes {
@@ -133,6 +135,7 @@ impl Homes {
                 .into_iter()
                 .filter(|(_, at)| at.is_absolute())
                 .collect(),
+            fence: None,
         })
     }
 
@@ -194,6 +197,18 @@ impl Homes {
 
     pub fn of(home: &Path) -> Option<Self> {
         Self::told(home.to_path_buf(), [])
+    }
+
+    pub fn in_distro(home: &Path, root: &Path) -> Option<Self> {
+        let homes = Self::of(home).filter(|_| home.starts_with(root))?;
+        Some(Self {
+            fence: Some(root.to_path_buf()),
+            ..homes
+        })
+    }
+
+    fn within(&self, at: &Path) -> bool {
+        self.fence.as_ref().is_none_or(|root| at.starts_with(root))
     }
 
     // Claude Code lists a plugin's skills beside the person's, so the plugin's copy is the one it keeps.
@@ -646,7 +661,7 @@ pub fn placed(
         let card = piece.card();
         let shipped = agents::builtin(piece.file());
         for one in landings(homes, card) {
-            if shipped && plugged.contains(one.assistant) {
+            if !homes.within(&one.at) || (shipped && plugged.contains(one.assistant)) {
                 continue;
             }
             let source = source_of(piece.file(), card);
@@ -663,7 +678,8 @@ pub fn placed(
                 continue;
             }
             let (placed, held) = out.entry(key).or_insert_with(|| {
-                let target = gate.target(ledger, one.root, one.at, one.assistant);
+                let mut target = gate.target(ledger, one.root, one.at, one.assistant);
+                target.distro = homes.fence.is_some();
                 let placed = Placed {
                     target,
                     files: Vec::new(),

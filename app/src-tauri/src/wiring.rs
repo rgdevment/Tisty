@@ -141,6 +141,29 @@ pub fn seen_in_running(names: &[String]) -> Vec<Seen> {
         .collect()
 }
 
+pub use places::DistroHome;
+
+fn registered(name: &str) -> Option<places::Registered> {
+    places::registered()
+        .into_iter()
+        .find(|one| one.name == name)
+}
+
+/// The registry's id, which a distro made again under the same name does not keep.
+pub fn distro_id(name: &str) -> Option<String> {
+    registered(name).map(|one| one.id)
+}
+
+/// For Agents, which needs no Windows command to reach it: only a home its default user owns.
+pub fn distro_home(name: &str) -> Option<DistroHome> {
+    let one = registered(name)?;
+    places::distro_home(&one.name, one.uid).filter(|home| places::owned_by(&one.name, home))
+}
+
+pub fn running_distros() -> Vec<String> {
+    places::running()
+}
+
 fn distro(name: &str) -> Option<Place> {
     let (_, uid) = places::distros().into_iter().find(|(one, _)| one == name)?;
     places::distro(name, uid, &command::calling())

@@ -1274,3 +1274,68 @@ fn a_hook_for_another_computer_or_in_another_place_is_apart_before_it_waits() {
     assert_eq!(gate.seen(&here_in_root), Some(Seen::Apart));
     assert_eq!(gate.seen(&here), Some(Seen::HookWaiting));
 }
+
+impl World {
+    fn holding(&self, distro: &Ledger) -> Gate {
+        gate_holding(
+            &Asked {
+                state: &self.state,
+                docs: self.docs.path(),
+                root: Some(self.root),
+                ledger: &self.ledger,
+                me: &DeviceId(HERE.into()),
+            },
+            distro,
+        )
+    }
+
+    fn distro_ledger(&self) -> Ledger {
+        Ledger::of_distro(self.data.path(), "machine-here", "abc-12").unwrap()
+    }
+}
+
+#[test]
+fn a_distro_is_given_what_this_computer_approved_but_never_an_agents_memory() {
+    let mut world = world();
+    let (_, rule_file) = world.made(HERE, &rule("Tests first.\n"), true);
+    let (_, memory_file) = world.made(HERE, &memory("Remembered.\n"), true);
+    assert_eq!(world.gate().seen(&memory_file), Some(Seen::Admitted));
+
+    let distro = world.distro_ledger();
+    let gate = world.holding(&distro);
+    assert_eq!(gate.seen(&rule_file), Some(Seen::Admitted));
+    assert!(gate.admitted().iter().any(|one| one.file() == rule_file));
+    assert!(gate.admitted().iter().all(|one| one.file() != memory_file));
+    assert_eq!(gate.seen(&memory_file), None);
+}
+
+#[test]
+fn a_distro_ledger_holds_what_it_applied_even_when_this_computer_never_did() {
+    let mut world = world();
+    let (id, file) = world.made(HERE, &rule("Mine.\n"), true);
+    world.written(AGENT, id, &file, &rule("The agent's.\n"), false);
+    assert_eq!(world.gate().seen(&file), Some(Seen::NotAgreed));
+    assert!(!world.gate().held(&file));
+
+    let mut distro = world.distro_ledger();
+    distro.applied_to(Path::new("/home/rina/.claude/CLAUDE.md"), [file.clone()]);
+    let gate = world.holding(&distro);
+    assert!(gate.held(&file));
+    assert!(!world.gate().held(&file));
+
+    let windows_only = world.holding(&world.distro_ledger());
+    assert!(!windows_only.held(&file));
+}
+
+#[test]
+fn what_this_computer_applied_never_holds_a_distros_file() {
+    let mut world = world();
+    let (id, file) = world.made(HERE, &rule("Mine.\n"), true);
+    let at = world.home.path().join(".claude").join("CLAUDE.md");
+    world.ledger.applied_to(&at, [file.clone()]);
+    world.written(AGENT, id, &file, &rule("The agent's.\n"), false);
+    assert!(world.gate().held(&file));
+
+    let gate = world.holding(&world.distro_ledger());
+    assert!(!gate.held(&file));
+}

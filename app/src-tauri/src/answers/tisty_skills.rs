@@ -272,7 +272,7 @@ fn skill_folder_of(at: &Path) -> PathBuf {
 }
 
 // Turning them off goes skill by skill, as writing does: one with a copy changed, or that a document places, stays whole in the card.
-fn unwritten(session: &Session, homes: &Homes, ledger: &mut Ledger, placed: &[Placed]) {
+pub(crate) fn unwritten(session: &Session, homes: &Homes, ledger: &mut Ledger, placed: &[Placed]) {
     let data = session.paths.data();
     let mut skills: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
     for (at, _) in ledger

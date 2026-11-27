@@ -44,6 +44,9 @@ pub struct Ledger {
     homing: Option<BTreeSet<String>>,
     #[serde(default)]
     hooks: BTreeMap<String, HookYes>,
+    /// Where it is kept: this computer's own file, or a WSL distro's beside it.
+    #[serde(skip)]
+    file: String,
 }
 
 /// The person's yes to one hook on this computer: the exact words, and the script bytes they became.
@@ -68,7 +71,26 @@ impl Ledger {
 
     // A ledger copied from another computer carries that computer's consent, never this one's.
     pub fn open(data: &Path, here: &str) -> Self {
-        match Self::read(data) {
+        Self::open_in(data, here, NAMED)
+    }
+
+    /// A WSL distro counts as a computer of its own, kept by its registry id so one made again starts fresh.
+    pub fn of_distro(data: &Path, here: &str, id: &str) -> Option<Self> {
+        let id = id.trim_matches(['{', '}']).to_ascii_lowercase();
+        let named = id.chars().all(|one| one.is_ascii_hexdigit() || one == '-');
+        if id.is_empty() || !named || here.is_empty() {
+            return None;
+        }
+        let machine = format!("{here}/wsl:{id}");
+        Some(Self::open_in(
+            data,
+            &machine,
+            &format!("ledger.wsl.{id}.json"),
+        ))
+    }
+
+    fn open_in(data: &Path, here: &str, file: &str) -> Self {
+        let mut ledger = match Self::read(data, file) {
             Some(ledger) if ledger.machine == here => ledger,
             Some(_) => {
                 witness::warn(
@@ -79,20 +101,36 @@ impl Ledger {
                 Self::fresh(here)
             }
             None => Self::fresh(here),
+        };
+        ledger.file = match file == NAMED {
+            true => String::new(),
+            false => file.to_string(),
+        };
+        ledger
+    }
+
+    fn of_a_distro(&self) -> bool {
+        self.file() != NAMED
+    }
+
+    fn file(&self) -> &str {
+        match self.file.is_empty() {
+            true => NAMED,
+            false => &self.file,
         }
     }
 
     /// This computer's ledger, or none when the one kept here was written on another computer.
     pub fn mine(data: &Path, here: &str) -> Option<Self> {
-        match Self::read(data) {
+        match Self::read(data, NAMED) {
             Some(ledger) if ledger.machine != here => None,
             Some(ledger) => Some(ledger),
             None => Some(Self::fresh(here)),
         }
     }
 
-    fn read(data: &Path) -> Option<Self> {
-        let at = super::folder(data).join(NAMED);
+    fn read(data: &Path, file: &str) -> Option<Self> {
+        let at = super::folder(data).join(file);
         std::fs::metadata(&at)
             .ok()
             .filter(|meta| meta.len() <= READ_AT_MOST)
@@ -105,7 +143,7 @@ impl Ledger {
         std::fs::create_dir_all(&folder)?;
         let _ = crate::paths::ours_alone(&folder);
         let said = serde_json::to_vec_pretty(self).map_err(|e| Refused::Io(e.to_string()))?;
-        let at = folder.join(NAMED);
+        let at = folder.join(self.file());
         crate::store::write_atomic(&at, &said)?;
         let _ = crate::paths::ours_alone(&at);
         Ok(())
@@ -278,8 +316,10 @@ impl Ledger {
     // What went into a file stays taken here, so a later change of this computer's name drops nothing from it.
     pub fn applied_to(&mut self, at: &Path, files: impl IntoIterator<Item = String>) {
         let files: BTreeSet<String> = files.into_iter().collect();
-        self.took
-            .extend(documents(files.iter().map(String::as_str)));
+        if !self.of_a_distro() {
+            self.took
+                .extend(documents(files.iter().map(String::as_str)));
+        }
         self.applied.insert(keyed(at), files);
     }
 

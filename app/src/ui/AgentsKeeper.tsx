@@ -21,9 +21,11 @@ import {
   onlySwitchedOff,
   tistySkillsRound,
 } from "../agentsSync";
+import { agentsWslRound } from "../agentsWsl";
 import { useDesk } from "../desk";
 import { agentsKeys, show, useHidden } from "../hiding";
 import { saidPlainly } from "../refusal";
+import { looked } from "../wslLooked";
 import AgentsFirst from "./AgentsFirst";
 import { useAgentsState } from "./AgentsMark";
 import { waitingOf } from "./AgentsReview";
@@ -87,6 +89,11 @@ export default function AgentsKeeper() {
     tistySkillsRound()
       .then(() => window.dispatchEvent(new Event(AGENTS_CHANGED)))
       .catch(() => undefined);
+  }, []);
+
+  // A distro already running when the window opens catches up once; a stopped one waits for a click.
+  useEffect(() => {
+    for (const name of looked()) agentsWslRound(name, false).catch(() => undefined);
   }, []);
 
   // An assistant's proposal changes no document the sidebar lists, so the log stirring is the only sign of it.

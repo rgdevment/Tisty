@@ -170,6 +170,7 @@ impl Gate {
             assistant: assistant.to_string(),
             pieces: Vec::new(),
             held,
+            distro: false,
         }
     }
 }
@@ -225,6 +226,25 @@ pub fn gate(asked: &Asked) -> Gate {
         .map(str::to_string)
         .collect();
     gate
+}
+
+/// Words approved on this computer, files held by another ledger: a WSL distro writes what this computer took,
+/// while what it already holds stays its own. An agent's memory stays here, since a distro only receives.
+pub fn gate_holding(asked: &Asked, holds: &Ledger) -> Gate {
+    let mut gate = gate(asked);
+    gate.held = holds
+        .applied()
+        .into_iter()
+        .filter(|file| held(asked, gate.seen.get(*file).copied(), file))
+        .map(str::to_string)
+        .collect();
+    let memories: BTreeSet<String> = gate
+        .admitted
+        .iter()
+        .filter(|one| one.card().kind == Kind::Memory)
+        .map(|one| one.file().to_string())
+        .collect();
+    gate.without(&memories)
 }
 
 // Windows and macOS keep `Tisty` and `tisty` in one folder.
