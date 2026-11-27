@@ -64,7 +64,7 @@ use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
 
 pub(crate) use catalogue::{is_tool, writes};
-pub(crate) use open_task::TURN_LEFT_UNWRITTEN;
+pub(crate) use open_task::{PUBLISHED_ASK, TURN_LEFT_UNWRITTEN, ready_to_say_done};
 pub(crate) use opening::opening;
 pub(crate) use outside::{CARD_LEFT_OUTSIDE, COMMAND_LEAVES_OUTSIDE, FILE_LEFT_OUTSIDE};
 

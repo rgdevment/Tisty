@@ -15,6 +15,7 @@ const START_SECONDS: u64 = 15;
 const TURN_SECONDS: u64 = 5;
 const BEFORE_SECONDS: u64 = 3;
 const BEFORE: &str = "before";
+const SHELL: &str = "shell";
 const PROSE_WRITTEN: &str = r"\.(md|markdown|txt|rst|adoc|org)";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,6 +104,7 @@ impl Kind {
                 "sessionStart",
                 "preToolUse",
                 "beforeShellExecution",
+                "afterShellExecution",
                 "afterFileEdit",
                 "afterMCPExecution",
                 "stop",
@@ -161,6 +163,8 @@ impl Kind {
         let start = run("start", START_SECONDS);
         let tool = run("tool", TURN_SECONDS);
         let stop = run("stop", TURN_SECONDS);
+        let shell = run(SHELL, TURN_SECONDS);
+        let after_shell = |matcher: &str| json!({ "matcher": matcher, "hooks": [shell.clone()] });
         match self {
             Kind::Claude => vec![
                 ("SessionStart", json!({ "hooks": [start] })),
@@ -172,6 +176,7 @@ impl Kind {
                     "PostToolUse",
                     json!({ "matcher": "^(mcp__(tisty|plugin_tisty_tisty)__|MCP:)", "hooks": [tool] }),
                 ),
+                ("PostToolUse", after_shell("^(Bash|PowerShell)$")),
                 ("Stop", json!({ "hooks": [stop] })),
             ],
             Kind::Cursor => {
@@ -182,6 +187,7 @@ impl Kind {
                     ("sessionStart", start),
                     ("afterFileEdit", run("edit", TURN_SECONDS)),
                     ("afterMCPExecution", tool),
+                    ("afterShellExecution", shell),
                     ("stop", stop),
                 ]
             }
@@ -195,6 +201,7 @@ impl Kind {
                     "AfterTool",
                     json!({ "matcher": "^mcp_tisty_", "hooks": [tool] }),
                 ),
+                ("AfterTool", after_shell("^run_shell_command$")),
                 ("AfterAgent", json!({ "hooks": [stop] })),
             ],
             Kind::Copilot => {
@@ -202,10 +209,13 @@ impl Kind {
                 edits["matcher"] = json!("create|edit|apply_patch|str_replace_editor");
                 let mut ours = tool;
                 ours["matcher"] = json!("tisty-.*");
+                let mut shells = shell;
+                shells["matcher"] = json!("bash|powershell|shell");
                 vec![
                     ("sessionStart", start),
                     ("postToolUse", edits),
                     ("postToolUse", ours),
+                    ("postToolUse", shells),
                     ("agentStop", stop),
                 ]
             }
@@ -219,6 +229,7 @@ impl Kind {
                     "PostToolUse",
                     json!({ "matcher": "^mcp__tisty__", "hooks": [tool] }),
                 ),
+                ("PostToolUse", after_shell("^Bash$")),
                 ("Stop", json!({ "hooks": [stop] })),
             ],
             Kind::Antigravity => vec![
@@ -234,6 +245,7 @@ impl Kind {
                     "PostToolUse",
                     json!({ "matcher": "^mcp_tisty_", "hooks": [tool] }),
                 ),
+                ("PostToolUse", after_shell("^run_command$")),
                 ("Stop", stop),
             ],
         }
@@ -327,7 +339,9 @@ pub fn seen(kind: Kind, place: &Place) -> Option<Hooks> {
 
 fn lacks_before(kind: Kind, text: &str) -> bool {
     let runs = runs(kind, text);
-    !runs.iter().any(|run| run.all_read && run.moment == BEFORE)
+    [BEFORE, SHELL]
+        .iter()
+        .any(|moment| !runs.iter().any(|run| run.all_read && run.moment == *moment))
 }
 
 pub fn hooked(kind: Kind, text: &str) -> bool {

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 const FOLDER: &str = "turns";
 const NAME_AT_MOST: usize = 64;
 const KEPT_FOR_SECONDS: u64 = 7 * 24 * 60 * 60;
+const TOUCHED: &str = "task";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mark {
@@ -13,6 +14,8 @@ pub enum Mark {
     Ended,
     Handed,
     Asked,
+    Published,
+    AskedPublished,
 }
 
 impl Mark {
@@ -24,6 +27,8 @@ impl Mark {
             Mark::Ended => "ended",
             Mark::Handed => "handed",
             Mark::Asked => "asked",
+            Mark::Published => "published",
+            Mark::AskedPublished => "asked-published",
         }
     }
 }
@@ -54,6 +59,26 @@ impl Session {
         }
     }
 
+    pub fn touched(&self, task: &str) {
+        if task.is_empty() || std::fs::create_dir_all(&self.at).is_err() {
+            return;
+        }
+        let file = self.at.join(TOUCHED);
+        let aside = self
+            .at
+            .join(format!("{TOUCHED}.{}.tmp", std::process::id()));
+        if std::fs::write(&aside, named(task)).is_err() || std::fs::rename(&aside, &file).is_err() {
+            let _ = std::fs::remove_file(&aside);
+        }
+    }
+
+    pub fn last_touched(&self) -> Option<String> {
+        std::fs::read_to_string(self.at.join(TOUCHED))
+            .ok()
+            .map(|said| said.trim().to_string())
+            .filter(|said| !said.is_empty())
+    }
+
     pub fn marks(&self) -> Marks {
         let read = |what: Mark| {
             std::fs::read_to_string(self.at.join(what.file()))
@@ -67,6 +92,8 @@ impl Session {
             ended: read(Mark::Ended),
             handed: read(Mark::Handed),
             asked: read(Mark::Asked),
+            published: read(Mark::Published),
+            asked_published: read(Mark::AskedPublished),
         }
     }
 
@@ -99,6 +126,19 @@ pub struct Marks {
     pub ended: Option<i128>,
     pub handed: Option<i128>,
     pub asked: Option<i128>,
+    pub published: Option<i128>,
+    pub asked_published: Option<i128>,
+}
+
+impl Marks {
+    pub fn published_unasked(&self) -> bool {
+        let since_turn =
+            |at: Option<i128>| at.is_some_and(|at| self.ended.is_none_or(|end| at > end));
+        since_turn(self.published)
+            && self
+                .asked_published
+                .is_none_or(|asked| self.published.is_some_and(|at| at > asked))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

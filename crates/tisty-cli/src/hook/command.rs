@@ -14,6 +14,7 @@ const WRITING: [&str; 7] = [
 const NAMING: [&str; 4] = ["-path", "-filepath", "-literalpath", "-pspath"];
 const MOVING: [&str; 6] = ["cd", "pushd", "chdir", "set-location", "sl", "popd"];
 const HERE_STRING: &str = "@";
+const VALUED: [&str; 6] = ["-C", "-c", "-R", "--repo", "--git-dir", "--work-tree"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Written {
@@ -57,6 +58,39 @@ pub fn written(command: &str) -> Vec<Written> {
         }));
     }
     all
+}
+
+pub fn publishes(command: &str) -> bool {
+    pieces(&without_what_is_written(command))
+        .split(|piece| *piece == Piece::End)
+        .any(|one| {
+            let (words, _) = apart(one);
+            let Some(head) = words.first().map(|it| program(it)) else {
+                return false;
+            };
+            let said = bare(&words[1..]);
+            match head.as_str() {
+                "git" => said.first() == Some(&"push"),
+                "gh" => matches!(said.as_slice(), ["pr", "create" | "merge", ..]),
+                _ => false,
+            }
+        })
+}
+
+fn bare<'a>(words: &[&'a str]) -> Vec<&'a str> {
+    let mut kept = Vec::new();
+    let mut valued = false;
+    for word in words {
+        if std::mem::take(&mut valued) {
+            continue;
+        }
+        if word.starts_with('-') {
+            valued = VALUED.contains(word);
+            continue;
+        }
+        kept.push(*word);
+    }
+    kept
 }
 
 fn apart(one: &[Piece]) -> (Vec<&str>, Vec<&str>) {

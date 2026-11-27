@@ -210,6 +210,39 @@ pub(crate) const TURN_LEFT_UNWRITTEN: &str = "You edited files this turn and wro
     any, and `state` with what is done, what is left and the decisions in force. If it was not \
     work on a task, end your turn without writing anything.";
 
+pub(crate) const PUBLISHED_ASK: &str = "You just pushed or opened or merged a pull request. Did \
+    you finish a step or the task? If it was a step of a Tisty task, `tick` it with `state`; if \
+    the work is done and proven, `say_done` with the branch, the commit and how you verified it. \
+    Merging and publishing after that are the person's, and need no waiting.";
+
+pub(crate) fn ready_to_say_done(paths: &Paths, said: &str) -> Option<String> {
+    let id = said.parse::<TaskId>().ok()?;
+    let state = match super::admitted(paths) {
+        Ok(Some((state, _))) => state,
+        Ok(None) => return None,
+        Err(_) => {
+            super::TOLD.take();
+            return None;
+        }
+    };
+    let task = state.tasks.get(&id)?;
+    let ready = task.is_open()
+        && !task.folded()
+        && task.resolved.is_none()
+        && state.agents_own(task)
+        && !task.steps.is_empty()
+        && task.steps.iter().all(|step| step.done);
+    ready.then(|| {
+        format!(
+            "Every step of {:?} is ticked, but it is not said done. If the work is done and \
+             proven, `say_done` it now with the branch, the commit and how you verified it; what \
+             only the person can do goes to them with `unplan` and `to_person`. If it is not \
+             done, end your turn.",
+            task.title
+        )
+    })
+}
+
 pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
     if !task.is_open() || task.folded() || task.resolved.is_some() || task.for_person {
         return None;

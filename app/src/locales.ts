@@ -3426,10 +3426,10 @@ const en = {
   hooksAskPlugin:
     "For Claude Code, Tisty first reads its plugin's records (installed_plugins.json and settings.json) so as not to write hooks the plugin already brings.",
   hooksAsk:
-    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once. Before it leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. The rest of that file stays as it is, and you can turn them off here.",
+    "Tisty will add its hooks to {name}. When a session starts, the agent gets the tasks it left open and what moved. After each edit and each call to Tisty, a mark is left, without reading the conversation. When a turn edited files and wrote nothing in Tisty, the turn is handed back to it once; so is a turn that pushed or merged, or left every step of its task ticked without saying it done. Before it leaves a text file outside a repository, or a task card of its own, it is asked once whether it belongs in Tisty, and goes through if it insists. The rest of that file stays as it is, and you can turn them off here.",
   hooksYes: "Add them",
   hooksMissOne:
-    "They lack the newest one, which asks before it leaves something outside a repository: turn them off and on to have it.",
+    "They lack the newest ones, which ask before it leaves something outside a repository and after a push or a merge: turn them off and on to have them.",
   hooksCodexTrust: "Approve it in Codex with /hooks.",
   joinTitle: "Connect {name} to Tisty",
   joinTitleAll: "Connect {name} agents to Tisty",
@@ -7394,10 +7394,10 @@ const es: Catalog = {
   hooksAskPlugin:
     "En Claude Code, Tisty lee antes el registro de su plugin (installed_plugins.json y settings.json) para no escribir hooks que el plugin ya trae.",
   hooksAsk:
-    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez. Antes de dejar un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. El resto de ese archivo queda como está, y puedes apagarlos aquí.",
+    "Tisty agregará sus hooks en {name}. Al empezar una sesión, el agente recibe las tareas que dejó abiertas y lo que se movió. Después de cada edición y de cada llamada a Tisty queda una marca, sin leer la conversación. Cuando un turno editó archivos y no escribió nada en Tisty, se le devuelve una vez; también uno que hizo push o merge, o que dejó todos los pasos de su tarea marcados sin decirla hecha. Antes de dejar un archivo de texto fuera de un repo, o una tarjeta de tarea por su cuenta, se le pregunta una vez si va en Tisty, y pasa si insiste. El resto de ese archivo queda como está, y puedes apagarlos aquí.",
   hooksYes: "Agregarlos",
   hooksMissOne:
-    "Les falta el más nuevo, el de antes de dejar algo fuera de un repo: apágalos y enciéndelos para tenerlo.",
+    "Les faltan los más nuevos, el de antes de dejar algo fuera de un repo y el de después de un push o un merge: apágalos y enciéndelos para tenerlos.",
   hooksCodexTrust: "Apruébalo en Codex con /hooks.",
   joinTitle: "Conectar {name} con Tisty",
   joinTitleAll: "Conectar {name} agentes con Tisty",

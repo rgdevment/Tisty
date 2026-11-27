@@ -74,6 +74,8 @@ struct Input {
     input: Option<Value>,
     #[serde(default)]
     patch: Option<Value>,
+    #[serde(default)]
+    task: Option<Value>,
 }
 
 impl Call {
@@ -102,6 +104,14 @@ impl Call {
             // Cursor hands a terminal command over on its own, with no tool named.
             None => command(&self.command),
         }
+    }
+
+    pub fn task(&self) -> Option<&str> {
+        text(&self.input.task)
+    }
+
+    pub fn command(&self) -> Option<&str> {
+        text(&self.input.command).or(text(&self.command))
     }
 
     pub fn cwd(&self) -> &str {

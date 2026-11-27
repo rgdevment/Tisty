@@ -11,7 +11,7 @@ use std::process::ExitCode;
 use tisty_core::Paths;
 
 use call::Call;
-use marks::{Mark, Session, Verdict, verdict};
+use marks::{Mark, Marks, Session, Verdict, verdict};
 use outside::Here;
 use said::{Client, Heard};
 
@@ -68,10 +68,11 @@ fn answered(paths: &Paths, client: Client, moment: &str, raw: &[u8], at: i128) -
             None
         }
         "tool" => {
-            used(&heard, &session, at);
+            used(&heard, raw, &session, at);
             None
         }
-        "stop" => ended(&settings, client, &heard, &session, at),
+        "shell" => shelled(&settings, client, &heard, raw, &session, at),
+        "stop" => ended(paths, &settings, client, &heard, &session, at),
         // Cursor runs Claude Code's hooks too, and shows their reason to the person, not to its agent.
         "before" if settings.door_open() && !borrowed(client, &heard) => {
             let call = Call::read(raw);
@@ -101,18 +102,43 @@ fn started(
     Some(client.started(&opening))
 }
 
-fn used(heard: &Heard, session: &Session, at: i128) {
+fn used(heard: &Heard, raw: &[u8], session: &Session, at: i128) {
     if let Some(tool) = heard.tisty_tool() {
         session.mark(Mark::Called, at);
         if crate::mcp::writes(tool) {
             session.mark(Mark::Wrote, at);
+            if let Some(task) = Call::read(raw).task() {
+                session.touched(task);
+            }
         }
     } else if heard.edits() {
         session.mark(Mark::Edited, at);
     }
 }
 
+fn shelled(
+    settings: &Settings,
+    client: Client,
+    heard: &Heard,
+    raw: &[u8],
+    session: &Session,
+    at: i128,
+) -> Option<String> {
+    let call = Call::read(raw);
+    if !settings.door_open() || !call.command().is_some_and(command::publishes) {
+        return None;
+    }
+    session.mark(Mark::Published, at);
+    if borrowed(client, heard) {
+        return None;
+    }
+    let said = client.after_shell(crate::mcp::PUBLISHED_ASK)?;
+    session.mark(Mark::AskedPublished, at);
+    Some(said)
+}
+
 fn ended(
+    paths: &Paths,
     settings: &Settings,
     client: Client,
     heard: &Heard,
@@ -120,15 +146,45 @@ fn ended(
     at: i128,
 ) -> Option<String> {
     let marks = session.marks();
-    if !settings.door_open() || verdict(&marks, heard.again()) == Verdict::LetGo {
+    if !settings.door_open() {
         session.mark(Mark::Ended, at);
         return None;
     }
-    if !session.claim(&format!("stop-{}", marks.edited.unwrap_or_default())) {
+    if verdict(&marks, heard.again()) == Verdict::HandBack {
+        if !session.claim(&format!("stop-{}", marks.edited.unwrap_or_default())) {
+            return None;
+        }
+        session.mark(Mark::Handed, at);
+        return Some(client.handed_back(crate::mcp::TURN_LEFT_UNWRITTEN));
+    }
+    if !heard.again()
+        && let Some(said) = asked_at_the_end(paths, session, &marks, at)
+    {
+        return Some(client.handed_back(&said));
+    }
+    session.mark(Mark::Ended, at);
+    None
+}
+
+fn asked_at_the_end(paths: &Paths, session: &Session, marks: &Marks, at: i128) -> Option<String> {
+    if marks.published_unasked()
+        && session.claim(&format!(
+            "published-{}",
+            marks.published.unwrap_or_default()
+        ))
+    {
+        session.mark(Mark::AskedPublished, at);
+        return Some(crate::mcp::PUBLISHED_ASK.to_string());
+    }
+    let wrote_this_turn = marks
+        .wrote
+        .is_some_and(|wrote| marks.ended.is_none_or(|end| wrote > end));
+    if !wrote_this_turn {
         return None;
     }
-    session.mark(Mark::Handed, at);
-    Some(client.handed_back(crate::mcp::TURN_LEFT_UNWRITTEN))
+    let task = session.last_touched()?;
+    let said = crate::mcp::ready_to_say_done(paths, &task)?;
+    session.claim(&format!("ready-{task}")).then_some(said)
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
