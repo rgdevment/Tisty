@@ -174,6 +174,10 @@ impl Booking {
         self.book.is_some()
     }
 
+    pub fn shows(&self) -> bool {
+        self.book.as_deref().is_some_and(Book::shows)
+    }
+
     pub fn most(&self) -> usize {
         self.most
     }

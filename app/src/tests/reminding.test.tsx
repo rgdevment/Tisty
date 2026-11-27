@@ -9,6 +9,8 @@ const bus = vi.hoisted(() => ({
   tasks: {} as Record<string, unknown>,
   due: null as unknown,
   asked: [] as string[],
+  noted: [] as unknown[],
+  failure: "notATaskId",
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -21,6 +23,10 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: { id?: string }) => {
     bus.asked.push(cmd);
+    if (cmd === "note_break") {
+      bus.noted.push(args);
+      return Promise.resolve(null);
+    }
     if (cmd === "task_waiting") {
       const owed = bus.waiting;
       bus.waiting = null;
@@ -28,7 +34,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     }
     if (cmd === "task_of") {
       const one = bus.tasks[args?.id ?? ""];
-      return one ? Promise.resolve(one) : Promise.reject(new Error("notATaskId"));
+      return one ? Promise.resolve(one) : Promise.reject(new Error(bus.failure));
     }
     if (cmd === "wake_due") return Promise.resolve(bus.due);
     return Promise.resolve(null);
@@ -43,6 +49,8 @@ beforeEach(() => {
   bus.tasks = { [TASK.id]: TASK };
   bus.due = null;
   bus.asked = [];
+  bus.noted = [];
+  bus.failure = "notATaskId";
 });
 
 function seeing() {
@@ -80,6 +88,24 @@ describe("a pressed reminder", () => {
 
     await waitFor(() => expect(bus.asked).toContain("task_of"));
     expect(hands.setSelected).not.toHaveBeenCalled();
+  });
+
+  it("whose task cannot be read is reported and leaves the view alone", async () => {
+    bus.waiting = "01KA7B3VJ9RZ0Q8M5N2X4Y6W1V";
+    bus.failure = "the store was busy";
+    const hands = seeing();
+
+    renderHook(() => useCalledTasks(hands));
+
+    await waitFor(() => expect(bus.noted).toHaveLength(1));
+    expect(bus.noted[0]).toMatchObject({
+      kind: "Error",
+      said: "the store was busy",
+      stopped: false,
+    });
+    expect(hands.setSelected).not.toHaveBeenCalled();
+    expect(hands.setChosen).not.toHaveBeenCalled();
+    expect(hands.setHeld).not.toHaveBeenCalled();
   });
 
   it("of a task with no list opens it among every task", () => {

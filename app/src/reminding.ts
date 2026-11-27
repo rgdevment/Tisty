@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { caught } from "./broke";
 import { type Task, taskOf, type Waking } from "./core";
 import type { Chosen } from "./views";
 
@@ -33,7 +34,7 @@ export function useCalledTasks(seeing: Seeing) {
           setHeld(one);
           setSelected(one.id);
         })
-        .catch(() => {});
+        .catch(caught);
     // Listening first: a reminder pressed while the waiting one is read is still heard.
     const heard = listen("showtask", see);
     heard.then(see, see);
