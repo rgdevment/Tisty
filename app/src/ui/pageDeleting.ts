@@ -51,6 +51,26 @@ import { startIn } from "./pageSpots";
 import { wholeReach } from "./pageWholes";
 import { choiceKept, keptUnlaid, titleBegun, type Writer } from "./pageWriter";
 
+// Code and a note keep words of their own to write in; a table, a diagram, a fold or a sticky note go whole.
+const GOES_WHOLE = ".table, figure:not(.code), .math, details, hr, blockquote[data-callout='idea']";
+// A line of only a card or a formula set apart is a piece of its own; tags, icons and inline pieces are words.
+const ALONE = "a.card, .doc-card, math[display='block']";
+
+const aloneAsPiece = (line: Element) =>
+  line.matches("p") &&
+  drawnWhole(line) &&
+  line.querySelectorAll(PIECES).length === 1 &&
+  line.querySelector(ALONE) !== null;
+
+const goesWhole = (one: Element) => one.matches(`[data-at]:is(${GOES_WHOLE})`) || aloneAsPiece(one);
+
+const placedBeside = (one: Element, back: boolean) => {
+  const step = (at: Element) => (back ? at.previousElementSibling : at.nextElementSibling);
+  let beside = step(one);
+  while (beside && !beside.matches("[data-at]")) beside = step(beside);
+  return beside;
+};
+
 export type Retaken = (kind: string, named: StaticRange | undefined, standing: Standing) => void;
 
 export type KeyReach =
@@ -73,7 +93,7 @@ export const deletingOn = (
 ) => {
   const { page, hands } = writer;
 
-  // A page break holds no words, so the key that would join a block to it takes the break away instead.
+  // A piece drawn whole holds no words to join, so the key that would join a block to it takes the piece away instead.
   const pastBreak = (kind: string, range: AbstractRange | null): Span | null => {
     const back = backward(kind);
     if (!back && !forward(kind)) return null;
@@ -85,14 +105,17 @@ export const deletingOn = (
     if (back) edge.setEnd(range.startContainer, range.startOffset);
     else edge.setStart(range.startContainer, range.startOffset);
     if (shownWords(edge.toString()) !== "") return null;
-    const beside = back ? top.previousElementSibling : top.nextElementSibling;
+    const beside = placedBeside(top, back);
     const shown = beside && aloneOnLine(beside) ? beside.querySelector(EMBED) : null;
     if (shown) return embedGone(hands.text(), shown);
-    const at = beside?.matches("hr[data-at]") ? placeOf(beside) : null;
+    const at = beside && goesWhole(beside) ? placeOf(beside) : null;
     if (!beside || !at) return null;
-    const until = placeOf(beside.nextElementSibling)?.[0] ?? at[1];
     const text = hands.text();
-    return { from: charsAt(text, at[0]), to: charsAt(text, until) };
+    const after = placeOf(placedBeside(beside, false));
+    if (after) return { from: charsAt(text, at[0]), to: charsAt(text, after[0]) };
+    // The last piece of a page takes the blank line above it too, so the page ends at its last words.
+    const from = charsAt(text, at[0]);
+    return { from: text.slice(0, from).trimEnd().length, to: charsAt(text, at[1]) };
   };
 
   // A picture or a file among words is drawn whole, so the browser's reach misses it; the key beside it takes it away.
@@ -290,6 +313,15 @@ export const deletingOn = (
       return true;
     }
     const amongWords = range.startContainer.nodeType === Node.TEXT_NODE;
+    // WebKit sends no input for a key with nothing it can write past, as a page's last piece, so the key takes it here.
+    const last = amongWords && !back ? pastBreak(kind, range) : null;
+    if (last) {
+      writer.leftFrom = undefined;
+      writer.typing = true;
+      writer.pending = null;
+      tookBeside(kind, last);
+      return true;
+    }
     if (amongWords && (!back || hands.text().lastIndexOf("\n", at - 1) >= 0)) return false;
     const ahead =
       !back && range.collapsed ? letterAhead(range.startContainer, range.startOffset) : null;

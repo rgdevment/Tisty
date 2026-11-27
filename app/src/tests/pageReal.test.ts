@@ -183,17 +183,23 @@ describe("a heading's marks typed on a task's page", () => {
 });
 
 describe("keys at the edge of a collapsible that holds words", () => {
-  it("join nothing to it, from the block after it or the one before it", () => {
+  it("take it whole from the block after it", () => {
     const text = opened("foldFilled");
-    const was = text();
     const after = Array.from(document.querySelectorAll("[data-src]")).find(
       (one) => one.textContent === "despues",
     )?.firstChild as Text;
     document.getSelection()?.collapse(after, 0);
     asked("deleteContentBackward");
+    expect(text()).not.toContain(":::details");
+    expect(text()).toContain("despues");
+  });
+
+  it("take it whole from the block before it", () => {
+    const text = opened("foldFilled");
     caretAfter("Uno dos tres");
     asked("deleteContentForward");
-    expect(text()).toBe(was);
+    expect(text()).not.toContain(":::details");
+    expect(text()).toContain("Uno dos tres");
   });
 });
 

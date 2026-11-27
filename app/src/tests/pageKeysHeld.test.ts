@@ -237,13 +237,13 @@ describe("a held delete writes nothing while the page cannot show its place", ()
 });
 
 describe("a held delete keeps the page's rules once it acts", () => {
-  it("leaves a table below whole", async () => {
+  it("takes a table below whole, as a piece drawn whole", async () => {
     const text = opened(TABLE);
     caretAt("Antes", true);
     typed("X");
     deleted();
     await landed();
-    expect(text()).toBe("# T\n\nAntesX\n\n| a | b |\n|---|---|\n| 1 | 2 |\n");
+    expect(text()).toBe("# T\n\nAntesX");
   });
 
   it("never joins a task page's section heading to the step freed below it", async () => {

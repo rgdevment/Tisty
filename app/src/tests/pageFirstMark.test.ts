@@ -108,7 +108,7 @@ describe("a key with the caret between two pieces drawn whole, where WebKit send
     expect(text()).toBe("Texto #tag fin.\n\n[^1]: Nota.\n");
   });
 
-  it("keeps a format waiting to be typed when the browser's key is held at a block's edge", () => {
+  it("clears a format waiting to be typed when the browser's key is held at a widget's edge and takes the widget", () => {
     const text = opened(
       "```widget\nx\n```\n\nHola\n",
       '<figure class="widget" data-at="0-16" contenteditable="false"><div>x</div></figure>' +
@@ -126,10 +126,10 @@ describe("a key with the caret between two pieces drawn whole, where WebKit send
         );
     send("deleteContentBackward", null);
     send("insertText", "X");
-    expect(text()).toBe("```widget\nx\n```\n\n**X**Hola\n");
+    expect(text()).toBe("XHola\n");
   });
 
-  it("keeps a format waiting to be typed when the key is held and does nothing", () => {
+  it("clears a format waiting to be typed when the key is held and takes the widget", () => {
     const text = opened(
       "```widget\nx\n```\n\nHola\n",
       '<figure class="widget" data-at="0-16" contenteditable="false"><div>x</div></figure>' +
@@ -145,7 +145,7 @@ describe("a key with the caret between two pieces drawn whole, where WebKit send
       cancelable: true,
     });
     document.querySelector(".page")?.dispatchEvent(event);
-    expect(text()).toBe("```widget\nx\n```\n\n**X**Hola\n");
+    expect(text()).toBe("XHola\n");
   });
 });
 
