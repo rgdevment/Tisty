@@ -22,17 +22,17 @@ The panel beside a document has a **Linked from** row: every document and every 
 
 ## Citing a task
 
-What you know about a subject lives in its document, and the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it. In the `/` menu, **A task** searches the open and the archived ones, and leaves its card alone in its paragraph.
+What you know about a subject lives in its document, and the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it. In the `/` menu, under **Task**, **A task** searches the open and the archived ones, and leaves its card alone in its paragraph.
 
 ![The cards of «Renew the car insurance» and «Change the car tyres» in the «Car» document, each with its list, Finance, and «1 of 3 steps»; the second one also with its date](card.png)
 
 The card reads the task every time it is drawn: its list, its dates, how many steps are done, how many wait for you to confirm when an agent says it did them («1 of 3 steps · 1 to confirm») and, if it closed, the day. A click opens it; its circle marks it done; its count unfolds the steps to tick them right there. A closed task is read, but no longer changes from the document.
 
-**Try it:** on an empty line of this sheet type `/`, pick **A task** and write a word of one of your tasks. If you have none yet, the quick capture is one `Ctrl` + `Shift` + `Space` away.
+**Try it:** on an empty line of this sheet type `/`, pick **A task** under **Task** and write a word of one of your tasks. If you have none yet, the quick capture is one `Ctrl` + `Shift` + `Space` away.
 
 ## Creating a task without leaving the document
 
-In some minutes or a plan a «we need to…» comes up. In the `/` menu, **A new task** opens the quick capture's field right there: write the task the way you would say it and `Enter` creates it with its date, its list, its tags and its priority, and leaves its card in that place.
+In some minutes or a plan a «we need to…» comes up. In the `/` menu, under **Task**, **A new task** opens the quick capture's field right there: write the task the way you would say it and `Enter` creates it with its date, its list, its tags and its priority, and leaves its card in that place.
 
 **Try it:** on an empty line, below here, type `/task`, `Enter`, and then `Walk Rina and Roger on Saturday #rina`. Open the task with a click on its card: beside its page, **Born in** names this sheet, and a click brings you back. `Esc` in the field lets it go without creating anything.
 
@@ -110,12 +110,12 @@ tisty://doc/pets/rina?id=…
 
 ## What your agent reads
 
-Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. On the card, what Tisty thinks is alike comes apart, under `guessed`, with the shared words or the pair of words that ties them, like `pagar≈pay`, and with how it tied them: by words, by a letter of difference or by translation. That way it is never mistaken for what someone wrote. A task you hid or dropped never reaches it: if you linked it in a document, there it reads only «a task out of sight», and when it rewrites that document your link comes back intact. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
+Your agent reads the same network, but as an index. With a single tool, `brain`, it finds tasks and documents by their words, the Archive beside the rest; it brings a document's card, with its sections, who cites it and its decisions in force first, without reading it whole; and it sees a project grouped as blocked, under way, waiting for you and not started. On the card, what Tisty thinks is alike comes apart, under `guessed`, with the shared words or the pair of words that ties them, like `pagar≈pay`, and with how it tied them: by words, by a letter of difference or by translation. That way it is never mistaken for what someone wrote. A task you hid never reaches it; one you dropped reaches it only as your decision not to do it, with its title, the day and the reason noted. If you linked either in a document, there it reads only «a task out of sight», and when it rewrites that document your link comes back intact. When it names a task or a document by its exact title between quotes, Tisty links it when saving, as when you do. [Your agent's page](tisty:agent) tells it step by step.
 
 ## Good to know
 
 - **Everything stays on this computer.** The network is worked out here and rebuilds itself: it is not synced and does not leave with what you share or export. Each computer draws it again from your documents and tasks.
-- **What you put away does not show.** A hidden or dropped task, the pages hung under it and your Diary with its pages are not dots in the network: nothing points at them, not a line, an alike pair, a traveller or **Pointing here**, and they do not reach your agent either. **Archived** still shows the documents you archived.
+- **What you put away does not show.** A hidden or dropped task, the pages hung under it and your Diary with its pages are not dots in the network: nothing points at them, not a line, an alike pair, a traveller or **Pointing here**, and they do not reach your agent either, except a dropped task, which it sees only as your decision not to do it. **Archived** still shows the documents you archived.
 - **Outside Tisty**, a link to another document and a task's card stay only as their words: in standard Markdown, in Word, in the PDF and in Folio.
 - **Up to 12,000 dots.** Past that, the network keeps what you touched last, its neighbours, your documents and the tasks under way, and tells you at the top how much was left out.
 - **You wrote every straight line; not the amber curve.** Tisty ties as alike what nobody tied, with three clues and in this order:

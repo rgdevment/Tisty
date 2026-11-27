@@ -434,6 +434,12 @@ terminada, queda entera en el archivo.
   lista —, pero un paso que da por listo espera a que lo marques, el día sigue
   siendo tuyo y cerrar siempre es tuyo, y cada entrada dice qué agente la
   escribió.
+- **Tuya o del agente, nunca de los dos** — una lista que tiene una tarea de un
+  agente muestra **Te toca** aparte de **Lo hace el agente**. Una tarea del
+  agente se cierra con su prueba (qué hizo, la rama o el pull request) cuando la
+  confirmas, y **Confirmar las N hechas** confirma varias de una vez; lo que
+  solo tú puedes hacer —probarlo a mano, publicar, hacer merge— va a una tarea
+  tuya, enlazada a la suya.
 - **Una bitácora** — notas con fecha que nunca se reescriben: lo que se
   decidió, lo que se descartó y por qué. Una nota que deja sin efecto otra lo
   dice, y la vieja queda marcada como reemplazada.
@@ -585,6 +591,8 @@ junta en Tisty como documentos, con sus skills y su memoria.
 - **Nada que no deba tocar** — ajustes, credenciales, enlaces y lo que parece un
   secreto nunca entran, y Agentes no lee nada hasta que haces clic en la
   carpeta.
+- **También en WSL** — en Windows, cada distro de WSL recibe las reglas de
+  Agentes y las skills de Tisty con su propio sí, nunca hooks ni memoria.
 
 </details>
 
@@ -598,7 +606,7 @@ junta en Tisty como documentos, con sus skills y su memoria.
     Claude, Al día: quién la lee, el archivo donde se escribe, su tamaño, sus
     respaldos, su formato, cuándo se escribió por última vez, que se guardó
     el original y que sincroniza en este equipo; debajo, el texto de la
-    regla, y al pie Editar, Respaldos, Historial, Copiar enlace y Pausar la
+    regla, y al pie Editar, Historial, Copiar enlace y Pausar la
     sincronización con Claude"/>
 </picture>
 
@@ -626,8 +634,9 @@ Lo que hace con todo eso un agente conectado a Tisty, en un trabajo real:
    en un resumen fechado de lo que sigue vigente, sin quitar una línea tuya.
    La bitácora queda entera, y si le pides devolver las notas, vuelven como
    estaban, aunque después hayas marcado pasos.
-7. **Termina diciendo qué hizo y cómo sabe que se sostiene.** Tú lo revisas y
-   la cierras.
+7. **Termina diciendo qué hizo y cómo sabe que se sostiene**, con la rama o el
+   pull request, y te pasa a una tarea tuya lo que solo tú puedes hacer. Tú lo
+   revisas y la confirmas.
 8. **Después de leer un documento largo, deja un resumen** para que el próximo
    agente elija con él. Si el documento cambia, el resumen queda marcado como
    desactualizado.
@@ -889,8 +898,8 @@ dentro — y una memoria que tu propio agente de IA lee por MCP**, esto es Tisty
 | Código | abierto, auditable, tuyo para bifurcar |
 
 **Documentos que crecen hasta ser libros.** Casi todos los gestores de tareas te
-dan un campo de notas. Aquí un documento es un archivo propio, escrito sobre una
-hoja iluminada, que lleva páginas como capítulos, dibuja el diagrama que
+dan un campo de notas. Aquí un documento es un archivo propio, escrito sobre la
+página misma, que lleva páginas como capítulos, dibuja el diagrama que
 describes, compone la fórmula, colorea el código y hace su propio PDF — y sigue
 siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
 apuntar a él, y la búsqueda encuentra a los dos.
@@ -962,9 +971,17 @@ En Tisty, un documento lleva bastante más que texto:
 - **Se escribe donde se lee.** Sin modo de edición ni vista previa: haces clic y
   escribes sobre la página misma. Al elegir unas palabras aparece una barra
   pequeña —negrita, cursiva, subrayado, tachado, código, enlace y cuatro
-  marcadores—, `/` abre el menú de bloques, un asa junto a cada bloque lo
-  arrastra, lo duplica o lo borra, y `Ctrl`/`⌘` + `Z` deshace lo que escribiste
-  seguido, no tecla por tecla.
+  marcadores—, `/`, o el **+** junto a un bloque, abre **Insertar** en cuatro
+  grupos (Texto, Listas, Insertar y Enlazar) con un buscador, un asa junto a
+  cada bloque lo arrastra, lo duplica o lo borra, y `Ctrl`/`⌘` + `Z` deshace lo
+  que escribiste seguido, no tecla por tecla. El botón derecho ofrece las
+  palabras del corrector del sistema, cortar, copiar, pegar y las acciones del
+  bloque. Al copiar, las otras apps reciben texto con formato y Tisty su propio
+  Markdown, y lo que pegas desde Word, la web, un editor de código o una
+  terminal llega como Markdown. Supr y Retroceso se llevan entera una tabla, un
+  diagrama, un widget, una fórmula, un pliegue, una nota adhesiva o una
+  tarjeta; los espacios y las líneas en blanco seguidos quedan como los
+  escribes.
 - **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
   un perro contada año a año: un documento con sus páginas, en el orden en que
   el texto las nombra, con un índice al final y flechas de una a la siguiente.
@@ -1071,9 +1088,12 @@ un documento dicen esas pocas palabras como las entiende cualquier otro lector,
 y un archivo antiguo, una importación o un agente que escriba en Markdown
 corriente se traduce a ellas al entrar.
 
-Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
-el nombre del documento y su título —pasando por encima de una valla o de la
-marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
+La página sigue el ancho de la ventana hasta el ancho propio del documento
+—**Ancho del texto** en su menú **⋯**: estrecho, normal, ancho o completo— y el
+aspecto de papel queda para **Hojas**, que dispone el texto sobre el papel. La
+primera línea con palabras es a la vez el nombre del documento y su título
+—pasando por encima de una valla o de la marca de un aviso para encontrarla—.
+Cuando la ventana da para ello, al lado se
 abre una columna con de qué va el documento, sus idiomas, su papel
 y su índice. **Tisty genera su propio PDF** —A4, Carta u Oficio,
 con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
@@ -1164,7 +1184,9 @@ dejar Tisty nunca significa dejar atrás lo que escribiste.
 encarga de mantenerla al día. Si prefieres no esperar, Acerca de se la pide en
 el momento. O con el gestor de paquetes de Windows, que toma el instalador
 firmado de la página de releases y después se aparta, porque Tisty se mantiene
-al día sola:
+al día sola: te ofrece cada versión nueva en *Ayuda y acerca de*, y con
+**Instalar actualizaciones automáticamente** la descarga sin molestar y la
+instala al salir o al abrir Tisty, nunca mientras trabajas.
 
 ```console
 > winget install rgdevment.Tisty
@@ -1365,10 +1387,13 @@ Las dos cosas están explicadas en [PRIVACY.md](PRIVACY.md) y
 
 Tisty hace **una** revisión sin que se la pidas —al abrirse, y una vez al día
 mientras siga en marcha—: descarga un archivo pequeño y su firma para ver si
-existe una versión más nueva. No envía nada. Si existe y presionas el botón que
-te la ofrece, vienen dos peticiones más — el archivo que nombra la versión y el
-instalador — y Tisty se niega a instalar nada que no esté firmado con una clave
-compilada dentro de la copia que ya tienes.
+existe una versión más nueva. No envía nada. Si existe, vienen dos peticiones
+más —el archivo que nombra la versión y el instalador— cuando presionas el botón
+que te la ofrece o, si activaste **Instalar actualizaciones automáticamente** en
+*Ayuda y acerca de*, solas y en segundo plano, para instalarse al salir o al
+abrir Tisty, nunca mientras trabajas. En los dos casos Tisty se niega a instalar
+nada que no esté firmado con una clave compilada dentro de la copia que ya
+tienes.
 Hay unas pocas más, listadas en [PRIVACY.md](PRIVACY.md).
 
 **Folio by Tisty** es un servicio aparte para compartir un documento con un
@@ -1485,7 +1510,10 @@ cambios se pisan de verdad hay una pregunta.
 con Tisty 1.30 a 1.33 y llega a tu nube o a tu carpeta se detiene y te pide
 actualizarlo en vez de seguir escribiendo. Mientras no lo hagas, ese equipo no
 sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone
-al día en cuanto lo actualices.
+al día en cuanto lo actualices. Desde la 1.51 las carpetas bajan seis niveles en
+vez de cuatro, así que cada equipo que sincroniza necesita Tisty 1.51 o más
+nuevo: uno anterior deja de sincronizar hasta que lo actualices, y mientras
+tanto no pierde nada.
 
 **Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
 espera en la puerta: su ficha en Configuración › *Seguridad*, en *Tus
@@ -1578,20 +1606,25 @@ Lo que escribe va firmado con su nombre, y lee primero la ficha de un documento
 y después solo la parte que necesita. Por ejemplo, retoma *Migrar pagos a v2*:
 pregunta qué cambió, abre esa tarea y lee lo que anotó ayer.
 
-Dos ayudas opcionales lo vuelven costumbre, cada una con su propio sí en
-Configuración › Agentes. Los dos van incluidos al conectar ahí un agente, con una
-casilla para dejar fuera cada uno, y un interruptor para cada uno después; para
-los que ya tenías, se ofrecen juntos, en un solo recuadro. Sus **hooks**, en
+Dos ayudas opcionales lo vuelven costumbre. Las dos vienen marcadas al conectar
+un agente en Configuración › Agentes, con una casilla para dejar fuera
+cualquiera; después, una sola ficha, **Tisty en tus agentes**, enciende las dos
+en un paso con **Encender los dos**, y **Ajustar** cambia cada una por separado.
+A los agentes que ya tenías se les ofrecen juntas, en un solo recuadro. Sus
+**hooks**, en
 Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot, le
 traen al agente sus tareas
 abiertas al empezar una sesión, le devuelven el turno una vez cuando editó
-archivos sin escribir nada aquí, y le preguntan una vez antes de dejar un
+archivos sin escribir nada aquí, hizo push o merge, o dejó todos los pasos de su
+tarea marcados sin decirla hecha, y le preguntan una vez antes de dejar un
 archivo de texto fuera de un repo. Sus
 **skills propias**, `tisty`, `consolidate` y `next-agent`, le
 enseñan qué significa «Retoma donde quedamos», «Ordena mi Tisty» o «Deja esta
 página clara para el próximo agente», dicho con tus palabras. Y cuando dice que
 un paso tuyo está hecho, la lista lo cuenta aparte, `1/3 ◆1`, hasta que tomes
-su palabra.
+su palabra. En Agentes también creas **hooks propios**: escribes el script en su
+página, lo ves antes de **Registrar**lo en este equipo, y después usas
+**Verificar** o **Probarlo una vez**.
 
 - [Agentes y MCP](https://www.tisty.app/es/ayuda/agentes-y-mcp/): la
   puerta, la firma y cada agente que Tisty conoce
@@ -1661,7 +1694,9 @@ puede: cerrar una tarea ni borrarla, marcar un paso tuyo o terminar una tarea
 tuya, mover un día que pusiste tú, borrar un documento, renombrar ni borrar una
 carpeta, alcanzar una tarea que plegaste, tomar archivos de cualquier sitio que
 no sea Descargas, Documentos, Imágenes, el escritorio o la carpeta temporal, ni
-anotar dos veces lo mismo. Una tarea que cerraste es histórico para él: le llega
+anotar dos veces lo mismo. Una tarea que descartaste la ve como decidida que no
+se hace, con solo su título, su día y el motivo que quedó anotado. Una tarea que
+cerraste es histórico para él: le llega
 con un aviso que lo dice, se lee como terminó, no admite bitácora, ni un día
 nuevo, ni una alarma, ni un archivo, y si el mismo trabajo vuelve, el agente
 propone una nueva que dice cómo terminó la anterior.
@@ -1741,7 +1776,9 @@ necesita conexión: un documento compartido por link, tu propia nube, una tarea
 guardada en un calendario en línea.
 Tisty hace una sola petición de red que no le pediste —al abrirse, y una vez al
 día después— para ver si existe una versión más nueva, y no envía nada para
-preguntarlo. Cuando sincronizas con una nube o compartes un documento, además
+preguntarlo. Si activas las actualizaciones automáticas, además descarga sola
+una versión nueva cuando la hay, y la instala al salir o al abrir Tisty.
+Cuando sincronizas con una nube o compartes un documento, además
 lee unos pocos archivos pequeños, que lista [PRIVACY.md](PRIVACY.md).
 Desconecta el equipo de la red y todo lo demás sigue igual.
 
@@ -1814,7 +1851,10 @@ archivo son del escritorio.
 
 No. Tisty es un programa de escritorio para Windows y macOS. Un agente que
 corre en Linux dentro de Windows, con WSL, llega a él igual: Configuración ›
-Agentes › *Conectados* lo conecta.
+Agentes › *Conectados* lo conecta. Cada distro recibe además las reglas de
+Agentes y las skills de Tisty, con su propio sí, bajo su fila ahí: solo en la
+carpeta de su usuario por defecto, nunca hooks ni la memoria de los agentes, y
+nada vuelve desde ella.
 
 ### ¿Mis datos están cifrados?
 

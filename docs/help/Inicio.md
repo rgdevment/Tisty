@@ -63,7 +63,7 @@ Esta es la ayuda de Tisty: cómo se usa cada cosa, con ejemplos, trabajes con un
 Tisty no es IA ni la lleva dentro. Eso no va a cambiar. Pero habla [MCP](https://modelcontextprotocol.io), así que el agente que ya usas (GitHub Copilot, Claude Code, Codex, Cursor o cualquier cliente MCP) guarda aquí su memoria: anota tareas con pasos y bitácora, escribe documentos y retoma donde quedó, en este equipo, sin cuenta y sin pasar nada por la red.
 
 - [[Agentes y MCP|Agentes-y-MCP]]: cómo conectar uno, dejarlo entrar, un día con tu agente y lo que cuesta.
-- [[Hooks y skills|Hooks-y-skills]]: los hooks que ayudan a tu agente al empezar, al terminar cada turno y antes de dejar algo fuera, y las tres skills de Tisty que le enseñan a tu agente a retomar, ordenar y dejar el trabajo listo para el próximo.
+- [[Hooks y skills|Hooks-y-skills]]: los hooks que ayudan a tu agente al empezar, al terminar cada turno, después de un push o un merge, y antes de dejar algo fuera, y las tres skills de Tisty que le enseñan a tu agente a retomar, ordenar y dejar el trabajo listo para el próximo.
 - [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]]: los límites, su palabra sobre tus tareas y **Por confirmar**.
 - [[Herramientas MCP|Herramientas-MCP]]: cada herramienta que ofrece el servidor.
 - [[Agentes: las reglas, skills y memoria de tus agentes|Carpeta-AGENTS]]: una carpeta para los archivos que leen Claude Code, Codex, Copilot, Gemini y Cursor. Traer los copia para leerlos y ordenarlos; Sincronizar hace que Tisty los escriba, con respaldos.
@@ -96,7 +96,7 @@ Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un a
 
 - [[Sincronizar y respaldar|Sincronizar-y-respaldar]]: dos equipos a través de una carpeta que ya sincronizas, o directamente con tu Google Drive, tu OneDrive o tu servidor WebDAV, con lo que guardas ahí cifrado si quieres.
 - [[Privacidad]]: qué se guarda y las pocas peticiones que Tisty hace.
-- [[Línea de comandos|Línea-de-comandos]]: se retiró en la 1.31; solo queda lo que usan los agentes: `tisty mcp`, su puerta, y `tisty hook`.
+- [[Línea de comandos|Línea-de-comandos]]: se retiró en la 1.31; solo queda lo que usan los agentes: `tisty mcp`, su puerta, `tisty hook` y `tisty run-hook`, para tus hooks propios.
 - [[Preguntas frecuentes|Preguntas-frecuentes]]
 
 ---

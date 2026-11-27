@@ -1,6 +1,6 @@
 # Terms of use
 
-**Last updated:** November 23, 2026
+**Last updated:** November 27, 2026
 
 ## The short version
 
@@ -57,8 +57,10 @@ in Settings › Agents › Door.
 
 ## Updates
 
-Tisty checks whether a newer version exists and offers it to you; updates are
-signed, and Tisty refuses one whose signature does not match. A copy from the
+Tisty checks whether a newer version exists and offers it to you; if you turn
+on automatic updates, it downloads it and installs it when you quit or open
+Tisty. Updates are signed, and Tisty refuses one whose signature does not match.
+A copy from the
 Microsoft Store is updated by the Store.
 
 ## No warranty

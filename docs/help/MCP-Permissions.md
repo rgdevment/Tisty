@@ -4,13 +4,13 @@ What an agent may do is deliberately small. Finishing, dropping and deleting are
 
 ## Allowed
 
-- **File a task** with its steps, its parts, its date, its priority, its tags and the list it belongs in. Without one of your lists it lands in the inbox, and everything it files carries the tag `#agent`.
+- **File a task** with its steps, its parts, its date, its priority, its tags and the list it belongs in. Without one of your lists it lands in the inbox, and everything it files carries the tag `#agent`. Each task it files says whose it is: its own, or yours when only you can do it (try it by hand, publish, decide).
 - **Set an hour** for a task to ring at.
 - **Move the day** of a task an agent filed, when what it learns moves it.
 - **Say a task is done**, or that it should not be done — any task, yours too. It marks it for you to confirm and closes nothing.
 - **Say a step of yours is done** — the step waits, unticked, until you take its word.
 - **Add to a task's journal.**
-- **Work any task the way it works a document**, yours too: describe it, rename it, move it to another list or under another task, plan, reword or take off its open steps, correct a note, and write its page with the same guards a document has.
+- **Work any task the way it works a document**, yours too: describe it, rename it, move it to another list or under another task, plan, reword or take off its open steps or hand them to your own task for it, made the first time as its part, correct a note, and write its page with the same guards a document has.
 - **Write a document**, add to one already there (at the end or under a heading), correct a passage of one, change one of its tables by its rows and columns, or write one again whole.
 - **File documents into folders**, make one document a page of another, and set the order its pages are read in. Making a page and ordering them writes and moves the lines that name the pages in your document's text, and nothing else.
 - **Mark a document as having had its day** — a proposal, not a deletion (see below).
@@ -47,11 +47,13 @@ For closing, reopening, dropping and deleting there is no tool at all — not hi
 
 ## «To confirm»: when an agent says it is done
 
-When an agent finishes one of the tasks it filed, it says so and leaves an account of what it did in the journal — the command it ran and what it answered, the commit, whatever holds the claim up. **The task stays open.**
+When an agent finishes one of the tasks it filed, it says so and leaves an account of what it did in the journal — the command it ran and what it answered, the commit, the branch or pull request, whatever holds the claim up. **The task stays open.**
 
 Those tasks gather under **To confirm** at the foot of the list, with a count of how many wait on you, so you can go through them in one pass, or see only them with **◆ To confirm** in the bar above the list ([Tasks](Tasks#the-views)). What is overdue, due soon, late, for today or underway does not move: it stays in its own band, marked, because a thing with a date should be where you look for it.
 
-- **Tick it** and it closes like any other, keeping both signatures in the archive — who resolved it and who finished it.
+Each list keeps two sections: **Yours to do**, with its checkbox, and **The agent does it**, where you only confirm or keep it open. Each row there shows the first lines of its proof, with the branch or pull request, and with two or more ready, **Confirm the N done** takes them all at once.
+
+- **Complete** (or **Not doing it**, when it said it should not be done) closes it like any other, keeping both signatures in the archive — who resolved it and who finished it.
 - **Still to do** sends it back to its day. The mark comes off and the account stays, so next time you can both see what was claimed.
 
 An agent cannot say the same thing twice while a mark is still waiting on you. It can also say a task **should not be done**, for you to confirm the same way.
@@ -69,6 +71,8 @@ On your own tasks it writes as it does in a document: the description, the page,
 ## A closed task is history
 
 A task you closed comes to the agent with a notice saying so. It reads as it ended, and takes no note, no new day, no bell and no file. If the same work comes back, the agent proposes a new task that says how the last one ended.
+
+A task you dropped it sees only as decided not to do: its title, day and the reason noted, and it proposes the same work again only if you ask.
 
 ## Documents: it cannot write over what you wrote
 

@@ -8,7 +8,8 @@ Esta hoja es una página de la guía. Cuenta cómo trabajar con un agente de IA 
 
 - **Conectado**: ya abre este Tisty.
 - **Sin conectar**: **Conectar** escribe Tisty en la configuración de ese agente, y solo toca su propia línea.
-- **Apunta a otro Tisty**: una copia vieja, o una que ya no está. **Corregir** te muestra qué va a escribir y, con tu sí, lo apunta aquí. Si ya no está, la ventana también te avisa.
+- **Apunta a otro Tisty**: una copia que ya no está. **Corregir** te muestra qué va a escribir y, con tu sí, lo apunta aquí. La ventana también te avisa.
+- **Usa tu otra instalación de Tisty**: otra copia que sigue en este equipo, como la de la Store y la de winget a la vez. Las dos funcionan, así que nada cambia solo; **Corregir** la trae a esta si quieres.
 - **Escrito a tu manera**: tiene una entrada de Tisty que Tisty no puede comprobar, y la deja como la escribiste.
 - **No se pudo leer**: Tisty no pudo leer su archivo, así que no lo toca.
 - **Puede que esté**: solo quedó su carpeta, así que quizás ya no está instalado.
@@ -34,7 +35,7 @@ Nada escucha hasta que conectas uno: el agente arranca Tisty cuando lo necesita,
 Un agente concentrado en el código se olvida de Tisty. Hay dos ayudas, y las dos se apagan en **Configuración › Agentes › Puerta**:
 
 - **Pedirle que deje su tarea al día**: si sigue trabajando y la tarea que abrió lleva diez minutos sin una palabra suya, o mientras escribe otras tres cosas, la siguiente respuesta de Tisty le pide una vez que marque lo que hizo y, si terminó, que lo diga con la prueba. Llega a todos los agentes, aunque solo cuando llaman a Tisty.
-- **Los hooks**: en Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot, el interruptor **Hooks de Tisty**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. Apagarlo los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
+- **Los hooks**: en Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot, el interruptor **Hooks de Tisty**, bajo la fila del agente conectado, te dice qué archivo va a escribir y pone ahí los hooks de Tisty. Desde su próxima sesión, y mientras la puerta esté abierta, cada una empieza con las últimas tareas abiertas en que escribió ese mismo agente, lo que se movió y lo que apremia, aunque el agente no llame a Tisty; y si un turno editó archivos sin escribir nada en Tisty, se lo devuelve una vez para que marque lo terminado. También se lo devuelve una vez cuando un turno dejó todos los pasos de su tarea marcados sin decirla hecha, nunca en una tarea tuya; y después de un `git push`, un `gh pr create` o un `gh pr merge` le pregunta si terminó un paso o la tarea: en Claude Code al momento, en los demás al terminar el turno. Los hooks que pusiste antes no traen esto: apágalos y enciéndelos. Apagarlo los saca, y **Recordarle al empezar y al terminar cada turno** los apaga sin quitarlos.
 
 ## Que sepa cómo trabajar: las skills de Tisty
 
@@ -50,6 +51,7 @@ Se encienden al conectar un agente o en **Configuración › Agentes › Conecta
 
 - **Se actualizan solas** con cada versión de Tisty, y nunca pisan una skill tuya con el mismo nombre ni una copia que cambiaste.
 - **Valen solo en este equipo**: en otro lo decides allá. La pausa de Agentes no las alcanza: tienen su propio interruptor.
+- **En una distro de WSL**, Configuración › Agentes › Conectados muestra «Ubuntu · WSL» con **Reglas y skills de Agentes** y **Skills de Tisty**, cada una con su propio sí ahí. Tisty solo escribe en ella, en LF, nunca hooks ni la memoria de los agentes, y nada vuelve desde ella; una distro detenida espera a que esté en marcha.
 - **Apagar en este equipo** las saca de las carpetas de tus agentes, con respaldo, sin eliminarlas: siguen en Tisty, listas para encenderlas otra vez.
 - **Con el plugin de Tisty** en Claude Code, el plugin ya trae los hooks y las skills: la fila de hooks dice **Los trae el plugin de Tisty**, y Tisty no copia ahí sus skills.
 
@@ -76,18 +78,18 @@ Al retomar una tarea, lo primero que le llega es su **Estado**, el que ves en su
 
 ## Lo que puede hacer
 
-- Proponer tareas con sus pasos, sus partes y su fecha, ponerles un recordatorio y anotar en su bitácora.
+- Proponer tareas con sus pasos, sus partes y su fecha, ponerles un recordatorio y anotar en su bitácora. Cada tarea es del agente o tuya, nunca de los dos: lo que solo tú puedes hacer, como probarlo a mano, publicar o hacer merge, te lo pasa a una tarea tuya, una por tarea, que nunca deja abierta la suya.
 - Marcar los pasos que terminó y, en la misma llamada, dejar el **Estado** de la tarea en su página: lo hecho, lo que falta, lo decidido y lo descartado. Tú también lo lees, y la sesión siguiente parte de ahí.
 - Trabajar cualquier tarea como un documento, también las tuyas: su descripción, su página, su título, su lista y sus pasos abiertos.
 - Escribir documentos, agregar a uno, corregir un pasaje o una tabla, y ordenarlos en carpetas y páginas.
 - Nombrar una tarea o un documento por su título exacto entre comillas: Tisty lo convierte en un enlace, como cuando lo haces tú, y lo dudoso se lo devuelve para que decida.
 - Anotar ideas en Ideas cuando se lo pides, y ordenarlas contigo: una idea que convierte en tarea o anexa a un documento sale de la hoja, como cuando lo haces tú.
 - Marcar un documento o una idea que ya cumplió su vida, con el porqué: tú lo borras, lo archivas o le quitas la marca.
-- Decir que una tarea o un paso está listo: la tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**, y mientras tanto la lista los cuenta aparte, con un ◆: **1/3 ◆1**.
+- Decir que una tarea o un paso está listo: la tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**, y mientras tanto la lista los cuenta aparte, con un ◆: **1/3 ◆1**. En cada lista sus tareas van en **Lo hace el agente**, aparte de **Te toca**, con las primeras líneas de su prueba y la rama o el pull request; con dos o más ya hechas, **Confirmar las N hechas** las confirma a la vez.
 - Buscar y leer lo que hay, incluido el Archivo.
 - Leer tu Diario y añadir al final de hoy, con su firma, solo si lo abres a los agentes desde el propio Diario y se lo pides.
 
-Todo lo que escribe va firmado con el nombre del programa por el que habló: «por Claude Code», «por Codex». En **Configuración › Agentes › Cómo se ve su firma** eliges dónde se ve ese nombre, o si solo queda un pequeño ◆.
+Todo lo que escribe va firmado con el nombre del programa por el que habló: «por Claude Code», «por Codex». En **Configuración › Agentes › Cómo se ve su firma** eliges, para la lista de tareas y para dentro de una tarea, si se ve su nombre, «por un agente» o solo un pequeño ◆, con una vista previa de cada uno.
 
 ## Lo que no puede
 
@@ -96,7 +98,7 @@ Todo lo que escribe va firmado con el nombre del programa por el que habló: «p
 - Mover un día que pusiste tú.
 - Escribir por su cuenta en la carpeta Agentes: un cambio a tus reglas o skills queda como propuesta, y solo llega a tus agentes si lo apruebas en la ficha. Lo cuenta **Agentes: las reglas de tus agentes**, una página de esta guía.
 - Vaciar el historial de un documento ni leer las versiones anteriores de tu diario. Sí puede listar las versiones de un documento, leer una y volver a ella, como tú desde **Ver el historial**; lo cuenta [la portada de esta guía](tisty:guide), en **Volver a lo que decía antes**.
-- Leer una tarea que ocultaste o descartaste: donde la enlazaste lee solo «a task out of sight».
+- Leer una tarea que ocultaste. Una que descartaste la ve solo como tu decisión de no hacerla, con su título, el día y el motivo que quedó anotado, y no la vuelve a proponer salvo que se lo pidas. Donde enlazaste cualquiera de las dos, lee solo «a task out of sight».
 - Crear listas ni poner rutinas: sin una de tus listas, lo que anota entra en la bandeja.
 - Escribir encima de lo que cambiaste mientras él pensaba: se le pide que vuelva a leer.
 - Ver tu Diario mientras dice **Solo tú**, ni cambiar lo que escribiste en él cuando lo abres.

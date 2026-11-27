@@ -1,6 +1,6 @@
 # Hooks and skills
 
-Connecting an agent gives it Tisty's tools, but not the habit of using them: when it starts it does not know where it left off, and when it finishes it forgets to note down. For that I built two more pieces, both optional and each with its own yes. The **hooks** help your agent at three moments: when a session starts, when a turn ends and before it leaves something outside Tisty. **Tisty's skills** teach your agent to work with Tisty: pick up where it left off, tidy up, and leave work ready for the next one.
+Connecting an agent gives it Tisty's tools, but not the habit of using them: when it starts it does not know where it left off, and when it finishes it forgets to note down. For that I built two more pieces, both optional and each with its own yes. The **hooks** help your agent at a few moments: when a session starts, when a turn ends, after a push or a merge, and before it leaves something outside Tisty. **Tisty's skills** teach your agent to work with Tisty: pick up where it left off, tidy up, and leave work ready for the next one.
 
 Neither is required. Without them, your agent uses the same tools when you ask, and Tisty still asks it whether it left its task up to date. And if you would rather work without an agent, nothing on this page is needed: your tasks and documents work just the same, by hand.
 
@@ -11,7 +11,7 @@ How to connect an agent is in [[Agents and MCP|Agents-and-MCP]]; a session call 
 | | Hooks | Tisty's skills |
 | :-- | :-- | :-- |
 | **What they are** | Commands your agent runs by itself when a session starts, before and after some tools and when a turn ends | Three folders with a `SKILL.md` that your agent reads when what you ask fits them |
-| **What they do** | Bring the agent its open tasks when it starts, and hand the turn back once if it edited files without writing anything in Tisty, and ask it once before it leaves a text file outside a repository | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
+| **What they do** | Bring the agent its open tasks when it starts, hand the turn back once if it edited files without writing anything in Tisty, hand the turn back once when every step is ticked and the task is not said done, ask after a push or a merge whether it finished a step or the task, and ask it once before it leaves a text file outside a repository | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
 | **Which agents** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI and DeepSeek Harness |
 | **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or from **Tisty in your agents**, at the end |
 | **Both at once** | **Tisty in your agents**, at the end of **Connected** or in **Agents › Global**, and **Hooks and skills for your agents**, above the tabs | The same |
@@ -52,11 +52,13 @@ An agent with Tisty in front of it sometimes leaves the work for another one in 
 | Agent | New file | Terminal | Card |
 | :-- | :-- | :-- | :-- |
 | **Claude Code** | Yes | Yes | Yes, in the Claude app |
+| **Codex** | Yes | Yes | — |
 | **Cursor** | Yes | Yes | — |
+| **Antigravity CLI** | Yes | Yes | — |
 | **Gemini CLI** | Yes | No | — |
 | **GitHub Copilot** | Yes, except with `apply_patch` | No | — |
 
-In Cursor, the question comes from its own hooks: with only Claude Code's, which Cursor runs too, it stays quiet. Of a command it looks only at where it writes what it says itself (`echo … > note.md`, `cat > note.md`, `tee`, `Set-Content`): not at what a program it runs would write. Codex and Claude Desktop have no hooks, and an agent in the cloud does not run the ones on your computer.
+In Cursor, the question comes from its own hooks: with only Claude Code's, which Cursor runs too, it stays quiet. Of a command it looks only at where it writes what it says itself (`echo … > note.md`, `cat > note.md`, `tee`, `Set-Content`), and whether it is a `git push`, `gh pr create` or `gh pr merge`: not at what a program it runs would write. Claude Desktop has no hooks, and an agent in the cloud does not run the ones on your computer.
 
 **Once per session and folder**, with the ones inside, and three folders a session at most; cards, once. If the turn already got that question, it is not also handed back when it ends.
 
@@ -70,7 +72,7 @@ In Cursor, the question comes from its own hooks: with only Claude Code's, which
 So it leaves it on a task, with its steps, and gives Marisol the title:
 
 ```json
-propose { "title": "Finish the payments migration", "list": "Work",
+propose { "title": "Finish the payments migration", "for": "agent", "list": "Work",
   "steps": ["Test the retries", "Tell the provider"] }
 ```
 
@@ -98,7 +100,7 @@ Tisty writes only its own entries and leaves the rest of the file as it is, with
 
 **If you connect the agent now, the hooks come with it**: [When you connect an agent](#when-you-connect-an-agent) tells it.
 
-**If you added them before 1.50**, nothing is added on its own. Under the row it says «They lack the newest one, which asks before it leaves something outside a repository: turn them off and on to have it.». Turning them on again writes them all as they come: a time or a filter you had changed goes back to Tisty's.
+**If you added them before 1.51**, nothing is added on its own. Under the row it says «They lack the newest ones, which ask before it leaves something outside a repository and after a push or a merge: turn them off and on to have them.». Turning them on again writes them all as they come: a time or a filter you had changed goes back to Tisty's.
 
 There is no need to restart the agent for the hooks: it picks them up in its next session.
 
@@ -123,7 +125,7 @@ Hooks keep the path of the Tisty that put them there. If you move Tisty or switc
 ### Removing them or turning them off
 
 - Turning the row's switch off takes out only Tisty's entries: «Removed. Its next session runs without them.». If there are others of your own way too: «Tisty's own are removed. The ones written your own way stay.».
-- **Remind it when a turn starts and ends**, in **Settings › Agents › Door**, turns the three off for every agent without taking them out of any file. It is handy for an afternoon when you do not want turns handed back.
+- **Remind it when a turn starts and ends**, in **Settings › Agents › Door**, turns them all off for every agent without taking them out of any file. It is handy for an afternoon when you do not want turns handed back.
 - **Stop it**, on the same **Door**, closes the door: while it is closed, the hooks stay quiet.
 
 ### When the Tisty plugin already brings them
@@ -206,6 +208,8 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 | **Codex**, **GitHub Copilot**, **Gemini CLI**, **DeepSeek Harness** and **Cursor** | `~/.agents/skills/…`, a single copy the five of them read |
 
 `~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. The card shows only the folders of the agents you have on this computer. The shared one says «Codex · Copilot · Gemini · DeepSeek Harness · Cursor» and warns about it: «Codex, Copilot, Gemini, DeepSeek Harness and Cursor share this folder: turning them on or off here does it for the five.». A copy an earlier Tisty wrote to `~/.cursor/skills/` goes by itself, with a backup, while it is still as Tisty wrote it.
+
+**Inside WSL.** Each distro listed in **Connected** has its own **Tisty's skills** row, with a yes of its own. Tisty writes only into that distro's default user's home, in LF, and never starts a stopped distro by itself: the row waits, or offers **Start Ubuntu and write**. Hooks are never written into a distro.
 
 ### Turning them on
 
@@ -355,7 +359,7 @@ Since Claude Code reads its settings when it opens, she quits it completely and 
 Yisset asks Claude Code to plan the export of the report. The agent files it as a task with its steps:
 
 ```json
-> propose {"title": "Export the monthly report to CSV", "list": "Work",
+> propose {"title": "Export the monthly report to CSV", "for": "agent", "list": "Work",
            "steps": ["Read the format accounting asks for", "Write the export",
                      "Try it with October's data", "Add the button to the reports screen"]}
 ```
@@ -422,7 +426,7 @@ It ends by telling Yisset what it left and where: the ticked steps, the state, t
 
 - **In the Work list**, the task's row says **3/4 · ✎1** and «by an agent»; when she hovers over it, «Claude Code wrote on this machine».
 - **On its page**, the **State** section, with the date and «Claude Code», says what is done, what is left and what was decided. Above it, on the right, **↓ Journal · 1 note** takes her to the agent's note, with its link to «Reports: decisions».
-- **Nothing closed.** One step is left, and when the agent says the task is done, it waits in **To confirm** until Yisset closes it.
+- **Nothing closed.** One step is left, and when the agent says the task is done, it waits in **The agent does it**, under **To confirm**, with the first lines of its proof, until Yisset confirms it.
 
 Had Yisset written the task herself and ticked the first step, the agent's ticks would be its word: the row would say **1/4 ◆2**, with «2 to confirm» when she hovers, until she takes them with **Tick them**. [[What an agent may do|MCP-Permissions]] tells it.
 
@@ -464,7 +468,7 @@ Yisset installs the Tisty plugin in Claude Code. The next time she opens **Setti
 
 - **The hooks** write only their entries in the file named. With the door open, Tisty reads that file, and the connection's, when its window opens and when Settings opens, to see whether they point at this Tisty, writing nothing until you click. In Claude Code, when you add or fix them, also when fixing is removing them because the plugin brings them, it also reads its plugin's record; without the skills' yes or Agents', only then. Their marks for each session stay in this computer's cache and do not sync. What they hand the agent when it starts, the titles of a few tasks, travels wherever that agent travels.
 - **The skills** write only one folder per skill. They read the files in those folders, so as not to write over one of yours, and in Claude Code its plugin's record, only to tell whether it already brings them. Nothing else of your agents is opened.
-- **The skills' yes** is kept in `data/agents/` inside Tisty's folder, on this computer, with the backups of what Tisty took away. It does not travel with sync, backups or parcels. The hooks keep no separate yes: they are added when you press **Add them** or **Add hooks**, after reading which file they go in, they come out with **Remove**, and Tisty knows whether they are there by reading that file.
+- **The skills' yes** is kept in `data/agents/` inside Tisty's folder, on this computer, with the backups of what Tisty took away. It does not travel with sync, backups or parcels. The hooks keep no separate yes: they are added when you press **Add them** or **Add hooks**, after reading which file they go in, they come out when you turn their switch off, and Tisty knows whether they are there by reading that file.
 
 All of it, file by file, is in [[Privacy]].
 

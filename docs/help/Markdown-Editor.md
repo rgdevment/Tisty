@@ -17,9 +17,10 @@ You write on the same page you read, the one Tisty draws. There is no separate e
 - **A click on a picture or a diagram opens it large**, to zoom in, move it around and go to the next one. A picture or a file shown on the page, such as a PDF, an audio or a video, is taken away with `Delete` right before it or `Backspace` right after it, or from its right-click: **Delete picture** or **Remove from the page**. One alone on its line takes the line with it. A diagram brings its own bar when the pointer is over it: **Export** and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]]. Its text is changed in the Markdown view. A widget brings **Show code**, which opens it in its [[window|Widgets]] with the code beside what it draws, and **Open apart**. A formula opens in that same window: one in a block of its own from its **Show code**, and one inside a line with a click. What you write is drawn beside it and saved in its place. **Edit**, on the properties in the panel, opens them the same way.
 - **Code is written as it is.** Inside a code block there are no formats and no spell checker, and `/` is just a slash. Its lines are numbered beside the text rather than in it, so copying takes the code and nothing else. The label in its corner, like «rust» or «yaml», opens the list of languages to choose the colours it is drawn with. Typing `` ``` `` at the start of a line opens a code block that closes itself, and a language's name written on its first line, like `rust`, becomes its language with Enter.
 - **A page break is neither written in nor moved.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and the rest stays as it was. What you type right after it starts on a new line under it.
-- **A table, a code block, a diagram, a collapsible section or a callout is not joined to what sits beside it.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, does nothing; neither does `Delete` at the end of a list item's line, if what follows inside it is a table, a code block, a diagram or a callout; to take one away there is **Delete block**, on its handle. A picture or a file alone on its line is the exception: those same keys take it away.
+- **A table, a diagram, a widget, a formula, a collapsible section, a sticky note or a card alone on its line goes whole.** `Backspace` at the start of the block after it, or `Delete` at the end of the block before it, takes it away, and **Undo** brings it back. A code block and a callout keep words of their own, so those keys leave them alone; **Delete block**, on its handle, takes them. Inside a list, `Delete` at the end of an item's line leaves alone a table, a code block, a diagram or a callout that follows inside the item. A picture or a file alone on its line goes with those same keys too.
 - **`Ctrl`/`⌘` + `Z` undoes** and `Ctrl`/`⌘` + `Shift` + `Z`, or `Ctrl`/`⌘` + `Y`, redoes, only in the document in front of you. What you type in a row is undone in one go; a pause or an Enter starts another step. What you wrote in the Markdown view is undone in one go when you come back.
-- **`Ctrl`/`⌘` + `C` and `Ctrl`/`⌘` + `X` copy and cut the Markdown** of the words selected, marks and all, as the right-click does; pasted into another document they come out the same.
+- **`Ctrl`/`⌘` + `C` and `Ctrl`/`⌘` + `X` copy and cut the words selected**, as the right-click does: another app gets them with their formatting, or as plain words, and pasted into a Tisty document they come out the same, marks and all.
+- **Spaces and blank lines stay as you type them**, several in a row included.
 - **Drag the words selected** to another place on the page: a line shows where they land, and letting go moves them. `Ctrl`/`⌘` + `Z` brings them back.
 
 ## The format bar
@@ -31,23 +32,20 @@ Select a few words and a small bar comes up above them:
 
 A format wraps the words selected, and when they cross several lines, each line gets its own; pressed on words that already have it, it takes it away. **Link** asks for the address in a field, and `Esc` cancels it; on a link already written, `Ctrl`/`⌘` + `K` shows its address to change it, leaving its words alone; an address like `tisty.app` gets its `https://`, and with no words selected, the address stands for its words. A click on a link puts the caret in its words, and `Ctrl`/`⌘` + click opens it. Inside code the bar does not come up.
 
-With nothing selected, a format pressed with its shortcut or from the `/` menu starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
+With nothing selected, a format pressed with its shortcut starts at the next key, and what you type already comes out bold or italic. Press it again to step out of it; a space at the end of the words stays outside it too.
 
-`Ctrl`/`⌘` + `B`, `I` and `U` put on bold, italic and underline; `Ctrl`/`⌘` + `Shift` + `X`, strikethrough; `Ctrl`/`⌘` + `Shift` + `C`, code, and `Ctrl`/`⌘` + `K`, a link. Right-click on selected words **cuts** or **copies** them as Tisty Markdown, ready to paste into another document, and offers the same formats.
+`Ctrl`/`⌘` + `B`, `I` and `U` put on bold, italic and underline; `Ctrl`/`⌘` + `Shift` + `X`, strikethrough; `Ctrl`/`⌘` + `Shift` + `C`, code, and `Ctrl`/`⌘` + `K`, a link. Right-click on the page offers the system speller's words for a misspelt one, with **Add “…” to the dictionary**, and **Paste** and **Paste as plain text**; on selected words, also **Cut**, **Copy** and the same formats; with nothing selected, **Insert** and the actions of the block it is on.
 
 ## The `/` menu
 
-Type `/` at the start of a line, on a blank line or after a space, and the menu of what fits comes up; inside a word or in code it is just a slash. `Ctrl`/`⌘` + `/` opens it anywhere, and so does the **+** that shows in the margin, level with the caret. Keep typing to narrow it down, ↑ ↓ to move, Enter to add it, Esc to close it; closed without a choice, the `/` stays written.
+Type `/` at the start of a line, on a blank line or after a space, and the menu of what fits comes up; inside a word or in code it is just a slash. `Ctrl`/`⌘` + `/` opens it anywhere, and so does the **+** that waits beside a block. Keep typing to narrow it down, ↑ ↓ to move, Enter to add it, Esc to close it; closed without a choice, the `/` stays written.
 
-- Headings, lists, stages and quotes.
-- The five callouts: Note, Tip, Important, Warning and Caution, and the Idea sticky note.
-- Bold, italic, underline, strikethrough, code, link and the highlight pen.
-- An icon, looked up by what it draws.
-- A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block. The formula, the widget and the Mermaid block come with a sample already drawn, and what you type next goes on a line under it.
-- A table, which opens on its first title.
-- A **collapsible section**: a title that folds what is under it.
-- A page break.
-- Another document, a new document, a page that already exists or a new page, drawn as a card. Type part of its name, and Enter takes the first one that shows.
+It comes in four groups, with a search on top and the most used blocks as tiles. A row with a list of its own opens it with →.
+
+- **Text**: paragraph, headings, quote and **Callout**, with the five callouts, Note, Tip, Important, Warning and Caution, and the Idea sticky note.
+- **Lists**: bullets, numbers and stages.
+- **Insert**: a table, which opens on its first title; **Image or file**; a code block; **Diagram**, with a new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula; a widget; a **collapsible section**, a title that folds what is under it; and a page break. The formula, the widget and the Mermaid block come with a sample already drawn, and what you type next goes on a line under it.
+- **Link**: a new page; **Page or document**, with another document, a new document or a page that already exists, drawn as a card; **Task**; **Step of the task**; and an icon, looked up by what it draws. Type part of a document's name, and Enter takes the first one that shows.
 
 ## Moving blocks
 
@@ -74,7 +72,7 @@ In the Markdown view:
 ## While you type
 
 - **Tags are offered after `#`.** The tags you already use come up under the caret, so one tag is never spelled two ways. ↑ ↓ picks one and Tab or Enter writes it; Esc puts the list away, and Enter with none picked still starts a paragraph.
-- **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Attach a file** in the `/` menu. It lands after the block you drop it on, or after the one the caret is in, on a line of its own, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
+- **Attach a file** by dragging it onto the page, pasting it (a screenshot on the clipboard works too) or picking **Image or file** in the `/` menu. It lands after the block you drop it on, or after the one the caret is in, on a line of its own, and it is kept inside Tisty with the document, not linked to a place on your disk that breaks when the file moves.
 - **Paste with its formatting.** Text copied from a web page, an email or a word processor keeps its headings, lists, bold, links, tables and coloured words, written in Tisty Markdown: a colour becomes the nearest pen of the palette. A pasted block, like a list or a heading, starts on its own line, and inside a quote it stays in the quote. Plain text keeps its shape too: a table a terminal drew with box lines (`┌ │ ├`) becomes a table, and lines that read like code — from a code editor or a terminal — come in as a code block, unless the caret is already inside one.
 
 | Shortcut | What it does |
@@ -92,7 +90,7 @@ In the Markdown view:
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Strikethrough · code · link |
 | `Ctrl`/`⌘` + `Enter` | Page break |
 
-The writing sits on a lit page. When the window is wide enough, a column opens beside it with what the document is, its tags, its outline and the way to its PDF.
+The page follows the window's width up to the document's own, set with **Text width** in its **⋯** menu (**Narrow**, **Normal**, **Wide**, **Full**); the paper look is for Sheets and print. When the window is wide enough, a column opens beside it with what the document is, its tags, its outline and the way to its PDF.
 
 ## Tables
 

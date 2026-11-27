@@ -35,7 +35,8 @@ report will never be dismissed for being inconvenient.
   sealed, so nothing readable sits on our side to breach. Tisty makes one check
   of its own — a daily GET for a version manifest and one for its signature,
   carrying nothing but the version you are running — and two more requests only
-  if you press the button that offers you an update. A copy from the Microsoft
+  if you press the button that offers you an update, or, once you turn on
+  automatic updates, by themselves when one exists. A copy from the Microsoft
   Store makes none of them unless the Store's catalog does not answer: it asks
   Windows what the Store has for it and reads that catalog. It is written out in
   full in [PRIVACY.md](PRIVACY.md), down to the headers, and so are the few
@@ -74,7 +75,10 @@ report will never be dismissed for being inconvenient.
   signature must name the very version offered, so an older signed installer
   cannot be passed off as a newer one; and
   the download is given a deadline, so a server that answers slowly forever is
-  eventually hung up on. A copy kept by the Microsoft Store never fetches an
+  eventually hung up on. An update downloaded on its own, with automatic
+  updates on, passes the same three guards before a byte is written; it then
+  waits in Tisty's cache and installs only when Tisty quits or opens. A copy
+  kept by the Microsoft Store never fetches an
   installer at all: it asks the Store what it has and lets the Store install it,
   so what stands behind that package is Microsoft's signature rather than the
   key below. The rule that nothing older than what is running may be offered
@@ -179,6 +183,15 @@ report will never be dismissed for being inconvenient.
   WebRTC over UDP, as a second lock. macOS has no such arguments, which holds
   because nothing foreign runs there to reach for them.
 
+- **A hook runs only what you saw.** A hook you make in Agents reaches an agent
+  only after you see the whole script and press **Register** on that computer;
+  Tisty keeps its copy outside sync and writes into the agent's file one line,
+  `tisty run-hook`. It runs with your permissions, like anything you install.
+  Tisty's own hooks look at where an agent writes and whether a command is a
+  push or a merge, and keep only marks. What Agents and Tisty's skills write
+  into a WSL distro goes only into its default user's home, never root's or a
+  Windows drive, never as hooks, and only with a yes given for that distro.
+
 ## What it deliberately does not protect
 
 Being explicit here matters more than sounding reassuring.
@@ -210,15 +223,16 @@ Being explicit here matters more than sounding reassuring.
   What a signature cannot do is make the feed speak: whoever could write to it
   could still leave it unchanged. Copies from before the feed was signed read it
   as they always did, and update the same way.
-- **The updater's signing key is a single point of failure.** One private key
-  signs every release, it is held by the maintainer alone, and the format offers
-  no way to rotate it: the public half is already compiled into every copy out
-  there. If it leaked, a build signed with it would be accepted by installed
-  copies; if it were lost, those copies would go on working and simply stop
-  being able to update themselves. Either way the fix is a new release installed
-  by hand, and it would be announced on the releases page. None of this reaches
-  a copy kept by the Store, which stands on Microsoft's signature instead — a
-  single point of its own, but not one this project holds.
+- **The updater's signing key is held by one person.** One private key signs
+  every release, held by the maintainer alone. Since 1.51 every copy also
+  carries, compiled in, the public half of a second key, kept apart, for the
+  updater, the feed, `cloud.json` and Folio's files, and accepts what either key
+  signs, so releases can move to signing with the second key if the first is
+  lost or compromised. Copies older than 1.51 know only the first key: for them
+  a leak would still be accepted and a loss would stop updates, and the fix is a
+  new release installed by hand, announced on the releases page. None of this
+  reaches a copy kept by the Store, which stands on Microsoft's signature
+  instead — a single point of its own, but not one this project holds.
 - **Whoever holds the shared folder holds your data.** Syncing through a
   provider's folder means that provider stores your tasks, under their terms.
   That is the trade you make when you turn it on, and Tisty states it rather
@@ -627,9 +641,11 @@ guarded the same way. `read` of a document with a proposal says so, with
 `approved: false`, so an assistant never mistakes what it proposed for what
 your agents read.
 
-**It does not see what you put away.** A task you hid or dropped, the pages
-hung under it and your diary, until you open it, are refused like documents
-that do not exist, and they never show as a neighbour or as something alike.
+**It does not see what you put away.** A task you hid, the pages hung under it
+and your diary, until you open it, are refused like documents that do not
+exist, and they never show as a neighbour or as something alike. A task you
+dropped it sees only as decided not to do: its title, its day and the reason
+noted, nothing of its page, journal or steps, and it cannot write to it.
 Where your writing links to one of those tasks, the assistant reads «a task
 out of sight», with no title or id; if it writes that document back, Tisty
 restores your link byte for byte, so the hidden task cannot be lost through a

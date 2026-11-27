@@ -44,7 +44,9 @@ How a task's page, steps and parts work is in [[Tasks]]; what a closed one keeps
 
 ## Making one
 
-In the sidebar's **Library**, use the **+** in its header: **New document**. The same button inside a folder makes it there. **New diagram** makes a document holding a diagram and opens the [[diagram window|Diagrams]]. **New folder** groups them, and a folder can hold folders of its own.
+In the sidebar's **Library**, press **+ New** in its header, always in view; inside a folder it makes it there. The arrow beside it has **New diagram**, **New folder** and the rest: **New diagram** makes a document holding a diagram and opens the [[diagram window|Diagrams]], and **New folder** groups them. A folder can hold folders of its own, up to six levels deep.
+
+Pick several rows with `Ctrl`/`⌘` or `Shift` + click to move, archive or delete them together. A document deleted alone comes back with **Undo** for 10 seconds. Deleting a folder that holds something asks what happens to it: **Move it to «…»** (the folder above), **Move it to Unfiled**, **Move it to another folder…** or **Delete it too**. Ideas holds only ideas and the Diary only its days: nothing else is moved into them.
 
 The first line of the document is its title — there is no name to fill in.
 
@@ -126,7 +128,7 @@ Worth knowing:
 
 - **It belongs to this computer.** What you hide does not travel with your sync: on your other computers the folder stays in view, and each computer hides its own.
 - **Nothing is deleted or moved.** The folder keeps its documents and subfolders, and search, the palette and **Move to** still find it: you can move a document into a hidden folder, and it goes in all the same.
-- **It hides from your view, not from your agent.** Your AI agent still reads and writes in a hidden folder, and Brainsty still draws it. What your agent never reaches is something else: a task you hid or dropped, your Diary until you open it, and the documents in Agents, which it only proposes on.
+- **It hides from your view, not from your agent.** Your AI agent still reads and writes in a hidden folder, and Brainsty still draws it. What your agent never reaches is something else: a task you hid (one you dropped it sees only as your decision not to do it), your Diary until you open it, and the documents in Agents, which it only proposes on.
 - **The sidebar filter shows it.** While you type in the Library's filter, hidden folders show too, so a match never stays hidden. When you close the filter with `Esc`, they hide again.
 - **A subfolder on its own.** You can hide **Work / Clients** and leave **Work** in view. Its row in Hidden folders names the whole path, so you know which one it is.
 - **The Diary and Ideas too.** Right-click **Diary** or **Ideas** and choose **Hide from the sidebar**. In Hidden folders they show by name, and **Show again** puts them back at the top of the Library.
@@ -157,7 +159,7 @@ With pictures, a table of what the card shows in each case and a whole example: 
 
 What you know about a subject lives in its document; the work you did on it, in its tasks. Cite the task in the document and you find it where you will look for it: «Car» shows «Change the tyres», closed in March, and a click takes you to how it was solved.
 
-Type `/`, choose **A task** and go on with a few words of its title: Tisty searches the open ones and the archived ones. `Enter` leaves a card like `![Change the tyres](tisty:task/…)`, alone in its paragraph.
+Type `/`, choose **A task** under **Task** and go on with a few words of its title: Tisty searches the open ones and the archived ones. `Enter` leaves a card like `![Change the tyres](tisty:task/…)`, alone in its paragraph.
 
 - **Always current**: the card reads the task each time it is drawn, with its title, its list, its dates, how many of its steps and parts are done and, if it is closed, the day it closed.
 - **A click opens it**, archived or not.
@@ -168,7 +170,7 @@ Type `/`, choose **A task** and go on with a few words of its title: Tisty searc
 
 ## Making a task from a document
 
-Tasks are born while you read and write: a «we need to…» turns up in minutes or in a plan, and leaving the document to note it down makes you lose the thread. Type `/`, choose **A new task** and write it as you would in the quick capture: `Call the vet on Monday #Rina !do`. `Enter` makes it with its date, its list, its tags and its priority, and leaves its card in that place of the document.
+Tasks are born while you read and write: a «we need to…» turns up in minutes or in a plan, and leaving the document to note it down makes you lose the thread. Type `/`, choose **A new task** under **Task** and write it as you would in the quick capture: `Call the vet on Monday #Rina !do`. `Enter` makes it with its date, its list, its tags and its priority, and leaves its card in that place of the document.
 
 - **The same rules as the quick capture**: `@list`, `#tag`, `!priority`, dates and repeats in words. The marks are painted as you type, and `/` inside the field offers what it offers there.
 - **`Esc` lets it go** without making anything. An empty line makes no task, and if something fails the document stays as it was.
@@ -339,7 +341,7 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 - **Restoring a backup** swaps this computer's versions for the zip's, and their limit counts again from that day.
 - **Your agent never reads the Diary's versions**, not even with the Diary open to agents. Those of any other document it can list, read and go back to, but never empty the history: see [[MCP tools|MCP-Tools#a-documents-earlier-versions]].
 - **Each page of a book and your [Ideas](#ideas) sheet** keep versions of their own, like any document. A page's row says **History**; **Versions of this page** is only a task page's.
-- **A document in the [[Agents|AGENTS-Folder]] folder** keeps its versions the same way, and its card opens them with **History**. They are not its **Backups**, which keep your agent's file as it was on disk. Its comparison with what is **Approved** reads from this history: if you empty it, or the approved version passes the limit, the card asks you to read the whole text before approving.
+- **A document in the [[Agents|AGENTS-Folder]] folder** keeps its versions the same way, and its card opens them with **History**, which also lists the copies of your agent's file as it was on disk, kept on this computer alone. Its comparison with what is **Approved** reads from this history: if you empty it, or the approved version passes the limit, the card asks you to read the whole text before approving.
 - **Sharing or exporting** a document never carries its versions: not a Folio link, not a `.tistyx`, not an export. Only a full backup carries them.
 - **On updating from a Tisty without the history,** the copy each document used to keep of what it said before became its first version on its own.
 

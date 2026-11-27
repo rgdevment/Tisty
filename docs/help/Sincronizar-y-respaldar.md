@@ -213,6 +213,8 @@ Cada evento lleva una versión, y un equipo solo lee lo que entiende. Cuando un 
 
 Desde la 1.34, un equipo que sigue con Tisty 1.30 a 1.33 y llega a tu nube o a tu carpeta se detiene y te pide actualizarlo en vez de escribir encima de lo que dejó uno más nuevo. Mientras no lo hagas, ese equipo no sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone al día en cuanto lo actualices. Una copia de una tienda puede tardar un poco en recibir la versión nueva.
 
+Desde la 1.51 las carpetas bajan seis niveles en vez de cuatro, y un equipo con un Tisty anterior deja de sincronizar hasta que lo actualizas; mientras tanto no se pierde nada.
+
 ## Cambié algo en un equipo y no aparece en el otro
 
 Con una carpeta, Tisty escribe y lee en ella, y **quien la sube es el programa de tu proveedor**: Google Drive, OneDrive, iCloud, Dropbox, Syncthing. Si ese programa no está corriendo, Tisty sigue guardando tu trabajo sin problema y no tiene cómo saber que nadie lo está recogiendo. Si en cambio conectaste Google Drive, OneDrive o un servidor WebDAV directo, Tisty te dice qué pasa en su propia tarjeta: mira [Lo que dice la tarjeta](#lo-que-dice-la-tarjeta).

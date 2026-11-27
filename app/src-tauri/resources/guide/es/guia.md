@@ -15,7 +15,7 @@ Lo que guardan los dos es de dos tipos: lo que hay que hacer son **tareas**, y l
 
 Todo queda en este equipo, como texto que cualquier programa abre. No pide cuenta, no cobra suscripción y no envía nada sobre cómo lo usas. Es de código abierto: cualquiera puede auditarlo. Detrás no hay una empresa: lo hago yo, porque lo necesitaba, y lo comparto.
 
-Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión. El engranaje, en ese mismo pie, abre Configuración en un **Resumen** que dice qué pide algo de ti, y **Buscar un ajuste** encuentra cualquier ajuste por su nombre. A esta guía vuelves desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**.
+Lee esta guía a tu ritmo: cada sección se entiende sola, y lo que hoy no uses puede esperar. Es un documento como cualquier otro, así que puedes tocarlo todo: hacer clic, escribir, probar. Si en algún momento te pierdes, el `?` al pie de la barra lateral abre la ayuda completa, también sin conexión. El engranaje, en ese mismo pie, abre Configuración en un **Resumen** que dice qué pide algo de ti, y **Buscar un ajuste** encuentra cualquier ajuste por su nombre. A esta guía vuelves desde **Configuración › Ayuda y acerca de**, con **Abrir la guía**. Ahí también, **Instalar actualizaciones automáticamente** hace que las próximas versiones se descarguen solas y se instalen al salir o al abrir Tisty, nunca mientras trabajas.
 
 ## Tú y tu agente
 
@@ -80,13 +80,13 @@ Conectar un agente es opcional: todo lo de arriba funciona sin él, y lo conecta
 Desde ahí, Tisty es su memoria entre sesiones. De un documento lee primero el índice y después solo la sección que necesita; de la tarea en la que está, marca los pasos y anota en su bitácora lo que probó y descartó. La próxima sesión parte de ahí, y cuesta una fracción de releer tus archivos Markdown.
 
 - **Puede** proponer tareas, escribir documentos, agregar o corregir en los que puede escribir, anotar y ordenar ideas contigo, y marcar lo que ya cumplió su vida, con el porqué.
-- **Puede decir** que una tarea o un paso está listo. La tarea queda en **Por confirmar** hasta que tú la terminas o la devuelves con **Sigue pendiente**; los pasos te esperan con **Marcarlos** o **Todavía no**.
+- **Puede decir** que una tarea o un paso está listo. Una tarea que hace por ti va en **Lo hace el agente**, aparte de **Te toca**, con las primeras líneas de su prueba, y espera en **Por confirmar** hasta que la confirmas (varias a la vez con **Confirmar las N hechas**) o la devuelves con **Sigue pendiente**; lo que solo tú puedes hacer, te lo pasa a una tarea tuya. Los pasos te esperan con **Marcarlos** o **Todavía no**.
 - **No puede** cerrar ni borrar una tarea, borrar un documento o una idea, marcar un paso tuyo ni mover un día que pusiste tú. En una tarea que escribiste tú puede cambiar la descripción, la página y los pasos abiertos, como en un documento.
 - **No ve tu diario** mientras no lo abras tú. Abierto, lo lee y solo añade al final de hoy.
 
 Si escribiste en un documento mientras él lo leía, no escribe encima: se le pide que vuelva a leerlo. Y cuando algo escribe en el documento que tienes abierto, la ventana te avisa y te ofrece volver a lo que decía antes; lo que tu agente reemplazó queda además como una versión en su historial, que cuenta **Volver a lo que decía antes**, más abajo.
 
-Al conectarlo, Tisty te da dos ayudas, cada una con su propio sí: sus **hooks**, que le traen al empezar las tareas que dejó abiertas y le recuerdan anotar al terminar un turno, y las **skills de Tisty**, que le enseñan a retomar, ordenar y dejar el trabajo listo para el próximo agente cuando se lo pides con tus palabras, como «Retoma donde quedamos». Las dos son opcionales, y las enciendes o las quitas cuando quieras.
+Al conectarlo, Tisty te da dos ayudas, que vienen marcadas y que una sola ficha, **Tisty en tus agentes**, enciende juntas: sus **hooks**, que le traen al empezar las tareas que dejó abiertas y le recuerdan anotar al terminar un turno, y las **skills de Tisty**, que le enseñan a retomar, ordenar y dejar el trabajo listo para el próximo agente cuando se lo pides con tus palabras, como «Retoma donde quedamos». Las dos son opcionales, y las enciendes o las quitas cuando quieras.
 
 Cómo conectarlo, cómo darle o quitarle la entrada y cómo pedirle las cosas, paso a paso, está en esta página:
 
@@ -150,6 +150,8 @@ Tu lista de tareas se mira de cuatro maneras:
 - **Próximo** — lo que viene.
 - **Se repiten** — lo que vuelve por su cuenta.
 - **Todas** — todo lo abierto, sin filtro.
+
+Una quinta, **◆ Por confirmar**, aparece solo mientras algo espera: lo que un agente dijo que está hecho o que no conviene hacer, con las dos respuestas en cada fila. Y cuando una lista tiene una tarea de un agente, se divide en **Te toca** y **Lo hace el agente**.
 
 Las cuatro cuentas del día, arriba en la barra lateral, abren lo que cuentan: **Vencidas** y **Atrasadas** abren cada una su propia vista, que aparece junto a Hoy mientras estás en ella, y **para hoy** y **por venir** abren Hoy y Próximo.
 
@@ -259,15 +261,15 @@ Un documento es tuyo y se guarda en Markdown: texto plano con unas pocas marcas,
 
 **Pruébalo:** haz clic en este mismo párrafo y escribe. Escribes sobre la misma página que lees, sin marcas a la vista.
 
-**Para hacer uno**, usa el **+** del encabezado de la **Biblioteca**, en la barra lateral: **Documento nuevo**. Dentro de una carpeta, ese mismo botón lo crea ahí, y **Carpeta nueva** los agrupa. Las carpetas aparecen plegadas; ábrelas con la flecha.
+**Para hacer uno**, pulsa **+ Nuevo** en el encabezado de la **Biblioteca**, en la barra lateral; dentro de una carpeta abierta lo crea ahí. La flecha de al lado trae **Carpeta nueva** y lo demás. Las carpetas aparecen plegadas; ábrelas con la flecha.
 
 La primera línea del documento es su título: no hay que ponerle nombre en ninguna otra parte. Sus propiedades se ven en el panel de al lado: el papel en que se imprime, junto a **Hojas**; las etiquetas y las demás, en **Detalles**.
 
 Para escribir:
 
 - Haz clic donde quieras y escribe: la página que lees es la que escribes.
-- Elige unas palabras y una barra pequeña te ofrece negrita, cursiva, subrayado, tachado, código, un enlace o el resaltador; el botón derecho, además, las corta o las copia como Markdown.
-- La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) también lo mueve.
+- Elige unas palabras y una barra pequeña te ofrece negrita, cursiva, subrayado, tachado, código, un enlace o el resaltador; el botón derecho ofrece las palabras del corrector, cortar, copiar, pegar y pegar sin formato, y sobre un bloque, sus acciones. Lo que copias llega con su formato a otras apps, y a Tisty como su propio Markdown.
+- La tecla `/` al empezar una línea, o el **+** del margen, inserta lo que cabe en un documento. Viene en cuatro grupos, **Texto**, **Listas**, **Insertar** y **Enlazar**, y algunas filas abren un submenú. Supr y Retroceso se llevan entera una tabla, un diagrama, un widget, una fórmula, una sección plegable, una nota adhesiva o una tarjeta. El asa que aparece a la izquierda de un bloque lo arrastra a otro lugar, y su menú lo sube, lo baja, lo duplica o lo borra; `Alt` + ↑ ↓ (`Ctrl` + `Alt` en un Mac) también lo mueve.
 - El **⋯** de arriba del documento lo pasa a **Markdown**, el texto con todas sus marcas a la vista; `Ctrl`/`⌘` + `E` también, y **Enriquecido** te devuelve a la página.
 - Arrastra un archivo dentro para adjuntarlo: la cartilla de vacunas de Rina, el PDF del seguro.
 - Inserta **otro documento**: en un párrafo propio aparece como tarjeta; dentro de una frase, como enlace con su título. La tarjeta se abre con un clic; el enlace, mientras escribes, con `Ctrl` (`⌘` en un Mac) + clic.
@@ -275,7 +277,7 @@ Para escribir:
 
 **Exportar**, en el panel del documento, te muestra su PDF, lo guarda en PDF, como página web o como Word, y lo copia como Markdown estándar para cualquier otro editor. Prueba con esta guía: sale con sus diagramas, sus tablas y sus hojas.
 
-Y cuando un asunto ya pasó, archiva su carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe; desarchívala y vuelve como estaba. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
+Y cuando un asunto ya pasó, archiva su carpeta con el botón derecho: baja al estante de **Archivados**, al final del árbol, con todo lo que tiene dentro. Ahí se lee y se exporta, pero no se escribe; desarchívala y vuelve como estaba. Puedes elegir varias filas a la vez (`Ctrl`/`⌘` + clic, `Shift` + clic o `Shift` + ↑ ↓) y borrarlas juntas, y un borrado se deshace durante unos segundos. Borrar una carpeta pregunta adónde va lo que tiene: a la carpeta de arriba, a Sin carpeta, a otra carpeta, o con ella. Más en [documentos](https://www.tisty.app/es/ayuda/documentos/).
 
 ### En varios idiomas
 
@@ -293,7 +295,7 @@ Un año de actas, un libro por capítulos, la vida de Rina contada año a año: 
 
 Una página es un documento como cualquier otro, con su propio archivo, que además dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
 
-**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. **Pruébalo:** esta guía tiene varias páginas, y esta tarjeta es una de ellas. Ábrela con un clic y mira arriba de qué documento es:
+**Para agregarle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o, en **Página o documento**, **Una página que ya existe** si ya la escribiste. Queda insertada ahí mismo, como una tarjeta con su título y sus primeras palabras. **Pruébalo:** esta guía tiene varias páginas, y esta tarjeta es una de ellas. Ábrela con un clic y mira arriba de qué documento es:
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
@@ -310,7 +312,7 @@ Una página se puede archivar por separado, con el botón derecho, y queda atenu
 
 Si un documento va a terminar impreso o en PDF, tú decides dónde empieza cada hoja. Una línea con solo `---` la corta: lo que sigue va en la hoja siguiente, y `Ctrl`/`⌘` + `Enter` la escribe por ti.
 
-Enciende **Hojas** en el panel del documento para verlo en hojas de verdad (A4, Carta u Oficio, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente. Al exportar a PDF salen esas mismas hojas. **Pruébalo:** aquí abajo hay una raya de esas; enciende **Hojas** y mira dónde cae el párrafo que sigue.
+Enciende **Hojas** en el panel del documento para verlo en hojas de verdad (A4, Carta u Oficio, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente. Al exportar a PDF salen esas mismas hojas. En pantalla la página sigue el ancho de la ventana hasta el del documento, que eliges en **Ancho del texto**, en su menú (**Estrecho**, **Normal**, **Ancho** o **Completo**); el aspecto de papel queda para Hojas y la impresión. **Pruébalo:** aquí abajo hay una raya de esas; enciende **Hojas** y mira dónde cae el párrafo que sigue.
 
 ---
 
@@ -516,7 +518,7 @@ Abre solo en tus equipos, donde está tu almacén; para dárselo a otra persona,
 ¿Ya tienes notas en otro lado? No hace falta copiarlas a mano. Lo que llega de afuera entra convertido en Markdown de Tisty, y el archivo de donde vino no se toca:
 
 - **Importar un documento**, en el árbol, toma Markdown, texto, una página web o un Word.
-- Al pegar se conservan los títulos, listas, tablas, enlaces y colores de lo que copiaste de una web, un correo o un Word.
+- Al pegar se conservan los títulos, listas, tablas, enlaces y colores de lo que copiaste de una web, un correo, un Word, un editor de código o una terminal; y lo que copias de Tisty llega a esas apps con su formato.
 - Una nota de Obsidian entra con sus avisos convertidos y sus `[[enlaces]]` apuntando a los documentos de aquí con esos títulos.
 - **Exportar para Tisty…** lleva carpetas enteras, con sus páginas, a otro Tisty en un archivo `.tistyx`, y abrirlo las trae tal cual.
 - Un calendario `.ics` también entra: arrástralo a la ventana y elige qué citas se vuelven tareas.

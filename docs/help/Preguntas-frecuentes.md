@@ -6,7 +6,7 @@
 Sí, Tisty es gratis y lo seguirá siendo, bajo la licencia AGPL-3.0. Sin cuentas ni telemetría, y en constante desarrollo y mejora. Los [términos comerciales](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) existen solo para organizaciones que no pueden cumplir la AGPL.
 
 **¿Necesita cuenta o conexión?**
-Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
+Ninguna de las dos. Por su cuenta, Tisty solo pregunta si hay una versión más nueva, y no envía nada para hacerlo; si activas las actualizaciones automáticas, además la descarga. Cuando sincronizas con una nube o compartes un documento, además lee los pocos archivos pequeños que lista [[Privacidad]]. Desconecta el equipo de la red y todo lo demás funciona igual. Mira [[Privacidad]].
 
 **¿Necesito un agente de IA?**
 No. Todo lo que trae Tisty está desde el principio: tareas en lenguaje natural con sus pasos, documentos enlazados, Ideas, el Diario y [[Brainsty|Red-de-Brainsty]]. También funciona sin agente, a la manera tradicional: tus notas, documentos y tareas, a mano y a tu ritmo. Por ejemplo, guardas las visitas de Rina al veterinario en un documento y su próxima vacuna como una tarea que suena la tarde anterior: ningún agente ve nada de eso hasta que conectes uno, el día que quieras, como cuenta [[Agentes y MCP|Agentes-y-MCP]].
@@ -33,7 +33,7 @@ En tu disco no, por decisión: la protección son los permisos de tu sistema ope
 No como un tablero compartido. Tisty es de una persona por diseño: sin asignaciones, sin permisos, sin una base de datos compartida. Cada persona guarda sus propias tareas, documentos y agente, y cuando alguien necesita lo que sabes, le entregas el documento con Folio, cifrado y firmado. Mira [Compartir](Documentos#compartir).
 
 **¿Hay app móvil? ¿Linux?**
-No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un agente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Agentes › Conectados.
+No hay app móvil: Tisty es un programa de escritorio para Windows y macOS. Tus documentos son Markdown en una carpeta, así que un teléfono que llegue a esa carpeta puede leerlos y editarlos con cualquier app. Tampoco hay versión para Linux; un agente que corre en Linux dentro de Windows, con WSL, llega a Tisty igual desde Configuración › Agentes › Conectados, y cada distro puede recibir las reglas de Agentes y las skills de Tisty con su propio sí.
 
 **¿Los recordatorios suenan con Tisty cerrado?**
 Sí, desde la 1.48, mientras el equipo esté encendido: Tisty los agenda en Windows o macOS, y un clic en el aviso abre la tarea. Mira [Recordatorios](Reparto-y-recordatorios#recordatorios).
@@ -137,7 +137,7 @@ En dos pasos que te muestra la tarjeta de tu nube: **Reconectar** y, después, *
 Un proxy, un filtro de tu trabajo o un antivirus se interpone entre este equipo y Google, o revisa las conexiones seguras de modo que Tisty no puede confiar en ellas. Mientras tanto, tu trabajo queda a salvo en este equipo. En una red de trabajo, pide a quien la administra que deje pasar a Tisty; en tu propio equipo, permite a Tisty en tu antivirus. Nunca rodees por tu cuenta la protección de tu empresa. Qué significa cada aviso está en [Sincronizar y respaldar](Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
 
 **Uno de mis equipos dejó de sincronizar después de una actualización.**
-Actualiza el que quedó atrás. Un equipo solo lee lo que entiende, así que los dos dejan de sincronizar en ambos sentidos hasta que coinciden. Un equipo que sigue con Tisty 1.30 a 1.33 se detiene y te pide actualizarlo en vez de escribir encima de uno más nuevo. No se pierde nada, y lo que escribas entretanto se queda en ese equipo. Un equipo que sigue con un Tisty anterior a la 1.48 también se detiene donde sincronizas un [Diario](Documentos#diario), antes de recibir nada de él.
+Actualiza el que quedó atrás. Un equipo solo lee lo que entiende, así que los dos dejan de sincronizar en ambos sentidos hasta que coinciden. Un equipo que sigue con Tisty 1.30 a 1.33 se detiene y te pide actualizarlo en vez de escribir encima de uno más nuevo. No se pierde nada, y lo que escribas entretanto se queda en ese equipo. Un equipo que sigue con un Tisty anterior a la 1.48 también se detiene donde sincronizas un [Diario](Documentos#diario), antes de recibir nada de él. Desde la 1.51 las carpetas bajan seis niveles, así que cada equipo que sincroniza necesita la 1.51 o una más nueva.
 
 ## Comparación
 

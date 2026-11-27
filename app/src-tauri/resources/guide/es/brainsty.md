@@ -24,17 +24,17 @@ El panel junto a un documento tiene la fila **Enlazado desde**: cada documento y
 
 ## Citar una tarea
 
-Lo que sabes de un tema vive en su documento, y el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar. En el menú `/`, **Una tarea** busca entre las abiertas y las archivadas, y deja su tarjeta sola en su párrafo.
+Lo que sabes de un tema vive en su documento, y el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar. En el menú `/`, en **Tarea**, **Una tarea** busca entre las abiertas y las archivadas, y deja su tarjeta sola en su párrafo.
 
 ![Las tarjetas de «Renovar el seguro del auto» y «Cambiar los neumáticos del auto» en el documento «Auto», cada una con su lista, Finanzas, y «1 de 3 pasos»; la segunda, además, con su fecha](tarjeta.png)
 
 La tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos, cuántos esperan que confirmes si un agente dice que los hizo («1 de 3 pasos · 1 por confirmar») y, si se cerró, el día. Un clic la abre; su círculo la marca hecha; su contador despliega los pasos para marcarlos ahí mismo. Una tarea cerrada se lee, pero ya no cambia desde el documento.
 
-**Pruébalo:** en una línea vacía de esta hoja escribe `/`, elige **Una tarea** y escribe una palabra de una tarea tuya. Si todavía no tienes ninguna, la captura rápida está a un `Ctrl` + `Shift` + `Space`.
+**Pruébalo:** en una línea vacía de esta hoja escribe `/`, elige **Una tarea** en **Tarea** y escribe una palabra de una tarea tuya. Si todavía no tienes ninguna, la captura rápida está a un `Ctrl` + `Shift` + `Space`.
 
 ## Crear una tarea sin salir del documento
 
-En un acta o en un plan aparece un «hay que…». En el menú `/`, **Una tarea nueva** abre ahí mismo el campo de la captura rápida: escribe la tarea como la dirías y `Enter` la crea con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar.
+En un acta o en un plan aparece un «hay que…». En el menú `/`, en **Tarea**, **Una tarea nueva** abre ahí mismo el campo de la captura rápida: escribe la tarea como la dirías y `Enter` la crea con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar.
 
 **Pruébalo:** en una línea vacía, aquí abajo, escribe `/tarea`, `Enter`, y después `Pasear a Rina y Roger el sábado #rina`. Abre la tarea con un clic en su tarjeta: junto a su página, **Nació en** nombra esta hoja, y un clic te trae de vuelta. `Esc` en el campo la deja ir sin crear nada.
 
@@ -112,12 +112,12 @@ tisty://doc/mascotas/rina?id=…
 
 ## Lo que lee tu agente
 
-Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, el Archivo junto a lo demás; trae la ficha de un documento, con sus secciones, quién lo cita y sus decisiones vigentes primero, sin leerlo entero; y ve un proyecto agrupado en bloqueado, en curso, esperándote y sin empezar. En la ficha, lo que Tisty cree que se parece le llega aparte, en `guessed`, con las palabras en común o la pareja de palabras que los une, como `pagar≈pay`, y con cómo las unió: por palabras, por una letra de diferencia o por traducción. Así no lo confunde con lo que alguien escribió. Una tarea que ocultaste o descartaste nunca le llega: si la enlazaste en un documento, ahí lee solo «a task out of sight», y cuando reescribe ese documento tu enlace vuelve intacto. Cuando nombra una tarea o un documento por su título exacto entre comillas, Tisty lo enlaza al guardar, como cuando lo haces tú. Lo cuenta, paso a paso, [la página de tu agente](tisty:agent).
+Tu agente lee la misma red, pero como un índice. Con una sola herramienta, `brain`, busca tareas y documentos por sus palabras, el Archivo junto a lo demás; trae la ficha de un documento, con sus secciones, quién lo cita y sus decisiones vigentes primero, sin leerlo entero; y ve un proyecto agrupado en bloqueado, en curso, esperándote y sin empezar. En la ficha, lo que Tisty cree que se parece le llega aparte, en `guessed`, con las palabras en común o la pareja de palabras que los une, como `pagar≈pay`, y con cómo las unió: por palabras, por una letra de diferencia o por traducción. Así no lo confunde con lo que alguien escribió. Una tarea que ocultaste nunca le llega; una que descartaste le llega solo como tu decisión de no hacerla, con su título, el día y el motivo que quedó anotado. Si enlazaste cualquiera de las dos en un documento, ahí lee solo «a task out of sight», y cuando reescribe ese documento tu enlace vuelve intacto. Cuando nombra una tarea o un documento por su título exacto entre comillas, Tisty lo enlaza al guardar, como cuando lo haces tú. Lo cuenta, paso a paso, [la página de tu agente](tisty:agent).
 
 ## Lo que conviene saber
 
 - **Todo queda en este equipo.** La red se calcula aquí y se rehace sola: no se sincroniza ni sale con lo que compartes o exportas. Cada equipo la dibuja de nuevo con tus documentos y tareas.
-- **Lo que apartas no aparece.** Una tarea oculta o descartada, las páginas que cuelgan de ella y tu Diario con sus páginas no son puntos de la red: nada apunta a ellos, ni una línea, ni un parecido, ni un viajero, ni **Apuntan aquí**, y tampoco le llegan a tu agente. **Archivadas** sigue mostrando los documentos que archivaste.
+- **Lo que apartas no aparece.** Una tarea oculta o descartada, las páginas que cuelgan de ella y tu Diario con sus páginas no son puntos de la red: nada apunta a ellos, ni una línea, ni un parecido, ni un viajero, ni **Apuntan aquí**, y tampoco le llegan a tu agente, salvo una tarea descartada, que ve solo como tu decisión de no hacerla. **Archivadas** sigue mostrando los documentos que archivaste.
 - **Fuera de Tisty**, un enlace a otro documento y la tarjeta de una tarea quedan solo como sus palabras: en Markdown estándar, en Word, en el PDF y en Folio.
 - **Hasta 12.000 puntos.** Más allá, la red guarda lo último que tocaste, sus vecinos, tus documentos y las tareas en curso, y te dice arriba cuánto quedó fuera.
 - **Cada línea recta la escribiste tú; la curva ámbar, no.** Tisty une como parecidos lo que nadie unió, con tres pistas y en este orden:

@@ -1,6 +1,6 @@
 # Hooks y skills
 
-Conectar un agente le da las herramientas de Tisty, pero no la costumbre de usarlas: al empezar no sabe dónde quedó, y al terminar se le olvida anotar. Para eso armé dos piezas más, las dos opcionales y cada una con su propio sí. Los **hooks** ayudan a tu agente en tres momentos: al empezar una sesión, al terminar un turno y antes de dejar algo fuera de Tisty. Las **skills de Tisty** le enseñan a tu agente a trabajar con Tisty: retomar, ordenar y dejar el trabajo listo para el próximo.
+Conectar un agente le da las herramientas de Tisty, pero no la costumbre de usarlas: al empezar no sabe dónde quedó, y al terminar se le olvida anotar. Para eso armé dos piezas más, las dos opcionales y cada una con su propio sí. Los **hooks** ayudan a tu agente en algunos momentos: al empezar una sesión, al terminar un turno, después de un push o un merge, y antes de dejar algo fuera de Tisty. Las **skills de Tisty** le enseñan a tu agente a trabajar con Tisty: retomar, ordenar y dejar el trabajo listo para el próximo.
 
 Ninguna de las dos es obligatoria. Sin ellas, tu agente usa las mismas herramientas cuando se lo pides, y Tisty le pregunta igual si dejó su tarea al día. Y si prefieres trabajar sin agente, nada de esta página te hace falta: tus tareas y tus documentos funcionan igual, a mano.
 
@@ -11,7 +11,7 @@ Cómo conectar un agente está en [[Agentes y MCP|Agentes-y-MCP]]; una sesión l
 | | Hooks | Skills de Tisty |
 | :-- | :-- | :-- |
 | **Qué son** | Comandos que tu agente corre solo al empezar una sesión, antes y después de algunas herramientas y al terminar un turno | Tres carpetas con un `SKILL.md` que tu agente lee cuando lo que le pides calza con ellas |
-| **Qué hacen** | Le traen al agente sus tareas abiertas al empezar y le devuelven el turno una vez si editó archivos sin escribir nada en Tisty, y le preguntan una vez antes de dejar un archivo de texto fuera de un repo | Le enseñan a retomar donde quedó, a ordenar lo que guardas sin borrar nada y a escribir para el próximo agente |
+| **Qué hacen** | Le traen al agente sus tareas abiertas al empezar, le devuelven el turno una vez si editó archivos sin escribir nada en Tisty, le devuelven el turno una vez si dejó todos los pasos marcados sin decirla hecha, le preguntan después de un push o un merge si terminó un paso o la tarea, y le preguntan una vez antes de dejar un archivo de texto fuera de un repo | Le enseñan a retomar donde quedó, a ordenar lo que guardas sin borrar nada y a escribir para el próximo agente |
 | **Qué agentes** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI y DeepSeek Harness |
 | **Dónde se encienden** | **Configuración › Agentes › Conectados**, bajo la fila de cada agente | **Configuración › Agentes › Conectados**, bajo la fila de cada agente o desde **Tisty en tus agentes**, al final |
 | **Los dos a la vez** | **Tisty en tus agentes**, al final de **Conectados** o en **Agentes › Global**, y **Hooks y skills para tus agentes**, sobre las pestañas | Los mismos |
@@ -52,11 +52,13 @@ Un agente con Tisty delante a veces deja el encargo para otro en un `.md`, donde
 | Agente | Archivo nuevo | Terminal | Tarjeta |
 | :-- | :-- | :-- | :-- |
 | **Claude Code** | Sí | Sí | Sí, en la aplicación de Claude |
+| **Codex** | Sí | Sí | — |
 | **Cursor** | Sí | Sí | — |
+| **Antigravity CLI** | Sí | Sí | — |
 | **Gemini CLI** | Sí | No | — |
 | **GitHub Copilot** | Sí, menos con `apply_patch` | No | — |
 
-En Cursor, la pregunta sale de sus propios hooks: con solo los de Claude Code, que Cursor también corre, calla. De un comando mira solo dónde escribe lo que él mismo dice (`echo … > nota.md`, `cat > nota.md`, `tee`, `Set-Content`): lo que escriba un programa que corra, no. Codex y Claude Desktop no tienen hooks, y un agente en la nube no corre los de tu equipo.
+En Cursor, la pregunta sale de sus propios hooks: con solo los de Claude Code, que Cursor también corre, calla. De un comando mira solo dónde escribe lo que él mismo dice (`echo … > nota.md`, `cat > nota.md`, `tee`, `Set-Content`) y si es un `git push`, un `gh pr create` o un `gh pr merge`: lo que escriba un programa que corra, no. Claude Desktop no tiene hooks, y un agente en la nube no corre los de tu equipo.
 
 **Una vez por sesión y carpeta**, con las de adentro, y tres carpetas por sesión como mucho; las tarjetas, una vez. Si el turno ya llevó esa pregunta, al terminar no se le devuelve además.
 
@@ -70,7 +72,7 @@ En Cursor, la pregunta sale de sus propios hooks: con solo los de Claude Code, q
 Entonces lo deja en una tarea, con sus pasos, y le da a Marisol el título:
 
 ```json
-propose { "title": "Cerrar la migración de pagos", "list": "Trabajo",
+propose { "title": "Cerrar la migración de pagos", "for": "agent", "list": "Trabajo",
   "steps": ["Probar los reintentos", "Avisar al proveedor"] }
 ```
 
@@ -98,7 +100,7 @@ Tisty escribe solo sus propias entradas y deja el resto del archivo como está, 
 
 **Si conectas el agente ahora, los hooks van incluidos y encendidos**: [Al conectar un agente](#al-conectar-un-agente) lo cuenta.
 
-**Si los agregaste antes de la 1.50**, no se agrega nada solo. Bajo la fila aparece «Les falta el más nuevo, el de antes de dejar algo fuera de un repo: apágalos y enciéndelos para tenerlo.». Al encenderlos otra vez se escriben todos como vienen: un tiempo o un filtro que les habías cambiado vuelve al de Tisty.
+**Si los agregaste antes de la 1.51**, no se agrega nada solo. Bajo la fila aparece «Les faltan los más nuevos, el de antes de dejar algo fuera de un repo y el de después de un push o un merge: apágalos y enciéndelos para tenerlos.». Al encenderlos otra vez se escriben todos como vienen: un tiempo o un filtro que les habías cambiado vuelve al de Tisty.
 
 No hace falta reiniciar el agente para los hooks: los toma en su próxima sesión.
 
@@ -123,7 +125,7 @@ Los hooks guardan la ruta del Tisty que los puso. Si mueves Tisty o cambias de i
 ### Quitarlos o apagarlos
 
 - Apagar el interruptor de la fila saca solo las entradas de Tisty: «Quitados. Su próxima sesión corre sin ellos.». Si además hay otros a tu manera: «Quitados los de Tisty. Los escritos a tu manera quedan.».
-- **Recordarle al empezar y al terminar cada turno**, en **Configuración › Agentes › Puerta**, apaga los tres para todos sin quitarlos de ningún archivo. Sirve para una tarde en que no quieres que te devuelvan turnos.
+- **Recordarle al empezar y al terminar cada turno**, en **Configuración › Agentes › Puerta**, los apaga todos para todos los agentes sin quitarlos de ningún archivo. Sirve para una tarde en que no quieres que te devuelvan turnos.
 - **Quitarle la voz**, en la misma **Puerta**, cierra la puerta: con ella cerrada, los hooks callan.
 
 ### Si el plugin de Tisty ya los trae
@@ -206,6 +208,8 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 | **Codex**, **GitHub Copilot**, **Gemini CLI**, **DeepSeek Harness** y **Cursor** | `~/.agents/skills/…`, una sola copia que leen los cinco |
 
 `~` es tu carpeta de usuario: `C:\Users\tú` en Windows y `/Users/tú` en macOS. La ficha muestra solo las carpetas de los agentes que tienes en este equipo. La compartida dice «Codex · Copilot · Gemini · DeepSeek Harness · Cursor» y lo advierte: «Codex, Copilot, Gemini, DeepSeek Harness y Cursor comparten esta carpeta: encenderlos o apagarlos aquí vale para los cinco.». Una copia que un Tisty anterior escribió en `~/.cursor/skills/` se va sola, con respaldo, mientras siga como Tisty la escribió.
+
+**Dentro de WSL.** Cada distro que aparece en **Conectados** tiene su propia fila **Skills de Tisty**, con su propio sí. Tisty escribe solo en la carpeta del usuario por defecto de esa distro, en LF, y nunca pone en marcha por su cuenta una distro detenida: la fila espera, u ofrece **Poner Ubuntu en marcha y escribir**. Los hooks nunca se escriben en una distro.
 
 ### Encenderlas
 
@@ -355,7 +359,7 @@ Como Claude Code lee su configuración al abrirse, lo cierra del todo y lo abre 
 Yisset le pide a Claude Code que planifique la exportación del reporte. El agente la anota como una tarea con sus pasos:
 
 ```json
-> propose {"title": "Exportar el reporte mensual a CSV", "list": "Trabajo",
+> propose {"title": "Exportar el reporte mensual a CSV", "for": "agent", "list": "Trabajo",
            "steps": ["Leer el formato que pide contabilidad", "Escribir la exportación",
                      "Probar con los datos de octubre", "Agregar el botón en la pantalla de reportes"]}
 ```
@@ -422,7 +426,7 @@ Termina diciéndole a Yisset qué dejó y dónde: los pasos marcados, el estado,
 
 - **En la lista Trabajo**, la fila de la tarea dice **3/4 · ✎1** y «por un agente»; al pasar el puntero, «Claude Code escribió en este equipo».
 - **En su página**, la sección **Estado**, con la fecha y «Claude Code», dice lo hecho, lo que falta y lo decidido. Encima, a la derecha, **↓ Bitácora · 1 nota** la lleva a la nota del agente, con el enlace a «Reportes: decisiones».
-- **Nada se cerró.** Falta un paso, y cuando el agente diga que la tarea está hecha, esperará en **Por confirmar** hasta que Yisset la cierre.
+- **Nada se cerró.** Falta un paso, y cuando el agente diga que la tarea está hecha, esperará en **Lo hace el agente**, bajo **Por confirmar**, con las primeras líneas de su prueba, hasta que Yisset la confirme.
 
 Si la tarea la hubiera escrito Yisset, y ella hubiera marcado el primer paso, las marcas del agente serían su palabra: la fila diría **1/4 ◆2**, con «2 por confirmar» al pasar el puntero, hasta que ella las tome con **Marcarlos**. Lo cuenta [[Qué puede hacer un agente|Qué-puede-hacer-un-agente]].
 

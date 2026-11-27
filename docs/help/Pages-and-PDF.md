@@ -8,7 +8,7 @@ A **page** is a document like any other — the same `.md` file on disk, the sam
 
 ### Adding a page
 
-Type `/` where that chapter should start and pick **A new page**, or **A page that already exists** if it is already written. It is named right there, drawn as a card with its title, its first words and its place in the book.
+Type `/` where that chapter should start and pick **A new page**, or, under **Page or document**, **A page that already exists** if it is already written. It is named right there, drawn as a card with its title, its first words and its place in the book.
 
 In the tree, a document dropped on another becomes a page of it.
 

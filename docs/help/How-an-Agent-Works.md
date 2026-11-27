@@ -9,7 +9,7 @@ This page follows a real agent session, step by step, with the calls it makes an
 - **It finds and walks with a single tool, `brain`.** It finds tasks and documents by their words, with the archive beside the rest; brings a document's or a task's card with its neighbours; and shows a whole project grouped as blocked, under way, waiting for you and not started.
 - **It reads with a single tool, `read`.** A task or a document, whole or in parts, only what is highlighted, or an earlier version; and if nothing changed since its last read, only that.
 - **It leaves the task up to date in one call.** `tick` ticks the steps and writes the task's state, a «State» section of its page that is replaced whole each time. When it picks the task up, `read` brings that state first.
-- **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when it starts, when each turn ends and before it leaves something outside.
+- **Tisty asks it when it forgets.** In its answers, to any agent; and with the hooks, when it starts, when each turn ends, after a push or a merge, and before it leaves something outside.
 - **What it names gets linked.** A task or a document named by its id or by its exact title between quotes becomes a link when saved, just as if you had made it.
 - **It knows what to do when you say it in your own words.** With Tisty's skills on, “Pick up where we left off” or “Leave this ready for the next agent” is enough: the `tisty` skill tells it to start with `catch_up` and to leave the task up to date with `tick` and a note. [[Hooks and skills|Hooks-and-Skills]] tells it.
 
@@ -24,7 +24,7 @@ In **Settings › Agents**:
    If you connect the agent now, both come with **Connect** and stay on. If it was already connected, steps 2 and 3 come together above the tabs, in **Hooks and skills for your agents**: **Add hooks and turn on skills** shows you the files and folders before writing.
 4. On the **Door** tab, two switches, on from the start:
    - **Ask it to keep its task up to date**: the question in the answers.
-   - **Remind it when a turn starts and ends**: the three hooks, without taking them out of the file.
+   - **Remind it when a turn starts and ends**: Tisty's hooks, without taking them out of the file.
 
 ## A session, step by step
 
@@ -197,6 +197,8 @@ With the hooks, when a turn edited files and wrote nothing in Tisty, the turn go
 
 If the agent lets it pass, the hook stays quiet until it calls Tisty again: a turn outside a task costs one extra turn at most.
 
+It also hands the turn back once when every step of its task is ticked and it is not said done, for a `say_done` with the proof; and after a `git push`, `gh pr create` or `gh pr merge` it asks whether that finished a step or the task: in Claude Code at once, in the others when the turn ends.
+
 ### 11. What only you can do goes in your task
 
 A task is the agent's or yours, never both: mixed, it never ends. So `propose` asks for `for`, «agent» or «person». When a step of the agent's turns out to be yours, like trying it by hand, publishing or merging, it hands it to your task:
@@ -241,7 +243,7 @@ An agent that still calls one of them is told where it went («`find` moved into
 - **GitHub Copilot** may spend a premium request on the turn that is handed back.
 - **Cursor** also runs Claude Code's hooks; even if both fire, the turn goes back only once.
 - **Gemini CLI** runs hooks only in the folders you trusted.
-- **What is hidden stays out.** A task you hid or dropped is never named: not in a search, not as a neighbour on a card, not as an alike pair, not at the start of a session. Your Diary, while you do not open it to agents, neither.
+- **What is hidden stays out.** A task you hid is never named: not in a search, not as a neighbour on a card, not as an alike pair, not at the start of a session. One you dropped reaches it only as decided not to do: a search by its words lists it apart, at most three, with its title, its day and the reason noted, and proposing the same work again is held back unless it sets `again`. Your Diary, while you do not open it to agents, is never named either.
 - **Where you linked it, it reads «a task out of sight».** If a document cites or mentions one of those tasks, the agent reads it with those words in place of the link, with no title or id. If it later rewrites the document, Tisty puts your link back as it was, byte for byte: what is hidden is not lost because the agent did not see it.
 - **In the Agents folder it only proposes.** It reads your rules and skills like any document, but a change of its own stays as a proposal until you approve it on the card. [[A proposal from your agent|AGENTS-Folder#a-proposal-from-your-agent]] tells it.
 - **With the door closed**, the tools refuse everything and the hooks stay quiet.

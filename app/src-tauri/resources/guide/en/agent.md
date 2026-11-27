@@ -8,7 +8,8 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 - **Connected**: it already opens this Tisty.
 - **Not connected**: **Connect** writes Tisty into that agent's settings, and touches only its own line.
-- **Points at another Tisty**: an older copy, or one that is gone. **Fix** shows you what it will write and, with your yes, points it here. If it is gone, the window tells you too.
+- **Points at another Tisty**: a copy that is gone. **Fix** shows you what it will write and, with your yes, points it here. The window tells you too.
+- **Uses your other Tisty install**: another copy still on this computer, such as the Store's and winget's side by side. Both work, so nothing changes on its own; **Fix** brings it to this one if you want.
 - **Set up your own way**: it holds a Tisty entry that Tisty cannot check, and leaves it as you wrote it.
 - **Could not be read**: Tisty could not read its file, so it does not touch it.
 - **May be here**: only its folder is left, so it may no longer be installed.
@@ -34,7 +35,7 @@ Nothing listens until you connect one: the agent starts Tisty when it needs it, 
 An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings › Agents › Door**:
 
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every agent, though only when it calls Tisty.
-- **The hooks**: in Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot, the **Tisty's hooks** switch, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. Turning it off takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
+- **The hooks**: in Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot, the **Tisty's hooks** switch, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. It also hands it back once when a turn left every step of its task ticked without saying it done, never on a task of yours; and after a `git push`, a `gh pr create` or a `gh pr merge` it asks whether it finished a step or the task: in Claude Code at once, in the others when the turn ends. Hooks added before lack these: turn them off and on. Turning it off takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
 
 ## So it knows how to work: Tisty's skills
 
@@ -50,6 +51,7 @@ You turn them on when you connect an agent or in **Settings › Agents › Conne
 
 - **They update by themselves** with each Tisty version, and never write over a skill of yours with the same name or a copy you changed.
 - **They count only on this computer**: on another one you decide there. Pausing Agents does not reach them: they have their own switch.
+- **In a WSL distro**, Settings › Agents › Connected shows «Ubuntu · WSL» with **Agents' rules and skills** and **Tisty's skills**, each with its own yes there. Tisty only writes into it, in LF, never hooks or agents' memory, and nothing comes back from it; a stopped distro waits until it runs.
 - **Turn off on this computer** takes them out of your agents' folders, with a backup, without deleting them: they stay in Tisty, ready to turn on again.
 - **With the Tisty plugin** in Claude Code, the plugin already brings the hooks and the skills: the hooks row says **The Tisty plugin brings them**, and Tisty does not copy its skills there.
 
@@ -76,18 +78,18 @@ When it picks a task up, the first thing it gets is its **State**, the one you s
 
 ## What it can do
 
-- Propose tasks with their steps, their parts and their date, set a reminder on them and note in their journal.
+- Propose tasks with their steps, their parts and their date, set a reminder on them and note in their journal. Each task is the agent's or yours, never both: what only you can do, such as trying it by hand, publishing or merging, it hands to a task of yours, one per task, which never holds its own open.
 - Tick the steps it finished and, in the same call, leave the task's **State** on its page: what is done, what is left, what was decided and what was ruled out. You read it too, and the next session starts from there.
 - Work any task as it works a document, yours too: its description, its page, its title, its list and its open steps.
 - Write documents, add to one, correct a passage or a table, and file them into folders and pages.
 - Name a task or a document by its exact title in quotes: Tisty turns it into a link, as when you do it, and hands back what is doubtful for it to decide.
 - Jot ideas in Ideas when you ask, and sort them out with you: an idea it turns into a task or files in a document leaves the sheet, as it does when you do it.
 - Mark a document or an idea that had its day, saying why: you delete it, put it away or take the mark off.
-- Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**, and meanwhile the list counts them apart, with a ◆: **1/3 ◆1**.
+- Say that a task or a step is done: the task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**, and meanwhile the list counts them apart, with a ◆: **1/3 ◆1**. In each list, its tasks sit under **The agent does it**, apart from **Yours to do**, with the first lines of its proof and the branch or pull request; with two or more ready, **Confirm the N done** confirms them at once.
 - Search and read what is there, the Archive included.
 - Read your Diary and add to the end of today, signed, only if you open it to agents from the Diary itself and ask it to.
 
-Everything it writes is signed with the name of the program it spoke through: "by Claude Code", "by Codex". In **Settings › Agents › How its signature looks** you choose where that name shows, or whether only a small ◆ is left.
+Everything it writes is signed with the name of the program it spoke through: "by Claude Code", "by Codex". In **Settings › Agents › How its signature looks** you choose, for the task list and for inside a task, whether it shows its name, «by an agent» or only a small ◆, with a preview of each.
 
 ## What it cannot do
 
@@ -96,7 +98,7 @@ Everything it writes is signed with the name of the program it spoke through: "b
 - Move a day you set.
 - Write on its own in the Agents folder: a change to your rules or skills stays as a proposal, and reaches your agents only if you approve it on the card. **Agents: your agents' rules**, a page of this guide, tells it.
 - Empty a document's history or read the earlier versions of your diary. It can list a document's versions, read one and go back to it, as you do from **See the history**; [this guide's cover](tisty:guide) tells it, under **Going back to what it said before**.
-- Read a task you hid or dropped: where you linked it, it reads only «a task out of sight».
+- Read a task you hid. One you dropped it sees only as your decision not to do it, with its title, the day and the reason noted, and it does not propose it again unless you ask. Where you linked either, it reads only «a task out of sight».
 - Create lists or set routines: without one of your lists, what it files lands in the inbox.
 - Write over what you changed while it was thinking: it is asked to read again.
 - See your Diary while it reads **Only you**, or change what you wrote in it once you open it.
