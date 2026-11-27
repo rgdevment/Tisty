@@ -15,6 +15,7 @@ afterEach(() => {
   writing?.stop();
   writing = null;
   vi.restoreAllMocks();
+  localStorage.removeItem("tisty.nativeTyping");
   document.body.innerHTML = "";
 });
 
@@ -316,6 +317,7 @@ describe("what a composition writes on WebKit", () => {
       '<h1 id="t" data-at="0-4"><span data-src="2-3">T</span></h1>' +
       '<p data-at="5-23"><span data-src="5-22">Hola mundo bonito</span></p>' +
       '<p data-at="24-41"><span data-src="24-40">Segundo párrafo</span></p>';
+    localStorage.setItem("tisty.nativeTyping", "off");
     const typedX = async () => {
       const said = await written(MAC, TWO, DRAWN);
       document.getSelection()?.collapse(piece("Hola mundo bonito"), 17);

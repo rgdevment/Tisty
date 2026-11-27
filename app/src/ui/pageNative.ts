@@ -8,12 +8,11 @@ import { recorded, type Writer } from "./pageWriter";
 
 const SWITCH = "tisty.nativeTyping";
 
-/** The browser writes plain words itself where it was tried: on Windows unless switched off, on Linux once switched on, on a Mac only when asked by name. */
+/** The browser writes plain words itself where it was tried: on Windows and on a Mac unless switched off, on Linux once switched on. */
 export const nativeTyping = (): boolean => {
   const said = globalThis.localStorage?.getItem(SWITCH) ?? null;
-  if (said === "everywhere") return true;
   if (said === "off") return false;
-  return said === "on" ? !onMac : onWindows;
+  return said === "on" || said === "everywhere" || onWindows || onMac;
 };
 
 const KINDS = new Set([

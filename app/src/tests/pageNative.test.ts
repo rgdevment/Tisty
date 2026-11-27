@@ -1174,14 +1174,22 @@ describe("the platform default of nativeTyping", () => {
     expect(await onPlatform(WINDOWS, "everywhere")).toBe(true);
   });
 
-  it("is still off by default on a Mac and on Linux", async () => {
-    expect(await onPlatform(MAC, null)).toBe(false);
+  it("is on by default on a Mac", async () => {
+    expect(await onPlatform(MAC, null)).toBe(true);
+  });
+
+  it("is off by default on Linux", async () => {
     expect(await onPlatform(LINUX, null)).toBe(false);
   });
 
-  it("is still on with the switch on Linux, off on a Mac, and everywhere on both", async () => {
+  it("is off on a Mac when the switch says off", async () => {
+    expect(await onPlatform(MAC, "off")).toBe(false);
+  });
+
+  it("is on with the switch on Linux, and on or everywhere on a Mac", async () => {
     expect(await onPlatform(LINUX, "on")).toBe(true);
-    expect(await onPlatform(MAC, "on")).toBe(false);
+    expect(await onPlatform(LINUX, "everywhere")).toBe(true);
+    expect(await onPlatform(MAC, "on")).toBe(true);
     expect(await onPlatform(MAC, "everywhere")).toBe(true);
     expect(await onPlatform(LINUX, "off")).toBe(false);
   });
