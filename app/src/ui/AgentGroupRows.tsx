@@ -1,10 +1,12 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import type { AgentGroups } from "../agentGroups";
+import { type ButtonHTMLAttributes, type ReactNode, useRef, useState } from "react";
+import type { AgentGroups, RuleTarget } from "../agentGroups";
 import type { Filed, Wired } from "../core";
 import { fill, t, type Word } from "../locales";
 import type { SkillGroup } from "./agentRows";
 import Glyph from "./Glyph";
-import HooksRow, { tistyHookLines } from "./HooksRow";
+import TistyHooksRow, { tistyHookLines } from "./HooksRow";
+import Menu, { type Choice } from "./Menu";
+import type { Anchor } from "./menuKeys";
 import { TistySkillsRow } from "./TistySkills";
 import UserHookRows from "./UserHooks";
 
@@ -47,12 +49,17 @@ function AddButton({
   rowKey,
   rowOf,
   onAdd,
-}: Readonly<{ label: string; rowKey: string; rowOf: RowOf; onAdd: () => void }>) {
+}: Readonly<{
+  label: string;
+  rowKey: string;
+  rowOf: RowOf;
+  onAdd: (button: HTMLButtonElement) => void;
+}>) {
   return (
     <button
       type="button"
       {...rowOf(rowKey)}
-      onClick={onAdd}
+      onClick={(e) => onAdd(e.currentTarget)}
       aria-label={label}
       title={label}
       className="ml-auto mr-1 grid h-5 w-5 place-items-center rounded-md text-faint normal-case hover:bg-hover hover:text-ink"
@@ -62,36 +69,58 @@ function AddButton({
   );
 }
 
-function AgentHeading({
-  named,
-  level,
-  depth,
-  step,
+const REOPENS_MS = 200;
+
+/// The one «+» of Rules: straight to the rule when a single agent can take one, else a menu of agents.
+function NewRuleButton({
+  targets,
   rowOf,
   onNewRule,
-}: Readonly<{
-  named: string;
-  level: string;
-  depth: number;
-  step: number;
-  rowOf: RowOf;
-  onNewRule?: (level: string) => void;
-}>) {
-  const asked = fill("agentGroupNewRuleOf", named);
+}: Readonly<{ targets: readonly RuleTarget[]; rowOf: RowOf; onNewRule: (level: string) => void }>) {
+  const [at, setAt] = useState<Anchor | null>(null);
+  const shutAt = useRef(Number.NEGATIVE_INFINITY);
+  const only = targets.length === 1 ? targets[0] : null;
+  const label = only ? fill("agentGroupNewRuleOf", only.named) : t("agentGroupNewRule");
+  const open = (button: HTMLElement) => {
+    if (only) return onNewRule(only.level);
+    if (performance.now() - shutAt.current < REOPENS_MS) return;
+    const box = button.getBoundingClientRect();
+    setAt((was) => (was ? null : { x: box.left, y: box.bottom + 4, top: box.top }));
+  };
+  const choices: Choice[] = targets.map((one) => ({
+    key: one.level,
+    label: one.named,
+    onPick: () => onNewRule(one.level),
+  }));
   return (
-    <li
-      className="group/row flex items-center py-0.5 text-[12.5px] text-soft"
-      style={{ paddingLeft: `${8 + depth * step + 4}px` }}
-    >
-      <span className="truncate">{named}</span>
-      {onNewRule && (
-        <AddButton
-          label={asked}
-          rowKey={`rules:${level}`}
-          rowOf={rowOf}
-          onAdd={() => onNewRule(level)}
+    <>
+      <AddButton label={label} rowKey="rules:new" rowOf={rowOf} onAdd={open} />
+      {at && (
+        <Menu
+          at={at}
+          choices={choices}
+          label={label}
+          onClose={() => {
+            shutAt.current = performance.now();
+            setAt(null);
+          }}
         />
       )}
+    </>
+  );
+}
+
+function AgentHeading({
+  named,
+  depth,
+  step,
+}: Readonly<{ named: string; depth: number; step: number }>) {
+  return (
+    <li
+      className="truncate py-0.5 text-[12.5px] text-soft"
+      style={{ paddingLeft: `${8 + depth * step + 4}px` }}
+    >
+      {named}
     </li>
   );
 }
@@ -104,12 +133,13 @@ export const groupsDrawn = (
   hooks: boolean,
 ): boolean =>
   groups.rules.length > 0 ||
+  groups.ruleTargets.length > 0 ||
   groups.skills.length > 0 ||
   groups.hooks.length > 0 ||
   tistySkills ||
   (hooks && tistyHookLines(agents).length > 0);
 
-/// Global as three groups drawn from each document's `agent:` line: nothing here is a folder, nothing moves.
+/// Global drawn from each document's `agent:` line: first what the person wrote, then what Tisty brings.
 export default function AgentGroupRows({
   groups,
   depth,
@@ -123,30 +153,34 @@ export default function AgentGroupRows({
   onNewRule,
   onNewHook,
 }: Readonly<Props>) {
-  const showsSkills = groups.skills.length > 0 || tistySkills;
+  const showsRules = groups.rules.length > 0 || (!!onNewRule && groups.ruleTargets.length > 0);
+  const showsHooks = groups.hooks.length > 0 || !!onNewHook;
   const tistyHooks = tistyHookLines(agents).length > 0 && !!onHooks;
-  const showsHooks = tistyHooks || groups.hooks.length > 0 || !!onNewHook;
   return (
     <>
-      {groups.rules.length > 0 && <Heading label="agentGroupRules" depth={depth} step={step} />}
+      {showsRules && (
+        <Heading
+          label="agentGroupRules"
+          depth={depth}
+          step={step}
+          add={
+            onNewRule &&
+            groups.ruleTargets.length > 0 && (
+              <NewRuleButton targets={groups.ruleTargets} rowOf={rowOf} onNewRule={onNewRule} />
+            )
+          }
+        />
+      )}
       {groups.rules.map((one) => (
         <li key={`rules:${one.level}`}>
           <ul>
-            <AgentHeading
-              named={one.named}
-              level={one.level}
-              depth={depth}
-              step={step}
-              rowOf={rowOf}
-              onNewRule={onNewRule}
-            />
+            <AgentHeading named={one.named} depth={depth} step={step} />
             {one.docs.map((doc) => paper(doc, depth + 1))}
           </ul>
         </li>
       ))}
-      {showsSkills && <Heading label="agentGroupSkills" depth={depth} step={step} />}
+      {groups.skills.length > 0 && <Heading label="agentGroupSkills" depth={depth} step={step} />}
       {groups.skills.map((one) => ("doc" in one ? paper(one.doc, depth) : skill(one.skill, depth)))}
-      {tistySkills && <TistySkillsRow depth={depth} step={step} rowOf={rowOf} />}
       {showsHooks && (
         <Heading
           label="agentGroupHooks"
@@ -164,12 +198,19 @@ export default function AgentGroupRows({
           }
         />
       )}
-      {tistyHooks && onHooks && (
-        <li style={{ paddingLeft: `${8 + depth * step}px` }}>
-          <HooksRow agents={agents} onOpen={onHooks} rowOf={rowOf} />
-        </li>
-      )}
       <UserHookRows hooks={groups.hooks} depth={depth} paper={paper} rowOf={rowOf} />
+      {tistyHooks && <Heading label="agentGroupTisty" depth={depth} step={step} />}
+      {tistySkills && (
+        <TistySkillsRow
+          depth={depth}
+          step={step}
+          rowOf={rowOf}
+          lead={!tistyHooks && <Heading label="agentGroupTisty" depth={depth} step={step} />}
+        />
+      )}
+      {tistyHooks && onHooks && (
+        <TistyHooksRow agents={agents} depth={depth} step={step} onOpen={onHooks} rowOf={rowOf} />
+      )}
     </>
   );
 }

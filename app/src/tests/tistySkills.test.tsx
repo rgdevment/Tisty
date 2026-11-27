@@ -356,7 +356,7 @@ describe("Tisty's own skills are turned off, never deleted", () => {
   it("says in its row that they are off, and a click opens the card without turning anything", async () => {
     render(<TistySkillsRow depth={1} step={12} />);
     await screen.findByRole("button", { name: "Tisty's skills: off" });
-    expect(screen.queryByText("Off")).toBeNull();
+    expect(screen.getByText("Off")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /Tisty's skills/ }));
     expect(screen.getByRole("button", { name: "Turn on here" })).toBeTruthy();
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
@@ -414,30 +414,25 @@ describe("a copy left over that Tisty may not open", () => {
   });
 });
 
-const dotOf = (button: HTMLElement) => button.querySelector("[data-on]") as HTMLElement;
-
-describe("the sidebar row of Tisty's skills shows a dot, not a word", () => {
+describe("the sidebar row of Tisty's skills says its standing in words", () => {
   it.each([
     ["en", false, "Tisty's skills: off", "Off", "On"],
     ["en", true, "Tisty's skills: on", "On", "Off"],
     ["es", false, "Skills de Tisty: apagadas", "Apagadas", "Encendidas"],
     ["es", true, "Skills de Tisty: encendidas", "Encendidas", "Apagadas"],
   ] as const)(
-    "in %s, on=%s: name and title carry the state, the dot its shape",
+    "in %s, on=%s: name and title carry the state and the row prints it",
     async (lang, on, words, own, other) => {
       adopt(lang);
       answering(skills({ on }));
       render(<TistySkillsRow depth={1} step={12} />);
       const button = await screen.findByRole("button", { name: words });
       expect(button.getAttribute("title")).toBe(words);
-      expect(button.textContent).toBe(lang === "en" ? "Tisty's skills" : "Skills de Tisty");
-      expect(screen.queryByText(own)).toBeNull();
+      const name = lang === "en" ? "Tisty's skills" : "Skills de Tisty";
+      expect(button.textContent).toBe(`${name}${own}`);
       expect(screen.queryByText(other)).toBeNull();
-      const dot = dotOf(button);
-      expect(dot.getAttribute("aria-hidden")).toBe("true");
-      expect(dot.getAttribute("data-on")).toBe(String(on));
-      expect(dot.className).toContain(on ? "bg-hue-green" : "border-faint");
-      expect(dot.className).not.toContain(on ? "border-faint" : "bg-hue-green");
+      expect(button.querySelector("[data-on]")).toBeNull();
+      expect(screen.getByText(own).className).toContain(on ? "text-hue-green" : "text-faint");
     },
   );
 });

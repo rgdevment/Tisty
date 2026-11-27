@@ -17,7 +17,6 @@ import { AssistantMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import Modal from "./Modal";
 import { Knob } from "./Rows";
-import StateDot from "./StateDot";
 
 const NAMES: Record<string, string> = {
   claude: "Claude Code",
@@ -415,35 +414,41 @@ export function TistySkillsRow({
   depth,
   step,
   rowOf,
+  lead,
 }: Readonly<{
   depth: number;
   step: number;
   rowOf?: (key: string) => ButtonHTMLAttributes<HTMLButtonElement>;
+  /// Drawn just above the row, and only once the row itself is.
+  lead?: ReactNode;
 }>) {
   const [skills, setSkills] = useTistySkills();
   if (!skills) return null;
   return (
-    <li className="relative">
-      <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
-        <span
-          aria-hidden="true"
-          className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
-          style={{ marginLeft: `${8 + depth * step}px` }}
-        >
-          <Glyph name="puzzle" className="h-[13px] w-[13px]" />
-        </span>
-        <Opener
-          skills={skills}
-          onTaken={setSkills}
-          label={t(skills.on ? "tistySkillsDotOn" : "tistySkillsDotOff")}
-          row={rowOf?.("tisty-skills")}
-          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
-        >
-          <span className="truncate">{t("tistySkills")}</span>
-          <StateDot on={skills.on} className="ml-auto" />
-        </Opener>
-      </div>
-    </li>
+    <>
+      {lead}
+      <li className="relative">
+        <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+          <span
+            aria-hidden="true"
+            className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+            style={{ marginLeft: `${8 + depth * step}px` }}
+          >
+            <Glyph name="puzzle" className="h-[13px] w-[13px]" />
+          </span>
+          <Opener
+            skills={skills}
+            onTaken={setSkills}
+            label={t(skills.on ? "tistySkillsDotOn" : "tistySkillsDotOff")}
+            row={rowOf?.("tisty-skills")}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+          >
+            <span className="truncate">{t("tistySkills")}</span>
+            <Standing skills={skills} className="ml-auto" />
+          </Opener>
+        </div>
+      </li>
+    </>
   );
 }
 
