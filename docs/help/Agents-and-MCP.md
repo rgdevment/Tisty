@@ -202,7 +202,7 @@ Who owns what stays clear. What your agent files is its own to keep true: it des
 
 ## Signed by name
 
-What an agent writes is signed with the name of the program it spoke through. In a row it reads «by an agent», and the name shows when you hover over it; inside a task — the side panel, the whole page and the journal — it names the program: «by Claude Code», «by Codex». **Settings › Agents › Connected** counts what each one wrote, and in **How its signature looks** you choose where the name shows: in the task list, inside a task, both or neither — wherever it does not, it reads «by an agent» and the name waits on hover. «Only a diamond» goes further: no words anywhere, just a small ◆ in the agents' colour, with who wrote it on hover; while it is on, the two name switches stay grey. What was written before programs said their name reads «by an agent».
+What an agent writes is signed with the name of the program it spoke through. In a row it reads «by an agent», and the name shows when you hover over it; inside a task — the side panel, the whole page and the journal — it names the program: «by Claude Code», «by Codex». **Settings › Agents › Connected** counts what each one wrote, and in **How its signature looks** you choose how it shows in each place, **In the task list** and **Inside a task** (the side panel, its history, the full page and its versions): **Its name**, **«by an agent»** or **Only ◆**, a small diamond in the agents' colour. Under each place, a preview changes at once. Wherever the name does not show, it waits on hover. What was written before programs said their name reads «by an agent».
 
 ## It reads sparingly
 

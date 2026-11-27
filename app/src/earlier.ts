@@ -47,8 +47,17 @@ export const whenOf = (one: Earlier): string => stamped(one.wrote ?? one.replace
 // A version the log never named has nobody to say wrote it, which is not the same as the person.
 export const writerOf = (one: Earlier, signing: Signing = "named"): string | undefined => {
   if (!one.by) return undefined;
-  if (one.via) return signing === "named" ? clientNamed(one.via) : t("anAgent");
+  if (one.via) {
+    if (signing === "named") return clientNamed(one.via);
+    return signing === "mark" ? "◆" : t("anAgent");
+  }
   return agentNamed(one.by) ? t("anAssistant") : t("earlierByYou");
+};
+
+// Where the writer's name is hidden, it waits on hover, as it does on the task.
+export const writerWhy = (one: Earlier, signing: Signing = "named"): string | undefined => {
+  const name = one.by && one.via && signing !== "named" ? clientNamed(one.via) : undefined;
+  return name ? fill("agentWroteIt", name) : undefined;
 };
 
 export const awayOf = (one: Earlier): string => {

@@ -11,6 +11,7 @@ import {
   type Earlier as Version,
   whenOf,
   writerOf,
+  writerWhy,
 } from "../earlier";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
@@ -61,7 +62,9 @@ function Listed({
     return (
       <div aria-disabled="true" className={`${ROW} text-faint`}>
         <span className="block text-[13px] tabular-nums">{whenOf(one)}</span>
-        <span className="block text-[11.5px]">{facts}</span>
+        <span className="block text-[11.5px]" title={writerWhy(one, signing)}>
+          {facts}
+        </span>
         <span className="block text-[11.5px] italic">{awayOf(one)}</span>
       </div>
     );
@@ -74,7 +77,9 @@ function Listed({
         className={`${ROW} hover:bg-hover ${chosen ? "bg-active" : ""}`}
       >
         <span className="block text-[13px] tabular-nums">{whenOf(one)}</span>
-        <span className="block text-[11.5px] text-faint">{facts}</span>
+        <span className="block text-[11.5px] text-faint" title={writerWhy(one, signing)}>
+          {facts}
+        </span>
       </button>
       {onAgainst && (
         <button
@@ -337,7 +342,10 @@ export default function Earlier({
                 onError={onError}
               />
             ) : (
-              <span className="min-w-0 flex-1 truncate text-[12.5px] text-soft">
+              <span
+                className="min-w-0 flex-1 truncate text-[12.5px] text-soft"
+                title={one ? writerWhy(one, signing) : undefined}
+              >
                 {one ? saidOf(one, signing) : ""}
               </span>
             )}

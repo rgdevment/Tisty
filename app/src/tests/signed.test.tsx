@@ -50,9 +50,8 @@ const detail = (one: Task, expanded = true) =>
 describe("a task an agent filed carries its signature", () => {
   afterEach(() => {
     knowAgents({});
-    credit("rows", false);
-    credit("inside", true);
-    credit("mark", false);
+    credit("rows", "agent");
+    credit("inside", "named");
   });
 
   it("signs the row as an agent's, names it on hover, and drops the tag that said the same", () => {
@@ -116,7 +115,7 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.queryByText("by an agent")).toBeNull();
     unmount();
 
-    credit("inside", false);
+    credit("inside", "agent");
     detail(task(), false);
     expect(screen.getByText("by an agent").getAttribute("title")).toBe("Claude Code wrote it");
   });
@@ -196,7 +195,7 @@ describe("a task an agent filed carries its signature", () => {
         here: "dev_lap",
       },
     );
-    credit("rows", true);
+    credit("rows", "named");
     render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
     expect(screen.getByText("by Claude Code").getAttribute("title")).toBe("from this machine");
@@ -205,7 +204,7 @@ describe("a task an agent filed carries its signature", () => {
 
   it("says only an agent inside the task when asked, with the name left on hover", () => {
     knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
-    credit("inside", false);
+    credit("inside", "agent");
     const noted = task({
       log: [
         {
@@ -228,7 +227,7 @@ describe("a task an agent filed carries its signature", () => {
 
   it("keeps the name out of a closed task's stamps when asked", () => {
     knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
-    credit("inside", false);
+    credit("inside", "agent");
     detail(
       task({
         status: "done",
@@ -241,10 +240,10 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.getByText(/· by an agent/).getAttribute("title")).toBe("Claude Code wrote it");
   });
 
-  it("draws only a diamond everywhere when asked, whatever the other two say", () => {
+  it("draws only a diamond everywhere when both places ask for it", () => {
     knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
-    credit("rows", true);
-    credit("mark", true);
+    credit("rows", "mark");
+    credit("inside", "mark");
     const { unmount } = render(
       <TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />,
     );
@@ -284,5 +283,114 @@ describe("a task an agent filed carries its signature", () => {
         }),
       ),
     ).toBe("renew the certificate — by Claude Code — Codex says this is done");
+  });
+});
+
+describe("each place follows its own signature", () => {
+  afterEach(() => {
+    knowAgents({});
+    credit("rows", "agent");
+    credit("inside", "named");
+  });
+
+  const known = () =>
+    knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
+  const list = () =>
+    render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
+
+  it("names the agent in the list while the task's own page shows only a diamond", () => {
+    known();
+    credit("rows", "named");
+    credit("inside", "mark");
+    const { unmount } = list();
+    expect(screen.getByText("by Claude Code")).toBeTruthy();
+    unmount();
+
+    detail(task());
+    expect(screen.queryByText(/by /)).toBeNull();
+    expect(screen.getByRole("img", { name: "Claude Code wrote it" }).textContent).toBe("◆");
+  });
+
+  it("draws a diamond in the list while the side panel names the agent", () => {
+    known();
+    credit("rows", "mark");
+    credit("inside", "named");
+    const { unmount } = list();
+    expect(screen.queryByText(/by /)).toBeNull();
+    expect(screen.getByRole("img", { name: "Claude Code wrote it" })).toBeTruthy();
+    unmount();
+
+    detail(task(), false);
+    expect(screen.getByText("by Claude Code")).toBeTruthy();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("says only an agent in the list while the side panel stays on the name", () => {
+    known();
+    credit("rows", "agent");
+    credit("inside", "named");
+    const { unmount } = list();
+    expect(screen.getByText("by an agent")).toBeTruthy();
+    unmount();
+
+    detail(task(), false);
+    expect(screen.getByText("by Claude Code")).toBeTruthy();
+    expect(screen.queryByText("by an agent")).toBeNull();
+  });
+});
+
+describe("what the agent said keeps its name on hover when the name is hidden", () => {
+  afterEach(() => {
+    knowAgents({});
+    credit("inside", "named");
+  });
+
+  const resolved = {
+    by: "dev_agent",
+    at: "2026-09-10T10:00:00Z",
+    entry: "01E",
+    via: "claude-code",
+  };
+  const known = () =>
+    knowAgents({ dev_agent: "canelo 39" }, { clients: { "claude-code": "Claude Code" } });
+  const bannerOf = (text: string) => screen.getByText(text).closest("p") as HTMLElement;
+
+  it("titles the open task's banner with the agent while it says only an agent", () => {
+    known();
+    credit("inside", "agent");
+    detail(task({ resolved }));
+    expect(bannerOf("An agent says this is done").getAttribute("title")).toBe(
+      "Claude Code says this is done",
+    );
+  });
+
+  it("titles the banner the same way under a diamond", () => {
+    known();
+    credit("inside", "mark");
+    detail(task({ resolved }));
+    expect(bannerOf("An agent says this is done").getAttribute("title")).toBe(
+      "Claude Code says this is done",
+    );
+  });
+
+  it("leaves the banner untitled when it already names the agent", () => {
+    known();
+    credit("inside", "named");
+    detail(task({ resolved }));
+    expect(bannerOf("Claude Code says this is done").hasAttribute("title")).toBe(false);
+  });
+
+  it("titles a closed task's stamp with the agent unless it is named", () => {
+    known();
+    credit("inside", "agent");
+    const closed = task({ status: "done", completed_at: "2026-09-10T10:00:00Z", resolved });
+    const { container, unmount } = detail(closed);
+    const stamp = () => container.querySelector("span.text-hue-teal[title]");
+    expect(stamp()?.getAttribute("title")).toMatch(/Claude Code/);
+    unmount();
+
+    credit("inside", "named");
+    const named = detail(closed);
+    expect(named.container.querySelector("span.text-hue-teal[title]")).toBeNull();
   });
 });

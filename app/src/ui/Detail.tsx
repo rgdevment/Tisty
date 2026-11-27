@@ -248,7 +248,10 @@ export default function Detail({
         </div>
       )}
       {task.resolved && (
-        <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
+        <p
+          title={resolver ? undefined : saidBy(task)}
+          className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal"
+        >
           <span aria-hidden="true">◆</span>
           {resolver
             ? fill(task.resolved.drop ? "agentNamedSaidNotDoing" : "agentNamedSaidDone", resolver)
@@ -739,7 +742,7 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         <Signature by={task.created_by} via={task.created_via} signing={signing} lead=" · " />
         {task.resolved && (
-          <span className="text-hue-teal">
+          <span className="text-hue-teal" title={signing === "named" ? undefined : saidBy(task)}>
             {" · "}
             {saidBy(task, signing === "named")}
           </span>

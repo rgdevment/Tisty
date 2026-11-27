@@ -1,24 +1,36 @@
 import { stored } from "./stored";
 
-export type Credit = { rows: boolean; inside: boolean; mark: boolean };
 export type Signing = "named" | "agent" | "mark";
+export type Place = "rows" | "inside";
+export type Credit = Record<Place, Signing>;
 
-const AS_SHIPPED: Credit = { rows: false, inside: true, mark: false };
+export const SIGNINGS: readonly Signing[] = ["named", "agent", "mark"];
 
-const chosen = stored<Credit>("tisty.credit", (said) => {
-  const or = (key: keyof Credit) =>
-    typeof said[key] === "boolean" ? (said[key] as boolean) : AS_SHIPPED[key];
-  return { rows: or("rows"), inside: or("inside"), mark: or("mark") };
-});
+const AS_SHIPPED: Credit = { rows: "agent", inside: "named" };
 
-export const credit = (where: keyof Credit, on: boolean) =>
-  chosen.put({ ...chosen.current(), [where]: on });
+const isSigning = (said: unknown): said is Signing => SIGNINGS.includes(said as Signing);
+
+// Before each place had its own choice, a switch per place said named or not, and «mark» overrode both.
+const fromSwitch = (said: unknown, mark: unknown): Signing | undefined => {
+  if (mark === true) return "mark";
+  if (typeof said === "boolean") return said ? "named" : "agent";
+  return undefined;
+};
+
+export const creditRead = (said: Record<string, unknown>): Credit => {
+  const at = (place: Place): Signing => {
+    const kept = said[place];
+    if (isSigning(kept)) return kept;
+    return fromSwitch(kept, said.mark) ?? AS_SHIPPED[place];
+  };
+  return { rows: at("rows"), inside: at("inside") };
+};
+
+const chosen = stored<Credit>("tisty.credit", creditRead);
+
+export const credit = (place: Place, how: Signing) =>
+  chosen.put({ ...chosen.current(), [place]: how });
 
 export const useCredit = chosen.use;
 
-export const signing = (credited: Credit, where: "rows" | "inside"): Signing => {
-  if (credited.mark) return "mark";
-  return credited[where] ? "named" : "agent";
-};
-
-export const useSigning = (where: "rows" | "inside"): Signing => signing(useCredit(), where);
+export const useSigning = (place: Place): Signing => useCredit()[place];

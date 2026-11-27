@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Settings, Task } from "../core";
-import { awayOf, saidOf, type Earlier as Version, whenOf, writerOf } from "../earlier";
+import { awayOf, saidOf, type Earlier as Version, whenOf, writerOf, writerWhy } from "../earlier";
 import { fill, t } from "../locales";
 import { cut, unsettled } from "../saving";
 import { asksSure } from "../sure";
@@ -332,8 +332,19 @@ describe("the history of a document", () => {
   it("names the assistant behind a task page's version only as the person chose", () => {
     expect(writerOf(claudes, "named")).toBe(writerOf(claudes));
     expect(writerOf(claudes, "agent")).toBe(t("anAgent"));
-    expect(writerOf(claudes, "mark")).toBe(t("anAgent"));
+    expect(writerOf(claudes, "mark")).toBe("◆");
     expect(writerOf(yours, "agent")).toBe(t("earlierByYou"));
+  });
+
+  it("keeps the hidden writer's name for hover, only where a name was hidden", () => {
+    knowAgents({}, { clients: { "claude-code": "Claude Code" } });
+    expect(writerWhy(claudes)).toBeUndefined();
+    expect(writerWhy(claudes, "named")).toBeUndefined();
+    expect(writerWhy(claudes, "agent")).toBe(fill("agentWroteIt", "Claude Code"));
+    expect(writerWhy(claudes, "mark")).toBe("Claude Code wrote it");
+    expect(writerWhy({ ...claudes, via: undefined }, "agent")).toBeUndefined();
+    expect(writerWhy(yours, "mark")).toBeUndefined();
+    expect(writerWhy({ ...claudes, by: undefined }, "agent")).toBeUndefined();
   });
 
   it("says when there is nothing kept yet", async () => {

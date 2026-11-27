@@ -3437,25 +3437,65 @@ describe("letting an assistant file work here", () => {
     expect(screen.queryByText(t("wiringTitle"))).toBeNull();
   });
 
-  it("previews how a row names the assistant as the switches change", async () => {
-    credit("rows", false);
-    credit("mark", false);
+  const group = (name: string) => within(screen.getByRole("radiogroup", { name }));
+  const pick = (name: string, how: string) =>
+    userEvent.click(group(name).getByRole("radio", { name: how }));
+  const checkedIn = (name: string) =>
+    group(name)
+      .getAllByRole("radio")
+      .filter((one) => (one as HTMLInputElement).checked)
+      .map((one) => (one as HTMLInputElement).value);
+
+  it("checks the radio each place has stored", async () => {
+    credit("rows", "mark");
+    credit("inside", "agent");
     await openTab(/^how its signature looks$/i);
 
-    const preview = screen.getByTestId("credit-preview");
+    expect(checkedIn(t("creditRows"))).toEqual(["mark"]);
+    expect(checkedIn(t("creditInside"))).toEqual(["agent"]);
+    expect(group(t("creditRows")).getAllByRole("radio")).toHaveLength(3);
+    credit("rows", "agent");
+    credit("inside", "named");
+  });
+
+  it("previews each place on its own as its radios change", async () => {
+    credit("rows", "agent");
+    credit("inside", "named");
+    await openTab(/^how its signature looks$/i);
+
+    const row = screen.getByTestId("credit-preview-rows");
+    const inside = screen.getByTestId("credit-preview-inside");
     expect(screen.getByText(t("creditPreviewTask"))).toBeTruthy();
-    expect(preview.textContent).toBe("by an agent");
+    expect(row.textContent).toBe("by an agent");
+    expect(row.getAttribute("title")).toBe("Claude Code wrote on this machine");
+    expect(inside.textContent).toBe("by Claude Code");
+    expect(inside.getAttribute("title")).toBe(t("fromThisMachine"));
 
-    await userEvent.click(screen.getByRole("switch", { name: t("creditRows") }));
-    expect(preview.textContent).toBe("by Claude Code");
+    await pick(t("creditRows"), t("creditAsNamed"));
+    expect(row.textContent).toBe("by Claude Code");
+    expect(inside.textContent).toBe("by Claude Code");
 
-    await userEvent.click(screen.getByRole("switch", { name: t("creditMark") }));
-    expect(preview.textContent).toBe("◆");
-    expect(screen.getByRole("switch", { name: t("creditRows") }).hasAttribute("disabled")).toBe(
-      true,
-    );
-    credit("rows", false);
-    credit("mark", false);
+    await pick(t("creditInside"), t("creditAsMark"));
+    expect(inside.textContent).toBe("◆");
+    expect(
+      within(inside).getByRole("img", { name: "Claude Code wrote on this machine" }),
+    ).toBeTruthy();
+    expect(row.textContent).toBe("by Claude Code");
+
+    await pick(t("creditRows"), t("creditAsMark"));
+    expect(row.textContent).toBe("◆");
+    expect(
+      within(row).getByRole("img", { name: "Claude Code wrote on this machine" }),
+    ).toBeTruthy();
+
+    await pick(t("creditInside"), t("creditAsAgent"));
+    expect(inside.textContent).toBe("by an agent");
+    expect(inside.getAttribute("title")).toBe("Claude Code wrote on this machine");
+    expect(row.textContent).toBe("◆");
+    expect(checkedIn(t("creditRows"))).toEqual(["mark"]);
+    expect(checkedIn(t("creditInside"))).toEqual(["agent"]);
+    credit("rows", "agent");
+    credit("inside", "named");
   });
 });
 
