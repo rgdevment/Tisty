@@ -497,3 +497,11 @@ fn a_proposal_is_skipped_by_older_builds_and_never_stops_an_undo() {
     assert_eq!(said["op"], "doc.proposal");
     assert!(said["d"].get("settles").is_none(), "{said}");
 }
+
+#[test]
+fn an_event_written_before_the_deeper_schema_is_held_to_four_levels_and_a_newer_one_to_six() {
+    assert_eq!(deepest_for(DEEPER_FROM - 1), crate::model::DEEPEST_BEFORE);
+    assert_eq!(deepest_for(DEEPER_FROM), crate::model::DEEPEST);
+    assert_eq!(deepest_for(SCHEMA_VERSION), 6);
+    assert_eq!(deepest_for(1), 4);
+}

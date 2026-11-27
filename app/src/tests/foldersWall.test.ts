@@ -75,12 +75,13 @@ describe("destinations with the walls", () => {
       folder("B", "b", "A"),
       folder("C", "c", "B"),
       folder("D", "d", "C"),
+      folder("E", "e", "D"),
       folder("X", "x", null),
       folder("Y", "y", "X"),
     ];
-    const list = destinations(deepFolders, null, land, deepFolders[4]);
-    expect(keys(list)).not.toContain("D");
-    expect(keys(list)).toContain("B");
+    const list = destinations(deepFolders, null, land, deepFolders[5]);
+    expect(keys(list)).not.toContain("E");
+    expect(keys(list)).toContain("D");
   });
 
   it("keeps Unfiled off without a mover when already loose", () => {

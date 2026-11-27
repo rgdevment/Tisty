@@ -10,13 +10,25 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 18;
+pub const SCHEMA_VERSION: u32 = 19;
 
 pub const SIGNED_FROM: u32 = 16;
 
 pub const SEALED_FROM: u32 = 17;
 
-const _: () = assert!(SCHEMA_VERSION >= SEALED_FROM && SEALED_FROM >= SIGNED_FROM);
+pub const DEEPER_FROM: u32 = 19;
+
+const _: () = assert!(
+    SCHEMA_VERSION >= DEEPER_FROM && DEEPER_FROM >= SEALED_FROM && SEALED_FROM >= SIGNED_FROM
+);
+
+pub fn deepest_for(version: u32) -> usize {
+    if version >= DEEPER_FROM {
+        crate::model::DEEPEST
+    } else {
+        crate::model::DEEPEST_BEFORE
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]

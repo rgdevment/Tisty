@@ -6,7 +6,10 @@ pub type DocId = Ulid;
 
 /// A move past this depth is refused while projecting, not only while writing, so two machines that
 /// disagree would build different trees from one log. Raising it raises SCHEMA_VERSION with it.
-pub const DEEPEST: usize = 4;
+pub const DEEPEST: usize = 6;
+
+/// The limit a move written before `DEEPER_FROM` was held to, so it lands or not as it did then.
+pub const DEEPEST_BEFORE: usize = 4;
 
 /// Longer than this and the name stops fitting the rail it is read from.
 pub const FOLDER_NAME_AT_MOST: usize = 40;

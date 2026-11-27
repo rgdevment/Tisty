@@ -455,7 +455,7 @@ impl State {
                     crate::applying::looked(&mut folder.icon, &mut folder.color, d);
                 }
             }
-            Op::FolderMove { id, d } => self.folder_moved(id, d),
+            Op::FolderMove { id, d } => self.folder_moved(event, id, d),
             Op::FolderDelete { id } => self.folder_deleted(id),
             Op::DocAdd { id, d } => self.doc_added(event, id, d),
             Op::DocSaid { id, d } => self.doc_said(event, id, d),
@@ -854,8 +854,8 @@ impl State {
                 .sum::<usize>()
     }
 
-    pub(crate) fn has_room_under(&self, at: FolderId) -> bool {
-        self.folders.contains_key(&at) && self.depth(Some(at)) < crate::model::DEEPEST
+    pub(crate) fn has_room_under(&self, at: FolderId, deepest: usize) -> bool {
+        self.folders.contains_key(&at) && self.depth(Some(at)) < deepest
     }
 
     pub fn depth(&self, at: Option<FolderId>) -> usize {

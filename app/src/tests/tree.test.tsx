@@ -267,7 +267,7 @@ describe("the document tree", () => {
     expect(container.querySelectorAll("li.relative > span[aria-hidden].w-px").length).toBe(2);
   });
 
-  it("steps four levels of folder in and keeps each one further along", () => {
+  it("steps six levels of folder in and keeps each one further along", () => {
     const deep: Papers = {
       folders: [
         { id: "1", name: "uno", parent: null, icon: null, holds: 0, archived: false, away: false },
@@ -282,6 +282,8 @@ describe("the document tree", () => {
           archived: false,
           away: false,
         },
+        { id: "5", name: "cinco", parent: "4", icon: null, holds: 0, archived: false, away: false },
+        { id: "6", name: "seis", parent: "5", icon: null, holds: 0, archived: false, away: false },
       ],
       docs: [],
     };
@@ -296,6 +298,8 @@ describe("the document tree", () => {
     expect(left("uno")).toBeLessThan(left("dos"));
     expect(left("dos")).toBeLessThan(left("tres"));
     expect(left("tres")).toBeLessThan(left("cuatro"));
+    expect(left("cuatro")).toBeLessThan(left("cinco"));
+    expect(left("cinco")).toBeLessThan(left("seis"));
   });
 
   it("folds unfiled away from its own arrow, and says so", async () => {

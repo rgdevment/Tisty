@@ -2487,6 +2487,111 @@ fn every_parcel_says_it_speaks_tistys_own_words_so_an_older_tisty_turns_it_away(
     );
 }
 
+fn parcel_with_a_document_at_level(
+    room: &tempfile::TempDir,
+    here: &mut Room,
+    level: usize,
+) -> PathBuf {
+    let mut at = None;
+    for n in 1..=level {
+        at = Some(here.folder(&format!("nivel {n}"), at, "home"));
+    }
+    here.doc(
+        "# Hondo
+
+texto",
+        at,
+        None,
+    );
+    let box_at = room.path().join(format!("nivel-{level}.tistyx"));
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+    box_at
+}
+
+#[test]
+fn a_parcel_with_folders_no_deeper_than_the_fourth_level_is_written_as_version_three() {
+    for level in [1, 4] {
+        let room = tmp();
+        let mut here = Room::new(room.path(), "mine");
+        let box_at = parcel_with_a_document_at_level(&room, &mut here, level);
+
+        assert_eq!(
+            manifest_in(&box_at)["version"],
+            serde_json::json!(3),
+            "level {level} is within what an older Tisty holds"
+        );
+    }
+}
+
+#[test]
+fn a_parcel_with_no_folders_at_all_is_written_as_version_three() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Suelto
+
+texto",
+        None,
+        None,
+    );
+    let box_at = room.path().join("sin-carpetas.tistyx");
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    assert_eq!(manifest_in(&box_at)["version"], serde_json::json!(3));
+}
+
+#[test]
+fn a_parcel_with_folders_on_the_fifth_or_sixth_level_is_written_as_version_four() {
+    for level in [5, 6] {
+        let room = tmp();
+        let mut here = Room::new(room.path(), "mine");
+        let box_at = parcel_with_a_document_at_level(&room, &mut here, level);
+
+        assert_eq!(
+            manifest_in(&box_at)["version"],
+            serde_json::json!(4),
+            "level {level} is deeper than an older Tisty holds"
+        );
+    }
+}
+
+#[test]
+fn a_parcel_six_folders_deep_lands_with_all_six_levels() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = parcel_with_a_document_at_level(&room, &mut here, 6);
+
+    let mut there = Room::new(room.path(), "theirs");
+    let landed = there.take_in(&box_at);
+
+    assert_eq!(landed.folders, 6);
+    let sixth = there.shelf("nivel 6");
+    assert_eq!(there.state.depth(Some(sixth.id)), 6);
+    assert_eq!(there.titled("Hondo").folder, Some(sixth.id));
+}
+
+#[test]
+fn a_parcel_that_only_a_newer_version_would_hold_is_turned_away_as_newer() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = parcel_with_a_document_at_level(&room, &mut here, 5);
+    let ahead = room.path().join("ahead.tistyx");
+    std::fs::copy(&box_at, &ahead).unwrap();
+    reworded(&ahead, |manifest| {
+        manifest["version"] = serde_json::json!(5)
+    });
+
+    let there = Room::new(room.path(), "theirs");
+    let refused = parcel::read(
+        &there.paths,
+        &there.state,
+        &there.dev.clone(),
+        &ahead,
+        &Along::default(),
+    );
+    assert!(matches!(refused, Err(tisty_core::Error::ParcelNewer(5))));
+}
+
 #[test]
 fn what_an_assistant_marked_travels_with_the_document_it_marked() {
     let room = tmp();
