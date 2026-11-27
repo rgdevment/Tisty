@@ -2,7 +2,7 @@
 
 Desde la 1.31, Tisty no tiene línea de comandos. La ventana es la forma de entrar, para tus tareas y para tus documentos.
 
-Del programa `tisty` queda lo que usa tu agente: **`tisty mcp`**, la puerta por la que entra, y **`tisty hook`**, al que llaman los hooks que Tisty le agrega al empezar una sesión, antes y después de algunas herramientas y al terminar un turno (mira [[Agentes y MCP|Agentes-y-MCP]]). `tisty hook` lee lo que manda el agente, responde en la forma que ese agente entiende y siempre termina sin error, así que nunca detiene un turno. Cualquier otro comando solo muestra un aviso de que la línea de comandos se retiró y te manda a la ventana.
+Del programa `tisty` queda lo que usa tu agente: **`tisty mcp`**, la puerta por la que entra, y **`tisty hook`**, al que llaman los hooks que Tisty le agrega al empezar una sesión, antes y después de algunas herramientas y al terminar un turno (mira [[Agentes y MCP|Agentes-y-MCP]]). `tisty hook` lee lo que manda el agente, responde en la forma que ese agente entiende y siempre termina sin error, así que nunca detiene un turno. Queda también **`tisty run-hook`**, la única línea con la que un agente corre un hook que creaste y registraste en Agentes. Igual que `tisty hook`, nunca hace fallar el turno: solo tu script, si termina con 2 antes de una herramienta, la detiene. Cualquier otro comando solo muestra un aviso de que la línea de comandos se retiró y te manda a la ventana.
 
 ## Dónde vive
 

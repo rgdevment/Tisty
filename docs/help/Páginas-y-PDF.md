@@ -8,7 +8,7 @@ Una **página** es un documento como cualquier otro (el mismo archivo `.md` en e
 
 ### Añadir una página
 
-Escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si ya está escrita. Queda nombrada ahí mismo, dibujada como una tarjeta con su título, sus primeras palabras y su lugar en el libro.
+Escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o, en **Página o documento**, **Una página que ya existe** si ya está escrita. Queda nombrada ahí mismo, dibujada como una tarjeta con su título, sus primeras palabras y su lugar en el libro.
 
 En el árbol, un documento que sueltas encima de otro se vuelve página suya.
 

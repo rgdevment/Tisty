@@ -4,13 +4,13 @@ Lo que un agente puede hacer es pequeño a propósito. Terminar, descartar y bor
 
 ## Puede
 
-- **Anotar una tarea** con sus pasos, sus partes, su fecha, su prioridad, sus etiquetas y la lista a la que pertenece. Sin una de tus listas entra en la bandeja, y todo lo que anota lleva la etiqueta `#agent`.
+- **Anotar una tarea** con sus pasos, sus partes, su fecha, su prioridad, sus etiquetas y la lista a la que pertenece. Sin una de tus listas entra en la bandeja, y todo lo que anota lleva la etiqueta `#agent`. Cada tarea que anota dice de quién es: suya, o tuya cuando solo tú puedes hacerla (probarla a mano, publicar, decidir).
 - **Ponerle una hora** para que suene.
 - **Mover el día** de una tarea que anotó un agente, cuando lo que averigua lo cambia.
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
 - **Decir que un paso tuyo está listo**: el paso queda sin marcar hasta que tomes su palabra.
 - **Añadir a la bitácora** de una tarea.
-- **Trabajar cualquier tarea como trabaja un documento**, también las tuyas: describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear, reescribir o quitar sus pasos abiertos, corregir una nota y escribir su página con los mismos resguardos que un documento.
+- **Trabajar cualquier tarea como trabaja un documento**, también las tuyas: describirla, renombrarla, llevarla a otra lista o bajo otra tarea, planear, reescribir o quitar sus pasos abiertos o pasarlos a tu propia tarea para ella, creada la primera vez como su parte, corregir una nota y escribir su página con los mismos resguardos que un documento.
 - **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje, cambiar una de sus tablas por sus filas y columnas o reescribirlo entero.
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas. Hacer una página y ordenarlas escribe y mueve las líneas que nombran las páginas en el texto de tu documento, y nada más.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
@@ -47,11 +47,13 @@ Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté esc
 
 ## «Por confirmar»: cuando un agente dice que terminó
 
-Cuando un agente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, lo que sostenga lo que afirma. **La tarea sigue abierta.**
+Cuando un agente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, la rama o el PR, lo que sostenga lo que afirma. **La tarea sigue abierta.**
 
 Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada, o verlas solas con **◆ Por confirmar** en la barra sobre la lista ([Tareas](Tareas#las-vistas)). Lo vencido, por vencer, atrasado, para hoy o en curso no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
 
-- **Márcala** y se cierra como cualquier otra, guardando las dos firmas en el archivo: quién la resolvió y quién la terminó.
+Cada lista tiene dos secciones: **Te toca**, con su casilla, y **Lo hace el agente**, donde solo confirmas o la dejas pendiente. Cada fila ahí muestra las primeras líneas de su prueba, con la rama o el PR, y con dos o más ya hechas, **Confirmar las N hechas** las toma todas de una vez.
+
+- **Completar** (o **No lo haré**, cuando dijo que no se hará) la cierra como cualquier otra, guardando las dos firmas en el archivo: quién la resolvió y quién la terminó.
 - **Sigue pendiente** la devuelve a su día. La marca se quita y la cuenta se queda, para que la próxima vez los dos vean lo que se afirmó.
 
 Un agente no puede decir lo mismo dos veces mientras una marca sigue esperándote. También puede decir que una tarea **no debería hacerse**, para que lo confirmes de la misma forma.
@@ -69,6 +71,8 @@ En tus tareas escribe como en un documento: la descripción, la página, los pas
 ## Una tarea cerrada es historia
 
 Una tarea que cerraste le llega al agente con un aviso que lo dice. Se lee tal como terminó, y no admite notas, días nuevos, campanas ni archivos. Si el mismo trabajo vuelve, el agente propone una tarea nueva que cuenta cómo terminó la anterior.
+
+Una tarea que descartaste la ve solo como decidida que no se hace: su título, su día y el motivo que quedó anotado, y propone el mismo trabajo otra vez solo si tú lo pides.
 
 ## Documentos: no puede escribir encima de lo que escribiste
 

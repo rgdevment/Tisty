@@ -44,7 +44,9 @@ Cómo funcionan la página, los pasos y las partes de una tarea está en [[Tarea
 
 ## Crear uno
 
-En la **Biblioteca** de la barra lateral, usa el **+** de su encabezado: **Documento nuevo**. El mismo botón dentro de una carpeta lo crea ahí. **Diagrama nuevo** crea un documento con un diagrama y abre la [[ventana de diagramas|Diagramas]]. **Carpeta nueva** los agrupa, y una carpeta puede tener carpetas dentro.
+En la **Biblioteca** de la barra lateral, pulsa **+ Nuevo** en su encabezado, siempre a la vista; dentro de una carpeta lo crea ahí. La flecha de al lado trae **Diagrama nuevo**, **Carpeta nueva** y lo demás: **Diagrama nuevo** crea un documento con un diagrama y abre la [[ventana de diagramas|Diagramas]], y **Carpeta nueva** los agrupa. Una carpeta puede tener carpetas dentro, hasta seis niveles.
+
+Elige varias filas con `Ctrl`/`⌘` o `Shift` + clic para moverlas, archivarlas o borrarlas juntas. Un documento borrado solo vuelve con **Deshacer** durante 10 segundos. Borrar una carpeta que tiene algo pregunta qué pasa con eso: **Moverlo a «…»** (la carpeta de arriba), **Moverlo a Sin carpeta**, **Moverlo a otra carpeta…** o **Eliminarlo también**. Ideas guarda solo ideas y el Diario solo sus días: no se mueve nada más dentro.
 
 La primera línea del documento es su título: no hay que ponerle nombre.
 
@@ -126,7 +128,7 @@ Lo que conviene saber:
 
 - **Es de este equipo.** Lo que ocultas no viaja con tu sincronización: en tus otros equipos la carpeta sigue a la vista, y cada equipo oculta lo suyo.
 - **No se borra ni se mueve nada.** La carpeta conserva sus documentos y sus subcarpetas, y la búsqueda, la paleta y **Mover a** la siguen encontrando: puedes mover un documento a una carpeta oculta, y entra igual.
-- **Se oculta de tu vista, no de tu agente.** Tu agente de IA sigue leyendo y escribiendo en una carpeta oculta, y Brainsty la sigue dibujando. Lo que tu agente nunca alcanza es otra cosa: una tarea que ocultaste o descartaste, tu Diario mientras no lo abras, y los documentos de Agentes, donde solo propone.
+- **Se oculta de tu vista, no de tu agente.** Tu agente de IA sigue leyendo y escribiendo en una carpeta oculta, y Brainsty la sigue dibujando. Lo que tu agente nunca alcanza es otra cosa: una tarea que ocultaste (una que descartaste la ve solo como tu decisión de no hacerla), tu Diario mientras no lo abras, y los documentos de Agentes, donde solo propone.
 - **El filtro de la barra la muestra.** Mientras escribes en el filtro de la Biblioteca, las carpetas ocultas aparecen también, para que un resultado nunca quede escondido. Al cerrar el filtro con `Esc`, vuelven a ocultarse.
 - **Una subcarpeta sola.** Puedes ocultar **Trabajo / Clientes** y dejar **Trabajo** a la vista. Su fila en Carpetas ocultas nombra el camino entero, para que sepas cuál es.
 - **El Diario e Ideas también.** Botón derecho sobre **Diario** o sobre **Ideas** y **Ocultar de la barra**. En Carpetas ocultas aparecen con su nombre, y **Volver a mostrar** los devuelve arriba de la Biblioteca.
@@ -157,7 +159,7 @@ Con capturas, la tabla de lo que muestra la tarjeta en cada caso y un ejemplo co
 
 Lo que sabes de un tema vive en su documento; el trabajo que hiciste sobre él, en sus tareas. Cita la tarea en el documento y la encuentras donde la vas a buscar: «Auto» muestra «Cambiar los neumáticos», cerrada en marzo, y un clic te lleva a cómo se resolvió.
 
-Escribe `/`, elige **Una tarea** y sigue con unas palabras de su título: Tisty busca entre las abiertas y las archivadas. `Enter` deja una tarjeta como `![Cambiar los neumáticos](tisty:task/…)`, sola en su párrafo.
+Escribe `/`, elige **Una tarea** en **Tarea** y sigue con unas palabras de su título: Tisty busca entre las abiertas y las archivadas. `Enter` deja una tarjeta como `![Cambiar los neumáticos](tisty:task/…)`, sola en su párrafo.
 
 - **Siempre al día**: la tarjeta lee la tarea cada vez que se dibuja, con su título, su lista, sus fechas, cuántos pasos y partes lleva hechos y, si está cerrada, el día en que se cerró.
 - **Un clic la abre**, también si está archivada.
@@ -168,7 +170,7 @@ Escribe `/`, elige **Una tarea** y sigue con unas palabras de su título: Tisty 
 
 ## Crear una tarea desde un documento
 
-Las tareas nacen leyendo y escribiendo: en un acta o en un plan aparece «hay que…», y salir del documento para anotarlo te hace perder el hilo. Escribe `/`, elige **Una tarea nueva** y escríbela como en la captura rápida: `Llamar al vet el lunes #Rina !hacer`. `Enter` la crea con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar del documento.
+Las tareas nacen leyendo y escribiendo: en un acta o en un plan aparece «hay que…», y salir del documento para anotarlo te hace perder el hilo. Escribe `/`, elige **Una tarea nueva** en **Tarea** y escríbela como en la captura rápida: `Llamar al vet el lunes #Rina !hacer`. `Enter` la crea con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar del documento.
 
 - **Las mismas reglas que la captura rápida**: `@lista`, `#etiqueta`, `!prioridad`, fechas y repeticiones en palabras. Las marcas se pintan mientras escribes, y `/` dentro del campo ofrece lo mismo que allá.
 - **`Esc` la deja ir** sin crear nada. Una línea vacía no crea una tarea, y si algo falla el documento queda como estaba.
@@ -339,7 +341,7 @@ Sirve para un texto que borraste a propósito: pegaste en «Datos del seguro» u
 - **Restaurar un respaldo** cambia las versiones de este equipo por las del zip, y su plazo vuelve a contar desde ese día.
 - **Tu agente nunca lee las versiones del Diario**, ni con el Diario abierto a los agentes. Las de cualquier otro documento sí puede listarlas, leerlas y volver a ellas, pero no vaciar el historial: mira [[Herramientas MCP|Herramientas-MCP#versiones-anteriores-de-un-documento]].
 - **Cada página de un libro y tu hoja de [Ideas](#ideas)** guardan sus propias versiones, como cualquier documento. La fila de una página dice **Historial**; **Versiones de esta página** es solo de la página de una tarea.
-- **Un documento de la carpeta [[Agentes|Carpeta-AGENTS]]** guarda sus versiones igual, y su ficha las abre con **Historial**. No son sus **Respaldos**, que guardan el archivo de tu agente como estaba en el disco. Su comparación con lo **Aprobado** lee de este historial: si lo vacías, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
+- **Un documento de la carpeta [[Agentes|Carpeta-AGENTS]]** guarda sus versiones igual, y su ficha las abre con **Historial**, que también lista las copias del archivo de tu agente tal como estaba en disco, guardadas solo en este equipo. Su comparación con lo **Aprobado** lee de este historial: si lo vacías, o la versión aprobada pasa el plazo, la ficha te pide leer el texto entero antes de aprobar.
 - **Compartir o exportar** un documento nunca lleva sus versiones: ni un enlace de Folio, ni un `.tistyx`, ni una exportación. Solo un respaldo completo las lleva.
 - **Al actualizar desde un Tisty sin historial,** la copia que cada documento guardaba de su texto anterior pasó sola a ser su primera versión.
 

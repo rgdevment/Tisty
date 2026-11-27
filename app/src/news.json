@@ -1972,5 +1972,152 @@
         "said": "the help opens on what you want to do: on your own, with your agent, or with your files and your privacy."
       }
     ]
+  },
+  {
+    "version": "1.51.0",
+    "headline": {
+      "es": "Lo tuyo y lo de tu agente, cada uno en su lugar, y Tisty se actualiza solo",
+      "en": "Yours and your agent's, each in its place, and Tisty keeps itself up to date"
+    },
+    "es": [
+      {
+        "title": "Lo tuyo y lo de tu agente, aparte",
+        "said": "cada tarea es tuya o de tu agente. Las listas muestran «Te toca» y «Lo hace el agente» por separado, así una tarea de tu agente nunca queda abierta esperando algo que solo tú puedes hacer."
+      },
+      {
+        "title": "Confirmas viendo su prueba",
+        "said": "cuando tu agente dice que terminó, la fila muestra su prueba: el commit, el PR o lo que verificó. Confirmas una o varias de una vez, o la dejas abierta."
+      },
+      {
+        "title": "Por confirmar, en un solo lugar",
+        "said": "un chip reúne lo que tu agente dio por hecho o decidió no hacer, con las dos respuestas en cada fila. Una tarea que dejaste de lado, tu agente la ve como una que decidiste no hacer."
+      },
+      {
+        "title": "Tisty se actualiza solo",
+        "said": "actívalo en Configuración › Ayuda y acerca de: las versiones nuevas se descargan sin molestar y se instalan al cerrar o abrir Tisty, nunca mientras trabajas. Si una no se puede instalar, un botón te lleva a la web para bajarla a mano."
+      },
+      {
+        "title": "Copiar y pegar, con formato",
+        "said": "lo que copias de una página llega con formato a otras apps, y lo que pegas desde Word, la web, un editor de código o una terminal queda limpio y con formato."
+      },
+      {
+        "title": "Clic derecho en la página",
+        "said": "ofrece las sugerencias de ortografía, cortar, copiar, pegar y lo que sabe hacer el bloque. El menú Insertar queda en su línea, en cuatro grupos con submenús."
+      },
+      {
+        "title": "Escribir sin esperas",
+        "said": "la página ya no espera mientras Tisty guarda, sincroniza o actualiza Ideas. Varios espacios o líneas en blanco seguidos quedan como los escribes, también al exportar."
+      },
+      {
+        "title": "Borrar de una vez",
+        "said": "Supr y Retroceso quitan entera una tabla, un diagrama, un widget, una fórmula, un plegable, una nota adhesiva o una tarjeta."
+      },
+      {
+        "title": "El documento sigue a la ventana",
+        "said": "el texto se ensancha con la ventana hasta el ancho del documento, y el aspecto de hoja queda para la vista de impresión."
+      },
+      {
+        "title": "Una barra lateral más ordenada",
+        "said": "todos los menús tienen la misma forma, Nuevo siempre está a la vista, eliges y borras varias filas a la vez y puedes deshacer lo que borraste. Ideas, el diario y Agentes guardan solo lo suyo."
+      },
+      {
+        "title": "Carpetas de hasta seis niveles",
+        "said": "antes eran cuatro. Todos los equipos que sincronizas necesitan esta versión: uno que siga en 1.50 trabaja por su cuenta y vuelve a sincronizar cuando se actualiza."
+      },
+      {
+        "title": "Tus propios hooks",
+        "said": "créalos en Agentes, mira su script antes de registrarlos y pruébalos una vez. Codex y Antigravity CLI también reciben los hooks de Tisty."
+      },
+      {
+        "title": "Una sola copia de cada skill",
+        "said": "todos tus agentes usan la misma copia, con un botón para refrescarla, y las copias viejas quedan respaldadas. Las skills y los hooks de Tisty van juntos en una fila, y una tarjeta los enciende a la vez."
+      },
+      {
+        "title": "Global, en palabras",
+        "said": "muestra primero tus reglas, skills y hooks, y aparte los de Tisty, diciendo cómo está cada uno. Si dos reglas chocan, Tisty te pregunta cuál manda."
+      },
+      {
+        "title": "Tus agentes en WSL",
+        "said": "siguen encontrando a Tisty, igual que los instalados de otra forma, y cada distribución recibe tus reglas y las skills de Tisty cuando le dices que sí. Lo que Tisty escribió y se borró se cuenta en Agentes y se repone con un clic."
+      },
+      {
+        "title": "Un solo Historial",
+        "said": "reúne las versiones de un documento y las copias de su archivo."
+      },
+      {
+        "title": "Recordatorios que suenan",
+        "said": "con el tono activado, el recordatorio suena, y la ventana principal cabe en pantallas bajas."
+      }
+    ],
+    "en": [
+      {
+        "title": "Yours and your agent's, apart",
+        "said": "every task is yours or your agent's. Lists show “Yours to do” and “The agent does it” apart, so your agent's task never stays open waiting for something only you can do."
+      },
+      {
+        "title": "You confirm seeing its proof",
+        "said": "when your agent says it finished, the row shows its proof: the commit, the pull request or what it checked. You confirm one or several at once, or keep it open."
+      },
+      {
+        "title": "To confirm, in one place",
+        "said": "a chip gathers what your agent said is done or decided not to do, with both answers on each row. A task you dropped, your agent sees as one you decided not to do."
+      },
+      {
+        "title": "Tisty updates itself",
+        "said": "turn it on in Settings › Help and about: new versions download quietly and install when you quit or open Tisty, never while you work. When one cannot be installed, a button takes you to the website to download it by hand."
+      },
+      {
+        "title": "Copy and paste, with formatting",
+        "said": "what you copy from a page reaches other apps formatted, and what you paste from Word, the web, a code editor or a terminal lands clean and formatted."
+      },
+      {
+        "title": "Right-click on the page",
+        "said": "it offers the spelling suggestions, cut, copy, paste and what the block can do. The Insert menu stays on its line, in four groups with submenus."
+      },
+      {
+        "title": "Typing without waiting",
+        "said": "the page no longer waits while Tisty saves, syncs or updates Ideas. Several spaces or blank lines in a row stay as you type them, also when you export."
+      },
+      {
+        "title": "Delete in one go",
+        "said": "Delete and Backspace take a table, diagram, widget, formula, fold, sticky note or card whole."
+      },
+      {
+        "title": "The document follows the window",
+        "said": "the text widens with the window up to the document's own width, and the paper look is kept for print view."
+      },
+      {
+        "title": "A tidier sidebar",
+        "said": "every menu has the same shape, New is always in sight, you pick and delete several rows at once and can undo what you deleted. Ideas, the diary and Agents keep only their own."
+      },
+      {
+        "title": "Folders six levels deep",
+        "said": "it used to be four. Every computer you sync needs this version: one still on 1.50 keeps working on its own and syncs again once it updates."
+      },
+      {
+        "title": "Your own hooks",
+        "said": "make them in Agents, see their script before they are registered and try them once. Codex and Antigravity CLI take Tisty's hooks too."
+      },
+      {
+        "title": "One copy of each skill",
+        "said": "all your agents use the same copy, with a button to refresh it, and older copies are backed up. Tisty's skills and hooks sit together in one row, and one card turns both on."
+      },
+      {
+        "title": "Global, in words",
+        "said": "it shows your own rules, skills and hooks first and Tisty's apart, saying how each one stands. When two sets of rules clash, Tisty asks which one rules."
+      },
+      {
+        "title": "Your agents in WSL",
+        "said": "they keep finding Tisty, like those installed another way, and each distro gets your rules and Tisty's skills once you say yes. What Tisty wrote and was removed is counted in Agents and written again in one click."
+      },
+      {
+        "title": "One History",
+        "said": "it lists a document's versions and its file's copies."
+      },
+      {
+        "title": "Reminders that ring",
+        "said": "with the tone on, the reminder rings, and the main window fits short screens."
+      }
+    ]
   }
 ]

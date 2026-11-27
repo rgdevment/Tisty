@@ -16,7 +16,7 @@ Esta página cuenta tres cosas: citar una tarea en un documento como una tarjeta
 ## Citar una tarea que ya existe
 
 1. En un documento, en una línea vacía, escribe `/`.
-2. Elige **Una tarea** y sigue con unas palabras de su título: `neumáticos`. Tisty busca entre las abiertas y las archivadas.
+2. En **Tarea**, elige **Una tarea** y sigue con unas palabras de su título: `neumáticos`. Tisty busca entre las abiertas y las archivadas.
 3. `Enter` deja la tarjeta sola en su párrafo. En Markdown queda como `![Cambiar los neumáticos](tisty:task/…)`.
 
 La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
@@ -39,7 +39,7 @@ La tarjeta lee la tarea cada vez que se dibuja, así que nunca se queda vieja:
 
 ## Crear una tarea sin salir del documento
 
-1. En el documento, donde va la tarea, escribe `/` y elige **Una tarea nueva**. Va primero en el menú, así que `/tarea` y `Enter` la abren.
+1. En el documento, donde va la tarea, escribe `/` y luego **Tarea** › **Una tarea nueva**. O escribe `/tarea nueva`: `Enter` abre **Tarea** en ella, y `Enter` otra vez abre el campo.
 2. Se abre el mismo campo de la captura rápida, en ese lugar. Escribe la tarea como la dirías: `Pedir presupuesto de la reja el lunes #condominio !planificar @Casa`. Las marcas se pintan mientras escribes, y `/` dentro del campo ofrece lo mismo que en la captura: una fecha, una lista, una prioridad.
 3. `Enter` crea la tarea, con su fecha, su lista, sus etiquetas y su prioridad, y deja su tarjeta en ese lugar del documento.
 
@@ -68,16 +68,16 @@ No se ofrece en la página de una parte (una parte no tiene partes) ni en la de 
 
 Es martes y escribes el acta de la reunión del condominio, con Jaime y Yisset.
 
-1. En la sección **Reja del estacionamiento** escribes lo que se habló. Llega el «hay que…»: `/tarea` y `Enter`.
+1. En la sección **Reja del estacionamiento** escribes lo que se habló. Llega el «hay que…»: `/tarea nueva` y dos veces `Enter`.
 2. Escribes `Pedir presupuesto de la reja el lunes #condominio !planificar` y `Enter`. Queda la tarjeta en el acta; en **Próximo** aparece la tarea para el lunes.
-3. Más abajo, en **Jardines**, citas una tarea del año pasado: `/`, **Una tarea**, `poda`, y eliges «Contratar la poda de los árboles», archivada. Su tarjeta dice «cerrada el 12 de septiembre de 2026».
+3. Más abajo, en **Jardines**, citas una tarea del año pasado: `/`, **Tarea**, **Una tarea**, `poda`, y eliges «Contratar la poda de los árboles», archivada. Su tarjeta dice «cerrada el 12 de septiembre de 2026».
 4. El lunes abres la tarea desde **Hoy**. Junto a su página, **Nació en** nombra el acta y la sección **Reja del estacionamiento**. Un clic y estás leyendo lo que se habló.
 5. Cuando pides los tres presupuestos, marcas los pasos desde la tarjeta del acta, sin abrir la tarea, y el acta muestra «3 de 3 pasos».
 
 ## Lo que conviene saber
 
 - **Fuera de Tisty queda solo la frase.** Folio, el PDF, Word, la página web y el Markdown estándar dejan de la tarjeta solo las palabras con que la citaste: nada de la tarea sale con el documento. El visor liviano, el que abre un `.md` sin traerlo, muestra la tarea como esas palabras y los documentos como tarjetas.
-- **Lo oculto queda fuera de la red.** Una tarea que ocultaste o descartaste no aparece en la red de Brainsty, con las páginas que cuelgan de ella, ni llega a tus agentes, aunque un documento la cite; en el documento, su tarjeta sigue ahí para ti. Tu agente, donde la citaste, lee solo «a task out of sight», y si reescribe el documento tu cita vuelve intacta. Mira [[Lo que conviene saber|Red-de-Brainsty#lo-que-conviene-saber]] y [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
+- **Lo oculto queda fuera de la red.** Una tarea que ocultaste o descartaste no aparece en la red de Brainsty, con las páginas que cuelgan de ella, ni llega a tus agentes, aunque un documento la cite, salvo que una que descartaste la ven como tu decisión de no hacerla, con su título, su día y el motivo que quedó anotado; en el documento, su tarjeta sigue ahí para ti. Tu agente, donde citaste cualquiera de las dos, lee solo «a task out of sight», y si reescribe el documento tu cita vuelve intacta. Mira [[Lo que conviene saber|Red-de-Brainsty#lo-que-conviene-saber]] y [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 - **Dos tareas de la misma sección** nacen las dos ahí, y las dos lo dicen en **Nació en**.
 - **Una tarjeta en otro equipo** muestra la tarea en cuanto la tarea llega a ese equipo; antes dice que no está en esta máquina.
 - **Tu agente también cita.** Cuando un agente escribe el id de una tarea solo en su párrafo, Tisty lo vuelve la tarjeta de esa tarea. Mira [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].

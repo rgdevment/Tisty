@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** November 24, 2026
+**Last updated:** November 27, 2026
 
 ## The short version
 
@@ -12,7 +12,9 @@ when Folio has opened for new documents.
 It makes **one** check on its own — when it opens, and once a day after that:
 it downloads a small file and its signature to see whether a newer version
 exists. It sends nothing. Two more requests follow only if you press the button
-that offers you an update, one or two only if you ask a link in a document for
+that offers you an update (or by themselves when a newer version exists, if you
+turned on **Install updates automatically** in *Help and about*), one or two
+only if you ask a link in a document for
 its preview (the page, then the picture it offers), one more when you open the
 guide inside Tisty, one per picture if you press **Download** above the help,
 one per picture from the internet if you ask for them in the viewer of a
@@ -292,7 +294,8 @@ defence, because the remedy barely exists.
   to any model. If you connect an assistant of your own, read "the door you can
   open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
-- Does not make background network calls, except the update check below and,
+- Does not make background network calls, except the update check below, the
+  download that follows it when you turned on automatic updates, and,
   only if you connect Google Drive, OneDrive or a WebDAV server, the requests
   that sync with it, and the `cloud.json` check, at most once an hour, that
   rides along. Opening a document you shared with a language you kept from
@@ -393,6 +396,15 @@ releases live, or nothing is downloaded at all. And what does arrive is checked
 against a key compiled into the copy you already have, before a single byte is
 run or written to disk.
 
+**If you turned on Install updates automatically** (off until you do, and not
+offered on the Store's copy), the same two requests go out on their own once the
+daily check finds a newer version, with the same fences: the address must be
+where this project's releases live, and the installer is checked against the key
+in your copy before it is written to disk. It then waits in Tisty's cache, in
+`update/`, and installs when you quit or open Tisty, never while you work. If
+that install fails, *Help and about* says so and offers **Download from the
+website**, which only opens the releases page in your browser.
+
 On macOS, if the application sits somewhere your account cannot write, the
 system asks for an administrator password to put the new copy in place. You can
 refuse; nothing is moved.
@@ -475,15 +487,16 @@ megabytes in all, over HTTPS with the same user agent, and they are kept in
 Tisty's cache on this computer. Until then each picture is named where it would
 be, and nothing is asked for.
 
-**Nothing is downloaded or installed unless you ask for it.** What the daily
+**Nothing is downloaded or installed unless you ask for it**: by pressing the
+button, or by turning on **Install updates automatically** once. What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a
 line appears in *Help and about*, and what it offers depends on how this copy was
 installed: the Microsoft Store updates itself and Tisty leaves it alone, and a
 copy that owns the folder it lives in gets a button.
 
-That button is the only thing that fetches an installer, and what it does is
-described above. If you never press it, nothing is downloaded and the line just
-sits there.
+That button, or that switch, is the only thing that fetches an installer, and
+what it does is described above. If you never press it and leave the switch off,
+nothing is downloaded and the line just sits there.
 
 ## Saving a task to your calendar
 
@@ -702,8 +715,8 @@ What travels, and what stays:
   or not it is connected to Tisty. That is the point of the folder, and it is
   also a way your words leave this computer.
 - **This computer's own record stays on it**, in `data/agents/` inside Tisty's
-  folder, out of everything sync, backups and parcels carry: your yes to Agents
-  and your yes to Tisty's own skills, whether Agents syncs here, which
+  folder, out of everything sync, backups and parcels carry: your yes to Agents,
+  to each WSL distro and to Tisty's own skills, whether Agents syncs here, which
   assistants you paused, which documents you applied or left out on this
   computer, which of two documents rules here when they go to the same file,
   what moved by itself into this computer's folder on updating, a fingerprint
@@ -715,6 +728,20 @@ What travels, and what stays:
   file as it was before Tisty first touched it, and it is never removed; after
   it, the last 20 are kept, so up to 21 per file, and no copies are left in
   your assistants' folders.
+- **Inside a WSL distro**, with a yes of its own given there in Settings ›
+  Agents › Connected, Tisty writes into that distro what Agents writes on this
+  computer (never hooks or your agents' memory) and, with another yes, its own
+  skills. It writes only into the distro's default user's home, never root's
+  nor one on a Windows drive, in LF, and nothing comes back from it. For this
+  it reads there only the distro's `/etc/passwd` and `/etc/wsl.conf`, and asks
+  the distro who owns that home, to find it, the files at the places it writes,
+  to see whether they changed, and, for its skills, what *Tisty's own skills*
+  below names in that distro's folders. A file it wrote
+  there that nothing in Agents places any more is taken away, after a backup,
+  unless it was changed inside the distro. **Look in** starts a stopped distro
+  to read it; writing never starts one on its own, only **Start … and write**
+  when you press it. What it wrote and your yes are kept in `data/agents/`, one
+  record per distro, with the rest of this computer's own record.
 
 Turning it off loses nothing. You can pause one assistant, or **Stop syncing**
 for the whole folder; either way Tisty neither opens nor writes those files on
@@ -727,7 +754,8 @@ Tisty wrote it for: **Take away too** deletes each file after a backup, and
 a paused assistant reads, stays and is asked about apart. When a rule
 leaves Agents any other way, or is deleted on another computer, Tisty asks here
 before deleting its file. Short of those answers Tisty never empties or deletes
-an assistant's file, apart from its own skills' copies, below. The help page
+an assistant's file, apart from its own skills' copies, below, and what a WSL
+distro no longer gets, above. The help page
 [The Agents folder](https://www.tisty.app/docs/agents-folder/) tells each step.
 
 ## Tisty's own skills
@@ -742,7 +770,8 @@ release, checked against a fingerprint built into the app, are written.
   shows them in a row of their own, and **Turn on here** is that yes; so are
   **Yes, connect**, when you connect an agent with their tick on, and **Turn on
   skills**, or **Add hooks and turn on skills**, in the box Settings › Agents
-  shows above its tabs, which say the same before you press them. It needs no
+  shows above its tabs, and **Turn on** or **Turn on both** on the **Tisty in
+  your agents** card, which say the same before you press them. It needs no
   Agents folder, and a record copied from another computer does not count.
 - **Before that yes, and with no yes to Agents either, their card opens nothing
   inside your agents' folders.** It looks only at which agents' folders exist,
@@ -773,6 +802,9 @@ release, checked against a fingerprint built into the app, are written.
   Tisty, ready to turn on again, and are never deleted. A copy you changed is
   left for you to take away from the same card. No file is ever taken away on
   its own or through the MCP.
+- **Inside a WSL distro** they need a yes of their own, given for that distro
+  in Settings › Agents › Connected, and are written as *Your assistants' files,
+  in Agents* tells: only into its default user's home, in LF.
 
 ## The agents you connect
 
@@ -857,8 +889,10 @@ happens on its own:
   by editing a file it can reach. That you chose to keep the door closed is kept
   in this computer's settings.
 - **What it may do is bounded.** File a task, add to the journal, say a task is
-  done, yours too — which marks it for you and closes nothing — work any task
-  the way it works a document, write a
+  done, yours too — which marks it for you and closes nothing; its account goes
+  into that task's journal, and the branch and pull request, when it names
+  them, are kept with that task, and both travel with it like any note — work
+  any task the way it works a document, write a
   document, write one again whole, mark a document that had its day for you to
   delete, archive or keep, put one away or bring it back when you ask, jot
   ideas on your Ideas sheet and mark the old ones the same way, keep a copy of a
@@ -867,8 +901,10 @@ happens on its own:
   read until you approve it on the document's card, and then only on the
   computers where Agents syncs and you applied it. It may not
   close or delete anything, tick a step of yours or finish a task of yours,
-  move a day you set, reach a task you hid or dropped — where you linked one,
-  it reads «a task out of sight», and your link comes back intact if it
+  move a day you set, reach a task you hid, or read more of one you dropped
+  than its title, its day and the reason noted, which it gets only as your
+  decision not to do it — where you linked either, it reads «a task out of
+  sight», and your link comes back intact if it
   rewrites that document — read your diary until you open it
   to agents from the Diary itself, change what you wrote in it once you do —
   open, it only adds to the end of today, signed, and makes the month's page if
@@ -889,9 +925,12 @@ happens on its own:
   like reminding them to finish tasks, update documents or leave in Tisty what
   someone else will read. For that they look, on your computer, at what the
   agent does and where; they do not read the conversation or keep what it does,
-  and they only leave marks, which are deleted once seven days have passed, when
-  a session starts. What they hand the agent, such as the titles of your open
-  tasks, goes where that agent goes.
+  and they only leave marks. After a terminal command, they look only at
+  whether it was a `git push`, `gh pr create` or `gh pr merge`, to ask the agent
+  what it finished; of the command nothing is kept but that mark. The marks
+  are deleted once seven days have passed, when a session starts. What they
+  hand the agent, such as the titles of your open tasks, goes where that agent
+  goes.
 - **What it keeps for itself.** Where each assistant last caught up is kept
   in Tisty's private data, so the next session hears only what moved, and
   never leaves this computer. A summary it leaves on a long document is an

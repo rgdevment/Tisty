@@ -9,7 +9,7 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 - **Busca y navega con una sola herramienta, `brain`.** Encuentra tareas y documentos por sus palabras, con el archivo junto a lo demás; trae la ficha de un documento o una tarea con sus vecinos; y muestra un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar.
 - **Lee con una sola herramienta, `read`.** Una tarea o un documento, entero o por partes, solo lo resaltado, o una versión anterior; y si nada cambió desde su última lectura, solo eso.
 - **Deja la tarea al día en una llamada.** `tick` marca los pasos y escribe el estado de la tarea, una sección «Estado» de su página que se reemplaza entera cada vez. Al retomar, `read` le trae ese estado primero.
-- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar, al terminar cada turno y antes de dejar algo fuera.
+- **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar, al terminar cada turno, después de un push o un merge, y antes de dejar algo fuera.
 - **Lo que nombra queda enlazado.** Una tarea o un documento nombrado por su id o por su título exacto entre comillas se vuelve un enlace al guardar, igual que si lo hubieras hecho tú.
 - **Sabe qué hacer cuando se lo dices con tus palabras.** Con las skills de Tisty encendidas, «Retoma donde quedamos» o «Deja esto listo para el próximo agente» le bastan: la skill `tisty` le dice que empiece por `catch_up` y que deje la tarea al día con `tick` y una nota. Lo cuenta [[Hooks y skills|Hooks-y-skills]].
 
@@ -24,7 +24,7 @@ En **Configuración › Agentes**:
    Si conectas el agente ahora, los dos van incluidos en **Conectar** y quedan encendidos. Si ya lo tenías conectado, los pasos 2 y 3 llegan juntos sobre las pestañas, en **Hooks y skills para tus agentes**: **Agregar hooks y encender skills** te muestra los archivos y las carpetas antes de escribir.
 4. En la pestaña **Puerta**, dos interruptores, encendidos de entrada:
    - **Pedirle que deje su tarea al día**: la pregunta en las respuestas.
-   - **Recordarle al empezar y al terminar cada turno**: los tres hooks, sin quitarlos del archivo.
+   - **Recordarle al empezar y al terminar cada turno**: los hooks de Tisty, sin quitarlos del archivo.
 
 ## Una sesión, paso a paso
 
@@ -200,6 +200,8 @@ Con los hooks, cuando un turno editó archivos y no escribió nada en Tisty, el 
 
 Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty: un turno fuera de una tarea cuesta como mucho un turno extra.
 
+También le devuelve el turno una vez cuando todos los pasos de su tarea están marcados y no la dijo hecha, para un `say_done` con la prueba; y después de un `git push`, un `gh pr create` o un `gh pr merge` le pregunta si eso terminó un paso o la tarea: en Claude Code en el acto, en los demás al terminar el turno.
+
 ### 11. Lo que solo puedes hacer tú va en tu tarea
 
 Una tarea es del agente o tuya, nunca de los dos: si se mezclan, no termina nunca. Por eso `propose` pide `for`, «agent» o «person». Cuando un paso del agente resulta tuyo, como probarlo a mano, publicar o mergear, lo pasa a tu tarea:
@@ -244,7 +246,7 @@ Un agente que todavía llama a una de ellas recibe dónde quedó («`find` moved
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.
 - **Cursor** también corre los hooks de Claude Code; aunque se disparen los dos, el turno vuelve una sola vez.
 - **Gemini CLI** corre los hooks solo en las carpetas en que confiaste.
-- **Lo oculto queda fuera.** Una tarea que ocultaste o descartaste nunca se nombra: ni en una búsqueda, ni como vecina en una ficha, ni como parecido, ni en el inicio de una sesión. Tu Diario, mientras no lo abras a los agentes, tampoco.
+- **Lo oculto queda fuera.** Una tarea que ocultaste nunca se nombra: ni en una búsqueda, ni como vecina en una ficha, ni como parecido, ni en el inicio de una sesión. Una que descartaste le llega solo como decidida que no se hace: una búsqueda por sus palabras la muestra aparte, tres como mucho, con su título, su día y el motivo que quedó anotado, y proponer de nuevo el mismo trabajo se frena salvo que ponga `again`. Tu Diario, mientras no lo abras a los agentes, tampoco se nombra.
 - **Donde la enlazaste, lee «a task out of sight».** Si un documento cita o menciona una de esas tareas, el agente lo lee con esas palabras en lugar del enlace, sin título ni id. Si después reescribe el documento, Tisty pone de vuelta tu enlace tal como estaba, byte a byte: lo oculto no se pierde porque el agente no lo vio.
 - **En la carpeta Agentes solo propone.** Lee tus reglas y skills como cualquier documento, pero un cambio suyo queda como propuesta hasta que lo apruebas en la ficha. Lo cuenta [[Una propuesta de tu agente|Carpeta-AGENTS#una-propuesta-de-tu-agente]].
 - **Con la puerta cerrada**, las herramientas rechazan todo y los hooks callan.

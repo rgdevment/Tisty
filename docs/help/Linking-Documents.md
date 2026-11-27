@@ -75,7 +75,7 @@ Marisol, the vet, changed her opening hours, and you want Rina's note to lead to
 - **On another computer.** The link travels with the document when you sync. If the other document has not reached that computer yet, the link stays written as is and opens as soon as the document arrives.
 - **An archived document** still opens from a link that was already there; it is read, but not written until you unarchive it. To link it again with `[[`, unarchive it first.
 - **Outside Tisty.** **Copy as Markdown** and **Export as Markdown…** leave a link to another document as its text, because `tisty:doc/…` means nothing in another editor. The PDF and Word show the link's text.
-- **A card instead of a link.** For another document to show as a card, with its title and first words, use **A document** in the `/` menu, or leave the link alone in its paragraph. See [[Documents]].
+- **A card instead of a link.** For another document to show as a card, with its title and first words, use **A document**, under **Page or document** in the `/` menu, or leave the link alone in its paragraph. See [[Documents]].
 - **What your agent links.** When an agent names a document by its exact title between quotes, Tisty links it when saving, just as if you had: see [[How an agent works|How-an-Agent-Works]].
 
 ## Where next

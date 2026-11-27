@@ -15,7 +15,7 @@ What you both keep comes in two kinds: what has to be done is a **task**, and wh
 
 Everything stays on this computer, as text any program opens. It asks for no account, charges no subscription and sends nothing about how you use it. It is open source: anyone can audit it. There is no company behind it: I make it because I needed it, and I share it.
 
-Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too. The gear, on that same foot, opens Settings on an **Overview** that tells you what needs something from you, and **Search a setting** finds any setting by its name. You come back to this guide from **Settings › Help and about**, with **Open the guide**.
+Read this guide at your own pace: each section stands on its own, and whatever you do not need today can wait. It is a document like any other, so you can touch all of it: click, write, try things. If you ever get lost, the `?` at the foot of the sidebar opens the full help, offline too. The gear, on that same foot, opens Settings on an **Overview** that tells you what needs something from you, and **Search a setting** finds any setting by its name. You come back to this guide from **Settings › Help and about**, with **Open the guide**. There, too, **Install updates automatically** lets the next versions download quietly and install when you quit or open Tisty, never while you work.
 
 ## You and your agent
 
@@ -80,13 +80,13 @@ Connecting an agent is optional: everything above works without one, and you con
 From then on Tisty is its memory between sessions. Of a document it reads the outline first and then only the section it needs; on the task it is on, it ticks the steps and notes in its journal what it tried and ruled out. The next session starts there, and costs a fraction of rereading your Markdown files.
 
 - **It can** propose tasks, write documents, add to or correct the ones it may write in, jot and sort ideas with you, and mark what has had its day, saying why.
-- **It can say** that a task or a step is done. The task stays in **To confirm** until you finish it or send it back with **Still to do**; the steps wait for you with **Tick them** or **Not yet**.
+- **It can say** that a task or a step is done. A task it does for you sits under **The agent does it**, apart from **Yours to do**, with the first lines of its proof, and waits in **To confirm** until you confirm it (several at once with **Confirm the N done**) or send it back with **Still to do**; what only you can do, it hands to a task of yours. The steps wait for you with **Tick them** or **Not yet**.
 - **It cannot** close or delete a task, delete a document or an idea, tick a step of yours or move a day you set. On a task you wrote it may change the description, the page and the open steps, as in a document.
 - **It does not see your diary** until you open it yourself. Open, it reads it and only adds to the end of today.
 
 If you wrote in a document while it was reading it, it does not write over you: it is asked to read it again. And when something writes in the document you have open, the window tells you and offers to go back to what it said before; what your agent replaced is also kept as a version in its history, which **Going back to what it said before** tells, further down.
 
-When you connect it, Tisty gives you two helps, each with its own yes: its **hooks**, which bring it the tasks it left open when it starts and remind it to write things down when a turn ends, and **Tisty's skills**, which teach it to pick up, tidy up and leave work ready for the next agent when you ask in your own words, like “Pick up where we left off”. Both are optional, and you turn them on or take them out whenever you like.
+When you connect it, Tisty gives you two helps, which come ticked and which one card, **Tisty in your agents**, turns on together: its **hooks**, which bring it the tasks it left open when it starts and remind it to write things down when a turn ends, and **Tisty's skills**, which teach it to pick up, tidy up and leave work ready for the next agent when you ask in your own words, like “Pick up where we left off”. Both are optional, and you turn them on or take them out whenever you like.
 
 How to connect it, how to let it in or keep it out, and how to ask it for things, step by step, is on this page:
 
@@ -150,6 +150,8 @@ Your task list can be seen four ways:
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
+
+A fifth, **◆ To confirm**, shows only while something waits: what an agent said is done or should not be done, with both answers on each row. And once a list holds an agent's task, it splits into **Yours to do** and **The agent does it**.
 
 The day's four counts, at the top of the sidebar, open what they count: **Overdue** and **Late** each open a view of their own, shown beside Today while you are on it, and **for today** and **ahead** open Today and Upcoming.
 
@@ -259,15 +261,15 @@ A document is yours and is kept as Markdown: plain text with a few marks, like `
 
 **Try it:** click this very paragraph and type. You write on the same page you read, with no marks in sight.
 
-**To make one**, use the **+** in the header of the **Library**, in the sidebar: **New document**. Inside a folder, that same button makes it there, and **New folder** groups them. Folders start folded; open them on the arrow.
+**To make one**, press **+ New** in the header of the **Library**, in the sidebar; inside an open folder it makes it there. The arrow beside it has **New folder** and the rest. Folders start folded; open them on the arrow.
 
 The first line of the document is its title: there is no name to fill in anywhere else. Its properties show in the panel beside it: the paper it prints on, next to **Sheets**; its tags and the rest, under **Details**.
 
 To write:
 
 - Click wherever you like and type: the page you read is the page you write.
-- Select a few words and a small bar offers bold, italic, underline, strikethrough, code, a link or the highlighter; right-click also cuts or copies them as Markdown.
-- The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves it too.
+- Select a few words and a small bar offers bold, italic, underline, strikethrough, code, a link or the highlighter; right-click offers the speller's words, cut, copy, paste and paste as plain text, and on a block its own actions. What you copy reaches other apps with its formatting, and Tisty as its own Markdown.
+- The `/` key at the start of a line, or the **+** in the margin, inserts anything a document can hold. It comes in four groups, **Text**, **Lists**, **Insert** and **Link**, some rows opening a submenu. Delete and Backspace take a table, diagram, widget, formula, fold, sticky note or card whole. The handle that shows to the left of a block drags it elsewhere, and its menu moves it up or down, duplicates it or deletes it; `Alt` + ↑ ↓ (`Ctrl` + `Alt` on a Mac) moves it too.
 - The **⋯** at the top of the document turns it to **Markdown**, the text with all its marks in view; so does `Ctrl`/`⌘` + `E`, and **Rich text** takes you back to the page.
 - Drag a file in to attach it: Rina's vaccination card, the insurance PDF.
 - Insert **another document**: in a paragraph of its own it shows as a card; inside a sentence, as a link with its title. A click opens the card; the link, while you write, opens with `Ctrl` (`⌘` on a Mac) + click.
@@ -275,7 +277,7 @@ To write:
 
 **Export**, in the document's panel, shows you its PDF, saves it as a PDF, a web page or a Word file, and copies it as standard Markdown for any other editor. Try it with this guide: it comes out with its diagrams, its tables and its sheets.
 
-And when a matter is over, archive its folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written; unarchive it and it comes back as it was. More in [documents](https://www.tisty.app/docs/documents/).
+And when a matter is over, archive its folder with a right-click: it drops to the **Archived** shelf at the foot of the tree, with everything inside it. There it can be read and exported, but not written; unarchive it and it comes back as it was. Several rows can be selected at once (`Ctrl`/`⌘` + click, `Shift` + click or `Shift` + ↑ ↓) and deleted together, and a delete can be undone for a few seconds. Deleting a folder asks where what it holds goes: up to the folder above it, to Unfiled, to another folder, or with it. More in [documents](https://www.tisty.app/docs/documents/).
 
 ### In several languages
 
@@ -293,7 +295,7 @@ A year of minutes, a book in chapters, Rina's life told year by year: that does 
 
 A page is a document like any other, with its own file, that also says which document it belongs to. There is one level and no more: a page has no pages.
 
-**To add one**, type `/` where you want that chapter to start and choose **A new page**, or **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. **Try it:** this guide has several pages, and this card is one of them. Open it with a click and see at the top which document it belongs to:
+**To add one**, type `/` where you want that chapter to start and choose **A new page**, or, under **Page or document**, **A page that already exists** if you already wrote it. It is inserted right there, as a card with its title and its first words. **Try it:** this guide has several pages, and this card is one of them. Open it with a click and see at the top which document it belongs to:
 
 ![Rina: this guide's example page](tisty:page)
 
@@ -310,7 +312,7 @@ A page can be archived on its own, with a right-click, and stays dimmed in its d
 
 If a document will end up printed or as a PDF, you decide where each sheet starts. A line with only `---` cuts it: what follows goes on the next sheet, and `Ctrl`/`⌘` + `Enter` writes it for you.
 
-Turn on **Sheets** in the document's panel to see it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own. Exporting to PDF gives those same sheets. **Try it:** there is one of those rules just below; turn on **Sheets** and see where the next paragraph lands.
+Turn on **Sheets** in the document's panel to see it on real sheets (A4, Letter or Folio, portrait or landscape), where a sheet that fills up turns to the next on its own. Exporting to PDF gives those same sheets. On screen the page follows the window's width up to the document's own, chosen under **Text width** in its menu (**Narrow**, **Normal**, **Wide** or **Full**); the paper look is only for Sheets and print. **Try it:** there is one of those rules just below; turn on **Sheets** and see where the next paragraph lands.
 
 ---
 
@@ -516,7 +518,7 @@ It opens only on your computers, where your store is; to give it to someone else
 Already have notes somewhere else? No need to copy them by hand. What arrives from elsewhere comes in converted into Tisty Markdown, and the file it came from is not touched:
 
 - **Import a document**, in the tree, takes Markdown, text, a web page or a Word file.
-- Pasting keeps the headings, lists, tables, links and colours of what you copied from a web page, an email or Word.
+- Pasting keeps the headings, lists, tables, links and colours of what you copied from a web page, an email, Word, a code editor or a terminal; and what you copy from Tisty reaches those apps with its formatting.
 - An Obsidian note comes in with its callouts converted and its `[[links]]` pointing at the documents here with those titles.
 - **Export for Tisty…** carries whole folders, with their pages, to another Tisty in a `.tistyx` file, and opening it brings them in as they were.
 - An `.ics` calendar comes in too: drag it onto the window and choose which events become tasks.

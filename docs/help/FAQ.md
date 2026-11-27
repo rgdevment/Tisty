@@ -6,7 +6,7 @@
 Yes, Tisty is free and will stay free, under the AGPL-3.0 licence. No accounts, no telemetry, and it keeps being developed and improved. [Commercial terms](https://github.com/rgdevment/Tisty/blob/main/docs/COMMERCIAL.md) exist only for organisations that cannot comply with the AGPL.
 
 **Does it need an account or a connection?**
-Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
+Neither. On its own, Tisty only asks whether a newer version exists, and it sends nothing to ask; if you turn on automatic updates, it also downloads it. Once you sync with a cloud or share a document, it also reads the few small files [[Privacy]] lists. Take the machine off the network and everything else works the same. See [[Privacy]].
 
 **Do I need an AI agent?**
 No. Everything Tisty brings is there from the start: tasks in natural language with their steps, linked documents, Ideas, the Diary and [[Brainsty|Brainsty-Network]]. It works without an agent too, the traditional way: your notes, documents and tasks, by hand and at your own pace. Say you keep Rina's vet visits in a document and her next vaccine as a task that rings the evening before: no agent sees any of it until you connect one, whenever you like, as [[Agents and MCP|Agents-and-MCP]] tells.
@@ -33,7 +33,7 @@ On your disk, no, by decision: your operating system's permissions are the prote
 Not as a shared board. Tisty is one person's by design — no assignees, no permissions, no shared database. Each person keeps their own tasks, documents and agent, and when somebody needs what you know, you hand them the document through Folio, encrypted and signed. See [Sharing](Documents#sharing).
 
 **Is there a mobile app? Linux?**
-No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an agent that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Agents › Connected.
+No mobile app: Tisty is a desktop program for Windows and macOS. Your documents are Markdown in a folder, so a phone that reaches that folder can read and edit them with any app. There is no Linux version either; an agent that runs on Linux inside Windows, under WSL, reaches Tisty all the same from Settings › Agents › Connected, and each distro can get Agents' rules and Tisty's skills on its own yes.
 
 **Do reminders ring with Tisty closed?**
 Yes, since 1.48, while the computer is on: Tisty books them with Windows or macOS, and a click on the notice opens the task. See [Reminders](Spread-and-Reminders#reminders).
@@ -137,7 +137,7 @@ In two steps your cloud's card shows you: **Reconnect** and then **Open my cloud
 A proxy, a filter at work or an antivirus stands between this computer and Google, or inspects secure connections so Tisty cannot trust them. Your work stays safe on this computer meanwhile. On a work network, ask whoever runs it to let Tisty through; on your own computer, allow Tisty in your antivirus. Never go around your company's protection on your own. What each message means is in [Sync and backup](Sync-and-Backup#when-something-stands-in-the-way-of-google).
 
 **One of my machines stopped syncing after an update.**
-Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine. A computer still on a Tisty older than 1.48 also stops at a place that holds a [Diary](Documents#diary), before it receives any of it.
+Update the one that is behind. A machine only reads what it understands, so the two stop syncing in both directions until they agree. A computer still on Tisty 1.30 to 1.33 stops and asks you to update instead of writing over a newer one. Nothing is lost, and what you write meanwhile stays on that machine. A computer still on a Tisty older than 1.48 also stops at a place that holds a [Diary](Documents#diary), before it receives any of it. Since 1.51, folders nest six levels deep, so every computer that syncs needs 1.51 or later.
 
 ## Comparing
 

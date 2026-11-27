@@ -17,9 +17,10 @@ Se escribe sobre la misma página que lees, la que dibuja Tisty. No hay un modo 
 - **Un clic sobre una imagen o un diagrama lo abre en grande**, para acercarlo, moverlo y pasar al siguiente. Una imagen o un archivo que se ve en la página, como un PDF, un audio o un video, se quita con `Supr` justo antes o `Retroceso` justo después, o desde su clic derecho: **Eliminar imagen** o **Quitar de la página**. Si iba solo en su línea, la línea se va con él. Un diagrama trae su propia barra al pasar el puntero: **Exportar** y **Abrir en la ventana de diagramas**; un doble clic también lo abre en la [[ventana de diagramas|Diagramas]]. Su texto se cambia en la vista Markdown. Un widget trae **Ver código**, que lo abre en su [[ventana|Widgets-en-documentos]] con el código al lado de lo que dibuja, y **Abrir aparte**. Una fórmula se abre en esa misma ventana: la que va en su propio bloque con su **Ver código**, y la que va dentro de una línea con un clic. Lo que escribes se dibuja al lado y se guarda en su lugar. **Editar**, en las propiedades del panel, las abre igual.
 - **El código se escribe tal cual.** Dentro de un bloque de código no hay formatos ni corrector, y la `/` es solo una barra. Sus líneas van numeradas al lado del texto y no dentro, así que copiar se lleva el código y nada más. La etiqueta de su esquina, como «rust» o «yaml», abre la lista de lenguajes para elegir con qué colores se dibuja. Escribir `` ``` `` al empezar una línea abre un bloque de código que se cierra solo, y el nombre de un lenguaje escrito en su primera línea, como `rust`, pasa a ser su lenguaje con Enter.
 - **Un salto de página no se escribe ni se mueve.** `Retroceso` al inicio del bloque que lo sigue, o `Supr` al final del que lo precede, lo quita, y el resto queda como estaba. Lo que escribes justo después de él empieza en una línea nueva debajo.
-- **Una tabla, un código, un diagrama, una sección plegable o un aviso no se pegan a lo que tienen al lado.** `Retroceso` al inicio del bloque que los sigue, o `Supr` al final del que los precede, no hace nada; `Supr` al final de un ítem de una lista tampoco, si lo que sigue dentro de él es una tabla, un código, un diagrama o un aviso; para quitarlos está **Borrar bloque**, en su asa. Una imagen o un archivo solo en su línea es la excepción: esas mismas teclas lo quitan.
+- **Una tabla, un diagrama, un widget, una fórmula, una sección plegable, una nota adhesiva o una tarjeta sola en su línea se va entera.** `Retroceso` al inicio del bloque que la sigue, o `Supr` al final del que la precede, la quita, y **Deshacer** la devuelve. Un código y un aviso tienen palabras propias, así que esas teclas no los tocan; **Borrar bloque**, en su asa, los quita. Dentro de una lista, `Supr` al final de la línea de un ítem no toca una tabla, un código, un diagrama o un aviso que siga dentro del ítem. Una imagen o un archivo solo en su línea también se va con esas mismas teclas.
 - **`Ctrl`/`⌘` + `Z` deshace** y `Ctrl`/`⌘` + `Shift` + `Z`, o `Ctrl`/`⌘` + `Y`, rehace, solo en el documento que tienes delante. Lo que escribes seguido se deshace de una vez; una pausa o un Enter empiezan otro paso. Lo que escribiste en la vista Markdown se deshace de una vez al volver.
-- **`Ctrl`/`⌘` + `C` y `Ctrl`/`⌘` + `X` copian y cortan el Markdown** de las palabras elegidas, con sus marcas, como el clic derecho; al pegarlas en otro documento quedan igual.
+- **`Ctrl`/`⌘` + `C` y `Ctrl`/`⌘` + `X` copian y cortan las palabras elegidas**, como el clic derecho: otra app las recibe con su formato, o como palabras simples, y al pegarlas en un documento de Tisty quedan igual, con sus marcas.
+- **Los espacios y las líneas en blanco quedan como los escribes**, también varios seguidos.
 - **Arrastra las palabras elegidas** a otro lugar de la página: una línea muestra dónde caen, y al soltarlas se mueven. `Ctrl`/`⌘` + `Z` las devuelve.
 
 ## La barra de formato
@@ -31,23 +32,20 @@ Elige unas palabras y aparece encima una barra pequeña:
 
 Un formato envuelve las palabras elegidas, y si cruzan varias líneas, cada una lleva el suyo; pulsado sobre palabras que ya lo tienen, se lo quita. **Enlace** pide la dirección en un campo, y `Esc` lo cancela; sobre un enlace ya escrito, `Ctrl`/`⌘` + `K` muestra su dirección para cambiarla, sin tocar sus palabras; una dirección como `tisty.app` recibe su `https://`, y sin palabras elegidas, la dirección queda como sus palabras. Un clic en un enlace pone el cursor en sus palabras, y `Ctrl`/`⌘` + clic lo abre. Dentro del código la barra no aparece.
 
-Sin nada elegido, un formato pulsado con su atajo o desde el menú `/` empieza con la próxima tecla, y lo que escribes ya sale en negrita o en cursiva. Vuelve a pulsarlo para salir de él; un espacio al final de las palabras también queda fuera.
+Sin nada elegido, un formato pulsado con su atajo empieza con la próxima tecla, y lo que escribes ya sale en negrita o en cursiva. Vuelve a pulsarlo para salir de él; un espacio al final de las palabras también queda fuera.
 
-`Ctrl`/`⌘` + `B`, `I` y `U` ponen la negrita, la cursiva y el subrayado; `Ctrl`/`⌘` + `Shift` + `X`, el tachado; `Ctrl`/`⌘` + `Shift` + `C`, el código, y `Ctrl`/`⌘` + `K`, un enlace. El botón derecho sobre palabras elegidas las **corta** o las **copia** como Markdown de Tisty, listas para pegar en otro documento, y ofrece los mismos formatos.
+`Ctrl`/`⌘` + `B`, `I` y `U` ponen la negrita, la cursiva y el subrayado; `Ctrl`/`⌘` + `Shift` + `X`, el tachado; `Ctrl`/`⌘` + `Shift` + `C`, el código, y `Ctrl`/`⌘` + `K`, un enlace. El botón derecho en la página ofrece las palabras del corrector del sistema para una mal escrita, con **Agregar «…» al diccionario**, y **Pegar** y **Pegar sin formato**; sobre palabras elegidas, además **Cortar**, **Copiar** y los mismos formatos; sin nada elegido, **Insertar** y las acciones del bloque donde está.
 
 ## El menú `/`
 
-Escribe `/` al empezar una línea, en una línea en blanco o después de un espacio, y sale el menú de lo que cabe; dentro de una palabra o de un código es solo una barra. `Ctrl`/`⌘` + `/` lo abre en cualquier punto, y también el **+** que aparece en el margen, a la altura del cursor. Sigue escribiendo para filtrar, ↑ ↓ para moverte, Enter para agregarlo, Esc para cerrarlo; si lo cierras sin elegir, la `/` queda escrita.
+Escribe `/` al empezar una línea, en una línea en blanco o después de un espacio, y sale el menú de lo que cabe; dentro de una palabra o de un código es solo una barra. `Ctrl`/`⌘` + `/` lo abre en cualquier punto, y también el **+** que espera junto a un bloque. Sigue escribiendo para filtrar, ↑ ↓ para moverte, Enter para agregarlo, Esc para cerrarlo; si lo cierras sin elegir, la `/` queda escrita.
 
-- Títulos, listas, etapas y citas.
-- Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado, y la nota adhesiva de Idea.
-- Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador.
-- Un icono, buscado por lo que dibuja.
-- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código. La fórmula, el widget y el bloque Mermaid llegan con un ejemplo ya dibujado, y lo que escribas después sigue en un renglón debajo.
-- Una tabla, que se abre en su primer título.
-- Una **sección plegable**: un título que pliega lo que tiene debajo.
-- Un salto de página.
-- Otro documento, un documento nuevo, una página que ya existe o una página nueva, dibujados como tarjeta. Escribe parte de su nombre, y Enter toma el primero que aparece.
+Viene en cuatro grupos, con un buscador arriba y los bloques más usados como accesos. Una fila con una lista propia la abre con →.
+
+- **Texto**: párrafo, títulos, cita y **Aviso**, con los cinco avisos, Nota, Consejo, Importante, Aviso y Cuidado, y la nota adhesiva de Idea.
+- **Listas**: viñetas, números y etapas.
+- **Insertar**: una tabla, que se abre en su primer título; **Imagen o archivo**; un bloque de código; **Diagrama**, con un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula; un widget; una **sección plegable**, un título que pliega lo que tiene debajo; y un salto de página. La fórmula, el widget y el bloque Mermaid llegan con un ejemplo ya dibujado, y lo que escribas después sigue en un renglón debajo.
+- **Enlazar**: una página nueva; **Página o documento**, con otro documento, un documento nuevo o una página que ya existe, dibujados como tarjeta; **Tarea**; **Etapa de la tarea**; y un icono, buscado por lo que dibuja. Escribe parte del nombre de un documento, y Enter toma el primero que aparece.
 
 ## Mover bloques
 
@@ -74,7 +72,7 @@ En la vista Markdown:
 ## Mientras escribes
 
 - **Las etiquetas se ofrecen después de `#`.** Las que ya usas aparecen bajo el cursor, para que una etiqueta nunca se escriba de dos maneras. ↑ ↓ elige una y Tab o Enter la escribe; Esc cierra la lista, y Enter sin elegir sigue empezando un párrafo.
-- **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Adjuntar un archivo** en el menú `/`. Queda después del bloque donde lo sueltas, o del bloque donde está el cursor, en su propia línea, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
+- **Adjunta un archivo** arrastrándolo a la página, pegándolo (también sirve una captura en el portapapeles) o eligiendo **Imagen o archivo** en el menú `/`. Queda después del bloque donde lo sueltas, o del bloque donde está el cursor, en su propia línea, y se guarda dentro de Tisty con el documento, no como un enlace a una ruta de tu disco que se rompe cuando mueves el archivo.
 - **Pega con su formato.** Lo que copias de una página web, un correo o un procesador de texto conserva sus títulos, listas, negritas, enlaces, tablas y palabras de color, escrito en el Markdown de Tisty: un color pasa al rotulador más cercano de la paleta. Un bloque pegado, como una lista o un título, empieza en su propia línea, y dentro de una cita sigue en la cita. El texto plano también conserva su forma: una tabla que una terminal dibujó con líneas (`┌ │ ├`) pasa a ser una tabla, y las líneas que se leen como código, copiadas de un editor de código o de una terminal, entran como bloque de código, salvo que el cursor ya esté dentro de uno.
 
 | Atajo | Qué hace |
@@ -92,7 +90,7 @@ En la vista Markdown:
 | `Ctrl`/`⌘` + `Shift` + `X` · `Shift` + `C` · `K` | Tachado · código · enlace |
 | `Ctrl`/`⌘` + `Enter` | Salto de página |
 
-El texto va sobre una hoja iluminada. Cuando la ventana es lo bastante ancha, se abre una columna al lado con qué es el documento, sus etiquetas, su índice y el camino a su PDF.
+La página sigue el ancho de la ventana hasta el del documento, que fijas con **Ancho del texto** en su menú **⋯** (**Estrecho**, **Normal**, **Ancho**, **Completo**); el aspecto de papel queda para Hojas y la impresión. Cuando la ventana es lo bastante ancha, se abre una columna al lado con qué es el documento, sus etiquetas, su índice y el camino a su PDF.
 
 ## Tablas
 

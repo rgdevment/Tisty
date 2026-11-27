@@ -422,6 +422,11 @@ in the archive.
   description, the page, the open steps, the title and the list — but a step it
   calls done waits for you to tick it, the day stays yours and closing is always
   yours, and every entry says which agent wrote it.
+- **Yours or the agent's, never both** — a list that holds an agent's task shows
+  **Yours to do** apart from **The agent does it**. An agent's task closes with
+  its proof (what it did, the branch or pull request) once you confirm it, and
+  **Confirm the N done** takes several at once; what only you can do — trying
+  it by hand, publishing, merging — goes to a task of yours, linked to its own.
 - **A journal** — dated notes that are never rewritten: what was decided,
   what was ruled out, and why. A note that undoes an earlier one says so, and
   the old one stays, marked as replaced.
@@ -569,6 +574,8 @@ gathers them in Tisty as documents, with their skills and memory.
 - **Nothing it should not touch** — settings, credentials, links and anything
   shaped like a secret are never brought in, and Agents reads nothing until you
   click the folder.
+- **WSL too** — on Windows, each WSL distro gets Agents' rules and Tisty's
+  skills on its own yes, never hooks or memory.
 
 </details>
 
@@ -582,7 +589,7 @@ gathers them in Tisty as documents, with their skills and memory.
     who reads it, the file it is written to, its size, its backups, its
     format, when it was last written, that the original was kept and that it
     syncs on this computer; the rule's text below, and at the foot Edit,
-    Backups, History, Copy link and Pause sync with Claude"/>
+    History, Copy link and Pause sync with Claude"/>
 </picture>
 
 [The Agents folder](https://www.tisty.app/docs/agents-folder/), in the help,
@@ -609,8 +616,9 @@ What an agent connected to Tisty does with all that, on a real piece of work:
    into one dated digest of what still holds, keeping any line you wrote. The
    journal stays whole, and asking it to put the notes back brings them as
    they were, even after later ticks.
-7. **It ends by saying what it did and how it knows it holds.** You review it
-   and close it.
+7. **It ends by saying what it did and how it knows it holds**, with the branch
+   or pull request, and hands what only you can do to a task of yours. You
+   review it and confirm it.
 8. **After reading a long document, it leaves a summary** for the next agent
    to choose by. When the document changes, the summary is marked stale.
 
@@ -863,10 +871,10 @@ your own AI agent reads over MCP**, this is what Tisty is:
 | Source | open, auditable, yours to fork |
 
 **Documents that grow into books.** Most task managers give you a notes field.
-Here a document is a file of its own, written on a lit page, that holds pages
-like chapters, draws the diagram you describe, sets the formula, colours the code
-and makes its own PDF — and it stays Markdown that GitHub, any editor or `cat`
-read the same. A task can point at it, and search finds both.
+Here a document is a file of its own, written on the page itself, that holds
+pages like chapters, draws the diagram you describe, sets the formula, colours
+the code and makes its own PDF — and it stays Markdown that GitHub, any editor
+or `cat` read the same. A task can point at it, and search finds both.
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
 both or neither — *do*, *schedule*, *delegate*, *minor*. That names the decision
@@ -932,9 +940,16 @@ In Tisty, a document holds a good deal more than text:
 
 - **Written where it is read.** No editing mode and no preview: you click and
   type on the page itself. Selected words bring up a small bar — bold, italic,
-  underline, strikethrough, code, link and four pens — `/` opens the menu of
-  blocks, a handle beside each block drags it, duplicates it or deletes it, and
-  `Ctrl`/`⌘` + `Z` takes back what you typed in a row, not key by key.
+  underline, strikethrough, code, link and four pens — `/`, or the **+** beside
+  a block, opens **Insert** in four groups (Text, Lists, Insert and Link) with
+  a search, a handle beside each block drags it, duplicates it or deletes it,
+  and `Ctrl`/`⌘` + `Z` takes back what you typed in a row, not key by key. The
+  right-click offers the system speller's words, cut, copy, paste and the
+  block's actions. Copying hands other apps formatted text and Tisty its own
+  Markdown, and pasting from Word, the web, a code editor or a terminal lands
+  as Markdown. Delete and Backspace take a table, diagram, widget, formula,
+  fold, sticky note or card whole; spaces and blank lines in a row stay as
+  typed.
 - **A book in pages.** A year of minutes, a manual by chapters, a dog's life told
   year by year: one document holding its pages, in the order the text names
   them, with an index at the end and arrows from one to the next.
@@ -1035,10 +1050,12 @@ out say those few words the way any other reader understands them, and an older
 file, an import or an agent writing in plain Markdown is turned into them on
 the way in.
 
-The writing sits on a lit page, and the first line with words in it is both the
-name of the document and its title — reading past a fence or an alert's marker to
-find it. When the window is wide enough a column opens beside it
-with what the document is, its languages, its paper and its
+The page follows the window up to the document's own width — **Text width** in
+its **⋯** menu: narrow, normal, wide or full — and the paper look waits for
+**Sheets**, which lays the text out on paper. The first line with words in it
+is both the name of the document and its title — reading past a fence or an
+alert's marker to find it. When the window is wide enough a column opens
+beside it with what the document is, its languages, its paper and its
 outline. **Tisty makes its own PDF** — A4, Letter or Folio, with its
 own margins and its pictures carried inside — and shows it to you before you
 export it.
@@ -1126,7 +1143,9 @@ leaving your writing behind.
 it updated for you. About asks the Store for one on the spot when you would
 rather not wait. Or with the Windows Package Manager, which takes the signed
 installer from the releases page and then stands aside, because Tisty keeps
-itself up to date:
+itself up to date: it offers each new version in *Help and about*, and with
+**Install updates automatically** it downloads it quietly and installs it when
+you quit or open Tisty, never while you work.
 
 ```console
 > winget install rgdevment.Tisty
@@ -1322,10 +1341,13 @@ including the parts that are not reassuring.
 
 Tisty makes **one** check unasked — when it opens, and once a day after that:
 it downloads a small file and its signature to see whether a newer version
-exists. It sends nothing. If one does exist and you press the button that
-offers it, two more requests follow — the file naming the release, and the
-installer — and Tisty refuses to install anything not signed with a key
-compiled into the copy you already have. There are a few more, listed in
+exists. It sends nothing. If one does exist, two more requests follow — the
+file naming the release, and the installer — when you press the button that
+offers it or, if you turned on **Install updates automatically** in *Help and
+about*, by themselves in the background, to install when you quit or open
+Tisty, never while you work. Either way Tisty refuses to install anything not
+signed with a key compiled into the copy you already have. There are a few
+more, listed in
 [PRIVACY.md](PRIVACY.md).
 
 **Folio by Tisty** is a separate service for sharing a document by a link with
@@ -1438,7 +1460,9 @@ real overlap becomes a question.
 1.30 to 1.33 that reaches your cloud or your folder stops and asks you to update
 it instead of carrying on. Until you do, that computer does not sync, but
 nothing is lost: what it holds stays where it was and catches up once it is
-updated.
+updated. Since 1.51, folders nest six levels deep instead of four, so every
+computer that syncs needs Tisty 1.51 or later: an older one stops syncing until
+it is updated, and loses nothing meanwhile.
 
 **Each machine signs what it writes**, and one nobody here has answered for
 waits at the door: its card in Settings › *Security*, under *Your computers*, shows
@@ -1530,19 +1554,24 @@ with its name, and it reads a document's card first, then only the part it
 needs. Say it picks up *Move payments to v2*: it asks what moved, opens that
 task and reads what it noted yesterday.
 
-Two optional helps make that a habit, each with its own yes in Settings ›
-Agents. Both come with an agent when you connect it there, with a tick to leave
-each one out, and one switch each after that; the agents you already had are
-offered both together, in one box.
+Two optional helps make that a habit. Both come ticked when you connect an
+agent in Settings › Agents, with a tick to leave either out; after that one
+card, **Tisty in your agents**, turns both on in one step with **Turn on both**,
+and **Adjust** changes each apart. The agents you already had are offered both
+together, in one box.
 Its **hooks**, in Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and
 GitHub Copilot, bring the agent its open tasks when a session starts, and hand
-the turn back once when it edited files without writing anything here, and
+the turn back once when it edited files without writing anything here, pushed
+or merged, or left every step of its task ticked without saying it done, and
 ask it once before it leaves a text file outside a repository. Its
 **own skills**,
 `tisty`, `consolidate` and `next-agent`, teach it what
 “Pick up where we left off”, “Tidy up my Tisty” or “Make this page clear for
 the next agent” mean, in your own words. And when it says a step of yours is
-done, the list counts it apart, `1/3 ◆1`, until you take its word.
+done, the list counts it apart, `1/3 ◆1`, until you take its word. Agents
+also makes **hooks of your own**: you write the script on its page, see it
+before you **Register** it on this computer, and **Verify** it or **Try it
+once**.
 
 - [Agents and MCP](https://www.tisty.app/docs/agents-and-mcp/) — the
   door, the signature and every agent Tisty knows
@@ -1610,10 +1639,12 @@ when you ask. What it may
 not do: close a task or delete one, tick a step of yours or finish a task of
 yours, move a day you set, delete a document, rename or delete a folder, reach a
 task you folded away, take files from anywhere but Downloads, Documents,
-Pictures, the desktop and the temporary folder, or file the same thing twice. A
-task you closed is history to it: it comes with a notice saying so, reads as it
-ended, takes no note, no new day, no bell and no file, and if the same work
-comes back the agent proposes a new one that says how the last one ended.
+Pictures, the desktop and the temporary folder, or file the same thing twice.
+A task you dropped it sees as decided not to do, with only its title, its day
+and the reason noted. A task you closed is history to it: it comes with a
+notice saying so, reads as it ended, takes no note, no new day, no bell and no
+file, and if the same work comes back the agent proposes a new one that says
+how the last one ended.
 
 A task you wrote is written on the way a document is: an agent may describe
 it, rename it, move it to another list or under another task, plan, reword or
@@ -1687,7 +1718,9 @@ Neither. There is nothing to sign up for, and only what you send out needs a
 connection: a document shared by link, your own cloud, a task saved to an online
 calendar. Tisty makes one network request you did not ask for — when
 it opens, and once a day after that — to see whether a newer version exists, and
-it sends nothing in order to ask. Once you sync with a cloud or share a
+it sends nothing in order to ask. If you turn on automatic updates, it also
+downloads a new version by itself when there is one, and installs it when you
+quit or open Tisty. Once you sync with a cloud or share a
 document, it also reads a few small files, which [PRIVACY.md](PRIVACY.md)
 lists. Take the machine off the network and everything else works the same.
 
@@ -1760,7 +1793,10 @@ desktop's.
 
 No. Tisty is a desktop program for Windows and macOS. An agent that runs
 on Linux inside Windows, under WSL, reaches it all the same: Settings ›
-Agents › *Connected* connects it.
+Agents › *Connected* connects it. Each distro also gets Agents' rules and
+Tisty's skills, on its own yes, under its row there: written into its default
+user's home only, never hooks nor agents' memory, and nothing comes back from
+it.
 
 ### Is my data encrypted?
 

@@ -86,7 +86,7 @@ What marks a few words inside a sentence. Select the words and a small bar offer
 | Link | `[a link](https://www.tisty.app)` | [a link](https://www.tisty.app) | `Ctrl`/`⌘` + `K` |
 | Highlight | `==highlighted==` | ==highlighted== | the bar |
 | An icon | `::dog orange::` | ::dog orange:: | the `/` menu |
-| A step, by its number | `[[#2]]` | [[#2]] | the `/` menu |
+| A step, by its number | `[[#2]]` | [[#2]] | **Step of the task**, in the `/` menu |
 | Reference | `[[Rina's vet card]]` | [[Rina's vet card]] | typed |
 | Tag | `#rina` | #rina | typed |
 | Emoji | `:tada:` | :tada: | typed |
@@ -164,7 +164,7 @@ This one is the same paragraph, one line down.
 And this one was cut with `Shift` + `Enter`, which writes a backslash at its end,\
 and that breaks the line in any Markdown reader.
 
-A blank line starts another paragraph: `Enter`.
+A blank line starts another paragraph: `Enter`. Several spaces in a row, and several blank lines, stay as you type them.
 
 ### Comments, entities and backslashes
 
@@ -254,7 +254,7 @@ An item carries its marks and, under it, other blocks indented to its level: a q
 > - So this sheet
 > - writes all of it down
 
-A callout is a quote whose first line says its kind in brackets. There are five, each with its colour; in the `/` menu they are **Note**, **Tip**, **Important**, **Warning** and **Caution**.
+A callout is a quote whose first line says its kind in brackets. There are five, each with its colour; in the `/` menu, under **Callout**, they are **Note**, **Tip**, **Important**, **Warning** and **Caution**.
 
 > [!NOTE]
 > For what is worth knowing, with no urgency at all.
@@ -316,7 +316,7 @@ Almost anything fits inside a callout, as long as every line carries its `>`:
 
 ## Sticky notes
 
-A sixth kind, **Idea** in the `/` menu, is a note stuck on the sheet, in handwriting, a little crooked and held with tape or a pin. Its first line says when it was written, its colour and its side, in any order and separated by a middle dot; none is required. That is how **Ideas** writes each idea.
+A sixth kind, **Idea** under **Callout** in the `/` menu, is a note stuck on the sheet, in handwriting, a little crooked and held with tape or a pin. Its first line says when it was written, its colour and its side, in any order and separated by a middle dot; none is required. That is how **Ideas** writes each idea.
 
 > [!IDEA] 2026-11-12 09:12 · yellow
 > Try the new park, the one with the pond.
@@ -538,7 +538,7 @@ A fence of tildes, `~~~`, and a block indented four spaces are code too. There i
 
 ## Diagrams
 
-A block whose language is `mermaid` is drawn. **New diagram**, in the `/` menu, opens the diagram window; **Existing diagram…** copies one from another document, and **Mermaid block as text** puts in a sample one, already drawn. A click opens it large; a double click, in the window.
+A block whose language is `mermaid` is drawn. Under **Diagram**, in the `/` menu, **New diagram** opens the diagram window; **Existing diagram…** copies one from another document, and **Mermaid block as text** puts in a sample one, already drawn. A click opens it large; a double click, in the window.
 
 Four kinds are also drawn by hand in that window, and stay as you leave them. The free diagram, with its lanes and a `<br/>` that breaks the line inside a shape:
 
@@ -802,7 +802,7 @@ Two columns, a table, a drawing, a fold and a style of its own:
 
 ## Attachments
 
-**Attach a file**, in the `/` menu, or drag it into the sheet. It is kept inside Tisty and drawn as what it is. Each card has a **⋯** to save a copy, show it as a link or remove it from the page.
+**Image or file**, in the `/` menu, or drag it into the sheet. It is kept inside Tisty and drawn as what it is. Each card has a **⋯** to save a copy, show it as a link or remove it from the page.
 
 A picture, which a click opens large:
 
@@ -836,7 +836,7 @@ And the same file inside a sentence is a link: [Rina's vet card](vet-card.pdf).
 
 What takes a whole paragraph is drawn as a card; the same thing inside a sentence is a word you click.
 
-Another document: **A document** or **A new document**, in the `/` menu. The card carries its title as it is now and its first words.
+Another document: **A document** or **A new document**, under **Page or document** in the `/` menu. The card carries its title as it is now and its first words.
 
 ![What is Tisty?: the guide this sheet is a page of](tisty:guide)
 
@@ -844,7 +844,7 @@ A page: **A new page** or **A page that already exists**. Its card also says whe
 
 ![Rina: this guide's example page](tisty:page)
 
-A task: **A task**, in the `/` menu, searches the open ones and the archived ones. Its card reads the task each time it is drawn: its list, its dates, how many of its steps are done, how many wait for you to confirm when an agent says it did them («1 of 3 steps · 1 to confirm») and whether it has closed. A click opens it, its circle marks it done and its count unfolds the steps to tick them right there. This one cites a task that is not on your machine, so it shows its words and a notice; cite one of yours to see it live.
+A task: **A task**, under **Task** in the `/` menu, searches the open ones and the archived ones. Its card reads the task each time it is drawn: its list, its dates, how many of its steps are done, how many wait for you to confirm when an agent says it did them («1 of 3 steps · 1 to confirm») and whether it has closed. A click opens it, its circle marks it done and its count unfolds the steps to tick them right there. This one cites a task that is not on your machine, so it shows its words and a notice; cite one of yours to see it live.
 
 ![Take Rina to the vet](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 

@@ -86,7 +86,7 @@ Lo que marca unas palabras dentro de una frase. Elige las palabras y una barra p
 | Enlace | `[enlace](https://www.tisty.app)` | [enlace](https://www.tisty.app) | `Ctrl`/`⌘` + `K` |
 | Destacar | `==destacado==` | ==destacado== | la barra |
 | Un icono | `::dog orange::` | ::dog orange:: | el menú `/` |
-| Un paso, por su número | `[[#2]]` | [[#2]] | el menú `/` |
+| Un paso, por su número | `[[#2]]` | [[#2]] | **Etapa de la tarea**, en el menú `/` |
 | Referencia | `[[La cartilla de Rina]]` | [[La cartilla de Rina]] | se escribe |
 | Etiqueta | `#rina` | #rina | se escribe |
 | Emoji | `:tada:` | :tada: | se escribe |
@@ -164,7 +164,7 @@ Esta es del mismo párrafo, una línea más abajo.
 Y esta se cortó con `Shift` + `Enter`, que escribe una barra invertida al final,\
 y esa corta la línea en cualquier lector de Markdown.
 
-Una línea en blanco empieza otro párrafo: `Enter`.
+Una línea en blanco empieza otro párrafo: `Enter`. Varios espacios seguidos, y varias líneas en blanco, se quedan como los escribes.
 
 ### Comentarios, entidades y barras
 
@@ -254,7 +254,7 @@ Un elemento lleva sus marcas y, debajo, otros bloques sangrados a su altura: una
 > - Por eso esta hoja
 > - lo escribe todo
 
-Un aviso es una cita cuya primera línea dice su tipo entre corchetes, en inglés. Son cinco, cada uno con su color; en el menú `/` se llaman **Nota**, **Consejo**, **Importante**, **Aviso** y **Cuidado**.
+Un aviso es una cita cuya primera línea dice su tipo entre corchetes, en inglés. Son cinco, cada uno con su color; en el menú `/`, en **Aviso**, se llaman **Nota**, **Consejo**, **Importante**, **Aviso** y **Cuidado**.
 
 > [!NOTE]
 > Para lo que vale la pena saber, sin ninguna urgencia.
@@ -316,7 +316,7 @@ Dentro de un aviso cabe casi todo, siempre que cada línea lleve su `>`:
 
 ## Notas adhesivas
 
-Un sexto tipo, **Idea** en el menú `/`, es una nota pegada en la hoja, con letra de mano, un poco torcida y sujeta con cinta o chinche. Su primera línea dice cuándo se escribió, su color y su lado, en cualquier orden y separados por un punto medio; ninguno es obligatorio. Así escribe **Ideas** cada idea.
+Un sexto tipo, **Idea** en **Aviso**, del menú `/`, es una nota pegada en la hoja, con letra de mano, un poco torcida y sujeta con cinta o chinche. Su primera línea dice cuándo se escribió, su color y su lado, en cualquier orden y separados por un punto medio; ninguno es obligatorio. Así escribe **Ideas** cada idea.
 
 > [!IDEA] 2026-11-12 09:12 · yellow
 > Probar el parque nuevo, el de la laguna.
@@ -538,7 +538,7 @@ Una valla de virgulillas, `~~~`, y un bloque sangrado cuatro espacios también s
 
 ## Diagramas
 
-Un bloque cuyo lenguaje es `mermaid` se dibuja. **Diagrama nuevo**, en el menú `/`, abre la ventana de diagramas; **Diagrama existente…** copia uno de otro documento, y **Bloque Mermaid como texto** deja uno de muestra, ya dibujado. Un clic lo abre en grande; un doble clic, en la ventana.
+Un bloque cuyo lenguaje es `mermaid` se dibuja. En **Diagrama**, en el menú `/`, **Diagrama nuevo** abre la ventana de diagramas; **Diagrama existente…** copia uno de otro documento, y **Bloque Mermaid como texto** deja uno de muestra, ya dibujado. Un clic lo abre en grande; un doble clic, en la ventana.
 
 Cuatro tipos se dibujan también a mano en esa ventana, y quedan tal como los dejas. El diagrama libre, con sus carriles y un `<br/>` que corta la línea dentro de una forma:
 
@@ -802,7 +802,7 @@ Dos columnas, una tabla, un dibujo, un plegable y su propio estilo:
 
 ## Adjuntos
 
-**Adjuntar un archivo**, en el menú `/`, o arrástralo dentro de la hoja. Queda guardado en Tisty y se dibuja como lo que es. Cada tarjeta tiene un **⋯** para guardar una copia, mostrarla como enlace o quitarla de la página.
+**Imagen o archivo**, en el menú `/`, o arrástralo dentro de la hoja. Queda guardado en Tisty y se dibuja como lo que es. Cada tarjeta tiene un **⋯** para guardar una copia, mostrarla como enlace o quitarla de la página.
 
 Una imagen, que un clic abre en grande:
 
@@ -836,7 +836,7 @@ Y el mismo archivo dentro de una frase es un enlace: [la cartilla de Rina](carti
 
 Lo que ocupa un párrafo entero se dibuja como una tarjeta; lo mismo dentro de una frase es una palabra en la que haces clic.
 
-Otro documento: **Un documento** o **Un documento nuevo**, en el menú `/`. La tarjeta lleva su título de ahora y sus primeras palabras.
+Otro documento: **Un documento** o **Un documento nuevo**, en **Página o documento**, del menú `/`. La tarjeta lleva su título de ahora y sus primeras palabras.
 
 ![¿Qué es Tisty?: la guía de la que esta hoja es una página](tisty:guide)
 
@@ -844,7 +844,7 @@ Una página: **Una página nueva** o **Una página que ya existe**. Su tarjeta d
 
 ![Rina: la página de ejemplo de esta guía](tisty:page)
 
-Una tarea: **Una tarea**, en el menú `/`, busca entre las abiertas y las archivadas. Su tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos, cuántos esperan que confirmes si un agente dice que los hizo («1 de 3 pasos · 1 por confirmar») y si ya se cerró. Un clic la abre, su círculo la marca hecha y su contador despliega los pasos para tacharlos ahí. Esta cita una tarea que no está en tu máquina, así que muestra sus palabras y un aviso; cita una tuya para verla viva.
+Una tarea: **Una tarea**, en **Tarea**, del menú `/`, busca entre las abiertas y las archivadas. Su tarjeta lee la tarea cada vez que se dibuja: su lista, sus fechas, cuántos pasos lleva hechos, cuántos esperan que confirmes si un agente dice que los hizo («1 de 3 pasos · 1 por confirmar») y si ya se cerró. Un clic la abre, su círculo la marca hecha y su contador despliega los pasos para tacharlos ahí. Esta cita una tarea que no está en tu máquina, así que muestra sus palabras y un aviso; cita una tuya para verla viva.
 
 ![Llevar a Rina al veterinario](tisty:task/01JC4M7Q3B8YH2A9K6TN5VXZRE)
 

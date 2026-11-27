@@ -213,6 +213,8 @@ Every event carries a version, and a machine only reads what it understands. Whe
 
 Since 1.34, a computer still on Tisty 1.30 to 1.33 that reaches your cloud or your folder stops and asks you to update it instead of writing over what a newer one left. Until you do, that computer does not sync, but nothing is lost: what it holds stays where it was and catches up once it is updated. A copy from a store may take a little while to receive the new version.
 
+Since 1.51, folders nest six levels deep instead of four, and a computer still on an older Tisty stops syncing until it is updated; nothing is lost meanwhile.
+
 ## Something changed on one machine and is not on the other
 
 With a folder, Tisty writes to it and reads from it, and **what uploads it is your provider's own program** — Google Drive, OneDrive, iCloud, Dropbox, Syncthing. If that program is not running, Tisty keeps saving your work fine and has no way to tell that nobody is picking it up. If you connected Google Drive, OneDrive or a WebDAV server directly instead, Tisty says what is wrong on its own card: see [What the card says](#what-the-card-says).

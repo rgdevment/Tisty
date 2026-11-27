@@ -77,7 +77,7 @@ Marisol, la veterinaria, cambió sus horarios, y quieres que la ficha de Rina ll
 - **En otro equipo.** El enlace viaja con el documento al sincronizar. Si el otro documento todavía no llega a ese equipo, el enlace queda escrito tal cual y abre en cuanto el documento llega.
 - **Un documento archivado** sigue abriéndose desde un enlace que ya existía; se lee, pero no se escribe hasta que lo desarchivas. Para enlazarlo de nuevo con `[[`, desarchívalo primero.
 - **Fuera de Tisty.** **Copiar como Markdown** y **Exportar como Markdown…** dejan un enlace a otro documento como su texto, porque `tisty:doc/…` no significa nada en otro editor. El PDF y Word muestran el texto del enlace.
-- **Una tarjeta en vez de un enlace.** Para que otro documento se vea como tarjeta, con su título y sus primeras palabras, usa **Un documento** en el menú `/`, o deja el enlace solo en su párrafo. Mira [[Documentos]].
+- **Una tarjeta en vez de un enlace.** Para que otro documento se vea como tarjeta, con su título y sus primeras palabras, usa **Un documento**, en **Página o documento**, en el menú `/`, o deja el enlace solo en su párrafo. Mira [[Documentos]].
 - **Lo que enlaza tu agente.** Cuando un agente nombra un documento por su título exacto entre comillas, Tisty lo enlaza al guardar, igual que si lo hubieras hecho tú: mira [[Cómo trabaja un agente|Cómo-trabaja-un-agente]].
 
 ## Para seguir
