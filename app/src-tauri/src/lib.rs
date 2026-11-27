@@ -839,8 +839,8 @@ pub(crate) fn opened(
         let seen = came_back || !(waking::hushed() || viewing);
         waking::returns(seen);
         tray::page_seen(app, seen);
+        desktop::fitted(&window, seen);
         if seen {
-            desktop::fitted(&window);
             tray::docked(app, true);
             let _ = window.show();
         } else if !viewing {

@@ -275,14 +275,38 @@ pub(crate) fn translated() -> bool {
 #[cfg(not(target_os = "macos"))]
 pub(crate) fn proofread(_window: &tauri::WebviewWindow) {}
 
-pub(crate) fn fitted(window: &tauri::WebviewWindow) {
-    let (Ok(Some(screen)), Ok(asked)) = (window.current_monitor(), window.outer_size()) else {
+pub(crate) fn fitted(window: &tauri::WebviewWindow, seen: bool) {
+    let (Ok(Some(screen)), Ok(asked), Ok(at)) = (
+        window.current_monitor(),
+        window.outer_size(),
+        window.outer_position(),
+    ) else {
         return;
     };
-    let room = screen.work_area().size;
-    if asked.width > room.width || asked.height > room.height {
+    let room = screen.work_area();
+    if seen && (asked.width > room.size.width || asked.height > room.size.height) {
         let _ = window.maximize();
+        return;
     }
+    let mut width = asked.width.min(room.size.width);
+    let mut height = asked.height.min(room.size.height);
+    if (width, height) != (asked.width, asked.height) {
+        let _ = window.set_size(tauri::PhysicalSize::new(width, height));
+        if let Ok(left) = window.outer_size() {
+            (width, height) = (left.width, left.height);
+        }
+    }
+    let x = within(at.x, width, room.position.x, room.size.width);
+    let y = within(at.y, height, room.position.y, room.size.height);
+    if (x, y) != (at.x, at.y) {
+        let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+    }
+}
+
+pub(crate) fn within(at: i32, length: u32, start: i32, room: u32) -> i32 {
+    let last = i64::from(start) + i64::from(room) - i64::from(length);
+    let placed = i64::from(at).min(last).max(i64::from(start));
+    i32::try_from(placed).unwrap_or(start)
 }
 
 /// What an item of a Mac's menu bar asks: leaving, or a word the window hears.
