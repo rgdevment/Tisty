@@ -15,6 +15,8 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 | [Pens](#pens) | `==words==` `==words=={green}` | no | no |
 | [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes | all but a bare `https://…` |
 | [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them | joins them |
+| [Runs of spaces](#paragraphs-and-line-breaks) | `one   two` | joins them | joins them |
+| [Extra blank lines](#paragraphs-and-line-breaks) | a paragraph of only `&nbsp;` | yes | yes |
 | [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes | lists, not stages |
 | [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes | quotes, not callouts |
 | [Collapsible sections](#collapsible-sections) | `:::details Title` … `:::` | no | no |
@@ -121,6 +123,10 @@ This one is a new paragraph.
 GitHub joins those two lines into one when it shows a file; Tisty keeps them apart. A backslash at the end of a line breaks it everywhere.
 
 Writing in a block, `Enter` leaves that blank line and starts a paragraph, and `Shift` + `Enter` breaks the line with a backslash at its end, which breaks it in any reader. In a heading, which holds no break, it starts the next line.
+
+Several spaces in a row inside a line stay as you type them, and Tisty draws them all. GitHub and CommonMark join them into one; when exporting to standard Markdown, Tisty writes the extra ones as `&nbsp;` so they show the same. At the start or end of a line, at the end of a paragraph and at the edges of a cell they do not count, and four spaces at the start of a line turn it into code.
+
+Several blank lines in a row count as one, so each extra blank line is kept as a paragraph of only `&nbsp;`. While writing, `Enter` on a blank line writes one for you, outside lists, quotes and tables, and the first letter you type in it takes its place. What arrives from elsewhere with `<br>` (pasted, imported or sent by an agent) is converted on the way in: a `<br>` alone on its line becomes one of those paragraphs, and one among words breaks the line with a backslash. A `<br>` someone types by hand in a document stays as it is.
 
 To write a line that would otherwise start something — a heading, a list, a quote — put a backslash before it: `\#`, `\-`, `1\.`, `\>`.
 

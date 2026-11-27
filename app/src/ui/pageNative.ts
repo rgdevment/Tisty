@@ -137,7 +137,8 @@ export const nativeOn = (writer: Writer, caret: Caret, laying: Laying, typedAfte
     const stood = start + (kind.endsWith("Backward") ? aim.endOffset : aim.startOffset);
     const chosen = caret.chosen();
     if (chosen && keptElsewhere(text, chosen.startOffset, start + chosen.startOffset)) return false;
-    const insert = kind.startsWith("delete") ? "" : data;
+    // The page draws each space after the first unbreakable, so a no-break space typed here is written as the space it shows.
+    const insert = kind.startsWith("delete") ? "" : evened(data);
     const meant = text.data.slice(0, aim.startOffset) + insert + text.data.slice(aim.endOffset);
     const landing = aim.startOffset + insert.length;
     held = {

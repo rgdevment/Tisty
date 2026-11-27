@@ -147,7 +147,16 @@ fn a_styled_no_break_space_between_tags_is_still_a_plain_space() {
 #[test]
 fn a_run_of_no_break_spaces_keeps_its_gap() {
     let body = landed("<p>Total:<span>\u{a0}\u{a0}\u{a0}</span>42</p>");
-    assert!(body.contains("\u{a0}\u{a0}\u{a0}"), "{body:?}");
+    assert_eq!(body, "Total:   42");
+}
+
+#[test]
+fn a_leading_run_of_no_break_spaces_at_a_line_start_is_kept() {
+    let body = landed("<p>uno</p><p>\u{a0}\u{a0}\u{a0}\u{a0}dos\u{a0}\u{a0}tres</p>");
+    assert!(
+        body.contains("\u{a0}\u{a0}\u{a0}\u{a0}dos  tres"),
+        "{body:?}"
+    );
 }
 
 #[test]

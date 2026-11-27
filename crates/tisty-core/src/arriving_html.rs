@@ -93,6 +93,10 @@ fn converted(html: &str, pasted: bool) -> String {
         .add_handler(vec!["hr"], |_: &dyn Handlers, _: &Element| {
             Some(HandlerResult::from("\n\n---\n\n"))
         })
+        // A break kept as `<br>` arrives as Tisty's own line break or blank line, as one typed in Markdown does.
+        .add_handler(vec!["br"], |_: &dyn Handlers, _: &Element| {
+            Some(HandlerResult::from("<br>"))
+        })
         .add_handler(vec!["summary"], |_: &dyn Handlers, _: &Element| {
             Some(HandlerResult::from(""))
         })
@@ -106,12 +110,27 @@ fn converted(html: &str, pasted: bool) -> String {
     }
     // A file says what it is by its tags; only a clipboard needs reading for what was meant.
     if !pasted {
-        return converter.convert(&tree).unwrap_or_default();
+        return evened(&converter.convert(&tree).unwrap_or_default());
     }
     match super::pasted::arrived(&tree.root()) {
         Arrived::Laid(said) | Arrived::Written(said) => said,
-        Arrived::Formatted => converter.convert(&tree).unwrap_or_default(),
+        Arrived::Formatted => evened(&converter.convert(&tree).unwrap_or_default()),
     }
+}
+
+// A gap held with no-break spaces arrives as plain ones, a line of them alone as a blank line; at a line's start they stay, or four would make code.
+fn evened(said: &str) -> String {
+    said.split('\n')
+        .map(|line| {
+            let words = line.trim_start_matches([' ', '\u{a0}']);
+            let lead = &line[..line.len() - words.len()];
+            match words.is_empty() && lead.contains('\u{a0}') {
+                true => tisty_markdown::BLANK.to_string(),
+                false => format!("{lead}{}", words.replace('\u{a0}', " ")),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 const TURNS: [&str; 4] = [

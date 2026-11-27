@@ -158,7 +158,9 @@ fn words_of(piece: Range<usize>, text: &str, placed: bool, told: Told, out: &mut
         return told.marked(told.touches(&piece), out, |out| out.push_str(&text[piece]));
     }
     told.parted(piece, |part, tells| {
-        told.marked(tells, out, |out| out.push_str(&escaped(&text[part])));
+        told.marked(tells, out, |out| {
+            out.push_str(&spaced(&escaped(&text[part])))
+        });
     });
 }
 
@@ -270,7 +272,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
     let said = &text[one.at.clone()];
     match &one.mark {
         Mark::Code => {
-            let _ = write!(out, "<code>{}</code>", escaped(&code_words(said)));
+            let _ = write!(out, "<code>{}</code>", spaced(&escaped(&code_words(said))));
         }
         Mark::Image { src } => pictured(src, &alt(one, spans, text), filed(said), out),
         Mark::Icon { name, hue } => {
@@ -418,7 +420,7 @@ fn words(said: &str, out: &mut String) {
     if entity(said) {
         out.push_str(said);
     } else {
-        out.push_str(&escaped(said));
+        out.push_str(&spaced(&escaped(said)));
     }
 }
 
@@ -543,6 +545,18 @@ pub(crate) fn paired(spans: &[Span], text: &str) -> HashSet<usize> {
         }
     }
     kept
+}
+
+// A browser draws a run of spaces as one, so each space after the first is drawn unbreakable and the run shows as typed.
+pub(crate) fn spaced(said: &str) -> String {
+    let mut out = String::with_capacity(said.len());
+    let mut after_space = false;
+    for one in said.chars() {
+        let space = one == ' ';
+        out.push(if space && after_space { '\u{a0}' } else { one });
+        after_space = space;
+    }
+    out
 }
 
 pub fn escaped(said: &str) -> String {

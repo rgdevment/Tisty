@@ -70,6 +70,7 @@ fn outward(
             }
         }
         Kind::Table { columns } => typed_out(block, columns, said, text, edits),
+        Kind::Paragraph | Kind::Heading(_) => spaced_out(block, text, edits),
         _ => {}
     }
     for span in &block.spans {
@@ -77,6 +78,44 @@ fn outward(
     }
     for inner in &block.inner {
         outward(inner, text, toward, edits);
+    }
+}
+
+// Tisty draws a run of spaces inside words as typed, and GitHub would draw one, so the spaces after the first go as `&nbsp;`.
+fn spaced_out(block: &Block, text: &str, edits: &mut Edits) {
+    let held = |at: usize| {
+        block.spans.iter().any(|one| {
+            one.at.contains(&at)
+                && !matches!(
+                    one.mark,
+                    Mark::Text
+                        | Mark::Emphasis
+                        | Mark::Strong
+                        | Mark::Strike
+                        | Mark::Underline
+                        | Mark::Pen { .. }
+                )
+        })
+    };
+    let bytes = text.as_bytes();
+    let mut at = block.at.start;
+    while at < block.at.end {
+        if bytes[at] != b' ' {
+            at += 1;
+            continue;
+        }
+        let mut end = at;
+        while end < block.at.end && bytes[end] == b' ' {
+            end += 1;
+        }
+        let before = text[..at].chars().next_back();
+        let after = text[end..block.at.end].chars().next();
+        let inside = before.is_some_and(|one| !matches!(one, '\n' | '#'))
+            && after.is_some_and(|one| !matches!(one, '\r' | '\n'));
+        if end - at > 1 && at > block.at.start && inside && !held(at) {
+            edits.push((at + 1..end, "&nbsp;".repeat(end - at - 1)));
+        }
+        at = end;
     }
 }
 

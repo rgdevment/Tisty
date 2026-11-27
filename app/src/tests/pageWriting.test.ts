@@ -1213,13 +1213,13 @@ describe("what a second look found writing on the page", () => {
     expect(last(said)).toMatch(/^Antes\n\n- \[ \] \n/);
   });
 
-  it("holds a second Enter on a line left blank, so no hidden blank lines pile up", () => {
+  it("keeps a second Enter on a line left blank as a paragraph of its own, never as hidden blank lines", () => {
     const said = writer();
     caretIn("Hola", 4);
     asked("insertParagraph");
     const once = last(said);
     asked("insertParagraph");
-    expect(last(said)).toBe(once);
+    expect(last(said)).toBe(once.replace("# Hola\n\n", "# Hola\n\n&nbsp;\n\n"));
   });
 
   it("keeps the caret where it was when a change comes from beside the page", () => {

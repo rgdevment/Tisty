@@ -26,6 +26,9 @@ pub(crate) fn titled(blocks: &[Block]) -> Option<usize> {
     matches!(words.kind, Kind::Paragraph | Kind::Heading(1..=3)).then_some(words.at.start)
 }
 
+/// A paragraph holding only this is a blank line kept where it was written.
+pub const BLANK: &str = "&nbsp;";
+
 fn title_class(block: &Block, drawing: &Drawing) -> &'static str {
     if drawing.title == Some(block.at.start) {
         " class=\"title\""
@@ -338,7 +341,11 @@ pub(crate) fn draw_as(block: &Block, text: &str, drawing: &Drawing, at: &str, ou
             let _ = write!(out, "</h{level}>");
         }
         Kind::Paragraph => {
-            let _ = write!(out, "<p{} {at}>", title_class(block, drawing));
+            let class = match text[block.at.clone()].trim() == BLANK {
+                true => " class=\"blank\"",
+                false => title_class(block, drawing),
+            };
+            let _ = write!(out, "<p{class} {at}>");
             let signer = drawing.signers.get(&block.at.start);
             let how = (drawing.placed, drawing.told);
             signed_sourced(&block.spans, text, how, signer, out);
