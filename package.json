@@ -11,7 +11,8 @@
   ],
   "devDependencies": {
     "js-yaml": "^5.5.0",
-    "markdownlint-cli2": "^0.24.1"
+    "markdownlint-cli2": "^0.24.1",
+    "typescript-api": "npm:typescript@~6.0.3"
   },
   "scripts": {
     "postinstall": "node scripts/old-install.mjs",

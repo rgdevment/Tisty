@@ -488,6 +488,22 @@ the_contracts_hold() {
   fi
 }
 
+the_floating_promises_check_holds() {
+  if ! command -v node > /dev/null; then
+    went_well "node is not here, so the check on floating promises was not looked at"
+    return
+  fi
+  if [ ! -d node_modules/typescript-api ]; then
+    went_well "node_modules is not here, so the check on floating promises was not looked at"
+    return
+  fi
+  if node --test scripts/promises.test.mjs > /dev/null; then
+    went_well "the check on floating promises does what its tests say"
+  else
+    amiss "the check on floating promises does not do what its tests say"
+  fi
+}
+
 the_check_runs_what_ci_runs() {
   if ! command -v node > /dev/null; then
     went_well "node is not here, so the local check was not held against CI"
@@ -559,6 +575,7 @@ when other few_earlier_releases_are_met
 when other the_posts_can_go_out
 when other every_package_says_its_licence
 when other the_contracts_hold
+when other the_floating_promises_check_holds
 when other the_check_runs_what_ci_runs
 when "rust front" no_token_kept_in_the_tree
 exit $status
