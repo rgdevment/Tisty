@@ -1,5 +1,5 @@
 repo https://github.com/rgdevment/mcp-plugins
-commit c3fa601f08248bbdfc7ed7988cf6b43a617812b5
+commit fe5ce5108abc37fa94f8b1c98419a2651051c214
 from plugins/tisty/skills
 file eac1be8763c23334fad91db62134a414d7a0e65fec8045708368471a7224fa8e consolidate/SKILL.md
 file c51c932b9ab141f42b09b688f35aa2eb3fb6e5cd4a2b40a29aa84be64a9de671 next-agent/LICENSE
