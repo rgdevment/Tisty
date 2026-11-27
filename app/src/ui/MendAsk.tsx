@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { allParts, filesOf, filesOut, type Parts } from "../agentsAmiss";
 import { takesHooks } from "../agentsOffered";
-import { partsSaid, pathsSaid } from "../agentsSaid";
+import { partsSaid, pathsSaid, placeNamed } from "../agentsSaid";
 import type { TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import { fill, t, type Word } from "../locales";
@@ -51,6 +51,50 @@ export function Ticked({
         {children}
       </p>
     </div>
+  );
+}
+
+export function ExtrasTicks({
+  hooks,
+  skills,
+  withHooks,
+  onHooks,
+  withSkills,
+  onSkills,
+}: Readonly<{
+  hooks: readonly Wired[];
+  skills: TistySkills | null;
+  withHooks: boolean;
+  onHooks: (on: boolean) => void;
+  withSkills: boolean;
+  onSkills: (on: boolean) => void;
+}>) {
+  return (
+    <>
+      {hooks.length > 0 && (
+        <Ticked
+          on={withHooks}
+          onTurn={onHooks}
+          label={fill("extrasHooks", hooks.map((one) => placeNamed(one)).join(", "))}
+        >
+          {fill("hooksAsk", hooks.map((one) => one.hooks?.at ?? "").join(", "))}
+          {hooks.some((one) => one.id === "claude-code") && (
+            <span className="block">{t("hooksAskPlugin")}</span>
+          )}
+        </Ticked>
+      )}
+      {skills && (
+        <Ticked
+          on={withSkills}
+          onTurn={onSkills}
+          label={fill("extrasSkills", agentsTaught(skills).join(", "))}
+        >
+          <span className="block">{t("tistySkillsLead")}</span>
+          <Files files={skillFolders(skills)} />
+          <span className="block">{t("tistySkillsAsk")}</span>
+        </Ticked>
+      )}
+    </>
   );
 }
 

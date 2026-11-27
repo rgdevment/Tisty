@@ -153,6 +153,8 @@ export default function Stage() {
       onHereMenu={hereMenu}
       onDocMenu={docMenu}
       pinned={pinned?.file ?? null}
+      known={settingsDesk.agents}
+      onHooks={() => setChosen(landedOn({ page: "agents", shelf: "wired" }))}
     />
   ) : chosen.named === "docs" ? (
     <Docs

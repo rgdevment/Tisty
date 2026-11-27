@@ -13,8 +13,8 @@ Cómo conectar un agente está en [[Agentes y MCP|Agentes-y-MCP]]; una sesión l
 | **Qué son** | Comandos que tu agente corre solo al empezar una sesión, antes y después de algunas herramientas y al terminar un turno | Tres carpetas con un `SKILL.md` que tu agente lee cuando lo que le pides calza con ellas |
 | **Qué hacen** | Le traen al agente sus tareas abiertas al empezar y le devuelven el turno una vez si editó archivos sin escribir nada en Tisty, y le preguntan una vez antes de dejar un archivo de texto fuera de un repo | Le enseñan a retomar donde quedó, a ordenar lo que guardas sin borrar nada y a escribir para el próximo agente |
 | **Qué agentes** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI y GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI y DeepSeek Harness |
-| **Dónde se encienden** | **Configuración › Agentes › Conectados**, bajo la fila de cada agente | **Configuración › Agentes › Conectados**, bajo la fila de cada agente o en la fila **Skills de Tisty**, al final |
-| **Los dos a la vez** | **Hooks y skills para tus agentes**, sobre las pestañas | El mismo recuadro |
+| **Dónde se encienden** | **Configuración › Agentes › Conectados**, bajo la fila de cada agente | **Configuración › Agentes › Conectados**, bajo la fila de cada agente o desde **Tisty en tus agentes**, al final |
+| **Los dos a la vez** | **Tisty en tus agentes**, al final de **Conectados** o en **Agentes › Global**, y **Hooks y skills para tus agentes**, sobre las pestañas | Los mismos |
 | **El sí** | Uno por agente, al conectarlo o en su interruptor, con el archivo que se va a escribir nombrado | Uno para todo el equipo, al conectar o en su interruptor, con las carpetas que se van a escribir nombradas |
 | **Cómo se quitan** | El mismo interruptor: los saca todos de ese agente. Otro, en **Puerta**, los calla en todos tus agentes | El mismo interruptor, o **Apagar en este equipo**, en su ficha. Nunca se eliminan: siguen en Tisty |
 | **Con el plugin de Tisty** | En Claude Code, los trae el plugin | En Claude Code, las trae el plugin |
@@ -207,10 +207,10 @@ Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbe
 
 ### Encenderlas
 
-1. Abre **Configuración › Agentes › Conectados**. Al final de la lista está la fila **Skills de Tisty**: «Tres skills que les enseñan a tus agentes a trabajar con Tisty. Tienen su propio sí, en este equipo.», con su estado, **Apagadas**, y **Ver**.
-2. **Ver** abre su ficha. Arriba, «Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.». Debajo, **Dónde van en este equipo**, con una fila por carpeta, y plegados, **Cómo se usan**, con lo que le escribes a tu agente y para qué sirve cada una, y **Más sobre ellas**.
+1. Abre **Configuración › Agentes › Conectados**. Al final de la lista está la fila **Tisty en tus agentes**: «Skills y hooks que ayudan a tus agentes a trabajar con Tisty.», con su punto y **Ver**. **Ver** abre una ficha con las dos partes.
+2. **Ajustar**, en **Skills**, abre su ficha. Arriba, «Tisty trae tres skills que les enseñan a tus agentes a trabajar con él. Vienen dentro de la app: no las escribe ningún agente y nadie puede cambiarlas por el MCP.». Debajo, **Dónde van en este equipo**, con una fila por carpeta, y plegados, **Cómo se usan**, con lo que le escribes a tu agente y para qué sirve cada una, y **Más sobre ellas**.
 3. Lee el sí, al pie: «Para encenderlas, Tisty escribe solo una carpeta por skill en las carpetas de arriba, y lee los archivos que ya hay en esas carpetas de skill para no escribir nunca sobre uno tuyo. En Claude Code lee además el registro de su plugin (installed_plugins.json y settings.json) para no copiarlas dos veces. No lee reglas, memoria ni otros archivos de tus agentes, y no necesita la carpeta Agentes.».
-4. Pulsa **Encender en este equipo**. Cada carpeta pasa a **Al día**, y la fila de Configuración dice **Encendidas**.
+4. Pulsa **Encender en este equipo**. Cada carpeta pasa a **Al día**, y en la ficha **Tisty en tus agentes** el punto de **Skills** queda verde.
 
 Bajo cada agente conectado que las lee hay otra fila **Skills de Tisty**, con un interruptor que vale para todo este equipo: al encenderlo se abre la misma ficha, y al apagarlo se apagan en todos tus agentes. Y si tienes agentes conectados sin ellas, el recuadro [Hooks y skills para tus agentes](#los-dos-a-la-vez) las enciende junto con los hooks, con el mismo sí escrito antes.
 
@@ -258,7 +258,7 @@ El interruptor de la fila **Skills de Tisty**, bajo cualquier agente, o **Apagar
 
 ### En la carpeta Agentes
 
-Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra una fila fija, **Skills de Tisty**, con el mismo estado que en Configuración, solo si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre la misma ficha.
+Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra una fila fija bajo **De Tisty**, **Skills y hooks**, con el mismo punto que en Configuración, si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre la ficha **Tisty en tus agentes**.
 
 - **Encendidas o Apagadas.** La fila lo dice, en verde o en gris, y abre la misma ficha, donde se encienden o se apagan, con el sí y las carpetas. Si la habías ocultado antes, vuelve a verse.
 - **No tiene menú.** Ni **Eliminar**, ni **Pausar**, ni **Documento nuevo**: no es un documento.
@@ -274,7 +274,15 @@ Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra un
 
 ## Los dos a la vez
 
-Si ya tienes agentes conectados y a alguno le faltan los hooks o las skills, **Configuración › Agentes** los ofrece juntos, sobre las pestañas. Entran los que no pasaron por [Al conectar un agente](#al-conectar-un-agente), porque ese ya se los ofreció:
+La fila **Tisty en tus agentes**, al final de **Configuración › Agentes › Conectados**, y la fila **Skills y hooks**, bajo **De Tisty** en **Agentes › Global**, abren la misma ficha. Su punto dice cómo están: verde si los dos están encendidos, amarillo si falta uno y gris hueco si están apagados. Al pasar el mouse lo dice en palabras, como «Faltan los hooks» o «Hooks solo en Claude Code». La ficha cuenta qué hacen:
+
+> Las skills le enseñan a tu agente a usar Tisty, y los hooks le recuerdan solos dónde quedó y qué anotar.
+>
+> Te recomendamos los dos: tu agente retoma sin que le expliques de nuevo, y su avance queda en Tisty, donde lo ves.
+
+Debajo, **Skills** y **Hooks**, cada una con su punto y **Ajustar**: el de las skills abre su ficha, y el de los hooks lleva a **Conectados**, donde está el interruptor de cada agente. **Encender los dos**, o **Encender lo que falta**, dice «Esto escribe solo aquí y deja el resto como está. Puedes apagarlos cuando quieras.» y abre dos casillas, **Hooks en** tus agentes y **Skills en este equipo**, cada una con los archivos o las carpetas que va a escribir. Plegado, **Qué hacen y qué lee Tisty** trae el mismo sí escrito del recuadro de abajo. **Encender** escribe lo que dejaste marcado y te dice qué quedó, agente por agente. Si lo que falta no se puede encender desde ahí, como hooks callados en **Puerta**, la ficha lo dice y te deja **Ajustar**.
+
+Además, si ya tienes agentes conectados y a alguno le faltan los hooks o las skills, **Configuración › Agentes** los ofrece juntos, sobre las pestañas. Entran los que no pasaron por [Al conectar un agente](#al-conectar-un-agente), porque ese ya se los ofreció:
 
 > **Hooks y skills para tus agentes**
 >

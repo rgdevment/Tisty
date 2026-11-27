@@ -456,7 +456,7 @@ Las propiedades propias del `SKILL.md` no ocupan el texto: su `name` es el nombr
 
 Tisty trae tres skills propias, `tisty`, `consolidate` y `next-agent`, que les enseñan a tus agentes a trabajar con él. No son documentos de Agentes: viven dentro de la app y tienen su propio sí, **Encender en este equipo**, que no necesita esta carpeta. Lo cuenta entero [[Hooks y skills|Hooks-y-skills]].
 
-Aquí las ves como una fila fija al final de **Agentes › Global**, **Skills de Tisty**, con su estado: **Apagadas** o **Encendidas**. La fila aparece solo si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre su ficha, la misma de **Configuración › Agentes › Conectados**. Lo que cambia por tener Agentes:
+Aquí las ves junto con los hooks de Tisty, en una fila fija al final de **Agentes › Global**, bajo **De Tisty**: **Skills y hooks**, con un punto verde si los dos están encendidos, amarillo si falta uno y gris hueco si están apagados. La fila aparece si este equipo tiene algún agente, si las skills están encendidas o si quedan copias suyas. Un clic abre la ficha **Tisty en tus agentes**, la misma de **Configuración › Agentes › Conectados**, y ahí **Ajustar** abre la de las skills. Lo que cambia por tener Agentes:
 
 - **No se traen.** En la lista de la primera vez, en **Traer otro archivo** y en **Buscar de nuevo**, sus copias en las carpetas de tus agentes salen como **propio de Tisty**, y no entran como documentos.
 - **Una skill tuya con el mismo nombre gana.** Si en Agentes tienes tu propia `consolidate`, en cualquier nivel, la de Tisty no se escribe en ningún agente, y su ficha dice «Ya tienes en Agentes una skill llamada consolidate, así que la de Tisty no se agrega.».

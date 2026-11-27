@@ -31,8 +31,12 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "agents_tisty_skills") {
       return Promise.resolve({
         version: "1.50.0",
-        skills: [],
-        landing: [],
+        skills: [
+          { name: "tisty", label: "tisty", about: null, files: ["tisty/SKILL.md"], yours: false },
+        ],
+        landing: [
+          { assistant: "codex", at: "/h/.agents/skills/tisty/SKILL.md", standing: "write" },
+        ],
         plugged: [],
         ...ipc.skills,
       });
@@ -304,17 +308,17 @@ describe("the sidebar with computers in Agents", () => {
     expect(screen.getByText("empty")).toBeTruthy();
   });
 
-  it("has the Tisty's skills row under Global only where an agent is on this computer", async () => {
+  it("has the Tisty skills and hooks row under Global only where an agent is on this computer", async () => {
     const view = await drawnTree();
     await waitFor(() =>
-      expect(view.container.querySelector("[data-row=tisty-skills]")).not.toBeNull(),
+      expect(view.container.querySelector("[data-row=tisty-own]")).not.toBeNull(),
     );
     view.unmount();
 
     ipc.state = stateWith([]);
     const bare = await drawnTree();
     await waitFor(() => expect(ipc.asked).toContain("agents_tisty_skills"));
-    expect(bare.container.querySelector("[data-row=tisty-skills]")).toBeNull();
+    expect(bare.container.querySelector("[data-row=tisty-own]")).toBeNull();
   });
 });
 
@@ -345,11 +349,11 @@ describe("the folder view with computers in Agents", () => {
     expect(await screen.findByRole("button", { name: /^Claude/ })).toBeTruthy();
   });
 
-  it("gives Global no skills row when no agent is on this computer", async () => {
+  it("gives Global no skills and hooks row when no agent is on this computer", async () => {
     ipc.state = stateWith([]);
     const { container } = view(GLOBAL);
     await waitFor(() => expect(ipc.asked).toContain("agents_tisty_skills"));
-    expect(container.querySelector("[data-row=tisty-skills]")).toBeNull();
+    expect(container.querySelector("[data-row=tisty-own]")).toBeNull();
     expect(screen.queryByText("empty")).toBeNull();
   });
 });

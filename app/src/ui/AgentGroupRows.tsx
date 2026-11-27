@@ -1,13 +1,14 @@
 import { type ButtonHTMLAttributes, type ReactNode, useRef, useState } from "react";
 import type { AgentGroups, RuleTarget } from "../agentGroups";
 import type { Filed, Wired } from "../core";
+import type { KnownAgents } from "../knownAgents";
 import { fill, t, type Word } from "../locales";
+import { tistyHookLines } from "../tistyOwn";
 import type { SkillGroup } from "./agentRows";
 import Glyph from "./Glyph";
-import TistyHooksRow, { tistyHookLines } from "./HooksRow";
 import Menu, { type Choice } from "./Menu";
 import type { Anchor } from "./menuKeys";
-import { TistySkillsRow } from "./TistySkills";
+import { TistyOwnRow } from "./TistyOwn";
 import UserHookRows from "./UserHooks";
 
 /// What makes a button one row of the tree: reached by the arrow keys, never a folder nor a place to drop.
@@ -22,6 +23,7 @@ interface Props {
   rowOf: RowOf;
   tistySkills: boolean;
   agents: readonly Wired[] | null;
+  known?: KnownAgents;
   onHooks?: () => void;
   onNewRule?: (level: string) => void;
   onNewHook?: () => void;
@@ -149,6 +151,7 @@ export default function AgentGroupRows({
   rowOf,
   tistySkills,
   agents,
+  known,
   onHooks,
   onNewRule,
   onNewHook,
@@ -199,17 +202,17 @@ export default function AgentGroupRows({
         />
       )}
       <UserHookRows hooks={groups.hooks} depth={depth} paper={paper} rowOf={rowOf} />
-      {tistyHooks && <Heading label="agentGroupTisty" depth={depth} step={step} />}
-      {tistySkills && (
-        <TistySkillsRow
+      {(tistySkills || tistyHooks) && (
+        <TistyOwnRow
           depth={depth}
           step={step}
           rowOf={rowOf}
-          lead={!tistyHooks && <Heading label="agentGroupTisty" depth={depth} step={step} />}
+          known={known}
+          agents={agents}
+          skillsShown={tistySkills}
+          onHooks={onHooks}
+          lead={<Heading label="agentGroupTisty" depth={depth} step={step} />}
         />
-      )}
-      {tistyHooks && onHooks && (
-        <TistyHooksRow agents={agents} depth={depth} step={step} onOpen={onHooks} rowOf={rowOf} />
       )}
     </>
   );
