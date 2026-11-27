@@ -87,8 +87,9 @@ promotional images: `store-box-1x1.png`, `store-hero-16x9.png` and
 such as `archive` or `revision-semanal`, and `light` or `dark`. The READMEs show
 each pair in a `<picture>`, so a reader sees the theme GitHub is in; the help
 shows the light one. Two subjects come only in the dark theme: the tasks of today
-(`tasks-today`, `tareas-hoy`) and Brainsty alive (`en-brainsty-living-dark`,
-animated, the whole window in English), which both READMEs and the help show.
+(`tasks-today`, `tareas-hoy`) and Brainsty, animated: `es-brainsty-3d-dark`,
+the 3D network in Spanish flying in to a task, which both READMEs show, and
+`en-brainsty-living-dark`, the whole window in English, which the help shows.
 
 The help links to `web/` and `app/` on `main`, so renaming a screen means
 updating the help in the same change, and tisty.app reads its picture from

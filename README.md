@@ -67,13 +67,13 @@
 
   <p>
     <img
-      src="assets/screens/app/en-brainsty-living-dark.webp"
+      src="assets/screens/app/es-brainsty-3d-dark.webp"
       width="92%"
-      alt="Brainsty, Tisty's network, alive in the Tisty window, dark theme: the
-      sidebar with the tasks for today and the Library, and beside it every
-      document, task and tag joined in one network, 1,931 nodes and 2,811
-      connections, turning slowly like a globe while travellers of light walk
-      its lines"/>
+      alt="Brainsty, Tisty's network, in 3D in the Tisty window, dark theme,
+      in Spanish: 1,910 nodes and 4,524 connections, every document, task and
+      tag in the colour of its folder or list; the view flies in to one task,
+      opens its card with its tags and the tasks that look like it, and
+      follows its connections"/>
   </p>
 
   <p><strong>Download Tisty</strong></p>
@@ -228,6 +228,16 @@ thinks is alike, with no AI. [More below](#brainsty-everything-joined).
 What you keep was already joined: a document cites another, a task was born in
 some minutes, a book has pages. **Brainsty**, under the task views in the
 sidebar, draws all of it as one network, in the content panel beside your lists.
+
+<p align="center">
+  <img
+    src="assets/screens/app/es-brainsty-glow-dark.webp"
+    width="92%"
+    alt="Brainsty in the Tisty window, dark theme, in Spanish: the sidebar with
+    today's tasks and the Library, and beside it the whole network, 1,910 nodes
+    and 4,524 connections, each document a square and each task a circle in the
+    colour of its folder or list, glowing against the dark"/>
+</p>
 
 - **Joined as you write** — `[[` links a document to another, the `/` menu cites
   a task as a live card, and the panel beside a document lists who links to it.

@@ -67,13 +67,13 @@
 
   <p>
     <img
-      src="assets/screens/app/en-brainsty-living-dark.webp"
+      src="assets/screens/app/es-brainsty-3d-dark.webp"
       width="92%"
-      alt="Brainsty, la red de Tisty, viva en la ventana de Tisty, tema
-      oscuro y en inglés: la barra lateral con las tareas de hoy y la
-      Biblioteca y, al lado, cada documento, tarea y etiqueta unidos en una
-      sola red, 1.931 nodos y 2.811 conexiones, girando despacio como un
-      globo mientras viajeros de luz recorren sus líneas"/>
+      alt="Brainsty, la red de Tisty, en 3D en la ventana de Tisty, tema
+      oscuro: 1910 nodos y 4524 conexiones, cada documento, tarea y etiqueta
+      del color de su carpeta o lista; la vista se acerca a una tarea, abre
+      su ficha con sus etiquetas y las tareas que se le parecen, y recorre
+      sus conexiones"/>
   </p>
 
   <p><strong>Descargar Tisty</strong></p>
@@ -234,6 +234,16 @@ Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un
 acta, un libro tiene páginas. **Brainsty**, bajo las vistas de tareas en la
 barra lateral, lo dibuja todo como una sola red, en el panel de contenido,
 junto a tus listas.
+
+<p align="center">
+  <img
+    src="assets/screens/app/es-brainsty-glow-dark.webp"
+    width="92%"
+    alt="Brainsty en la ventana de Tisty, tema oscuro: la barra lateral con las
+    tareas de hoy y la Biblioteca y, al lado, toda la red, 1910 nodos y 4524
+    conexiones, cada documento un cuadrado y cada tarea un círculo del color de
+    su carpeta o lista, brillando sobre el fondo oscuro"/>
+</p>
 
 - **Unido mientras escribes** — `[[` enlaza un documento con otro, el menú `/`
   cita una tarea como una tarjeta viva, y el panel junto a un documento dice
