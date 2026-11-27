@@ -139,23 +139,9 @@ fn gone_within(pid: &str, time: Duration) -> bool {
     true
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 fn running(pid: &str) -> bool {
-    std::fs::read_to_string(format!("/proc/{pid}/stat"))
-        .ok()
-        .and_then(|stat| {
-            let (_, after_name) = stat.rsplit_once(')')?;
-            after_name
-                .split_whitespace()
-                .next()
-                .map(|state| state != "Z")
-        })
-        .unwrap_or(false)
-}
-
-#[cfg(all(unix, not(target_os = "linux")))]
-fn running(pid: &str) -> bool {
-    let shown = std::process::Command::new("/bin/ps")
+    let shown = std::process::Command::new("ps")
         .args(["-o", "stat=", "-p", pid])
         .output()
         .unwrap();
