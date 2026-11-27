@@ -18,9 +18,9 @@ import type { Wired } from "../core";
 import type { KnownAgents } from "../knownAgents";
 import { fill, t, type Word } from "../locales";
 import type { Run } from "./Card";
-import { Files, PluginSaid, Ticked } from "./MendAsk";
+import { ExtrasTicks, Files, PluginSaid } from "./MendAsk";
 import { mild, strong } from "./Rows";
-import { agentsTaught, foldersBehind, skillFolders } from "./TistySkills";
+import { agentsTaught, foldersBehind } from "./TistySkills";
 import { useExtras } from "./useExtras";
 import { held as isHeld, type Working } from "./working";
 
@@ -31,7 +31,7 @@ interface Props {
   sentAt?: number;
 }
 
-interface Told {
+export interface Told {
   how: "mended" | "added";
   all: Outcome[];
 }
@@ -197,7 +197,7 @@ const outcomeSaid = ({ how, all }: Told) => {
   return t(failed ? "mendDonePartly" : "mendDone");
 };
 
-function Result({ told, onClose }: Readonly<{ told: Told; onClose: () => void }>) {
+export function Result({ told, onClose }: Readonly<{ told: Told; onClose: () => void }>) {
   return (
     <section
       role="status"
@@ -278,21 +278,14 @@ function Offer({
       <p className="mt-0.5 leading-relaxed text-soft">{t("extrasWhy")}</p>
       {asking ? (
         <div ref={choices} className="mt-2 flex flex-col gap-2.5">
-          {hooks.length > 0 && (
-            <Ticked on={withHooks} onTurn={setWithHooks} label={hooksSaid}>
-              {fill("hooksAsk", hooks.map((one) => one.hooks?.at ?? "").join(", "))}
-              {hooks.some((one) => one.id === "claude-code") && (
-                <span className="block">{t("hooksAskPlugin")}</span>
-              )}
-            </Ticked>
-          )}
-          {teaches && (
-            <Ticked on={withSkills} onTurn={setWithSkills} label={skillsSaid}>
-              <span className="block">{t("tistySkillsLead")}</span>
-              <Files files={skillFolders(skills)} />
-              <span className="block">{t("tistySkillsAsk")}</span>
-            </Ticked>
-          )}
+          <ExtrasTicks
+            hooks={hooks}
+            skills={teaches ? skills : null}
+            withHooks={withHooks}
+            onHooks={setWithHooks}
+            withSkills={withSkills}
+            onSkills={setWithSkills}
+          />
         </div>
       ) : (
         <ul className="mt-1.5 text-soft">

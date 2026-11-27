@@ -5,13 +5,21 @@ import type { Filed, Wired } from "../core";
 import { adopt } from "../locales";
 import AgentGroupRows, { groupsDrawn } from "../ui/AgentGroupRows";
 
+const ONE = vi.hoisted(() => ({
+  name: "tisty",
+  label: "tisty",
+  about: null,
+  files: ["tisty/SKILL.md"],
+  yours: false,
+}));
+
 const ipc = vi.hoisted(() => ({
   skills: (): Promise<unknown> =>
     Promise.resolve({
       version: "1.50.0",
       on: true,
       leftover: [],
-      skills: [],
+      skills: [ONE],
       landing: [],
       plugged: [],
     }),
@@ -88,7 +96,7 @@ beforeEach(() => {
       version: "1.50.0",
       on: true,
       leftover: [],
-      skills: [],
+      skills: [ONE],
       landing: [],
       plugged: [],
     });
@@ -195,19 +203,19 @@ describe("Skills, Hooks and From Tisty", () => {
     expect(screen.getByText("solo")).toBeTruthy();
   });
 
-  it("puts From Tisty last, after Hooks, with Tisty's skills and then Tisty's hooks", async () => {
+  it("puts From Tisty last, after Hooks, with one row for Tisty's skills and hooks", async () => {
     drawn({ hooks: [doc("guard")] }, { tistySkills: true, onNewHook: vi.fn(), ...lone });
     const hooks = screen.getByText("Hooks");
     const own = screen.getByText("guard");
     const from = screen.getByText("From Tisty");
-    const skills = await screen.findByText("Tisty's skills");
-    const tisty = screen.getByText("Tisty's hooks");
+    const row = await screen.findByText("Skills and hooks");
     expect(follows(hooks, own)).toBe(true);
     expect(follows(own, from)).toBe(true);
-    expect(follows(from, skills)).toBe(true);
-    expect(follows(skills, tisty)).toBe(true);
-    expect(skills.closest("button")?.getAttribute("data-row")).toBe("tisty-skills");
-    expect(tisty.closest("button")?.getAttribute("data-row")).toBe("tisty-hooks");
+    expect(follows(from, row)).toBe(true);
+    expect(row.closest("button")?.getAttribute("data-row")).toBe("tisty-own");
+    expect(screen.queryByText("Tisty's skills")).toBeNull();
+    expect(screen.queryByText("Tisty's hooks")).toBeNull();
+    expect(document.querySelectorAll("[data-row=tisty-own]")).toHaveLength(1);
   });
 
   it("keeps Tisty's hooks out of the Hooks heading, which has its own plus", () => {
@@ -222,14 +230,12 @@ describe("Skills, Hooks and From Tisty", () => {
 
   it("draws From Tisty for Tisty's skills alone, or for Tisty's hooks alone", async () => {
     const skills = drawn({}, { tistySkills: true });
-    await screen.findByText("Tisty's skills");
+    await screen.findByText("Skills and hooks");
     expect(screen.getByText("From Tisty")).toBeTruthy();
-    expect(screen.queryByText("Tisty's hooks")).toBeNull();
     skills.unmount();
     drawn({}, lone);
     expect(screen.getByText("From Tisty")).toBeTruthy();
-    expect(screen.getByText("Tisty's hooks")).toBeTruthy();
-    expect(screen.queryByText("Tisty's skills")).toBeNull();
+    expect(screen.getByText("Skills and hooks")).toBeTruthy();
   });
 
   it("holds the From Tisty heading back until the skills row has an answer", async () => {
@@ -237,16 +243,16 @@ describe("Skills, Hooks and From Tisty", () => {
     ipc.skills = () => new Promise((done) => (answer = done));
     drawn({}, { tistySkills: true });
     expect(screen.queryByText("From Tisty")).toBeNull();
-    expect(screen.queryByText("Tisty's skills")).toBeNull();
+    expect(screen.queryByText("Skills and hooks")).toBeNull();
     answer({
       version: "1.50.0",
       on: true,
       leftover: [],
-      skills: [],
+      skills: [ONE],
       landing: [],
       plugged: [],
     });
-    const row = await screen.findByText("Tisty's skills");
+    const row = await screen.findByText("Skills and hooks");
     expect(follows(screen.getByText("From Tisty"), row)).toBe(true);
   });
 
@@ -255,7 +261,7 @@ describe("Skills, Hooks and From Tisty", () => {
     drawn({}, { tistySkills: true });
     await new Promise((done) => setTimeout(done, 20));
     expect(screen.queryByText("From Tisty")).toBeNull();
-    expect(screen.queryByText("Tisty's skills")).toBeNull();
+    expect(screen.queryByText("Skills and hooks")).toBeNull();
   });
 
   it("draws no From Tisty when Tisty has neither skills nor hooks to show", () => {
@@ -269,14 +275,14 @@ describe("Skills, Hooks and From Tisty", () => {
   it("draws no Tisty hooks row without a way to open them", () => {
     drawn({}, { agents: [agent("claude", "Claude")] });
     expect(screen.queryByText("From Tisty")).toBeNull();
-    expect(screen.queryByText("Tisty's hooks")).toBeNull();
+    expect(screen.queryByText("Skills and hooks")).toBeNull();
   });
 
   it("says From Tisty in Spanish", () => {
     adopt("es");
     drawn({}, lone);
     expect(screen.getByText("De Tisty")).toBeTruthy();
-    expect(screen.getByText("Hooks de Tisty")).toBeTruthy();
+    expect(screen.getByText("Skills y hooks")).toBeTruthy();
   });
 });
 

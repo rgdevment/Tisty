@@ -11,6 +11,7 @@ import {
 } from "../agentsSync";
 import type { Filed, Folded } from "../core";
 import { countedAs, dateOf, longAgo, shortStamp } from "../format";
+import type { KnownAgents } from "../knownAgents";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { weighed } from "../previews";
@@ -21,7 +22,7 @@ import { FolderMark } from "./AssistantMark";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import { asksForMenu, menuAt } from "./menuKeys";
-import { TistySkillsEntry } from "./TistySkills";
+import { TistyOwnEntry } from "./TistyOwn";
 
 const PEEK = 8;
 const FORGOTTEN_AT_A_GLANCE = 5;
@@ -41,6 +42,8 @@ interface Props {
   onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
   /** The Ideas sheet's file: it and the diary stand in the sidebar on their own, never as loose documents. */
   pinned?: string | null;
+  known?: KnownAgents;
+  onHooks?: () => void;
 }
 
 export default function Folder({
@@ -53,6 +56,8 @@ export default function Folder({
   onHereMenu,
   onDocMenu,
   pinned,
+  known,
+  onHooks,
 }: Props) {
   const [shut, setShut] = useState<Set<string>>(new Set());
   const [allForgotten, setAllForgotten] = useState(false);
@@ -379,7 +384,7 @@ export default function Folder({
                     </li>
                   ))}
                   {shown.map((one) => paper(one))}
-                  {skillsIn && <TistySkillsEntry className={ROW} />}
+                  {skillsIn && <TistyOwnEntry className={ROW} known={known} onHooks={onHooks} />}
                   {left > 0 && (
                     <li className="break-inside-avoid">
                       <button
@@ -406,7 +411,7 @@ export default function Folder({
             )}
             <ul className={`mt-3 ${INDEX}`}>
               {inside.map((one) => paper(one))}
-              {tistySkillsHere && <TistySkillsEntry className={ROW} />}
+              {tistySkillsHere && <TistyOwnEntry className={ROW} known={known} onHooks={onHooks} />}
             </ul>
           </>
         )}

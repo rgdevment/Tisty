@@ -13,8 +13,8 @@ How to connect an agent is in [[Agents and MCP|Agents-and-MCP]]; a session call 
 | **What they are** | Commands your agent runs by itself when a session starts, before and after some tools and when a turn ends | Three folders with a `SKILL.md` that your agent reads when what you ask fits them |
 | **What they do** | Bring the agent its open tasks when it starts, and hand the turn back once if it edited files without writing anything in Tisty, and ask it once before it leaves a text file outside a repository | Teach it to pick up where it left off, to tidy what you keep without deleting anything, and to write for the next agent |
 | **Which agents** | Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot | Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI and DeepSeek Harness |
-| **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or on the **Tisty's skills** row, at the end |
-| **Both at once** | **Hooks and skills for your agents**, above the tabs | The same box |
+| **Where you turn them on** | **Settings › Agents › Connected**, under each agent's row | **Settings › Agents › Connected**, under each agent's row or from **Tisty in your agents**, at the end |
+| **Both at once** | **Tisty in your agents**, at the end of **Connected** or in **Agents › Global**, and **Hooks and skills for your agents**, above the tabs | The same |
 | **The yes** | One per agent, when you connect it or on its switch, naming the file that will be written | One for the whole computer, when you connect or on its switch, naming the folders that will be written |
 | **How they come out** | The same switch: it takes them all out of that agent. Another one, in **Door**, quiets them in all your agents | The same switch, or **Turn off on this computer**, on their card. They are never deleted: they stay in Tisty |
 | **With the Tisty plugin** | In Claude Code, the plugin brings them | In Claude Code, the plugin brings them |
@@ -207,10 +207,10 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 
 ### Turning them on
 
-1. Open **Settings › Agents › Connected**. At the end of the list is the **Tisty's skills** row: «Three skills that teach your agents to work with Tisty. They have their own yes, on this computer.», with its standing, **Off**, and **See**.
-2. **See** opens their card. At the top, «Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.». Below, **Where they go on this computer**, with one row per folder, and folded, **How to use them**, with what you write to your agent and what each one is for, and **More about them**.
+1. Open **Settings › Agents › Connected**. At the end of the list is the **Tisty in your agents** row: «Skills and hooks that help your agents work with Tisty.», with its dot and **See**. **See** opens a card with both parts.
+2. **Adjust**, on **Skills**, opens their card. At the top, «Tisty comes with three skills that teach your agents to work with it. They ship inside the app: no agent writes them, and nothing can change them through the MCP.». Below, **Where they go on this computer**, with one row per folder, and folded, **How to use them**, with what you write to your agent and what each one is for, and **More about them**.
 3. Read the yes, at the foot: «To turn them on, Tisty writes only one folder per skill in the folders above, and reads the files already in those skill folders so as never to write over one of yours. In Claude Code it also reads its plugin's records (installed_plugins.json and settings.json) so as not to copy them twice. It reads no rules, memory or other files of your agents, and needs no Agents folder.».
-4. Press **Turn on here**. Each folder turns **In sync**, and the row in Settings says **On**.
+4. Press **Turn on here**. Each folder turns **In sync**, and on the **Tisty in your agents** card the **Skills** dot turns green.
 
 Under each connected agent that reads them there is another **Tisty's skills** row, with a switch that counts for this whole computer: turning it on opens the same card, and turning it off turns them off in all your agents. And if you have connected agents without them, the box [Hooks and skills for your agents](#both-at-once) turns them on together with the hooks, with the same yes written out first.
 
@@ -258,7 +258,7 @@ The switch on the **Tisty's skills** row, under any agent, or **Turn off on this
 
 ### In the Agents folder
 
-If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fixed row, **Tisty's skills**, with the same standing as in Settings, only if this computer has some agent, if the skills are on, or if copies of them remain. A click opens the same card.
+If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fixed row under **From Tisty**, **Skills and hooks**, with the same dot as in Settings, if this computer has some agent, if the skills are on, or if copies of them remain. A click opens the **Tisty in your agents** card.
 
 - **On or Off.** The row says so, in green or in gray, and opens the same card, where they are turned on or off, with the yes and the folders. If you had hidden it before, it shows again.
 - **It has no menu.** No **Delete**, no **Pause**, no **New document**: it is not a document.
@@ -274,7 +274,17 @@ If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fi
 
 ## Both at once
 
-If you already have connected agents and one of them lacks the hooks or the skills, **Settings › Agents** offers them together, above the tabs. It takes in the ones that did not go through [When you connect an agent](#when-you-connect-an-agent), since that one already offered them:
+The **Tisty in your agents** row, at the end of **Settings › Agents › Connected**, and the **Skills and hooks** row, under **From Tisty** in **Agents › Global**, open the same card. Its dot says how they stand: green when both are on, yellow when one is missing and hollow grey when they are off. Hovering says it in words, such as «Hooks missing» or «Hooks only in Claude Code». The card tells what they do:
+
+> Skills teach your agent to work with Tisty: when something is a task or a document, how to tidy up without deleting anything, and how to leave its work clear for the next agent.
+>
+> Hooks help it on their own: when a session starts they show it the tasks it left open, and if it worked without noting anything in Tisty, they remind it once.
+>
+> We recommend turning on both: your agent picks up without you explaining again, and is reminded to note its progress in Tisty, where you see it.
+
+Below, **Skills** and **Hooks**, each with its dot and **Adjust**: the skills' one opens their card, and the hooks' one takes you to **Connected**, where each agent's switch is. **Turn on both**, or **Turn on what's missing**, opens the same ticks as the box below, with the files and folders that will be written; **Turn on** writes what you left ticked and tells you what stood, agent by agent. If what is missing cannot be turned on from there, such as hooks silenced in **Door**, the card says so and leaves you **Adjust**.
+
+Also, if you already have connected agents and one of them lacks the hooks or the skills, **Settings › Agents** offers them together, above the tabs. It takes in the ones that did not go through [When you connect an agent](#when-you-connect-an-agent), since that one already offered them:
 
 > **Hooks and skills for your agents**
 >

@@ -33,7 +33,9 @@ vi.mock("@tauri-apps/api/core", () => ({
         version: "1.50.0",
         on: ipc.skillsOn,
         leftover: [],
-        skills: [],
+        skills: [
+          { name: "tisty", label: "tisty", about: null, files: ["tisty/SKILL.md"], yours: false },
+        ],
         landing: [],
         plugged: [],
       });
@@ -184,11 +186,12 @@ describe("the groups of Global in the tree", () => {
     expect(screen.getByText("Rules")).toBeTruthy();
   });
 
-  it("draws the Tisty hooks row under From Tisty only when an agent is connected with hooks, and it opens them", async () => {
+  it("draws one Tisty row under From Tisty even with hooks, and it opens the hooks from its card", async () => {
+    ipc.skillsOn = false;
     const onHooks = vi.fn();
-    const { rerender } = await drawn({ agents: [hooked({ hooks: null })], onHooks });
+    const { container, rerender } = await drawn({ agents: [hooked({ hooks: null })], onHooks });
     await screen.findByText("Horario");
-    expect(screen.queryByRole("button", { name: /^Hooks de Tisty/ })).toBeNull();
+    expect(container.querySelector("[data-row=tisty-own]")).toBeNull();
     rerender(
       <Tree
         papers={PAPERS}
@@ -199,38 +202,40 @@ describe("the groups of Global in the tree", () => {
       />,
     );
     const line = await screen.findByRole("button", {
-      name: "Hooks de Tisty: Claude: con hooks",
+      name: "Skills y hooks de Tisty: Encendidos",
     });
-    expect(line.getAttribute("data-row")).toBe("tisty-hooks");
-    expect(line.textContent).toContain("Encendidos");
+    expect(line.getAttribute("data-row")).toBe("tisty-own");
+    expect(line.getAttribute("data-dot")).toBe("on");
+    expect(container.querySelectorAll("[data-row=tisty-own]")).toHaveLength(1);
     fireEvent.click(line);
+    fireEvent.click(await screen.findByRole("button", { name: "Ajustar · Hooks" }));
     expect(onHooks).toHaveBeenCalledTimes(1);
   });
 
   it("keeps Hooks for the person's own hooks: no heading without a plus or a hook", async () => {
     await drawn({ agents: [hooked()], onHooks: vi.fn() });
-    await screen.findByRole("button", { name: /^Hooks de Tisty/ });
+    await screen.findByRole("button", { name: /^Skills y hooks de Tisty/ });
     expect(screen.queryByText("Hooks")).toBeNull();
   });
 
   it("puts the Tisty skills row under From Tisty, with no Skills heading of its own", async () => {
     await drawn();
     const from = await screen.findByText("De Tisty");
-    const row = await screen.findByText("Skills de Tisty");
+    const row = await screen.findByText("Skills y hooks");
     expect(from.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(from.closest("[data-row]")).toBeNull();
     expect(screen.queryByText("Skills")).toBeNull();
-    expect(row.closest("button")?.textContent).toContain("Encendidas");
+    expect(row.closest("button")?.getAttribute("data-dot")).toBe("on");
   });
 
-  it("walks the plus of Rules, the rule, the plus of Hooks and the two Tisty rows with the arrow keys, in order", async () => {
+  it("walks the plus of Rules, the rule, the plus of Hooks and the Tisty row with the arrow keys, in order", async () => {
     const { container } = await drawn({
       onNewRule: vi.fn(),
       onNewHook: vi.fn(),
       agents: [hooked()],
       onHooks: vi.fn(),
     });
-    const keys = ["rules:new", "r1", "hooks:new", "tisty-skills", "tisty-hooks"];
+    const keys = ["rules:new", "r1", "hooks:new", "tisty-own"];
     const rowOf = (key: string) =>
       container.querySelector<HTMLElement>(`[data-row="${key}"]`) as HTMLElement;
     for (const key of keys) await waitFor(() => expect(rowOf(key)).not.toBeNull());
@@ -238,7 +243,7 @@ describe("the groups of Global in the tree", () => {
       .map((one) => one.getAttribute("data-row") ?? "")
       .filter((one) => keys.includes(one));
     expect(inDom).toEqual(keys);
-    expect(["-1", "0"]).toContain(rowOf("tisty-skills").getAttribute("tabindex"));
+    expect(["-1", "0"]).toContain(rowOf("tisty-own").getAttribute("tabindex"));
     rowOf(keys[0]).focus();
     for (let at = 1; at < keys.length; at += 1) {
       fireEvent.keyDown(document.activeElement as HTMLElement, { key: "ArrowDown" });

@@ -13,6 +13,7 @@ import {
 import { DEEPEST, type Filed, type Folded, type Papers, type Wired } from "../core";
 import { wallFor } from "../folders";
 import { AGENTS, agentsHidden, BRAINSTORM, DIARY, useHidden } from "../hiding";
+import type { KnownAgents } from "../knownAgents";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import { placeOf, rulesOf, useRuling } from "../places";
@@ -107,6 +108,7 @@ interface Props {
   onRename?: (folder: Folded) => void;
   /// The connected agents Settings already read, for the Hooks group of Global.
   agents?: readonly Wired[] | null;
+  known?: KnownAgents;
   onHooks?: () => void;
   onNewRule?: (level: string) => void;
   onNewHook?: () => void;
@@ -141,6 +143,7 @@ export default function Tree({
   onDelete,
   onRename,
   agents = null,
+  known,
   onHooks,
   onNewRule,
   onNewHook,
@@ -1211,6 +1214,7 @@ export default function Tree({
                 rowOf={rowOf}
                 tistySkills={skillsRow}
                 agents={agents}
+                known={known}
                 onHooks={onHooks}
                 onNewRule={onNewRule}
                 onNewHook={onNewHook}

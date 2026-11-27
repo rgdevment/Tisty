@@ -4,6 +4,7 @@ import { useAttended } from "../attended";
 import type { Filed, Folded, Papers, Wired } from "../core";
 import { useGoing, useHiddenGoing } from "../dropLater";
 import { capped, exactly } from "../format";
+import type { KnownAgents } from "../knownAgents";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { landedOn } from "../settingsRows";
@@ -58,6 +59,7 @@ interface Props {
   acts?: LibraryActs;
   /// The connected agents Settings already read, for the Hooks group of Agents › Global.
   agents?: readonly Wired[] | null;
+  known?: KnownAgents;
   onTrouble?: (text: string) => void;
 }
 
@@ -124,6 +126,7 @@ function Wide({
   title,
   hidden,
   agents,
+  known,
   onTrouble,
 }: Props & { title: React.ReactNode; hidden: boolean }) {
   const [hookAsked, setHookAsked] = useState(false);
@@ -263,6 +266,7 @@ function Wide({
               onDelete={acts ? dropped : undefined}
               onRename={acts?.rename}
               agents={agents}
+              known={known}
               onHooks={() => onChoose(landedOn({ page: "agents", shelf: "wired" }))}
               onNewRule={newRule}
               onNewHook={() => setHookAsked(true)}

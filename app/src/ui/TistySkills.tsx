@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { landingSaid, leftAsIs } from "../agentsAmiss";
 import { markOffered, SKILLED, SKILLS_DECLINED } from "../agentsOffered";
@@ -288,54 +288,6 @@ export function TistySkillsCard({
   );
 }
 
-function Opener({
-  skills,
-  onTaken,
-  className,
-  label,
-  row,
-  children,
-}: Readonly<{
-  skills: TistySkills;
-  onTaken: (now: TistySkills) => void;
-  className: string;
-  label?: string;
-  /// In the sidebar, what makes it one more row of the tree, walked by the arrow keys.
-  row?: ButtonHTMLAttributes<HTMLButtonElement>;
-  children: ReactNode;
-}>) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        data-row="tisty-skills"
-        {...row}
-        onClick={() => setOpen(true)}
-        aria-label={label}
-        title={label}
-        className={className}
-      >
-        {children}
-      </button>
-      {open &&
-        createPortal(
-          <TistySkillsCard skills={skills} onTaken={onTaken} onClose={() => setOpen(false)} />,
-          document.body,
-        )}
-    </>
-  );
-}
-
-function Standing({ skills, className }: Readonly<{ skills: TistySkills; className: string }>) {
-  const color = skills.on ? "text-hue-green" : "text-faint";
-  return (
-    <span className={`shrink-0 whitespace-nowrap text-[11.5px] ${color} ${className}`}>
-      {t(skills.on ? "tistySkillsTurnedOn" : "tistySkillsOff")}
-    </span>
-  );
-}
-
 export function TistySkillsAgentLine({
   agent,
   name,
@@ -408,82 +360,4 @@ function leftSaid(agent: string, skills: TistySkills, said: keyof typeof LINE | 
   if (said !== "tistySkillsRowNone" && said !== "tistySkillsRowPartly") return undefined;
   const left = leftAsIs(skills, landsFor(agent));
   return left ? landingSaid(left) : t("tistySkillsRowYours");
-}
-
-export function TistySkillsRow({
-  depth,
-  step,
-  rowOf,
-  lead,
-}: Readonly<{
-  depth: number;
-  step: number;
-  rowOf?: (key: string) => ButtonHTMLAttributes<HTMLButtonElement>;
-  /// Drawn just above the row, and only once the row itself is.
-  lead?: ReactNode;
-}>) {
-  const [skills, setSkills] = useTistySkills();
-  if (!skills) return null;
-  return (
-    <>
-      {lead}
-      <li className="relative">
-        <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
-          <span
-            aria-hidden="true"
-            className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
-            style={{ marginLeft: `${8 + depth * step}px` }}
-          >
-            <Glyph name="puzzle" className="h-[13px] w-[13px]" />
-          </span>
-          <Opener
-            skills={skills}
-            onTaken={setSkills}
-            label={t(skills.on ? "tistySkillsDotOn" : "tistySkillsDotOff")}
-            row={rowOf?.("tisty-skills")}
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
-          >
-            <span className="truncate">{t("tistySkills")}</span>
-            <Standing skills={skills} className="ml-auto" />
-          </Opener>
-        </div>
-      </li>
-    </>
-  );
-}
-
-export function TistySkillsEntry({ className }: Readonly<{ className: string }>) {
-  const [skills, setSkills] = useTistySkills();
-  if (!skills) return null;
-  return (
-    <li className="flex break-inside-avoid items-center">
-      <Opener skills={skills} onTaken={setSkills} className={className}>
-        <span className="shrink-0 text-faint">
-          <Glyph name="puzzle" className="h-3.5 w-3.5" />
-        </span>
-        <span className="truncate text-ink">{t("tistySkills")}</span>
-        <Standing skills={skills} className="ml-auto" />
-      </Opener>
-    </li>
-  );
-}
-
-export function TistySkillsSettingsRow() {
-  const [skills, setSkills] = useTistySkills();
-  if (!skills) return null;
-  return (
-    <section
-      aria-label={t("tistySkills")}
-      className="mt-3 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold">{t("tistySkills")}</span>
-        <span className="block text-[12.5px] text-soft">{t("tistySkillsSettingsLine")}</span>
-      </span>
-      <Standing skills={skills} className="rounded-full border border-line px-2 py-0.5" />
-      <Opener skills={skills} onTaken={setSkills} className={button}>
-        {t("agentSee")}
-      </Opener>
-    </section>
-  );
 }

@@ -4,7 +4,7 @@ import type { AgentGroups } from "../agentGroups";
 import type { Filed, Wired } from "../core";
 import { adopt } from "../locales";
 import AgentGroupRows from "../ui/AgentGroupRows";
-import TistyHooksRow from "../ui/HooksRow";
+import { TistyOwnRow } from "../ui/TistyOwn";
 import type { AgentHook, HookLook, Tried } from "../userHooks";
 
 const ipc = vi.hoisted(() => ({
@@ -284,11 +284,11 @@ describe("Global's Hooks group", () => {
   });
 });
 
-describe("the row of Tisty's own hooks", () => {
+describe("the row of Tisty's own skills and hooks", () => {
   const tisty = (agents: Wired[]) =>
     render(
       <ul>
-        <TistyHooksRow agents={agents} depth={0} step={12} onOpen={vi.fn()} />
+        <TistyOwnRow agents={agents} depth={0} step={12} onHooks={vi.fn()} />
       </ul>,
     );
 
@@ -316,7 +316,7 @@ describe("the row of Tisty's own hooks", () => {
     );
     const person = screen.getByText("guard");
     const from = screen.getByText("From Tisty");
-    const row = screen.getByRole("button", { name: /^Tisty's hooks:/ });
+    const row = screen.getByRole("button", { name: /^Tisty's skills and hooks:/ });
     const follows = (a: Node, b: Node) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(follows(person, from)).toBe(true);
