@@ -174,6 +174,111 @@ const backFastOverANestedBlock = BACK_FAST.map(([shape, doc, piece]) => ({
   now: "",
 }));
 
+
+const WHOLE_PIECES = [
+  ["Table", "| a | b |\n|---|---|\n| 1 | 2 |"],
+  ["Diagram", "```mermaid\nflowchart LR\n  A --> B\n```"],
+  ["Widget", '```widget\n<div class="grid"><div class="stat"><b>42</b></div></div>\n```'],
+  ["Formula", "$$\nx^2 + y^2\n$$"],
+  ["Fold", ":::details Plegable\n\nContenido\n\n:::"],
+  ["Sticky", "> [!IDEA] 2026-11-12 09:12 · blue · right\n> una idea"],
+  ["Card", "![Doc](tisty:doc/abcdefgh-0001)"],
+  ["Rule", "---"],
+];
+const KEPT_PIECES = [
+  ["Code", "```js\nconst a = 1;\n```"],
+  ["Callout", "> [!NOTE]\n> Un aviso"],
+];
+const aroundPiece = (piece) => `# Piezas\n\nAntes\n\n${piece}\n\nDespués\n`;
+const PLACES = [
+  ["deleteAtTheEndOfTheParagraphAbove", "Antes", false, "Delete"],
+  ["backspaceAtTheStartOfTheParagraphBelow", "Después", true, "Backspace"],
+];
+
+const pieceGone = async (page, piece) => {
+  const text = await page.evaluate(() => window.engines.text());
+  if (text.includes(piece)) throw new Error(`the key left the piece: ${JSON.stringify(text)}`);
+};
+
+const takenWhole = WHOLE_PIECES.flatMap(([shape, piece]) =>
+  PLACES.flatMap(([place, words, early, key]) => [
+    {
+      name: `${place}TakesTheWhole${shape}`,
+      doc: aroundPiece(piece),
+      run: async ({ clickAt, press }) => {
+        await clickAt(words, early);
+        await press(key);
+      },
+      was: piece,
+      now: "",
+    },
+    {
+      name: `${place}TakesTheWhole${shape}AndUndoBringsItBack`,
+      doc: aroundPiece(piece),
+      run: async ({ clickAt, press, command, page }) => {
+        await clickAt(words, early);
+        await press(key);
+        await pieceGone(page, piece);
+        await command("z");
+      },
+      was: "",
+      now: "",
+    },
+  ]),
+);
+
+const keptWhole = KEPT_PIECES.flatMap(([shape, piece]) =>
+  PLACES.map(([place, words, early, key]) => ({
+    name: `${place}LeavesThe${shape}Alone`,
+    doc: aroundPiece(piece),
+    run: async ({ clickAt, press }) => {
+      await clickAt(words, early);
+      await press(key);
+    },
+    was: "",
+    now: "",
+  })),
+);
+
+const frontKept = {
+  name: "backspaceAtTheStartOfTheFirstParagraphLeavesTheFrontMatter",
+  doc: "---\nkind: note\n---\n\nPrimero\n",
+  run: async ({ clickAt, press }) => {
+    await clickAt("Primero", true);
+    await press("Backspace");
+  },
+  was: "",
+  now: "",
+};
+const WORDS_LINES = [
+  ["Tags", "#a #b", `\n\n`],
+  ["Icon", "::dog orange::", ""],
+];
+
+const wordsKept = WORDS_LINES.flatMap(([shape, line, joined]) =>
+  PLACES.map(([place, words, early, key]) => ({
+    name: `${place}TreatsALineOf${shape}AsWords`,
+    doc: aroundPiece(line),
+    run: async ({ clickAt, press }) => {
+      await clickAt(words, early);
+      await press(key);
+    },
+    was: joined,
+    now: "",
+  })),
+);
+
+const lastPiece = {
+  name: "deleteAtTheEndOfTheParagraphAboveTakesALastTableAndTheBlankLineAboveIt",
+  doc: "Antes\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+  run: async ({ clickAt, press }) => {
+    await clickAt("Antes");
+    await press("Delete");
+  },
+  was: "\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+  now: "",
+};
+
 export const CASES = [
   {
     name: "newPageTitleTyped",
@@ -520,7 +625,7 @@ export const CASES = [
     name: "backStartAfterDiagram",
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el diagrama", true); await press("Backspace"); },
-    was: "",
+    was: "```mermaid\nflowchart LR\n  A --> B\n```",
     now: "",
   },
   {
@@ -528,21 +633,21 @@ export const CASES = [
     macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el diagrama", true); await press("Meta+Backspace"); },
-    was: "",
+    was: "```mermaid\nflowchart LR\n  A --> B\n```",
     now: "",
   },
   {
     name: "backStartAfterWidget",
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras el widget", true); await press("Backspace"); },
-    was: "",
+    was: "```widget\n<div class=\"grid\"><div class=\"stat\"><b>42</b></div></div>\n```",
     now: "",
   },
   {
     name: "backStartAfterTable",
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tabla", true); await press("Backspace"); },
-    was: "",
+    was: "| a | b |\n|---|---|\n| 1 | 2 |",
     now: "",
   },
   {
@@ -550,14 +655,14 @@ export const CASES = [
     macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tabla", true); await press("Meta+Backspace"); },
-    was: "",
+    was: "| a | b |\n|---|---|\n| 1 | 2 |",
     now: "",
   },
   {
     name: "wordBackStartAfterTable",
     doc: PIECES,
     run: async ({ clickAt, typed, press, wordBack, page, frame }) => { await clickAt("Tras la tabla", true); await wordBack(); },
-    was: "",
+    was: "| a | b |\n|---|---|\n| 1 | 2 |",
     now: "",
   },
   {
@@ -571,7 +676,7 @@ export const CASES = [
     name: "backStartAfterCard",
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tarjeta", true); await press("Backspace"); },
-    was: "",
+    was: "![Doc](tisty:doc/abcdefgh-0001)",
     now: "",
   },
   {
@@ -579,7 +684,7 @@ export const CASES = [
     macOnly: NO_LINE_DELETE_ON_WINDOWS,
     doc: PIECES,
     run: async ({ clickAt, typed, press, page, frame }) => { await clickAt("Tras la tarjeta", true); await press("Meta+Backspace"); },
-    was: "",
+    was: "![Doc](tisty:doc/abcdefgh-0001)",
     now: "",
   },
   {
@@ -1615,7 +1720,7 @@ export const CASES = [
         await press("Delete");
       });
     },
-    was: "",
+    was: "\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
     now: "X",
   },
   {
@@ -2425,6 +2530,11 @@ export const CASES = [
     now: "",
   },
   ...backFastOverANestedBlock,
+  ...takenWhole,
+  ...keptWhole,
+  frontKept,
+  ...wordsKept,
+  lastPiece,
   {
     name: "secondRightPastANestedTableDrawnWholeWritesOnTheNextLine",
     doc: NESTED_TABLE,

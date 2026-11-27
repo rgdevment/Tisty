@@ -66,12 +66,12 @@ describe("a word's or a line's delete at the start of a block after one drawn wh
       expect(text()).toBe(BODY);
     });
 
-    it(`leaves a table as it was on ${kind}`, () => {
+    it(`takes a table whole, as a piece drawn whole, on ${kind}`, () => {
       const text = opened();
       startOf("73-87");
       const cell = document.querySelectorAll("td")[1]?.firstChild as Text;
       reachingBack(kind, cell, 0);
-      expect(text()).toBe(BODY);
+      expect(text()).toBe(BODY.replace("| a | b |\n|---|---|\n| 1 | 2 |\n\n", ""));
     });
   }
 });

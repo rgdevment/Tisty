@@ -1744,6 +1744,14 @@ describe("a key at the edge of a block drawn whole", () => {
   const TABLE =
     '<div class="table" data-at="8-27" contenteditable="false"><table><tbody><tr><td>1</td></tr></tbody></table></div>';
 
+  // A table or a fold goes whole, with the blank line after it; code and notes keep their own words.
+  const PIECE_GONE: Record<string, string> = {
+    "Backspace under a table": "Antes.\n\nTras.\n",
+    "Delete over a table": "Antes.\n\nTras.\n",
+    "Backspace under a folded section": "Antes.\n\nTras.\n",
+    "Backspace under a table with Windows line ends": "Antes.\r\n\r\nTras.\r\n",
+  };
+
   // name | body | page | the caret | the browser's reach | key
   it.each([
     [
@@ -1845,13 +1853,13 @@ describe("a key at the edge of a block drawn whole", () => {
       ],
       FORTH,
     ],
-  ] as const)("takes nothing on %s", (_, body, html, at, reach, kind) => {
+  ] as const)("on %s, takes the piece whole or nothing", (name, body, html, at, reach, kind) => {
     const said = writer(body);
     pageOf(html);
     writing?.drawn();
     caretIn(at[0], at[1]);
     across(kind, reach[0], reach[1]);
-    expect(said).toEqual([]);
+    expect(said).toEqual(name in PIECE_GONE ? [PIECE_GONE[name]] : []);
   });
 
   // The browser reaches into a formula's own drawing for Backspace and Delete, not around it as it does for code.
