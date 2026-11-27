@@ -317,6 +317,11 @@ pub fn told_of_tasks(app: &AppHandle, argv: &[String]) -> bool {
 }
 
 pub fn to_task(app: &AppHandle, task: String) {
+    witness::note(
+        channel::WINDOW,
+        "a task was asked to open",
+        &[("task", Fact::Id(task.clone()))],
+    );
     if let Ok(mut owed) = app.state::<Views>().task_owed.lock() {
         *owed = Some(task);
     }
@@ -326,7 +331,15 @@ pub fn to_task(app: &AppHandle, task: String) {
 
 #[tauri::command]
 pub fn task_waiting(views: tauri::State<'_, Views>) -> Option<String> {
-    views.task_owed.lock().ok().and_then(|mut owed| owed.take())
+    let owed = views.task_owed.lock().ok().and_then(|mut owed| owed.take());
+    if let Some(task) = &owed {
+        witness::note(
+            channel::WINDOW,
+            "the window took the task it was asked to open",
+            &[("task", Fact::Id(task.clone()))],
+        );
+    }
+    owed
 }
 
 pub(crate) fn docs_named(argv: &[String]) -> Vec<String> {
