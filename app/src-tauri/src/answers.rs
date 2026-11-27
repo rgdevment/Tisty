@@ -9,6 +9,7 @@ pub mod agents_moving;
 pub mod agents_sync;
 pub mod agents_takeable;
 pub mod agents_vanished;
+pub mod agents_wsl;
 pub mod attaching;
 pub mod born;
 pub mod brainstorming;

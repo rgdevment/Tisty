@@ -19,6 +19,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { looked, remember } from "../wslLooked";
 import type { Run, Word } from "./Card";
+import DistroAgents from "./DistroAgents";
 import Hooking, { type OnHook, trustedByHand } from "./Hooking";
 import MendAsk, { JoinAsk, type JoinWith, OutAsk } from "./MendAsk";
 import { foldersBehind, TistySkillsAgentLine, teaches } from "./TistySkills";
@@ -575,6 +576,7 @@ export default function Wiring({
               />
             </div>
           )}
+          {inside[name] && <DistroAgents name={name} held={held} fail={fail} />}
         </section>
       ))}
 

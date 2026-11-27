@@ -43,6 +43,7 @@ impl Room {
             pieces: pieces.iter().map(|body| piece(body)).collect(),
             held: false,
             unproven: false,
+            distro: false,
         }
     }
 
@@ -1859,4 +1860,121 @@ fn a_skill_file_taken_away_beside_one_changed_by_hand_is_not_vanished() {
     );
     assert!(!both[1].at.exists());
     assert_eq!(read(&both[0]), "MIT, with my line.\n");
+}
+
+fn crlf_rule(said: &str) -> String {
+    let file = format!("\u{feff}{said}");
+    doc_of("codex", Kind::Rule, "AGENTS.md", file.as_bytes()).unwrap()
+}
+
+fn in_a_distro(target: Target) -> Target {
+    Target {
+        distro: true,
+        ..target
+    }
+}
+
+#[test]
+fn a_distro_gets_linux_bytes_where_windows_gets_the_cards_own() {
+    let room = room();
+    let crlf = crlf_rule("# Rules\r\n\r\nLast line\r\n");
+    assert!(crlf.contains("[codex/rule/AGENTS.md, crlf, bom]"), "{crlf}");
+    let here = room.target(".codex/AGENTS.md", vec![crlf.clone()]);
+    assert_eq!(
+        wanted(&here).unwrap(),
+        b"\xEF\xBB\xBF# Rules\r\n\r\nLast line\r\n"
+    );
+    let there = in_a_distro(room.target(".codex/AGENTS.md", vec![crlf]));
+    assert_eq!(wanted(&there).unwrap(), b"# Rules\n\nLast line\n");
+}
+
+#[test]
+fn a_distro_keeps_a_lone_carriage_return_and_drops_only_the_pairs() {
+    let room = room();
+    let mixed = crlf_rule("# Rules\r\n\r\nLone\rcarriage.\r\nLast line\r\n");
+    assert!(mixed.contains("as-is, bom"), "{mixed}");
+    let here = room.target(".codex/AGENTS.md", vec![mixed.clone()]);
+    assert_eq!(
+        wanted(&here).unwrap(),
+        b"\xEF\xBB\xBF# Rules\r\n\r\nLone\rcarriage.\r\nLast line\r\n"
+    );
+    let there = in_a_distro(room.target(".codex/AGENTS.md", vec![mixed]));
+    assert_eq!(
+        wanted(&there).unwrap(),
+        b"# Rules\n\nLone\rcarriage.\nLast line\n"
+    );
+}
+
+#[test]
+fn a_distro_card_ending_without_a_newline_gets_no_newline_added() {
+    let room = room();
+    let body = crlf_rule("One\r\nTwo");
+    let there = in_a_distro(room.target(".codex/AGENTS.md", vec![body]));
+    assert_eq!(wanted(&there).unwrap(), b"One\nTwo");
+}
+
+#[test]
+fn a_distro_round_writes_the_linux_bytes_and_the_next_one_finds_them_up_to_date() {
+    let mut room = room();
+    let target = in_a_distro(room.target(
+        ".codex/AGENTS.md",
+        vec![crlf_rule("# Rules\r\n\r\nTests first.\r\n")],
+    ));
+    assert_eq!(room.round(std::slice::from_ref(&target)), [Standing::Wrote]);
+    assert_eq!(
+        std::fs::read(&target.at).unwrap(),
+        b"# Rules\n\nTests first.\n"
+    );
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::UpToDate]
+    );
+    assert_eq!(
+        room.round(std::slice::from_ref(&target)),
+        [Standing::UpToDate]
+    );
+}
+
+#[test]
+fn a_shipped_skills_bytes_are_the_same_in_a_distro_and_in_the_lock() {
+    let mut room = room();
+    let here = room.shipped("---\nname: tisty\n---\nTisty 1.50.\n");
+    let there = in_a_distro(room.shipped("---\nname: tisty\n---\nTisty 1.50.\n"));
+    assert_eq!(wanted(&here).unwrap(), wanted(&there).unwrap());
+    assert!(!wanted(&there).unwrap().contains(&b'\r'));
+
+    room.put(&there, "---\nname: tisty\n---\nTisty 1.50.\n");
+    assert_eq!(room.one_round(&there), Standing::Foreign { changed: false });
+    assert!(reclaimed(&mut room.ledger, std::slice::from_ref(&there)));
+    assert_eq!(room.one_round(&there), Standing::UpToDate);
+    assert_eq!(read(&there), "---\nname: tisty\n---\nTisty 1.50.\n");
+}
+
+#[test]
+fn a_distro_never_adopts_a_file_and_never_brings_a_change_in_even_with_consent() {
+    let mut room = room();
+    let brought = piece(&rule("codex", "AGENTS.md", "Brought.\n"));
+    let mut target = room.target(".codex/AGENTS.md", vec![]);
+    target.put(&brought);
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Brought.\n").unwrap();
+    assert!(adopted(&mut room.ledger, &target, brought.file()));
+
+    let mut room = self::room();
+    let mut target = in_a_distro(room.target(".codex/AGENTS.md", vec![]));
+    target.put(&brought);
+    std::fs::create_dir_all(target.at.parent().unwrap()).unwrap();
+    std::fs::write(&target.at, "Brought.\n").unwrap();
+    assert!(room.ledger.consented());
+    assert!(!adopted(&mut room.ledger, &target, brought.file()));
+    assert!(room.ledger.written(&target.at).is_none());
+
+    let one = in_a_distro(room.target(
+        ".codex/AGENTS.md",
+        vec![rule("codex", "AGENTS.md", "Mine.\n")],
+    ));
+    room.round(std::slice::from_ref(&one));
+    std::fs::write(&one.at, "Changed inside the distro.\n").unwrap();
+    assert_eq!(bring(&room.ledger, &one, 0), Err(Refused::Held));
+    assert_eq!(read(&one), "Changed inside the distro.\n");
 }

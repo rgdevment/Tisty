@@ -11,6 +11,8 @@ pub struct Target {
     pub pieces: Vec<Admitted>,
     pub(super) held: bool,
     pub(super) unproven: bool,
+    /// In a WSL distro: written only, with LF and no BOM, which Linux needs to read front matter and shebangs.
+    pub distro: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,10 +108,28 @@ fn alone(target: &Target) -> Option<&Admitted> {
 
 pub fn wanted(target: &Target) -> Result<Vec<u8>, (usize, Refused)> {
     match (alone(target), target.pieces.is_empty()) {
-        (Some(one), _) => rendered(one.body()).map_err(|why| (0, why)),
+        (Some(one), _) => rendered(one.body())
+            .map(|bytes| match target.distro {
+                true => for_linux(bytes),
+                false => bytes,
+            })
+            .map_err(|why| (0, why)),
         (None, true) => Ok(Vec::new()),
         (None, false) => Err((0, Refused::Held)),
     }
+}
+
+fn for_linux(bytes: Vec<u8>) -> Vec<u8> {
+    let bare = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&bytes);
+    let mut out = Vec::with_capacity(bare.len());
+    let mut all = bare.iter().copied().peekable();
+    while let Some(one) = all.next() {
+        if one == b'\r' && all.peek() == Some(&b'\n') {
+            continue;
+        }
+        out.push(one);
+    }
+    out
 }
 
 fn blank(bytes: &[u8]) -> bool {
@@ -472,7 +492,8 @@ pub fn round(data: &Path, ledger: &mut Ledger, targets: &[Target]) -> Vec<Standi
 // A file just brought in stands for itself, so what joins it later is written over it with a backup, not asked about.
 pub fn adopted(ledger: &mut Ledger, target: &Target, brought: &str) -> bool {
     // Bringing alone touches nothing, the ledger included: only a file Tisty writes is ever recorded as written.
-    if !ledger.consented()
+    if target.distro
+        || !ledger.consented()
         || !ledger.syncs(&target.assistant)
         || ledger.written(&target.at).is_some()
         || linked(target)
@@ -639,6 +660,9 @@ fn emptied_up(target: &Target) {
 pub fn bring(ledger: &Ledger, target: &Target, piece: usize) -> Result<String, Refused> {
     if !ledger.consented() {
         return Err(Refused::NoConsent);
+    }
+    if target.distro {
+        return Err(Refused::Held);
     }
     if linked(target) {
         return Err(Refused::Linked);

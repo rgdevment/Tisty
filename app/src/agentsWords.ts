@@ -419,6 +419,27 @@ const words = {
     "{name} files no longer belong to any rule or skill in Agents.",
     "{name} archivos ya no son de ninguna regla ni skill de Agentes.",
   ],
+  wslAgentsRules: ["Agents' rules and skills", "Reglas y skills de Agentes"],
+  wslAgentsRulesWhy: [
+    "Writes into {name} what Agents writes on this computer, except hooks and agents' memory. It waits for your yes in this distro, and nothing comes back from it.",
+    "Escribe en {name} lo que Agentes escribe en este equipo, salvo los hooks y la memoria de los agentes. Espera tu sí en esta distro, y nada vuelve desde ella.",
+  ],
+  wslAgentsSkills: ["Tisty's skills", "Skills de Tisty"],
+  wslAgentsSkillsWhy: [
+    "Tisty's own skills, for the agents inside this distro.",
+    "Las skills propias de Tisty, para los agentes dentro de esta distro.",
+  ],
+  wslAgentsStopped: [
+    "Waiting: the distro is not running. Tisty writes once it is, and never starts it on its own.",
+    "Esperando: la distro no está en marcha. Tisty escribe cuando lo esté, y nunca la pone en marcha por su cuenta.",
+  ],
+  wslAgentsWake: ["Start {name} and write", "Poner {name} en marcha y escribir"],
+  wslAgentsUpToDate: ["Up to date", "Al día"],
+  wslAgentsWrote: ["{name} files written", "{name} archivos escritos"],
+  wslAgentsLeft: [
+    "{name} files are left as they are: changed inside the distro, a link, or waiting for you in Agents.",
+    "{name} archivos se dejan como están: cambiados dentro de la distro, un enlace, o esperándote en Agentes.",
+  ],
   agentsVanishedOne: [
     "1 of your agents' files is no longer there.",
     "1 archivo de tus agentes ya no está.",
