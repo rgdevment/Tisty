@@ -278,13 +278,21 @@ describe("the assistants' page", () => {
     ).toBe("true");
   });
 
-  it("says why the two names are off while only a diamond shows", () => {
-    credit("mark", true);
+  it("gives each place its own three choices, with no switch holding the other", () => {
+    credit("rows", "mark");
+    credit("inside", "named");
     shown(true, "credit");
-    expect((within(rowOf("creditRows")).getByRole("switch") as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-    expect(within(rowOf("creditInside")).getByText(t("creditMarkHolds"))).toBeTruthy();
+    const rows = within(rowOf("creditRows"));
+    const inside = within(rowOf("creditInside"));
+    const radio = (row: typeof rows, name: string) =>
+      row.getByRole("radio", { name }) as HTMLInputElement;
+    expect(rows.queryByRole("switch")).toBeNull();
+    expect(inside.queryByRole("switch")).toBeNull();
+    expect(rows.getAllByRole("radio")).toHaveLength(3);
+    expect(radio(rows, t("creditAsMark")).checked).toBe(true);
+    expect(radio(inside, t("creditAsNamed")).checked).toBe(true);
+    expect(radio(inside, t("creditAsMark")).disabled).toBe(false);
+    credit("rows", "agent");
   });
 
   it("moves through its tabs with the arrows, each one tied to the panel", () => {

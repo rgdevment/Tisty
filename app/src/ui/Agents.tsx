@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { type Agent, type Assistant, agentAsks, agentHooks, agentTurn, copied } from "../core";
-import { type Credit, credit, useCredit } from "../crediting";
+import { credit, type Place, type Signing, useCredit } from "../crediting";
 import { stamped } from "../format";
 import type { KnownAgents } from "../knownAgents";
 import { fill, t } from "../locales";
@@ -303,46 +303,100 @@ function ByHand({ binary }: { binary?: string }) {
 
 const PREVIEWED = "Claude Code";
 
-const previewed = (shown: Credit) =>
-  shown.mark ? "◆" : fill("agentWrote", shown.rows ? PREVIEWED : t("anAgent"));
+const CHOICES: readonly [Signing, Parameters<typeof t>[0]][] = [
+  ["named", "creditAsNamed"],
+  ["agent", "creditAsAgent"],
+  ["mark", "creditAsMark"],
+];
+
+function Signed({ how, place }: { how: Signing; place: Place }) {
+  const where = fill("agentWroteHere", PREVIEWED);
+  return (
+    <span
+      className="shrink-0 text-hue-teal"
+      title={how === "named" ? t("fromThisMachine") : where}
+      data-testid={`credit-preview-${place}`}
+    >
+      {how === "mark" ? (
+        <span role="img" aria-label={where}>
+          ◆
+        </span>
+      ) : (
+        fill("agentWrote", how === "named" ? PREVIEWED : t("anAgent"))
+      )}
+    </span>
+  );
+}
+
+function Choice({ place, how, label }: { place: Place; how: Signing; label: string }) {
+  return (
+    <span role="radiogroup" aria-label={label} className="flex flex-wrap justify-end gap-1.5">
+      {CHOICES.map(([one, word]) => (
+        <label
+          key={one}
+          className="cursor-pointer rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-ink has-checked:border-ink has-checked:bg-ink has-checked:text-bg has-focus-visible:outline-2 has-focus-visible:outline-accent"
+        >
+          <input
+            type="radio"
+            name={`credit-${place}`}
+            value={one}
+            checked={how === one}
+            onChange={() => credit(place, one)}
+            className="sr-only"
+          />
+          {t(word)}
+        </label>
+      ))}
+    </span>
+  );
+}
+
+function Shown({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-2 rounded-[10px] border border-hair bg-panel px-3 py-2.5">
+      <p className="text-[11.5px] text-faint">{label}</p>
+      {children}
+    </div>
+  );
+}
 
 function Crediting() {
   const shown = useCredit();
   return (
     <Card row="credit" which="settings">
       <p className="text-[12.5px] leading-relaxed text-soft">{t("creditWhat")}</p>
-      <div className="mt-3 rounded-[10px] border border-hair bg-panel px-3 py-2.5">
-        <p className="text-[11.5px] text-faint">{t("creditPreview")}</p>
-        <p className="mt-1.5 flex items-center gap-3 text-[13px]">
-          <span className="min-w-0 flex-1 truncate">{t("creditPreviewTask")}</span>
-          <span className="shrink-0 text-[12.5px] text-hue-teal" data-testid="credit-preview">
-            {previewed(shown)}
-          </span>
-        </p>
-      </div>
-      <Line row="creditMark" why={t("creditMarkWhy")} which="settings">
-        <Knob on={shown.mark} label={t("creditMark")} onPress={() => credit("mark", !shown.mark)} />
-      </Line>
-      <Line row="creditRows" why={t("creditRowsWhy")} which="settings">
-        <Knob
-          on={shown.rows && !shown.mark}
-          label={t("creditRows")}
-          disabled={shown.mark}
-          onPress={() => credit("rows", !shown.rows)}
-        />
+      <Line
+        row="creditRows"
+        why={t("creditRowsWhy")}
+        which="settings"
+        more={
+          <Shown label={t("creditPreviewRow")}>
+            <p className="mt-1.5 flex items-center gap-3 text-[13px]">
+              <span className="min-w-0 flex-1 truncate">{t("creditPreviewTask")}</span>
+              <span className="text-[12.5px]">
+                <Signed how={shown.rows} place="rows" />
+              </span>
+            </p>
+          </Shown>
+        }
+      >
+        <Choice place="rows" how={shown.rows} label={t("creditRows")} />
       </Line>
       <Line
         row="creditInside"
         why={t("creditInsideWhy")}
         which="settings"
-        note={shown.mark && <Note kind="dep">{t("creditMarkHolds")}</Note>}
+        more={
+          <Shown label={t("creditPreviewInside")}>
+            <p className="mt-1.5 flex items-baseline gap-1.5 text-[11.5px] tabular-nums text-faint">
+              {t("creditPreviewWhen")}
+              <Signed how={shown.inside} place="inside" />
+            </p>
+            <p className="mt-0.5 text-[13px]">{t("creditPreviewNote")}</p>
+          </Shown>
+        }
       >
-        <Knob
-          on={shown.inside && !shown.mark}
-          label={t("creditInside")}
-          disabled={shown.mark}
-          onPress={() => credit("inside", !shown.inside)}
-        />
+        <Choice place="inside" how={shown.inside} label={t("creditInside")} />
       </Line>
     </Card>
   );

@@ -25,6 +25,8 @@ const agents = (shelf: Shelf, title: Word, why?: Word, words?: Word[]): Row => (
   shelf,
 });
 
+const CREDIT_WORDS: Word[] = ["creditAsNamed", "creditAsAgent", "creditAsMark", "creditMarkWord"];
+
 export const ROWS = {
   tongue: row("window", "tongue", "tongueWhy"),
   look: row("window", "look", "lookWhy"),
@@ -75,9 +77,8 @@ export const ROWS = {
   wired: agents("wired", "wiringTitle"),
   agentsFolder: agents("folder", "agentsTabFolder", undefined, ["agentsSettingsTitle"]),
   credit: agents("credit", "creditTitle"),
-  creditMark: agents("credit", "creditMark", "creditMarkWhy"),
-  creditRows: agents("credit", "creditRows", "creditRowsWhy"),
-  creditInside: agents("credit", "creditInside", "creditInsideWhy"),
+  creditRows: agents("credit", "creditRows", "creditRowsWhy", CREDIT_WORDS),
+  creditInside: agents("credit", "creditInside", "creditInsideWhy", CREDIT_WORDS),
   can: agents("can", "agentsTabCan"),
   review: row("health", "reviewAgain", "leadHealth"),
   index: row("health", "quickIndex", "quickIndexWhy"),

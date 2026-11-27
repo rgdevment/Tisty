@@ -202,7 +202,7 @@ More in [Large attachments](Sync-and-Backup#large-attachments) and [Privacy](Pri
 - **Door**: **An agent can file work here**, with **Stop it** to close it (and **Let an agent file here** to open it again), **Ask it to keep its task up to date** and **Remind it when a turn starts and ends**.
 - **Connected**: **Agents on this computer**, with **Look again**, a search box for the ones Tisty knows and did not find, **Wrote in Tisty from elsewhere**, the **Tisty's skills** row, with **See**, and **How to connect one**, folded, to connect it by hand. Each row says how that agent stands, **Connected**, **Not connected**, **Points at another Tisty**, **Uses your other Tisty install**, **May be here**, **Set up your own way**, **Could not be read** or **By hand**. Under each connected agent that takes them, the **Tisty's skills** and **Tisty's hooks** rows, with one switch each; when you connect one, its hooks and the skills come with it, with a tick to leave each one out. [Hooks and skills](Hooks-and-Skills) tells it.
 - **Agents folder**: the **Agents** card, to bring and sync your agents' rules, skills and memory. More in [Agents: rules, skills and memory](AGENTS-Folder).
-- **How its signature looks**: **Who signs what an agent writes**, with a **Preview of a row** that changes at once, **Only a diamond**, **Name the agent in the task list** and **Name the agent inside a task**.
+- **How its signature looks**: **Who signs what an agent writes**, with one choice for **In the task list** and another for **Inside a task**: **Its name**, **«by an agent»** or **Only ◆**. Under each one, **How a row looks** and **How a task's history looks** change at once.
 - **What it can and cannot do**: **What it can do** and **What it can never do**, side by side.
 
 **The box above the tabs.** With the door open, what happens with your agents shows on top, whichever tab you are on:
@@ -215,7 +215,7 @@ More in [Large attachments](Sync-and-Backup#large-attachments) and [Privacy](Pri
 
 With the keyboard, `←` and `→` change tabs, and `Home` and `End` jump to the first and the last.
 
-With the door closed, the page reminds you where it matters. In **Door**, **Ask it to keep its task up to date** and **Remind it when a turn starts and ends** turn grey with the **Missing** note: «These two settings act while the door is open.». In **Connected**, if you have agents connected, **Agents on this computer** says «Even so, they file nothing until you open the door.», with **Go to Door**. And in **How its signature looks**, with **Only a diamond** on, the two name switches turn grey: «The two above stay off while «Only a diamond» is on.».
+With the door closed, the page reminds you where it matters. In **Door**, **Ask it to keep its task up to date** and **Remind it when a turn starts and ends** turn grey with the **Missing** note: «These two settings act while the door is open.». And in **Connected**, if you have agents connected, **Agents on this computer** says «Even so, they file nothing until you open the door.», with **Go to Door**.
 
 **Stop it** asks you before closing: «No agent will be able to file in Tisty.», everything it wrote stays where it is, and connected agents stay connected, but whatever they ask is refused. It needs no tick, because **Let an agent file here** opens it again.
 
@@ -313,7 +313,6 @@ A grey switch is never broken: it always has the note below that says why and, w
 | Storage › **Where large attachments stay** | **Missing** | There is no shared folder | «There is no shared folder yet, so everything stays on this computer.» | **Go to Sync** |
 | Agents › Door › **Remind it when a turn starts and ends** | **Missing** | The door is closed | «These two settings act while the door is open.» | — |
 | Agents › Connected › **Agents on this computer** | **Missing** | There are agents connected and the door is closed | «Even so, they file nothing until you open the door.» | **Go to Door** |
-| Agents › How its signature looks › **Name the agent inside a task** | **Missing** | **Only a diamond** is on | «The two above stay off while «Only a diamond» is on.» | — |
 | Help and about › **Take release candidates** | **Doesn't apply here** | The Microsoft Store copy | «The Microsoft Store keeps this copy up to date and offers no release candidates.» | — |
 
 ### One thing at a time with your data

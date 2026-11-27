@@ -202,7 +202,7 @@ Más en [Adjuntos grandes](Sincronizar-y-respaldar#adjuntos-grandes) y [Privacid
 - **Puerta**: **Un agente puede anotar aquí**, con **Quitarle la voz** para cerrarla (y **Dejar que un agente anote** para abrirla otra vez), **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno**.
 - **Conectados**: **Agentes en este equipo**, con **Buscar de nuevo**, un buscador para los que Tisty conoce y no encontró, **Escribieron en Tisty desde otros lugares**, la fila **Skills de Tisty**, con **Ver**, y **Cómo conectar uno**, plegado, para conectarlo a mano. Cada fila dice cómo está ese agente, **Conectado**, **Sin conectar**, **Apunta a otro Tisty**, **Usa tu otra instalación de Tisty**, **Puede que esté**, **Escrito a tu manera**, **No se pudo leer** o **A mano**. Bajo cada agente conectado que los acepta, las filas **Skills de Tisty** y **Hooks de Tisty**, con un interruptor cada una; al conectar uno, sus hooks y las skills van incluidos, con una casilla para dejar fuera cada uno. Lo cuenta [Hooks y skills](Hooks-y-skills).
 - **Carpeta Agentes**: la tarjeta **Agentes**, para traer y sincronizar las reglas, skills y memoria de tus agentes. Más en [Agentes: reglas, skills y memoria](Carpeta-AGENTS).
-- **Cómo se ve su firma**: **Quién firma lo que escribe un agente**, con una **Vista previa de una fila** que cambia al momento, **Solo un rombo**, **Nombrar al agente en la lista de tareas** y **Nombrar al agente dentro de una tarea**.
+- **Cómo se ve su firma**: **Quién firma lo que escribe un agente**, con una elección para **En la lista de tareas** y otra para **Dentro de una tarea**: **Su nombre**, **«por un agente»** o **Solo ◆**. Debajo de cada una, **Así se ve una fila** y **Así se ve el historial de una tarea** cambian al momento.
 - **Qué puede y qué no**: **Lo que puede hacer** y **Lo que no podrá hacer nunca**, lado a lado.
 
 **El recuadro sobre las pestañas.** Con la puerta abierta, lo que pasa con tus agentes sale encima, estés en la pestaña que estés:
@@ -215,7 +215,7 @@ Más en [Adjuntos grandes](Sincronizar-y-respaldar#adjuntos-grandes) y [Privacid
 
 Con el teclado, `←` y `→` cambian de pestaña, e `Inicio` y `Fin` saltan a la primera y a la última.
 
-Con la puerta cerrada, la página te lo recuerda donde importa. En **Puerta**, **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno** quedan en gris con la nota **Falta algo**: «Estos dos ajustes actúan cuando la puerta está abierta.». En **Conectados**, si tienes agentes conectados, **Agentes en este equipo** dice «Aun así no anotarán nada hasta que abras la puerta.», con **Ir a Puerta**. Y en **Cómo se ve su firma**, con **Solo un rombo** encendido, los dos interruptores de nombre quedan en gris: «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.».
+Con la puerta cerrada, la página te lo recuerda donde importa. En **Puerta**, **Pedirle que deje su tarea al día** y **Recordarle al empezar y al terminar cada turno** quedan en gris con la nota **Falta algo**: «Estos dos ajustes actúan cuando la puerta está abierta.». Y en **Conectados**, si tienes agentes conectados, **Agentes en este equipo** dice «Aun así no anotarán nada hasta que abras la puerta.», con **Ir a Puerta**.
 
 **Quitarle la voz** te pregunta antes de cerrar: «Ningún agente podrá anotar en Tisty.», todo lo que escribió se queda en su sitio, y los agentes conectados siguen conectados, pero se les niega lo que pidan. No pide casilla, porque **Dejar que un agente anote** la abre otra vez.
 
@@ -313,7 +313,6 @@ Un interruptor en gris nunca está roto: siempre lleva debajo la nota que dice p
 | Almacenamiento › **Dónde se quedan los adjuntos grandes** | **Falta algo** | No hay carpeta compartida | «Todavía no hay carpeta compartida, así que todo se queda en este equipo.» | **Ir a Sincronización** |
 | Agentes › Puerta › **Recordarle al empezar y al terminar cada turno** | **Falta algo** | La puerta está cerrada | «Estos dos ajustes actúan cuando la puerta está abierta.» | — |
 | Agentes › Conectados › **Agentes en este equipo** | **Falta algo** | Hay agentes conectados y la puerta está cerrada | «Aun así no anotarán nada hasta que abras la puerta.» | **Ir a Puerta** |
-| Agentes › Cómo se ve su firma › **Nombrar al agente dentro de una tarea** | **Falta algo** | **Solo un rombo** está encendido | «Los dos de arriba quedan apagados mientras «Solo un rombo» esté encendido.» | — |
 | Ayuda y acerca de › **Recibir versiones candidatas** | **No aplica aquí** | La copia de la Microsoft Store | «La Microsoft Store mantiene esta copia al día y no ofrece candidatas.» | — |
 
 ### Una cosa a la vez con tus datos

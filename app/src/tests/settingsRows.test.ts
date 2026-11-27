@@ -31,6 +31,16 @@ describe("searching a setting", () => {
     expect(pages.indexOf("sync")).toBeLessThan(pages.indexOf("security"));
   });
 
+  it("finds the signature rows by the mark's name or by the «by an agent» wording, in both languages", () => {
+    const signed = ["creditRows", "creditInside"];
+    const idsFor = (asked: string) => found(asked).map((hit) => hit.id);
+    expect(idsFor("rombo")).toEqual(expect.arrayContaining(signed));
+    expect(idsFor("por un agente")).toEqual(expect.arrayContaining(signed));
+    adopt("en");
+    expect(idsFor("diamond")).toEqual(expect.arrayContaining(signed));
+    expect(idsFor("by an agent")).toEqual(expect.arrayContaining(signed));
+  });
+
   it("finds nothing in an empty box", () => {
     expect(found("   ")).toEqual([]);
   });
