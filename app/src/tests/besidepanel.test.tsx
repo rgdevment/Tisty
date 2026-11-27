@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { cloneElement } from "react";
 import type { Head } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { measureFor, measureOf } from "../breadth";
 import { t } from "../locales";
 import Beside from "../ui/Beside";
 
@@ -90,6 +91,41 @@ describe("the document's column", () => {
   it("offers no design where the document cannot be written", () => {
     panel([]);
     expect(screen.queryByRole("group", { name: t("designIs") })).toBeNull();
+  });
+
+  it("offers the widths of the text and writes the one picked", async () => {
+    const onMeasure = vi.fn((one) => measureFor("dev_a-0001", one));
+    render(cloneElement(beside([]), { measure: "normal", onMeasure }));
+    const row = screen.getByRole("group", { name: t("measure") });
+    const names = within(row)
+      .getAllByRole("button")
+      .map((one) => one.textContent);
+    expect(names).toEqual([
+      t("measureNarrow"),
+      t("measureNormal"),
+      t("measureWide"),
+      t("measureFull"),
+    ]);
+    expect(within(row).getByRole("button", { name: t("measureNormal") }).ariaPressed).toBe("true");
+    await userEvent.click(within(row).getByRole("button", { name: t("measureWide") }));
+    expect(onMeasure).toHaveBeenCalledWith("wide");
+    expect(measureOf("dev_a-0001", JSON.parse(localStorage.getItem("tisty.measure") ?? "{}"))).toBe(
+      "wide",
+    );
+  });
+
+  it("holds the widths while the sheets are on, and says why", async () => {
+    const onMeasure = vi.fn();
+    render(cloneElement(beside([]), { measure: "normal", onMeasure, sheets: true }));
+    const row = screen.getByRole("group", { name: t("measure") });
+    expect(row.getAttribute("title")).toBe(t("measureNeedsNoSheets"));
+    await userEvent.click(within(row).getByRole("button", { name: t("measureWide") }));
+    expect(onMeasure).not.toHaveBeenCalled();
+  });
+
+  it("offers no widths where the text's width means nothing", () => {
+    panel([]);
+    expect(screen.queryByRole("group", { name: t("measure") })).toBeNull();
   });
 
   it("opens the details with a document whose outline is short", () => {

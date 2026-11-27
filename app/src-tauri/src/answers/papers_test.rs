@@ -286,3 +286,36 @@ fn a_document_another_program_holds_open_is_refused_in_words_not_as_an_os_error(
         assert_eq!(unwritten(held).code, "documentHeldOpen");
     }
 }
+
+#[test]
+fn a_document_whose_stored_title_is_blank_is_listed_with_none() {
+    let (_tmp, mut session) = session();
+    let file = filed(&mut session, "# Real\n");
+    let id = *session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .map(|one| &one.id)
+        .unwrap();
+    for blank in [" ", "\u{3164}"] {
+        session
+            .commit(Op::DocSaid {
+                id,
+                d: tisty_core::event::Said {
+                    title: blank.into(),
+                    ..tisty_core::event::Said::of("# Real\n")
+                },
+            })
+            .unwrap();
+        let listed = gathered(&session);
+        assert_eq!(
+            listed
+                .iter()
+                .find(|one| one.id == id.to_string())
+                .unwrap()
+                .title,
+            ""
+        );
+    }
+}

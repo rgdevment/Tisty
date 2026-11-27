@@ -34,7 +34,7 @@ import { deep, destinations } from "./folders";
 import { agentsKeys, BRAINSTORM, hideChoice } from "./hiding";
 import { waysOut } from "./leaving";
 import { fill, t, type Word } from "./locales";
-import { measureChoice } from "./measureMenu";
+import { measureChoice, widens } from "./measureMenu";
 import { folderPlace, type Place, placeOf, rulesOf } from "./places";
 import { tongueChoices } from "./tongueMenus";
 import type { Choice } from "./ui/Menu";
@@ -72,13 +72,21 @@ const byAnother = (doc: Filed) => doc.away && !doc.archived;
 const unless = (h: Hands, choice: Choice, why: string | null): Choice =>
   why === null ? choice : { ...choice, into: undefined, hint: why, onPick: () => h.failWith(why) };
 
-const placeWhy = (place: Place, rule: "moves" | "copies" | "pages"): string | null => {
+const IDEAS_SAY: Record<Rule, Word> = {
+  pages: "ideasHoldNoPages",
+  moves: "ideasStayPut",
+  copies: "ideasAreOne",
+  goes: "ideasStay",
+};
+
+type Rule = "moves" | "copies" | "pages" | "goes";
+
+const placeWhy = (place: Place, rule: Rule): string | null => {
   if (rulesOf(place)[rule]) return null;
   const said: Record<Place, Word | null> = {
     plain: null,
     agents: null,
-    ideas:
-      rule === "pages" ? "ideasHoldNoPages" : rule === "moves" ? "ideasStayPut" : "ideasAreOne",
+    ideas: IDEAS_SAY[rule],
     diary:
       rule === "pages" ? "diaryHoldsOnlyDays" : rule === "moves" ? "diaryStaysPut" : "diaryIsOne",
   };
@@ -518,6 +526,17 @@ const languagesChoice = (doc: Filed, h: Hands, place: Place): Choice => {
   );
 };
 
+const awayWhy = (doc: Filed, place: Place): string | null => {
+  if (byAnother(doc)) return t("folderIsAway");
+  return doc.archived ? null : placeWhy(place, "goes");
+};
+
+const dropWhy = (doc: Filed, place: Place): string | null => {
+  if (doc.locked) return t("lockedSaid");
+  if (byAnother(doc)) return t("folderIsAway");
+  return placeWhy(place, "goes");
+};
+
 const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
   unless(
     h,
@@ -556,7 +575,7 @@ const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
         docAway(doc.id, true).then(h.changed).catch(h.fail);
       },
     },
-    byAnother(doc) ? t("folderIsAway") : null,
+    awayWhy(doc, place),
   ),
   unless(
     h,
@@ -568,7 +587,7 @@ const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
       danger: true,
       onPick: () => h.dropDoc(doc),
     },
-    doc.locked ? t("lockedSaid") : byAnother(doc) ? t("folderIsAway") : null,
+    dropWhy(doc, place),
   ),
 ];
 
@@ -579,14 +598,31 @@ const OWN_MENUS: Partial<Record<Place, Set<string>>> = {
 };
 
 // Another computer's agent file is read, moved and taken out here; what it says and whether it stands is that computer's.
-const OF_ANOTHER = new Set(["move", "copyAs", "exportAs"]);
+const OF_ANOTHER = new Set(["move", "copyAs", "takeOut"]);
+
+// An agent reads its one file as it stands: a page, a language, a second copy or a printed form of it reaches no agent.
+const FOR_AGENTS = new Set(["move", "copyAs", "away", "drop"]);
+
+const opening = (choices: Choice[]): Choice[] =>
+  choices.map((one, at) => ({ ...one, apart: at > 0 && one.apart }));
+
+const forAgents = (all: Choice[], doc: Filed): Choice[] =>
+  all.flatMap((one): Choice[] => {
+    if (one.key === "copyAs" && one.into) {
+      const copies = opening(one.into.choices.filter((each) => each.key !== "copy"));
+      return [{ ...one, into: { ...one.into, choices: copies } }];
+    }
+    if (one.key === "exportAs")
+      return (one.into?.choices ?? []).filter((each) => each.key === "takeOut");
+    // A lock set before can still be lifted.
+    if (one.key === "lock") return doc.locked ? [one] : [];
+    return FOR_AGENTS.has(one.key) ? [one] : [];
+  });
 
 export const docChoices = (doc: Filed, h: Hands, board = false): Choice[] => {
   const place = board ? "ideas" : placeOf(doc, h.papers);
-  // An agent's file is shown as its card, which has no text column to widen.
-  const all = everyChoice(doc, h, place).filter(
-    (one) => place !== "agents" || one.key !== "measure",
-  );
+  const every = everyChoice(doc, h, place).filter((one) => one.key !== "measure" || widens(place));
+  const all = place === "agents" ? forAgents(every, doc) : every;
   if (ofAnother(h.papers.folders.find((one) => one.id === doc.folder)))
     return all.filter((one) => OF_ANOTHER.has(one.key));
   const own = OWN_MENUS[place];

@@ -304,6 +304,22 @@ The subfolders are there so you find things, but **where a document sits does co
 
 **An example.** Jaime is trying new Claude rules by hand this afternoon, but wants Codex to keep getting its own. He right-clicks **Agents › Home (this computer) › Claude** and chooses **Pause sync with Claude**. Codex keeps syncing; Claude stays as the last write left it. When he is done, he right-clicks again and chooses **Resume sync with Claude**.
 
+### A document's right-click
+
+A rule, a skill's file or a hook inside Agents is one file an agent reads as it stands, so its menu offers only what reaches that file:
+
+| Choice | What it does |
+| :-- | :-- |
+| **Move to…** | Takes it to another folder of Agents, such as from Global to a team. See [On several computers](#other-computers-documents) |
+| **Copy** | **Copy as Markdown** or **Copy link** |
+| **Export as Markdown…** | Saves a copy of its file in a folder you choose |
+| **Archive** | Puts it away: Tisty stops writing its file. **Unarchive** brings it back |
+| **Delete** | Asks first, and asks about the files it wrote. See [Deleting a rule or skill](#deleting-a-rule-or-skill) |
+
+- **There is no New page, Duplicate, Languages, Lock, PDF, HTML, Word or Pack.** A page, a second copy or another language would be a document no agent reads, and a duplicate would write the same file twice.
+- **A document locked before** still shows **Unlock it**, so the lock can come off.
+- **Another computer's document** offers only **Move to…**, **Copy** and **Export as Markdown…**.
+
 ### The `agent:` line
 
 Each Agents document starts with its properties, and one of them says which file it is:

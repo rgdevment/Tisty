@@ -112,12 +112,12 @@ fn only_a_plain_folder_makes_everything() {
 fn each_place_has_its_own_rules() {
     let rules = |place: Place| {
         let all = place.rules();
-        (all.makes.len(), all.pages, all.moves, all.copies)
+        (all.makes.len(), all.pages, all.moves, all.copies, all.goes)
     };
-    assert_eq!(rules(Place::Plain), (MAKINGS.len(), true, true, true));
-    assert_eq!(rules(Place::Ideas), (0, false, false, false));
-    assert_eq!(rules(Place::Diary), (0, false, false, false));
-    assert_eq!(rules(Place::Agents), (1, true, true, true));
+    assert_eq!(rules(Place::Plain), (MAKINGS.len(), true, true, true, true));
+    assert_eq!(rules(Place::Ideas), (0, false, false, false, false));
+    assert_eq!(rules(Place::Diary), (0, false, false, false, true));
+    assert_eq!(rules(Place::Agents), (1, true, true, true, true));
 }
 
 #[test]
@@ -140,6 +140,7 @@ fn each_place_refuses_with_its_own_code() {
     assert_eq!(code(Place::Diary.moves()), Some("diaryStaysPut"));
     assert_eq!(code(Place::Ideas.copies()), Some("ideasAreOne"));
     assert_eq!(code(Place::Diary.copies()), Some("diaryIsOne"));
+    assert_eq!(code(Place::Ideas.goes()), Some("ideasStay"));
 }
 
 #[test]
@@ -236,4 +237,12 @@ fn inside_agents_only_a_doc_is_made() {
     for what in MAKINGS {
         assert_eq!(code(places.may_make(Some(world.plain_folder), what)), None);
     }
+}
+
+#[test]
+fn only_ideas_refuses_to_be_archived_or_deleted() {
+    for place in [Place::Plain, Place::Diary, Place::Agents] {
+        assert!(place.goes().is_ok(), "{place:?}");
+    }
+    assert!(Place::Ideas.goes().is_err());
 }

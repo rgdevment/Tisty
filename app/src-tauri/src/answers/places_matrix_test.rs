@@ -4,7 +4,7 @@ use tisty_core::{Op, Paths, agents};
 use ulid::Ulid;
 
 use super::super::{papers, tongues};
-use super::{Making, may_copy, may_file, may_hang, may_lodge, may_make, may_shelve};
+use super::{Making, may_copy, may_file, may_go, may_hang, may_lodge, may_make, may_shelve};
 use crate::{Answer, Session};
 
 type Fingerprint = (
@@ -501,4 +501,84 @@ fn folder_file_an_agents_subfolder_still_moves_within_agents() {
 fn folder_file_a_plain_folder_still_moves_into_a_plain_folder() {
     let m = matrix();
     assert!(may_shelve(&m.session, m.stray, Some(m.work)).is_ok());
+}
+
+const SHEET: &str = "---\nbrainstorm: on\n---\n# Ideas\n";
+
+fn sheet(session: &mut Session) -> DocId {
+    std::thread::sleep(std::time::Duration::from_millis(3));
+    written(session, None, None, SHEET)
+}
+
+#[test]
+fn doc_drop_the_live_ideas_sheet() {
+    let mut m = matrix();
+    let live = sheet(&mut m.session);
+    m.refused(|s| s.drop_doc(&live.to_string()), "ideasStay");
+}
+
+#[test]
+fn doc_away_the_live_ideas_sheet() {
+    let mut m = matrix();
+    let live = sheet(&mut m.session);
+    m.refused(|s| may_go(s, live), "ideasStay");
+}
+
+#[test]
+fn doc_the_unmarked_unremembered_live_ideas_sheet_stays() {
+    let mut m = matrix();
+    let live = sheet(&mut m.session);
+    m.session.state.docs.get_mut(&live).unwrap().brainstorm = false;
+    m.session.brainstorm = None;
+    m.refused(|s| s.drop_doc(&live.to_string()), "ideasStay");
+    m.refused(|s| may_go(s, live), "ideasStay");
+    assert!(may_go(&m.session, m.plain).is_ok());
+    assert!(m.session.drop_doc(&m.plain.to_string()).is_ok());
+}
+
+#[test]
+fn doc_away_a_plain_doc_and_the_diary_still_go() {
+    let mut m = matrix();
+    sheet(&mut m.session);
+    assert!(may_go(&m.session, m.plain).is_ok());
+    assert!(may_go(&m.session, m.diary).is_ok());
+    assert!(may_go(&m.session, m.agents_doc).is_ok());
+    assert!(m.session.drop_doc(&m.plain.to_string()).is_ok());
+}
+
+#[test]
+fn doc_drop_an_archived_old_ideas_sheet_still_goes() {
+    let mut m = matrix();
+    let old = sheet(&mut m.session);
+    let live = sheet(&mut m.session);
+    m.session.commit(Op::DocArchive { id: old }).unwrap();
+
+    assert!(may_go(&m.session, old).is_ok());
+    assert!(m.session.drop_doc(&old.to_string()).is_ok());
+    m.refused(|s| s.drop_doc(&live.to_string()), "ideasStay");
+}
+
+#[test]
+fn doc_away_the_old_sheet_brought_back_is_the_live_one_again() {
+    let mut m = matrix();
+    let old = sheet(&mut m.session);
+    let live = sheet(&mut m.session);
+    m.session.commit(Op::DocArchive { id: old }).unwrap();
+    assert!(may_go(&m.session, old).is_ok());
+
+    m.session.commit(Op::DocUnarchive { id: old }).unwrap();
+
+    m.refused(|s| may_go(s, old), "ideasStay");
+    assert!(may_go(&m.session, live).is_ok());
+}
+
+#[test]
+fn doc_drop_a_second_ideas_sheet_still_goes() {
+    let mut m = matrix();
+    let live = sheet(&mut m.session);
+    let second = sheet(&mut m.session);
+
+    assert!(may_go(&m.session, second).is_ok());
+    assert!(m.session.drop_doc(&second.to_string()).is_ok());
+    m.refused(|s| s.drop_doc(&live.to_string()), "ideasStay");
 }

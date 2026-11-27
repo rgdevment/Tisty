@@ -177,6 +177,19 @@ describe("the groups of Global in the tree", () => {
     expect(document.activeElement).toBe(global);
   });
 
+  it("goes to the first and the last row with Home and End from the plus button", async () => {
+    const { container } = await drawn({ onNewRule: vi.fn() });
+    const plus = await screen.findByRole("button", { name: asked });
+    const all = [...container.querySelectorAll<HTMLElement>("[data-row]")];
+    plus.focus();
+
+    fireEvent.keyDown(plus, { key: "End" });
+    expect(document.activeElement).toBe(all[all.length - 1]);
+
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Home" });
+    expect(document.activeElement).toBe(all[0]);
+  });
+
   it("speaks English too", async () => {
     adopt("en");
     await drawn({ onNewRule: vi.fn() });

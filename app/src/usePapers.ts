@@ -31,6 +31,7 @@ import { cut } from "./saving";
 import { steady } from "./steady";
 import { sure } from "./sure";
 import { dropPickedAsked, filesGoing, type Going, goingWith } from "./tidying";
+import { usePinned } from "./usePinned";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -207,9 +208,14 @@ export function usePapers({
     if (open && docs.some((one) => one.file === open)) setChosen({ named: "docs" });
   };
 
-  // As its menu: a locked document, or one its archived folder holds, says why instead of going.
-  const stays = (doc: Filed): string | null =>
-    doc.locked ? t("lockedSaid") : doc.away && !doc.archived ? t("folderIsAway") : null;
+  const board = usePinned(papers)?.file ?? null;
+
+  // As its menu: a locked document, one its archived folder holds, or Ideas says why instead of going.
+  const stays = (doc: Filed): string | null => {
+    if (doc.locked) return t("lockedSaid");
+    if (doc.away && !doc.archived) return t("folderIsAway");
+    return doc.file === board ? t("ideasStay") : null;
+  };
 
   const goingIds = (going: Going[]) =>
     going.flatMap(({ doc, tongues, pages }) => [doc, ...tongues, ...pages].map((one) => one.id));
@@ -224,7 +230,19 @@ export function usePapers({
     if (open && files.includes(open)) setChosen({ named: "docs" });
   };
 
-  const returnTo = (doc: Filed) => setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
+  // The focus goes on to the row after what goes, or the one before it at the end, so the keys keep their place.
+  const returnTo = (doc: Filed, going: readonly string[] = [doc.id]) => {
+    // Only the rows of its own tree: other panels name their parts with `data-row` too.
+    const tree =
+      document.querySelector(`[data-row="${doc.id}"]`)?.closest("[data-tree]") ?? document;
+    const rows = Array.from(tree.querySelectorAll<HTMLElement>("[data-row]"));
+    const at = rows.findIndex((row) => row.dataset.row === doc.id);
+    const stays = (row: HTMLElement | undefined) =>
+      row?.dataset.row && !going.includes(row.dataset.row) ? row.dataset.row : null;
+    const after =
+      at < 0 ? null : (rows.slice(at + 1).find(stays) ?? rows.slice(0, at).reverse().find(stays));
+    setReturning(after?.dataset.row ?? doc.pageOf ?? doc.folder ?? "unfiled");
+  };
 
   // What a document of Agents wrote into an agent's folder is asked about in the one question that deletes it.
   const reached = async (going: Going[]): Promise<Reach | null> => {
@@ -274,9 +292,11 @@ export function usePapers({
     const going = goingWith([doc], papers.docs);
     const asked = dropPickedAsked(going);
     if (await droppedFromAgents(going, asked)) return;
-    if (!(await sure(asked).catch(() => false))) return;
+    // One document going alone waits out its undo instead of a question; pages or languages with it still ask.
+    const alone = going.every((one) => !one.pages.length && one.tongues.length <= 1);
+    if (!alone && !(await sure(asked).catch(() => false))) return;
     leaving(goingDocs(going));
-    returnTo(doc);
+    returnTo(doc, goingIds(going));
     dropLater({
       hides: goingIds(going),
       said: fill("docGone", doc.title || t("untitledDoc")),
@@ -298,7 +318,7 @@ export function usePapers({
     if (await droppedFromAgents(going, asked)) return;
     if (!(await sure(asked))) return;
     leaving(goingDocs(going));
-    if (going[0]) returnTo(going[0].doc);
+    if (going[0]) returnTo(going[0].doc, goingIds(going));
     dropLater({
       hides: goingIds(going),
       said:
@@ -404,6 +424,7 @@ export function usePapers({
 
   return {
     papers,
+    board,
     lookPapers,
     papersChanged,
     newDoc,

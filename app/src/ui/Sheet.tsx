@@ -413,6 +413,7 @@ export default function Sheet(props: Readonly<Props>) {
     onFile.current = file;
     pageWriter.current?.hands.stop();
     pageWriter.current = null;
+    turnsOn.current = { file, turns: turnsAnew() };
     left();
     latest.current = value;
     settledOn.current = value;

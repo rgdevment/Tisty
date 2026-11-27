@@ -97,3 +97,28 @@ fn words_that_only_look_like_a_ticket_stay_in_the_subject() {
     assert_eq!(subject("covid-19 rules"), "covid-19 rules");
     assert_eq!(subject("Release plan v2"), "release plan v2");
 }
+
+#[test]
+fn a_title_of_nothing_drawn_is_no_title() {
+    for blank in [
+        "",
+        " ",
+        " \t\n ",
+        "\u{200b}",
+        "\u{2060}\u{feff}",
+        "\u{3164}",
+        "\u{ffa0}\u{2800}",
+        "\u{115f}\u{1160}\u{180e}",
+        "\u{00ad}\u{034f}",
+        "\u{2061}\u{206a}\u{fe0f}",
+        "\u{e0020}",
+    ] {
+        assert_eq!(title_said(blank), "", "{blank:?}");
+    }
+}
+
+#[test]
+fn a_title_with_a_letter_keeps_its_words() {
+    assert_eq!(title_said("  Diseño técnico  "), "Diseño técnico");
+    assert_eq!(title_said("\u{200b}a\u{3164}"), "\u{200b}a\u{3164}");
+}

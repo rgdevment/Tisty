@@ -245,6 +245,27 @@ export default function Tree({
   const anchor = useRef<string | null>(null);
   const isDoc = (id: string) => papers.docs.some((one) => one.id === id);
 
+  // The documents drawn from the last one picked to `id`, rows of other kinds skipped.
+  const runTo = (id: string): string[] | null => {
+    const order = rows()
+      .map((row) => row.dataset.row ?? "")
+      .filter(isDoc);
+    const ends = [order.indexOf(anchor.current ?? ""), order.indexOf(id)];
+    if (ends.includes(-1)) return null;
+    const [from, to] = [Math.min(...ends), Math.max(...ends)];
+    return order.slice(from, to + 1);
+  };
+
+  // Shift and an arrow picks from where it began to the row it lands on, as Shift and a click does.
+  const stretch = (from: string, by: number) => {
+    if (!onPicked) return;
+    const all = rows();
+    const to = all[all.findIndex((row) => row.dataset.row === from) + by]?.dataset.row;
+    if (!to || !isDoc(to)) return;
+    if (!anchor.current || !picked?.has(anchor.current)) anchor.current = isDoc(from) ? from : to;
+    onPicked(runTo(to) ?? [to]);
+  };
+
   // Ctrl or Cmd adds one, Shift adds the run since the last one; a plain click lets them all go.
   const picking = (e: React.MouseEvent, id: string): boolean => {
     if (!onPicked) return false;
@@ -257,11 +278,8 @@ export default function Tree({
       return true;
     }
     if (e.shiftKey && anchor.current) {
-      const order = rows()
-        .map((row) => row.dataset.row ?? "")
-        .filter(isDoc);
-      const [from, to] = [order.indexOf(anchor.current), order.indexOf(id)].sort((a, b) => a - b);
-      if (from >= 0) onPicked([...new Set([...now, ...order.slice(from, to + 1)])]);
+      const run = runTo(id);
+      if (run) onPicked([...new Set([...now, ...run])]);
       return true;
     }
     anchor.current = id;
@@ -433,17 +451,28 @@ export default function Tree({
     next.focus();
   };
 
-  // A row drawn only, never a folder: the arrow keys reach it, and nothing is dropped on it.
+  // The arrows step a row, Home and End go to the first and the last: every row walks the same.
+  const stepped = (e: React.KeyboardEvent, from: string): boolean => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      walk(from, e.key === "ArrowDown" ? 1 : -1);
+      return true;
+    }
+    if (e.key !== "Home" && e.key !== "End") return false;
+    e.preventDefault();
+    const all = rows();
+    const to = e.key === "Home" ? all[0] : all[all.length - 1];
+    if (to) walk(to.dataset.row ?? "", 0);
+    return true;
+  };
+
+  // A row drawn only, never a folder: the keys walk it like any other, and nothing is dropped on it.
   const rowOf: RowOf = (key) =>
     ({
       "data-row": key,
       tabIndex: stops(key) ? 0 : -1,
       onFocus: () => setReached(key),
-      onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-        e.preventDefault();
-        walk(key, e.key === "ArrowDown" ? 1 : -1);
-      },
+      onKeyDown: (e: React.KeyboardEvent) => stepped(e, key),
     }) as ReturnType<RowOf>;
 
   const land = (folder?: string) => {
@@ -459,16 +488,13 @@ export default function Tree({
     row: { id: string; kind: "doc" | "folder"; name: string },
     place?: string,
   ) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (e.shiftKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       e.preventDefault();
-      return walk(row.id, e.key === "ArrowDown" ? 1 : -1);
+      const by = e.key === "ArrowDown" ? 1 : -1;
+      stretch(row.id, by);
+      return walk(row.id, by);
     }
-    if (e.key === "Home" || e.key === "End") {
-      e.preventDefault();
-      const all = rows();
-      const to = e.key === "Home" ? all[0] : all[all.length - 1];
-      return to && walk(to.dataset.row ?? "", 0);
-    }
+    if (stepped(e, row.id)) return;
     if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
       e.preventDefault();
       const box = (e.target as HTMLElement).getBoundingClientRect();
@@ -558,7 +584,9 @@ export default function Tree({
         ? "Control+V Control+X Shift+F10"
         : "Control+X Shift+F10";
 
+  // What a fold hides is no longer seen, so nothing stays picked under it.
   const fold = (id: string) => {
+    if (picked?.size) onPicked?.([]);
     if (opened.has(id)) setReached(id);
     setOpened((were) => turned(were, id));
   };
@@ -932,9 +960,7 @@ export default function Tree({
                 e.preventDefault();
                 return unfold(group.key);
               }
-              if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-              e.preventDefault();
-              walk(group.key, e.key === "ArrowDown" ? 1 : -1);
+              stepped(e, group.key);
             }}
             onClick={() => unfold(group.key)}
             aria-expanded={!closed}
@@ -1399,7 +1425,7 @@ export default function Tree({
   );
 
   return (
-    <div ref={listed} className={carried ? "carrying select-none" : undefined}>
+    <div ref={listed} data-tree="" className={carried ? "carrying select-none" : undefined}>
       {tree}
       {kept}
     </div>

@@ -20,8 +20,9 @@ pub fn fenced_between(body: &str, from: usize, to: usize) -> bool {
 
 pub fn titled(body: &str) -> String {
     let body = body.trim_start_matches('\u{feff}');
-    if let Some(named) = tisty_markdown::front::title(body) {
-        return crate::text::plainly(&named);
+    let fronted = tisty_markdown::front::title(body).map(|named| crate::text::title_said(&named));
+    if let Some(named) = fronted.filter(|named| !named.is_empty()) {
+        return named;
     }
     let mut past = tisty_markdown::front::span(body).map_or(0, |at| at.end);
     // An agent document's file may open with its own properties, which are no title either.
@@ -48,7 +49,7 @@ pub fn titled(body: &str) -> String {
             (!wordless(said)).then_some(said)
         })
         .unwrap_or_default();
-    crate::text::plainly(unspanned(first).trim())
+    crate::text::title_said(unspanned(first).trim())
 }
 
 pub fn marked(body: &str, said: &str) -> String {

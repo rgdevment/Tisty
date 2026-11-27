@@ -26,7 +26,6 @@ import type { Asked, MenuOpen, Shaping, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
-import { usePinned } from "./usePinned";
 import { type Chosen, type Slice, useReach } from "./views";
 import { useAloneOffer, useAloud, useTight, useUpdates } from "./watching";
 
@@ -89,6 +88,7 @@ export function useWindow() {
   const paging = useRef<((page: Filed) => boolean) | null>(null);
   const {
     papers,
+    board,
     lookPapers,
     papersChanged,
     newDoc,
@@ -114,7 +114,6 @@ export function useWindow() {
     carries,
     paging,
   });
-  const board = usePinned(papers)?.file ?? null;
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried] = useState(freshness);

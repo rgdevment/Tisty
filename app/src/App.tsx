@@ -3,7 +3,7 @@ import { folderShown, inAgents } from "./agentsSync";
 import { chosenWidth, railed, useBreadth } from "./breadth";
 import { docAway, docFile, type Filed, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
-import { hereChoices, NEW_DOC_KEY } from "./docMenus";
+import { deleteKey, hereChoices, NEW_DOC_KEY } from "./docMenus";
 import { destinations } from "./folders";
 import { cameFrom } from "./guide/help";
 import { fill, t } from "./locales";
@@ -80,6 +80,14 @@ export default function App() {
       .reduce<Promise<unknown>>((before, doc) => before.then(() => one(doc)), Promise.resolve())
       .catch((e) => setError(saidPlainly(e)))
       .finally(papersChanged);
+  const movingTo = (docs: Filed[], letGo?: () => void) =>
+    destinations(papers.folders, "", (folder) => {
+      letGo?.();
+      return eachOf(docs, (doc) =>
+        movedOnceSure("doc", doc.id, folder, () => docFile(doc.id, folder)),
+      );
+    });
+  const awayDocs = (docs: Filed[]) => eachOf(docs, (doc) => docAway(doc.id, true));
   const acts: LibraryActs = {
     newDoc: () => hands.newDoc(here ?? undefined),
     newTitle: `${fill(
@@ -89,17 +97,43 @@ export default function App() {
     dropDocs: (docs) => (docs.length === 1 ? desk.dropDoc(docs[0]) : desk.dropDocs(docs)),
     dropFolder: desk.dropFolder,
     rename: desk.setRenaming,
-    moveDocs: (docs, at) =>
+    moveDocs: (docs, at) => setMenu({ at, label: t("moveHere"), choices: movingTo(docs) }),
+    awayDocs,
+    pickedMenu: (docs, at, letGo) =>
       setMenu({
         at,
-        label: t("moveHere"),
-        choices: destinations(papers.folders, "", (folder) =>
-          eachOf(docs, (doc) =>
-            movedOnceSure("doc", doc.id, folder, () => docFile(doc.id, folder)),
-          ),
-        ),
+        label: fill("pickedMany", String(docs.length)),
+        choices: [
+          {
+            key: "move",
+            icon: "⇢",
+            label: t("moveTo"),
+            into: { label: t("moveHere"), choices: movingTo(docs, letGo) },
+          },
+          {
+            key: "away",
+            icon: "▣",
+            label: t("putAway"),
+            apart: true,
+            onPick: () => {
+              letGo();
+              void awayDocs(docs);
+            },
+          },
+          {
+            key: "drop",
+            icon: "✕",
+            label: t("deleteIt"),
+            keys: deleteKey(),
+            danger: true,
+            onPick: () => {
+              letGo();
+              acts.dropDocs(docs);
+            },
+          },
+          { key: "letGo", icon: "○", label: t("pickedLetGo"), apart: true, onPick: letGo },
+        ],
       }),
-    awayDocs: (docs) => eachOf(docs, (doc) => docAway(doc.id, true)),
   };
   const openNetwork = () => {
     if (chosen.named === "brainsty") return;

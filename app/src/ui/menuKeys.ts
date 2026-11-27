@@ -29,6 +29,7 @@ export const placement = (
   view: Size,
   ceiling = EDGE,
   up = false,
+  whole = false,
 ): Placed => {
   const tall = Math.min(card.tall, Math.round(view.tall * TALLEST));
   const top = at.top ?? at.y;
@@ -41,7 +42,7 @@ export const placement = (
   const under = (high: number): Placed => ({ x, top: at.y, tall: high });
   if (up && tall <= above) return over(tall);
   if (tall <= below) return under(tall);
-  if (below >= ROOMY_BELOW) return under(below);
+  if (!whole && below >= ROOMY_BELOW) return under(below);
   if (tall <= above) return over(tall);
   if (Math.max(below, above) < SHORTEST)
     return { x, top: Math.max(EDGE, view.tall - tall - EDGE), tall };

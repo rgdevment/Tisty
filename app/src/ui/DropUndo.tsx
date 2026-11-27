@@ -1,10 +1,27 @@
+import { useEffect } from "react";
 import { undo, useGoing } from "../dropLater";
 import { fill, t } from "../locales";
+import { letterOf, modKey } from "./macKeys";
+import { typing } from "./typing";
 
 /// What was just deleted waits a few seconds here, so a slip of the hand costs one click.
 export default function DropUndo() {
   const going = useGoing();
   const last = going[going.length - 1];
+  const key = last?.key;
+  // Outside what is being written, the undo key brings back the last delete still waiting.
+  useEffect(() => {
+    if (!key) return;
+    const back = (e: KeyboardEvent) => {
+      const mine = modKey(e) && !e.shiftKey && !e.altKey && letterOf(e) === "z";
+      // What a page undid itself is its own undo, not the delete's.
+      if (!mine || e.defaultPrevented || typing(e.target)) return;
+      e.preventDefault();
+      undo(key);
+    };
+    window.addEventListener("keydown", back);
+    return () => window.removeEventListener("keydown", back);
+  }, [key]);
   if (!last) return null;
   return (
     <div className="cheer">

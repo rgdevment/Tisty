@@ -327,6 +327,12 @@ describe("filtering the library", () => {
     expect(work.folders.map((one) => one.id)).toEqual(["F1", "F2"]);
     expect(work.docs.map((one) => one.id)).toEqual(["D1"]);
   });
+
+  it("finds a document with no title by the name its row shows", () => {
+    const blank = { ...papers.docs[0], id: "D9", title: "" };
+    const left = sifted({ ...papers, docs: [...papers.docs, blank] }, t("untitledDoc"));
+    expect(left.docs.map((one) => one.id)).toEqual(["D9"]);
+  });
 });
 
 describe("the day's counts that point somewhere of their own", () => {

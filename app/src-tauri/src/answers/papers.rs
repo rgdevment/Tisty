@@ -400,6 +400,10 @@ pub fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: boo
         return Err(Refusal::of("noSuchDoc"));
     }
     doc_out(&session.state, id)?;
+    // Bringing back is always allowed, so a sheet an older version archived can come home.
+    if away {
+        super::placing::may_go(&session, id)?;
+    }
     let ops = super::tongues::with_kin(&session.state, id)
         .map(|id| match away {
             true => Op::DocArchive { id },

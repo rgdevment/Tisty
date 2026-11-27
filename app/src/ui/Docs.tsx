@@ -4,7 +4,7 @@ import { freshFence } from "tisty-diagrams/read";
 import type { Design } from "tisty-editor/read";
 import { acrossOf, type Head, laidIn, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { agentsTree } from "../agentsSync";
-import { fold, RAIL, sideWidth, useBreadth, useMeasure, WIDE_WINDOW } from "../breadth";
+import { fold, measureFor, RAIL, sideWidth, useBreadth, useMeasure, WIDE_WINDOW } from "../breadth";
 import type { Citing } from "../citing";
 import { asPlain } from "../copying";
 import {
@@ -37,7 +37,9 @@ import { brainstormIn, notedIn, withDesign, withLandscape, withPaper, withSheets
 import { setAside } from "../keptAside";
 import { DOC_ASIDE_FROM } from "../layout";
 import { fill, t } from "../locales";
+import { widens } from "../measureMenu";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
+import { placeOf } from "../places";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, cut, holds, stalledOn, turned, unansweredWords } from "../saving";
@@ -894,6 +896,8 @@ export default function Docs({
       .catch((e) => onError(saidPlainly(e)));
   };
   const measure = useMeasure(open?.id);
+  const widensHere =
+    !onNotes && !onDiary && !agentShown && !!own && widens(placeOf(own, { docs: known, folders }));
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
@@ -1344,6 +1348,8 @@ export default function Docs({
           }
           design={design}
           onDesign={dressIn}
+          measure={measure}
+          onMeasure={widensHere ? (one) => measureFor(open.id, one) : undefined}
           making={making}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
           tongues={tongues}

@@ -112,6 +112,15 @@ export type Choosing = {
   readonly onPick: (key: string) => void;
 };
 
+/** How wide the text reads, the reader's own: one of a row of widths, the current one on. */
+export type Measuring = {
+  readonly label: string;
+  readonly all: readonly Pick[];
+  /** Why the widths wait, when the text follows something else, such as the paper. */
+  readonly waiting?: string;
+  readonly onPick: (key: string) => void;
+};
+
 // Every panel a sheet can have beside it; each place shows the ones it needs, in its order, and the rest are left out.
 export type Panel =
   | {
@@ -130,6 +139,7 @@ export type Panel =
       readonly sheets?: Turn;
       readonly landscape?: Turn;
       readonly raw?: Turn;
+      readonly measure?: Measuring;
       readonly design?: Choosing;
       readonly onExport?: (at: HTMLElement) => void;
       readonly exporting?: boolean;

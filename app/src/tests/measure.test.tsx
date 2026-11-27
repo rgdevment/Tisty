@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { MEASURES, measureFor, measureOf, SHOWN_MEASURE, useMeasure } from "../breadth";
 import type { Filed } from "../core";
 import { t } from "../locales";
-import { measureChoice } from "../measureMenu";
+import { MEASURE_WORDS, measureChoice, widens } from "../measureMenu";
+import type { Place } from "../places";
 import { LivelyBelow } from "../ui/liveSheet";
 import { inTheRepo } from "./repo";
 
@@ -129,6 +130,7 @@ describe("the text width choice in the menu", () => {
       "measureNormal",
       "measureWide",
       "measureFull",
+      "measureNeedsNoSheets",
     ] as const;
     const locales = readFileSync("src/locales.ts", "utf8");
     for (const name of labels) {
@@ -182,5 +184,25 @@ describe("what hangs below the whole-document page", () => {
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper.classList.contains("lively-below")).toBe(true);
     expect(wrapper.className).not.toContain("max-w-[1100px]");
+  });
+});
+
+describe("where the text width can be chosen", () => {
+  it.each([
+    ["plain", true],
+    ["ideas", false],
+    ["diary", false],
+    ["agents", false],
+  ] as [Place, boolean][])("says %s widens: %s", (place, widened) => {
+    expect(widens(place)).toBe(widened);
+  });
+
+  it("names every width with a word of its own", () => {
+    expect(MEASURES.map((one) => MEASURE_WORDS[one])).toEqual([
+      "measureNarrow",
+      "measureNormal",
+      "measureWide",
+      "measureFull",
+    ]);
   });
 });

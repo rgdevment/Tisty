@@ -1031,6 +1031,7 @@ const en = {
   measureNormal: "Normal",
   measureWide: "Wide",
   measureFull: "Full",
+  measureNeedsNoSheets: "With Sheets on, the text is as wide as the paper",
   tongueTaken: "That language is already one of its languages",
   notOneOwnDoc: "Only what is your own can be shared",
   onlyADocumentShared: "A page goes with its document, and a task's words stay with the task",
@@ -1804,6 +1805,8 @@ const en = {
   newShort: "New",
   pickedMany: "{name} selected",
   pickedLetGo: "Let go of the selection",
+  pickRow: "Select",
+  pickedHow: "{name}+click, Shift+click or Shift+↑↓ add more",
   newDocIn: "New document in {name}",
   keyDelete: "Del",
   moreToMake: "More to make",
@@ -2196,6 +2199,8 @@ const en = {
   ideasStayPut:
     "Ideas stays pinned at the top of the library: it goes in no folder and is nobody's page.",
   ideasAreOne: "There is only one Ideas sheet, so it is not duplicated.",
+  ideasStay:
+    "Ideas stays: it holds every idea you jot, and without it Tisty would start an empty one. To stop seeing it, hide it.",
   diaryHoldsOnlyDays: "The diary holds only its days. Write it in a document of its own.",
   diaryStaysPut: "The diary stays under Diary: it goes in no folder and is nobody's page.",
   diaryIsOne: "The diary is one, so a year of it is not duplicated.",
@@ -4960,6 +4965,7 @@ const es: Catalog = {
   measureNormal: "Normal",
   measureWide: "Ancho",
   measureFull: "Completo",
+  measureNeedsNoSheets: "Con Hojas encendido, el texto va al ancho del papel",
   tongueTaken: "Ese idioma ya está entre sus idiomas",
   notOneOwnDoc: "Solo se puede compartir lo propio",
   onlyADocumentShared:
@@ -5745,6 +5751,8 @@ const es: Catalog = {
   newShort: "Nuevo",
   pickedMany: "{name} elegidos",
   pickedLetGo: "Soltar la selección",
+  pickRow: "Elegir",
+  pickedHow: "{name}+clic, Shift+clic o Shift+↑↓ suman más",
   newDocIn: "Documento nuevo en {name}",
   keyDelete: "Supr",
   moreToMake: "Más para crear",
@@ -6143,6 +6151,8 @@ const es: Catalog = {
   ideasStayPut:
     "Ideas queda fija arriba de la biblioteca: no va en ninguna carpeta ni es página de nadie.",
   ideasAreOne: "La hoja de Ideas es una sola, así que no se duplica.",
+  ideasStay:
+    "Ideas se queda: guarda cada idea que anotas, y sin ella Tisty empezaría otra vacía. Si no quieres verla, ocúltala.",
   diaryHoldsOnlyDays: "El diario guarda solo sus días. Escríbelo en un documento propio.",
   diaryStaysPut: "El diario queda en Diario: no va en ninguna carpeta ni es página de nadie.",
   diaryIsOne: "El diario es uno solo, así que un año suyo no se duplica.",

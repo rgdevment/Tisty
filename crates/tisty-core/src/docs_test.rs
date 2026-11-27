@@ -3550,3 +3550,18 @@ fn a_line_written_with_separate_accents_is_still_cut_around_the_match() {
 
     assert!(found[0].line.contains("aguja final"), "{}", found[0].line);
 }
+
+#[test]
+fn a_blank_heading_is_no_title_and_the_next_line_names_the_document() {
+    for body in [" ", "# ", "#  \n", "# \u{3164}", "\u{200b}"] {
+        assert_eq!(titled(body), "", "{body:?}");
+    }
+    assert_eq!(titled("# \n\nTexto"), "Texto");
+}
+
+#[test]
+fn a_blank_title_in_the_front_matter_falls_back_to_the_body() {
+    assert_eq!(titled("---\ntitle: \"\u{3164}\"\n---\n# Real\n"), "Real");
+    assert_eq!(titled("---\ntitle: \"  \"\n---\n# Real\n"), "Real");
+    assert_eq!(titled("---\ntitle: Dicho\n---\n# Real\n"), "Dicho");
+}

@@ -28,6 +28,10 @@ The whole window works from the keyboard.
 | `Ctrl`/`⌘` + `Shift` + `P` | Open the [palette](#the-palette) on its actions |
 | `Ctrl`/`⌘` + `K` (outside what you are writing) | Go to the search at the top of the sidebar, unfolding the sidebar first if it is folded |
 | `Ctrl`/`⌘` + `B` (outside what you are writing) | Fold the sidebar to its icons, or unfold it; drag its edge to change its width. When the column on the right does not fit beside it, the sidebar folds to its icons by itself; opened by hand, it stays open until you change view or the window's size |
+| `Ctrl`/`⌘` + click · `Shift` + click · `Shift` + `↑`/`↓` (in the Library) | Pick several documents. Right-click any of them, or use the bar below, to move, archive or delete them all; a plain click or `Esc` lets them go |
+| `↑` `↓` · `Home` `End` (in the Library) | Step through the rows, or go to the first or the last |
+| `Delete` (in the Library) | Delete the row, or every picked one. A document going alone goes without a question: **Undo** brings it back for 10 seconds, and so does `Ctrl`/`⌘` + `Z` outside what you are writing. Several documents, or one with pages or languages, ask first |
+| `Enter` · `Esc` (in a question) | Go on · cancel |
 | `Ctrl`/`⌘` + `S` (in the diagram window) | Save the diagram into its document |
 | `Enter` · `Tab` · `Delete` · `F2` (in a mind map) | Add a sibling, add a child, remove the idea, rename it |
 | `Delete` (on a schema, freeform diagram or class diagram) | Remove what is chosen |

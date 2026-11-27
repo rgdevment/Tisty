@@ -52,6 +52,8 @@ interface Props {
   label: string;
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
   up?: boolean;
+  /** A row's own actions: shown whole above the row when they fit there, rather than cut off below it. */
+  whole?: boolean;
   keeps?: boolean;
   find?: string;
   /** A line under the choices on how the keys walk them. */
@@ -405,6 +407,7 @@ export default function Menu({
   choices,
   label,
   up,
+  whole,
   keeps,
   find,
   foot,
@@ -460,12 +463,12 @@ export default function Menu({
       // The card arrives scaled down a little, so its width is read untransformed.
       const size = { wide: Math.max(own.offsetWidth, own.getBoundingClientRect().width), tall };
       const anchor = { x: at.x, y: at.y, top: at.top, right: at.right };
-      setWhere(styled(placement(anchor, size, viewNow(), ceilingOver(at.top ?? at.y), up)));
+      setWhere(styled(placement(anchor, size, viewNow(), ceilingOver(at.top ?? at.y), up, whole)));
     };
     lay();
     window.addEventListener("resize", lay);
     return () => window.removeEventListener("resize", lay);
-  }, [at.x, at.y, at.top, at.right, up, tallest, choices.length]);
+  }, [at.x, at.y, at.top, at.right, up, whole, tallest, choices.length]);
 
   useLayoutEffect(() => {
     const own = card.current;

@@ -8,16 +8,26 @@ interface Props {
   wide?: boolean;
   art?: React.ReactNode;
   onClose?: () => void;
+  /** The button Enter presses when the dialog opens; the first one when none is named. */
+  first?: React.RefObject<HTMLElement | null>;
   /** An X beside the title, for a notice whose buttons all do something. */
   closable?: boolean;
   children: React.ReactNode;
 }
 
-export default function Modal({ title, wide, art, onClose, closable, children }: Props) {
+export default function Modal({
+  title,
+  wide,
+  art,
+  onClose,
+  closable,
+  first,
+  children,
+}: Readonly<Props>) {
   const box = useRef<HTMLDivElement>(null);
   const heading = useId();
 
-  const { wrapped, held } = useHeldFocus(box);
+  const { wrapped, held } = useHeldFocus(box, first);
 
   const kept = (event: React.KeyboardEvent) => {
     if (event.key === "Escape" && onClose) {

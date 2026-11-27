@@ -304,6 +304,22 @@ Las subcarpetas son para que encuentres las cosas, pero **dónde está un docume
 
 **Un ejemplo.** Jaime prueba a mano unas reglas nuevas de Claude esta tarde, pero quiere que Codex siga recibiendo lo suyo. Botón derecho sobre **Agentes › Casa (este equipo) › Claude** y **Pausar la sincronización con Claude**. Codex sigue sincronizando; Claude queda como lo dejó la última escritura. Al terminar, botón derecho otra vez y **Reanudar la sincronización con Claude**.
 
+### El botón derecho de un documento
+
+Una regla, un archivo de una skill o un hook dentro de Agentes es un archivo que un agente lee tal cual, así que su menú ofrece solo lo que llega a ese archivo:
+
+| Opción | Qué hace |
+| :-- | :-- |
+| **Mover a…** | Lo lleva a otra carpeta de Agentes, como de Global a un equipo. Mira [En varios equipos](#en-varios-equipos) |
+| **Copiar** | **Copiar como Markdown** o **Copiar enlace** |
+| **Exportar como Markdown…** | Guarda una copia de su archivo en la carpeta que elijas |
+| **Archivar** | Lo guarda: Tisty deja de escribir su archivo. **Desarchivar** lo trae de vuelta |
+| **Eliminar** | Pregunta antes, y pregunta por los archivos que escribía. Mira [Eliminar una regla o una skill](#eliminar-una-regla-o-una-skill) |
+
+- **No hay Nueva página, Duplicar, Idiomas, Bloquear, PDF, HTML, Word ni Empaquetar.** Una página, una segunda copia u otro idioma serían documentos que ningún agente lee, y un duplicado escribiría el mismo archivo dos veces.
+- **Un documento que ya estaba bloqueado** sigue mostrando **Desbloquear**, para quitarle el candado.
+- **El documento de otro equipo** ofrece solo **Mover a…**, **Copiar** y **Exportar como Markdown…**.
+
 ### La línea `agent:`
 
 Cada documento de Agentes empieza con sus propiedades, y una de ellas dice qué archivo es:
