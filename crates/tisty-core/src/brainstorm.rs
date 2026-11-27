@@ -307,7 +307,13 @@ pub fn roll() -> u32 {
 }
 
 // The oldest wins, so two machines that each made one before they met keep dropping ideas in the same.
-pub fn find<'a>(root: &Path, state: &'a State, last: Option<&str>) -> Option<(&'a Kept, String)> {
+// A sheet is marked once a body that says so is written, so reading the whole library is only for one that never was.
+pub fn find<'a>(
+    root: &Path,
+    state: &'a State,
+    last: Option<&str>,
+    whole: bool,
+) -> Option<(&'a Kept, String)> {
     let mut open: Vec<&Kept> = state
         .docs
         .values()
@@ -323,7 +329,12 @@ pub fn find<'a>(root: &Path, state: &'a State, last: Option<&str>) -> Option<(&'
     open.iter()
         .find(|one| last.is_some_and(|file| one.file == file))
         .and_then(|one| holding(one))
-        .or_else(|| open.into_iter().find_map(holding))
+        .or_else(|| {
+            open.iter()
+                .filter(|one| one.brainstorm)
+                .find_map(|one| holding(one))
+        })
+        .or_else(|| whole.then(|| open.into_iter().find_map(holding)).flatten())
 }
 
 pub fn said_sheet<'a>(root: &Path, state: &'a State) -> Option<(&'a Kept, String)> {

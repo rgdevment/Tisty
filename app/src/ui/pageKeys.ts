@@ -7,6 +7,7 @@ import {
   type LineKey,
   letterOf,
   lineKey,
+  menuClick,
   modKey,
   moveKey,
   pageReach,
@@ -49,7 +50,7 @@ import {
   startIn,
   startOf,
 } from "./pageSpots";
-import { keptUnlaid, type Writer } from "./pageWriter";
+import { composingKey, keptUnlaid, type Writer } from "./pageWriter";
 
 const KEYED: Record<string, readonly [string, string]> = {
   b: ["**", "**"],
@@ -394,7 +395,7 @@ export const keysOn = (
 
   const outOfSolids = (event: KeyboardEvent) => {
     keptBehind = keptUnlaid(writer.kept);
-    if (event.isComposing || !onSheet(page, event)) return;
+    if (composingKey(event) || !onSheet(page, event)) return;
     if (event.key !== "Backspace" && event.key !== "Delete") return;
     const held = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
     if (held || !opensBeforeWhole()) return outOfPieces();
@@ -405,7 +406,8 @@ export const keysOn = (
   };
 
   const keyed = (event: KeyboardEvent) => {
-    if (!onSheet(page, event)) return;
+    // WebKit ends a composition before the key that ends it, which comes with keyCode 229 and no isComposing.
+    if (!onSheet(page, event) || composingKey(event)) return;
     if (event.key === "Escape") {
       if (!event.defaultPrevented && !leftHere() && writer.kept?.lead === undefined)
         choosing.choose(event);
@@ -529,7 +531,7 @@ export const keysOn = (
       return;
     if ((event.target as Element | null)?.closest?.(".tag-list")) return;
     // A right-click on the line being written opens the page's menu for it, so the place kept for it stays.
-    const menuAsked = key === null && (event as MouseEvent).button === 2;
+    const menuAsked = key === null && menuClick(event as MouseEvent);
     if (menuAsked && onOwnLine(event.target as Node | null)) return;
     const across = key !== null && !walked && Boolean(held.ctrlKey || held.metaKey);
     if (key === null || /^(ArrowUp|ArrowDown|Page)/.test(key) || across || walked === "line")

@@ -41,6 +41,7 @@ import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../pagi
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, cut, holds, stalledOn, turned, unansweredWords } from "../saving";
+import { steady } from "../steady";
 import { sure } from "../sure";
 import { chooseTongue, dressAll, tonguesOf, twinOf } from "../tongues";
 import { type Clash, opening, type Read, remembered } from "../weaving";
@@ -418,7 +419,7 @@ export default function Docs({
         setStirred((was) => astir || (was && before === wanted.file));
         if (astir) mark(changedIn(last, text));
         setSheet(() => ready);
-        setOpen(wanted);
+        setOpen((was) => (was ? steady(was, wanted) : wanted));
         setClashed(null);
         if (!same) {
           setBody(text);

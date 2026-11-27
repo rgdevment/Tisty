@@ -28,6 +28,7 @@ import { fill, t } from "./locales";
 import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { cut } from "./saving";
+import { steady } from "./steady";
 import { sure } from "./sure";
 import { dropPickedAsked, filesGoing, type Going, goingWith } from "./tidying";
 import type { Chosen } from "./views";
@@ -43,9 +44,6 @@ const gone = (file: string) => {
   cut(file);
   letAsideGo(file);
 };
-
-export const steady = <T>(was: T, found: T): T =>
-  JSON.stringify(was) === JSON.stringify(found) ? was : found;
 
 interface Hands {
   chosen: Chosen;

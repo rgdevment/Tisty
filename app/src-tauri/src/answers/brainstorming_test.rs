@@ -231,3 +231,93 @@ fn opening_ideas_before_any_idea_makes_the_sheet_once_and_the_first_idea_lands_i
     assert_eq!(kept.title.as_deref(), Some("Ideas"));
     assert!(body(&session, &made).contains("> llamar al vet"));
 }
+
+fn unmarked_sheet(session: &mut Session, file: &str) {
+    let body = tisty_core::brainstorm::opening("Ideas");
+    tisty_core::docs::create_named(&session.paths.docs(), file, &body).unwrap();
+    session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said: None,
+                file: file.into(),
+                order: "a0".into(),
+                folder: None,
+                page_of: None,
+                task_of: None,
+                edited: None,
+            },
+        })
+        .unwrap();
+}
+
+#[test]
+fn a_session_starts_without_having_looked_through_the_library_for_a_sheet() {
+    let (_tmp, session) = session();
+
+    assert!(!session.brainstorm_looked);
+}
+
+#[test]
+fn looking_without_the_whole_library_misses_a_sheet_nobody_marked_and_never_remembers_it() {
+    let (_tmp, mut session) = session();
+    unmarked_sheet(&mut session, "mine-1");
+
+    assert!(found(&mut session, false).is_none());
+    assert!(session.brainstorm.is_none());
+    assert_eq!(found(&mut session, true).unwrap().0, "mine-1");
+    assert_eq!(session.brainstorm.as_deref(), Some("mine-1"));
+}
+
+#[test]
+fn opening_ideas_finds_the_old_unmarked_sheet_after_a_quick_look_missed_it() {
+    let (_tmp, mut session) = session();
+    assert!(found(&mut session, false).is_none());
+    unmarked_sheet(&mut session, "mine-1");
+
+    assert!(found(&mut session, false).is_none());
+    let opened = beginning(&mut session, "Ideas").unwrap();
+
+    assert_eq!(opened, "mine-1");
+    assert_eq!(session.state.docs.len(), 1, "no second sheet was made");
+}
+
+#[test]
+fn an_idea_jotted_after_a_quick_look_lands_in_the_old_unmarked_sheet() {
+    let (_tmp, mut session) = session();
+    unmarked_sheet(&mut session, "mine-1");
+    assert!(found(&mut session, false).is_none());
+
+    let jotted = jotting(&mut session, "llamar al vet", "Ideas", at(7), 0).unwrap();
+
+    assert_eq!(jotted.file, "mine-1");
+    assert!(!jotted.made);
+    assert_eq!(session.state.docs.len(), 1);
+}
+
+#[test]
+fn the_first_look_for_the_pinned_sheet_reads_the_whole_library_and_finds_an_old_unmarked_one() {
+    let (_tmp, mut session) = session();
+    unmarked_sheet(&mut session, "mine-1");
+
+    let pinned = pinned(&mut session).unwrap();
+
+    assert_eq!(pinned.file, "mine-1");
+    assert!(session.brainstorm_looked);
+}
+
+#[test]
+fn a_second_look_for_the_pinned_sheet_never_reads_the_library_again() {
+    let (_tmp, mut session) = session();
+    assert!(pinned(&mut session).is_none());
+    unmarked_sheet(&mut session, "mine-1");
+
+    assert!(pinned(&mut session).is_none(), "the library was read again");
+    assert_eq!(beginning(&mut session, "Ideas").unwrap(), "mine-1");
+    assert_eq!(session.state.docs.len(), 1, "no second sheet was made");
+}

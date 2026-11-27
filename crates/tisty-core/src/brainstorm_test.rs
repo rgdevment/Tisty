@@ -253,3 +253,77 @@ fn a_note_stuck_beside_the_words_says_its_minute_and_a_colour_the_one_before_it_
     assert_ne!(head.hue, Some("pink"));
     assert!(note.ends_with("\n> Llamar a Jaime"), "{note}");
 }
+
+const PLAIN: &str = "# Recetas\n\nPan.\n";
+
+fn library(docs: &[(&str, &str, bool)]) -> (tempfile::TempDir, State) {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut events = Vec::new();
+    for (at, (file, body, marked)) in docs.iter().enumerate() {
+        crate::docs::create_named(tmp.path(), file, body).unwrap();
+        let said = marked.then(|| crate::event::Said::of(body));
+        let op = crate::Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: crate::event::DocAdd {
+                wrote: None,
+                guest: false,
+                sown: false,
+                made: None,
+                by: None,
+                said,
+                file: (*file).into(),
+                order: format!("a{at}"),
+                folder: None,
+                page_of: None,
+                task_of: None,
+                edited: None,
+            },
+        };
+        events.push(crate::event::Event::new(
+            crate::event::DeviceId("dev_mine".into()),
+            jiff::Timestamp::from_millisecond(at as i64 + 1).unwrap(),
+            op,
+        ));
+    }
+    (tmp, State::replay(&events))
+}
+
+#[test]
+fn a_sheet_nobody_marked_is_only_found_when_the_whole_library_may_be_read() {
+    let (tmp, state) = library(&[("mine-1", PLAIN, false), ("mine-2", SHEET, false)]);
+
+    assert!(find(tmp.path(), &state, None, false).is_none());
+    let (one, body) = find(tmp.path(), &state, None, true).unwrap();
+    assert_eq!(one.file, "mine-2");
+    assert!(tisty_markdown::front::brainstorm(&body));
+}
+
+#[test]
+fn a_document_marked_as_a_brainstorm_is_found_without_reading_the_whole_library() {
+    let (tmp, state) = library(&[("mine-1", PLAIN, false), ("mine-2", SHEET, true)]);
+
+    let (one, body) = find(tmp.path(), &state, None, false).unwrap();
+
+    assert_eq!(one.file, "mine-2");
+    assert_eq!(body, SHEET);
+}
+
+#[test]
+fn the_remembered_sheet_is_preferred_to_an_older_marked_one() {
+    let (tmp, state) = library(&[("mine-1", SHEET, true), ("mine-2", SHEET, true)]);
+
+    let (kept, _) = find(tmp.path(), &state, Some("mine-2"), false).unwrap();
+    let (oldest, _) = find(tmp.path(), &state, None, false).unwrap();
+
+    assert_eq!(kept.file, "mine-2");
+    assert_eq!(oldest.file, "mine-1");
+}
+
+#[test]
+fn a_remembered_sheet_that_stopped_saying_so_is_let_go() {
+    let (tmp, state) = library(&[("mine-1", SHEET, true), ("mine-2", PLAIN, true)]);
+
+    let (one, _) = find(tmp.path(), &state, Some("mine-2"), false).unwrap();
+
+    assert_eq!(one.file, "mine-1");
+}

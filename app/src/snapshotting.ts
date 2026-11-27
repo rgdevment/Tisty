@@ -2,6 +2,7 @@ import { type MutableRefObject, useCallback, useEffect, useRef, useState } from 
 import { type Snapshot, settleIn, snapshot } from "./core";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
+import { steady } from "./steady";
 import { asView, type Chosen } from "./views";
 import { knowAgents } from "./who";
 
@@ -31,7 +32,7 @@ export function useSnapshot({ seen, reach, acted, setError }: Hands) {
           here: fresh.machine_here,
           clients: fresh.clients,
         });
-        setData(fresh);
+        setData((was) => (was ? steady(was, fresh) : fresh));
         acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
