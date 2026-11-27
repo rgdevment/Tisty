@@ -45,7 +45,11 @@ pub async fn fetch_ahead(app: tauri::AppHandle, version: String) {
         return;
     }
     let paths = held(&app.state::<Mutex<Session>>()).paths.clone();
-    if waits_for(&paths, &version) {
+    let (asked, wanted) = (paths.clone(), version.clone());
+    let waiting = tauri::async_runtime::spawn_blocking(move || waits_for(&asked, &wanted))
+        .await
+        .unwrap_or(false);
+    if waiting {
         return;
     }
     let fetching = app.state::<Fetching>();
@@ -59,7 +63,6 @@ pub async fn fetch_ahead(app: tauri::AppHandle, version: String) {
             &[("to", Fact::Id(version))],
         ),
         Err(why) => {
-            let _ = std::fs::remove_file(kept(&paths).join(PART));
             witness::warn(
                 channel::UPDATE,
                 "an update could not be downloaded ahead",
@@ -96,17 +99,31 @@ async fn fetched(
         .await
         .map_err(|why| why.to_string())?;
 
-    let at = kept(paths);
-    forget(paths);
-    std::fs::create_dir_all(&at).map_err(|why| why.to_string())?;
-    std::fs::write(at.join(PART), &bytes).map_err(|why| why.to_string())?;
-    std::fs::rename(at.join(PART), at.join(PACKAGE)).map_err(|why| why.to_string())?;
     let said = Said {
         version: version.to_string(),
         raw: update.raw_json,
     };
-    let said = serde_json::to_vec(&said).map_err(|why| why.to_string())?;
-    tisty_core::store::write_atomic(&at.join(SAID), &said).map_err(|why| why.to_string())
+    let paths = paths.clone();
+    tauri::async_runtime::spawn_blocking(move || keep(&paths, &said, &bytes))
+        .await
+        .map_err(|why| why.to_string())?
+}
+
+fn keep(paths: &tisty_core::Paths, said: &Said, bytes: &[u8]) -> Result<(), String> {
+    let at = kept(paths);
+    forget(paths);
+    let written = std::fs::create_dir_all(&at)
+        .and_then(|()| std::fs::write(at.join(PART), bytes))
+        .and_then(|()| std::fs::rename(at.join(PART), at.join(PACKAGE)))
+        .map_err(|why| why.to_string())
+        .and_then(|()| serde_json::to_vec(said).map_err(|why| why.to_string()))
+        .and_then(|said| {
+            tisty_core::store::write_atomic(&at.join(SAID), &said).map_err(|why| why.to_string())
+        });
+    if written.is_err() {
+        let _ = std::fs::remove_file(at.join(PART));
+    }
+    written
 }
 
 pub fn on_leaving<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {

@@ -93,3 +93,38 @@ fn forgetting_with_nothing_kept_does_nothing() {
 
     forget(&paths_in(&tmp));
 }
+
+fn said_of(version: &str) -> Said {
+    Said {
+        version: version.to_string(),
+        raw: serde_json::json!({ "version": version }),
+    }
+}
+
+#[test]
+fn keeping_a_package_makes_it_wait_with_its_exact_bytes_and_no_part() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths_in(&tmp);
+
+    keep(&paths, &said_of("0.3.0"), b"the package").unwrap();
+
+    assert!(waits_for(&paths, "0.3.0"));
+    assert_eq!(
+        std::fs::read(kept(&paths).join(PACKAGE)).unwrap(),
+        b"the package"
+    );
+    assert!(!kept(&paths).join(PART).exists());
+}
+
+#[test]
+fn keeping_a_newer_version_leaves_only_the_new_one_waiting() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths_in(&tmp);
+    keep(&paths, &said_of("0.2.5"), b"old").unwrap();
+
+    keep(&paths, &said_of("0.3.0"), b"new").unwrap();
+
+    assert!(!waits_for(&paths, "0.2.5"));
+    assert!(waits_for(&paths, "0.3.0"));
+    assert_eq!(std::fs::read(kept(&paths).join(PACKAGE)).unwrap(), b"new");
+}
