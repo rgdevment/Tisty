@@ -10,7 +10,7 @@ import {
   admittingShown,
   admittingTrust,
   type Newcomer,
-} from "../core";
+} from "../admitting";
 import { fill, t } from "../locales";
 import { doorShut, saidPlainly } from "../refusal";
 import Modal from "./Modal";

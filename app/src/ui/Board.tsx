@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { capture } from "../capturing";
-import { discard, fold, stillOpen } from "../core";
+import { complete, discard, fold, stillOpen } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
 import { fill, t } from "../locales";
@@ -134,16 +134,26 @@ export default function Board() {
           }
           onError={(e) => setError(saidPlainly(e))}
           onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
+          confirming={confirming}
           onConfirm={
-            confirming
-              ? (one) => {
+            chosen.named === "archive"
+              ? undefined
+              : (one) => {
                   if (one.resolved?.drop) act(discard(one.id));
                   else marking(one.id, one.title);
                   if (one.id === selected) setSelected(undefined);
                 }
-              : undefined
           }
-          onKeepOpen={confirming ? (one) => act(stillOpen(one.id)) : undefined}
+          onKeepOpen={chosen.named === "archive" ? undefined : (one) => act(stillOpen(one.id))}
+          onConfirmAll={
+            chosen.named === "archive"
+              ? undefined
+              : (many) => {
+                  for (const one of many) act(complete(one.id));
+                  say(fill("confirmedMany", String(many.length)));
+                  if (many.some((one) => one.id === selected)) setSelected(undefined);
+                }
+          }
           closing={asking?.id}
           ask={(id) => (asking?.id === id ? strip : null)}
           below={
