@@ -1,7 +1,7 @@
 import { FORMATS, pressed } from "tisty-editor/edit";
 import { fill, t } from "../locales";
 import type { Choice } from "./Menu";
-import { MOVE_KEYS } from "./macKeys";
+import { MOVE_KEYS, PASTE_PLAIN } from "./macKeys";
 import type { Act } from "./pageMoving";
 
 export type Spelled = { readonly wrong: boolean; readonly guesses: readonly string[] };
@@ -46,7 +46,7 @@ const spellingOf = (asked: PageMenuAsked, acts: PageMenuActs): Choice[] => {
 };
 
 const pasteOf = (asked: PageMenuAsked, acts: PageMenuActs, plain: boolean): Choice => {
-  const keys = pressed(plain ? "Shift V" : "V");
+  const keys = pressed(plain ? PASTE_PLAIN : "V");
   return {
     key: plain ? "paste-plain" : "paste",
     label: t(plain ? "pastePlain" : "pasteIt"),

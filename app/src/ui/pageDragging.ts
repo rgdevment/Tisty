@@ -1,3 +1,4 @@
+import { menuClick } from "./macKeys";
 import type { Caret } from "./pageCaret";
 import { colonsCrossed, colonsMoved } from "./pageColons";
 import type { Edit, Span } from "./pageEdits";
@@ -105,7 +106,7 @@ export const draggingOn = (writer: Writer, caret: Caret, laying: Laying) => {
   };
 
   const pressed = (event: MouseEvent) => {
-    if (event.button !== 0 || event.shiftKey || event.detail > 1) return;
+    if (event.button !== 0 || menuClick(event) || event.shiftKey || event.detail > 1) return;
     const target = event.target as Element | null;
     if (!target?.closest?.(".page") || target.closest(FIELDS)) return;
     const selection = page.getSelection();

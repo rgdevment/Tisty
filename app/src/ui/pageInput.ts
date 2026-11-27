@@ -28,6 +28,14 @@ import { typingOn } from "./pageTyping";
 import { mendOf, wholeReach } from "./pageWholes";
 import { composingKey, type Kept, type Writer } from "./pageWriter";
 
+// What a composition writes is read once it ends, whatever WebKit names its steps.
+const COMPOSED = new Set([
+  "insertCompositionText",
+  "deleteCompositionText",
+  "insertFromComposition",
+  "deleteByComposition",
+]);
+
 const PAIRS: Record<string, string> = {
   formatBold: "**",
   formatItalic: "*",
@@ -186,8 +194,7 @@ export const inputOn = (
   };
 
   const asked = (event: InputEvent) => {
-    if (!onSheet(page, event) || event.isComposing || event.inputType === "insertCompositionText")
-      return;
+    if (!onSheet(page, event) || event.isComposing || COMPOSED.has(event.inputType)) return;
     // Plain words in plain spans the browser writes itself; the page reads them back once it has.
     if (native.taken(event)) return;
     event.preventDefault();
@@ -197,7 +204,7 @@ export const inputOn = (
 
   const markHeld = (event: KeyboardEvent) => {
     const back = event.key === "Backspace";
-    if ((!back && event.key !== "Delete") || event.defaultPrevented || event.isComposing) return;
+    if ((!back && event.key !== "Delete") || event.defaultPrevented || composingKey(event)) return;
     if (!onSheet(page, event) || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
       return;
     const kind = back ? "deleteContentBackward" : "deleteContentForward";

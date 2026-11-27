@@ -1,7 +1,7 @@
 import type { formatButtons } from "tisty-editor/edit";
 import { t } from "../locales";
 import { EMBED } from "./embeds";
-import { onMac } from "./macKeys";
+import { menuClick, onMac } from "./macKeys";
 import { placeOf } from "./pagePlaces";
 import { type WordAt, wordAt, wordIn } from "./pageWordAt";
 import { shotAt } from "./paging";
@@ -39,8 +39,7 @@ const blockOf = (node: Node | null): HTMLElement | null => {
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
 };
 
-const askedOnMac = (event: MouseEvent) =>
-  onMac && (event.button === 2 || (event.button === 0 && event.ctrlKey));
+const askedOnMac = (event: MouseEvent) => onMac && menuClick(event);
 
 const codeOf = (node: Node | null | undefined) => {
   const element = node?.nodeType === 1 ? (node as Element) : (node?.parentElement ?? null);

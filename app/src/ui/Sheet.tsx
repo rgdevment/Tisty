@@ -59,7 +59,7 @@ import type { CardsShown } from "./liveCards";
 import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, TitleRow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
-import { MOVE_KEYS, onMac, onWindows } from "./macKeys";
+import { MOVE_KEYS, onMac, onWindows, PASTE_PLAIN } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { seatedNow } from "./pageLate";
@@ -854,7 +854,7 @@ export default function Sheet(props: Readonly<Props>) {
               const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
               sheet?.focus({ preventScroll: true });
               resume?.();
-              const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? "Shift V" : "V")));
+              const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? PASTE_PLAIN : "V")));
               if (!sheet || sheet.ownerDocument.activeElement !== sheet) return byKeys();
               if (plain) liveWriter(writer).plainNext();
               void pasteHeard(sheet, menuPasted(plain)).then((heard) => heard || byKeys());
