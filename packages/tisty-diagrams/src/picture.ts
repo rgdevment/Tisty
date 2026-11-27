@@ -76,7 +76,7 @@ export interface Writing {
 }
 
 export const writing = (one: Writing): string =>
-  `<text x="${at(one.x)}" y="${at(one.y)}" font-size="${one.size}" fill="${one.fill}" text-anchor="${one.anchor ?? "middle"}" dominant-baseline="central"${one.bold ? ' font-weight="600"' : ""}${one.mono ? ` font-family="${MONO}"` : ""}>${escaped(linesSaid(one.text).join(" "))}</text>`;
+  `<text x="${at(one.x)}" y="${at(one.y)}" font-size="${one.size}" fill="${escaped(one.fill)}" text-anchor="${one.anchor ?? "middle"}" dominant-baseline="central"${one.bold ? ' font-weight="600"' : ""}${one.mono ? ` font-family="${MONO}"` : ""}>${escaped(linesSaid(one.text).join(" "))}</text>`;
 
 export interface Look {
   readonly fill: string;
@@ -88,7 +88,7 @@ export interface Look {
 }
 
 const stroked = (look: Look) =>
-  `fill="${look.fill}"${look.stroke ? ` stroke="${look.stroke}" stroke-width="${look.width ?? 1}"` : ""}${look.dashed ? ` stroke-dasharray="${look.dashed}"` : ""}`;
+  `fill="${escaped(look.fill)}"${look.stroke ? ` stroke="${escaped(look.stroke)}" stroke-width="${look.width ?? 1}"` : ""}${look.dashed ? ` stroke-dasharray="${escaped(look.dashed)}"` : ""}`;
 
 export const boxed = (rect: Rect, look: Look): string =>
   `<rect x="${at(rect.x)}" y="${at(rect.y)}" width="${at(rect.wide)}" height="${at(rect.tall)}" rx="${at(look.radius ?? 0)}" ry="${at(look.ry ?? look.radius ?? 0)}" ${stroked(look)}/>`;
@@ -106,7 +106,7 @@ export const cut = (polygon: string, rect: Rect, look: Look): string => {
 export type Ends = { readonly start?: string | null; readonly end?: string | null };
 
 export const stroke = (d: string, color: string, width: number, dashed?: string, ends: Ends = {}) =>
-  `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round"${dashed ? ` stroke-dasharray="${dashed}"` : ""}${ends.start ? ` marker-start="url(#${ends.start})"` : ""}${ends.end ? ` marker-end="url(#${ends.end})"` : ""}/>`;
+  `<path d="${d}" fill="none" stroke="${escaped(color)}" stroke-width="${width}" stroke-linecap="round"${dashed ? ` stroke-dasharray="${escaped(dashed)}"` : ""}${ends.start ? ` marker-start="url(#${ends.start})"` : ""}${ends.end ? ` marker-end="url(#${ends.end})"` : ""}/>`;
 
 // A hollow head is filled with the sheet so the line does not show through it.
 const markers = (palette: Palette, named: string) =>
