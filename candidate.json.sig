@@ -1,4 +1,4 @@
 untrusted comment: signature from minisign secret key
-RUSHqxp5NyBhkI79A6BE3KsG2Uesb/vOfZkcHC/eSKUhZWNr9ywSbzfHl1GTQOiq4nbSJOzWy8DohfqByNG67+RbgHTdAEUT1ws=
-trusted comment: file:candidate.json tisty feed 1.51.0-rc.2
-vLAArSrEJbx/iA4UnJ6DF2kfH4aTNNdHkAalJ+8sHYeXs3uMe/0IFWtNaYidDr0SMeFn/cKAAIdVaSDAEPwBBw==
+RUSHqxp5NyBhkGjI8jJqDibAO5z54KFCw2hqEeCkkqukDK/UmMgXsH1TwP73h9ikw9ZmbCwr462+KUheA+TGFbWcCH9iX4UhhQE=
+trusted comment: file:candidate.json tisty feed 1.51.0-rc.3
+UJHv0zTbCtFyMxmc6vUzMU37mBbOgqhPRpytPaYpWEZi6pNaToCqy2obdQiAH5v5qoeomNCm5fwC2j+eSqvuAA==
