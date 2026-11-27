@@ -229,6 +229,16 @@ What you keep was already joined: a document cites another, a task was born in
 some minutes, a book has pages. **Brainsty**, under the task views in the
 sidebar, draws all of it as one network, in the content panel beside your lists.
 
+<p align="center">
+  <img
+    src="assets/screens/app/es-brainsty-glow-dark.webp"
+    width="92%"
+    alt="Brainsty in the Tisty window, dark theme, in Spanish: the sidebar with
+    today's tasks and the Library, and beside it the whole network, 1,910 nodes
+    and 4,524 connections, each document a square and each task a circle in the
+    colour of its folder or list, glowing against the dark"/>
+</p>
+
 - **Joined as you write** — `[[` links a document to another, the `/` menu cites
   a task as a live card, and the panel beside a document lists who links to it.
 - **A map from afar, the detail up close** — documents as squares, tasks as

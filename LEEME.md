@@ -235,6 +235,16 @@ acta, un libro tiene páginas. **Brainsty**, bajo las vistas de tareas en la
 barra lateral, lo dibuja todo como una sola red, en el panel de contenido,
 junto a tus listas.
 
+<p align="center">
+  <img
+    src="assets/screens/app/es-brainsty-glow-dark.webp"
+    width="92%"
+    alt="Brainsty en la ventana de Tisty, tema oscuro: la barra lateral con las
+    tareas de hoy y la Biblioteca y, al lado, toda la red, 1910 nodos y 4524
+    conexiones, cada documento un cuadrado y cada tarea un círculo del color de
+    su carpeta o lista, brillando sobre el fondo oscuro"/>
+</p>
+
 - **Unido mientras escribes** — `[[` enlaza un documento con otro, el menú `/`
   cita una tarea como una tarjeta viva, y el panel junto a un documento dice
   quién lo enlaza.
