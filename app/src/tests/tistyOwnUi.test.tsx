@@ -287,19 +287,41 @@ describe("the row of Settings", () => {
 });
 
 describe("the card", () => {
-  it("explains what each part does and why to turn on both", () => {
+  it("says one What line and one Why line when both parts are there", () => {
     card([claude(false)], off());
-    expect(screen.getByText(/Skills teach your agent to work with Tisty/)).toBeTruthy();
-    expect(screen.getByText(/Hooks help it on their own/)).toBeTruthy();
-    expect(screen.getByText(/We recommend turning on both/)).toBeTruthy();
+    expect(
+      screen.getByText(/Skills teach your agent to use Tisty, and hooks remind it on their own/),
+    ).toBeTruthy();
+    expect(screen.getByText(/We recommend both: your agent picks up/)).toBeTruthy();
+    expect(screen.queryByText(/We recommend it:/)).toBeNull();
     expect(screen.getByText("Tisty in your agents")).toBeTruthy();
   });
 
-  it("leaves out the line of a part that is not there", () => {
+  it("says the skills line and the one-part Why when only skills are there", () => {
     card([], off());
-    expect(screen.getByText(/Skills teach your agent/)).toBeTruthy();
-    expect(screen.queryByText(/Hooks help it on their own/)).toBeNull();
+    expect(screen.getByText("Skills teach your agent to use Tisty.")).toBeTruthy();
+    expect(screen.getByText(/We recommend it: your agent picks up/)).toBeTruthy();
+    expect(screen.queryByText(/hooks remind it on their own/)).toBeNull();
+    expect(screen.queryByText(/We recommend both/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Adjust · Hooks" })).toBeNull();
+  });
+
+  it("says the hooks line and the one-part Why when only hooks are there", () => {
+    card([claude(false)], undefined);
+    expect(
+      screen.getByText("Hooks remind your agent on their own where it left off and what to note."),
+    ).toBeTruthy();
+    expect(screen.getByText(/We recommend it: your agent picks up/)).toBeTruthy();
+    expect(screen.queryByText(/Skills teach your agent/)).toBeNull();
+  });
+
+  it("says the lines in Spanish", () => {
+    adopt("es");
+    card([claude(false)], off());
+    expect(
+      screen.getByText(/Las skills le enseñan a tu agente a usar Tisty, y los hooks/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Te recomendamos los dos/)).toBeTruthy();
   });
 
   it("offers Turn on both when both parts can be added and the dot is off", () => {
@@ -458,27 +480,73 @@ describe("the card looks at the agents when it opens", () => {
 });
 
 describe("turning on from the card", () => {
-  it("asks first, listing the hook files, and writes nothing before the yes", async () => {
+  it("asks first with one line and two short ticks listing the files, and writes nothing before the yes", async () => {
     card([claude(false), codex(false)], off());
     await userEvent.click(button("Turn on both"));
-    expect(screen.getByText("It writes in:")).toBeTruthy();
-    expect(screen.getByText("Hooks for Claude Code, Codex")).toBeTruthy();
-    expect(screen.getByText(new RegExp(`${claudeAt}, ${codexAt}`))).toBeTruthy();
-    expect(
-      screen.getByText(/For Claude Code, Tisty first reads its plugin's records/),
-    ).toBeTruthy();
-    expect(screen.getByText(/Tisty's skills on this whole computer/)).toBeTruthy();
+    expect(screen.getByText(/This writes only here and leaves the rest as it is/)).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Hooks in Claude Code, Codex" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Skills on this computer" })).toBeTruthy();
+    expect(screen.getByText(claudeAt)).toBeTruthy();
+    expect(screen.getByText(codexAt)).toBeTruthy();
+    expect(screen.getByText("/h/.claude/skills")).toBeTruthy();
     expect(screen.getAllByRole("checkbox")).toHaveLength(2);
     expect(sent("hook")).toHaveLength(0);
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
-    expect(screen.queryByText("Tisty in your agents")).toBeTruthy();
+    expect(screen.getByText("Tisty in your agents")).toBeTruthy();
+  });
+
+  it("keeps what they do and what Tisty reads folded in details", async () => {
+    card([claude(false), codex(false)], off());
+    await userEvent.click(button("Turn on both"));
+    const summary = screen.getByText("What they do and what Tisty reads");
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(within(details).getByText(/Tisty will add its hooks to/).textContent).toContain(
+      `${claudeAt}, ${codexAt}`,
+    );
+    expect(
+      within(details).getByText(/For Claude Code, Tisty first reads its plugin's records/),
+    ).toBeTruthy();
+    expect(within(details).getByText(/Tisty comes with three skills/)).toBeTruthy();
+    expect(within(details).getByText(/To turn them on, Tisty writes only one folder/)).toBeTruthy();
+  });
+
+  it("says the plugin line only with Claude Code, and no skills text without skills", async () => {
+    card([codex(false)], on());
+    await userEvent.click(button("Turn on what's missing"));
+    const details = screen
+      .getByText("What they do and what Tisty reads")
+      .closest("details") as HTMLElement;
+    expect(within(details).getByText(/Tisty will add its hooks to/)).toBeTruthy();
+    expect(within(details).queryByText(/plugin's records/)).toBeNull();
+    expect(within(details).queryByText(/Tisty comes with three skills/)).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "Skills on this computer" })).toBeNull();
+  });
+
+  it("says no hooks text in the details when only the skills are asked", async () => {
+    card([claude(true)], off());
+    await userEvent.click(button("Turn on what's missing"));
+    const details = screen
+      .getByText("What they do and what Tisty reads")
+      .closest("details") as HTMLElement;
+    expect(within(details).queryByText(/Tisty will add its hooks/)).toBeNull();
+    expect(within(details).getByText(/Tisty comes with three skills/)).toBeTruthy();
+  });
+
+  it("says the consent in Spanish", async () => {
+    adopt("es");
+    card([claude(false)], off());
+    await userEvent.click(button("Encender los dos"));
+    expect(screen.getByRole("checkbox", { name: "Hooks en Claude Code" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Skills en este equipo" })).toBeTruthy();
+    expect(screen.getByText("Qué hacen y qué lee Tisty")).toBeTruthy();
   });
 
   it("goes back to the card with Back, still writing nothing", async () => {
     card([claude(false)], off());
     await userEvent.click(button("Turn on both"));
     await userEvent.click(button("Back"));
-    expect(screen.getByText(/We recommend turning on both/)).toBeTruthy();
+    expect(screen.getByText(/We recommend both/)).toBeTruthy();
     expect(button("Turn on both")).toBeTruthy();
     expect(ipc.calls.filter((one) => one.cmd !== "agents_tisty_skills")).toHaveLength(0);
   });
@@ -555,7 +623,7 @@ describe("turning on from the card", () => {
   it("sends only the skills when the hooks are unticked", async () => {
     card([claude(false)], off());
     await userEvent.click(button("Turn on both"));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Hooks for Claude Code" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Hooks in Claude Code" }));
     await userEvent.click(button("Turn on"));
     await screen.findByRole("status");
     expect(sent("hook")).toHaveLength(0);
@@ -565,9 +633,7 @@ describe("turning on from the card", () => {
   it("sends only the hooks when the skills are unticked", async () => {
     card([claude(false)], off());
     await userEvent.click(button("Turn on both"));
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: /^Tisty's skills on this whole computer/ }),
-    );
+    await userEvent.click(screen.getByRole("checkbox", { name: "Skills on this computer" }));
     await userEvent.click(button("Turn on"));
     await screen.findByRole("status");
     expect(sent("agents_tisty_skills_take")).toHaveLength(0);
@@ -577,10 +643,8 @@ describe("turning on from the card", () => {
   it("cannot turn on with both parts unticked", async () => {
     card([claude(false)], off());
     await userEvent.click(button("Turn on both"));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Hooks for Claude Code" }));
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: /^Tisty's skills on this whole computer/ }),
-    );
+    await userEvent.click(screen.getByRole("checkbox", { name: "Hooks in Claude Code" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Skills on this computer" }));
     expect((button("Turn on") as HTMLButtonElement).disabled).toBe(true);
   });
 

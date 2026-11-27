@@ -914,18 +914,33 @@ const words = {
     "Skills and hooks that help your agents work with Tisty.",
     "Skills y hooks que ayudan a tus agentes a trabajar con Tisty.",
   ],
-  tistySkillsHooksSkillsSaid: [
-    "Skills teach your agent to work with Tisty: when something is a task or a document, how to tidy up without deleting anything, and how to leave its work clear for the next agent.",
-    "Las skills le enseñan a tu agente a trabajar con Tisty: cuándo algo va en una tarea o en un documento, cómo ordenar sin borrar nada y cómo dejar el trabajo claro para el próximo agente.",
+  tistySkillsHooksWhat: [
+    "Skills teach your agent to use Tisty, and hooks remind it on their own where it left off and what to note.",
+    "Las skills le enseñan a tu agente a usar Tisty, y los hooks le recuerdan solos dónde quedó y qué anotar.",
   ],
-  tistySkillsHooksHooksSaid: [
-    "Hooks help it on their own: when a session starts they show it the tasks it left open, and if it worked without noting anything in Tisty, they remind it once.",
-    "Los hooks lo acompañan solos: al empezar una sesión le muestran las tareas que dejó abiertas, y si trabajó sin anotar nada en Tisty, se lo recuerdan una vez.",
+  tistySkillsHooksWhatSkills: [
+    "Skills teach your agent to use Tisty.",
+    "Las skills le enseñan a tu agente a usar Tisty.",
+  ],
+  tistySkillsHooksWhatHooks: [
+    "Hooks remind your agent on their own where it left off and what to note.",
+    "Los hooks le recuerdan solos a tu agente dónde quedó y qué anotar.",
   ],
   tistySkillsHooksWhy: [
-    "We recommend turning on both: your agent picks up without you explaining again, and is reminded to note its progress in Tisty, where you see it.",
-    "Te recomendamos encender los dos: tu agente retoma sin que le expliques de nuevo, y se le recuerda anotar su avance en Tisty, donde tú lo ves.",
+    "We recommend both: your agent picks up without you explaining again, and its progress stays in Tisty, where you see it.",
+    "Te recomendamos los dos: tu agente retoma sin que le expliques de nuevo, y su avance queda en Tisty, donde lo ves.",
   ],
+  tistySkillsHooksWhyOne: [
+    "We recommend it: your agent picks up without you explaining again, and its progress stays in Tisty, where you see it.",
+    "Te lo recomendamos: tu agente retoma sin que le expliques de nuevo, y su avance queda en Tisty, donde lo ves.",
+  ],
+  tistySkillsHooksWrites: [
+    "This writes only here and leaves the rest as it is. You can turn them off whenever you like.",
+    "Esto escribe solo aquí y deja el resto como está. Puedes apagarlos cuando quieras.",
+  ],
+  tistySkillsHooksTickHooks: ["Hooks in {name}", "Hooks en {name}"],
+  tistySkillsHooksTickSkills: ["Skills on this computer", "Skills en este equipo"],
+  tistySkillsHooksMore: ["What they do and what Tisty reads", "Qué hacen y qué lee Tisty"],
   tistySkillsHooksOn: ["On", "Encendidos"],
   tistySkillsHooksOff: ["Off", "Apagados"],
   tistySkillsHooksLackHooks: ["Hooks missing", "Faltan los hooks"],

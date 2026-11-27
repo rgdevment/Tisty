@@ -276,13 +276,11 @@ Si usas la carpeta [[Agentes|Carpeta-AGENTS]], **Agentes › Global** muestra un
 
 La fila **Tisty en tus agentes**, al final de **Configuración › Agentes › Conectados**, y la fila **Skills y hooks**, bajo **De Tisty** en **Agentes › Global**, abren la misma ficha. Su punto dice cómo están: verde si los dos están encendidos, amarillo si falta uno y gris hueco si están apagados. Al pasar el mouse lo dice en palabras, como «Faltan los hooks» o «Hooks solo en Claude Code». La ficha cuenta qué hacen:
 
-> Las skills le enseñan a tu agente a trabajar con Tisty: cuándo algo va en una tarea o en un documento, cómo ordenar sin borrar nada y cómo dejar el trabajo claro para el próximo agente.
+> Las skills le enseñan a tu agente a usar Tisty, y los hooks le recuerdan solos dónde quedó y qué anotar.
 >
-> Los hooks lo acompañan solos: al empezar una sesión le muestran las tareas que dejó abiertas, y si trabajó sin anotar nada en Tisty, se lo recuerdan una vez.
->
-> Te recomendamos encender los dos: tu agente retoma sin que le expliques de nuevo, y se le recuerda anotar su avance en Tisty, donde tú lo ves.
+> Te recomendamos los dos: tu agente retoma sin que le expliques de nuevo, y su avance queda en Tisty, donde lo ves.
 
-Debajo, **Skills** y **Hooks**, cada una con su punto y **Ajustar**: el de las skills abre su ficha, y el de los hooks lleva a **Conectados**, donde está el interruptor de cada agente. **Encender los dos**, o **Encender lo que falta**, abre las mismas casillas que el recuadro de abajo, con los archivos y las carpetas que se van a escribir; **Encender** escribe lo que dejaste marcado y te dice qué quedó, agente por agente. Si lo que falta no se puede encender desde ahí, como hooks callados en **Puerta**, la ficha lo dice y te deja **Ajustar**.
+Debajo, **Skills** y **Hooks**, cada una con su punto y **Ajustar**: el de las skills abre su ficha, y el de los hooks lleva a **Conectados**, donde está el interruptor de cada agente. **Encender los dos**, o **Encender lo que falta**, dice «Esto escribe solo aquí y deja el resto como está. Puedes apagarlos cuando quieras.» y abre dos casillas, **Hooks en** tus agentes y **Skills en este equipo**, cada una con los archivos o las carpetas que va a escribir. Plegado, **Qué hacen y qué lee Tisty** trae el mismo sí escrito del recuadro de abajo. **Encender** escribe lo que dejaste marcado y te dice qué quedó, agente por agente. Si lo que falta no se puede encender desde ahí, como hooks callados en **Puerta**, la ficha lo dice y te deja **Ajustar**.
 
 Además, si ya tienes agentes conectados y a alguno le faltan los hooks o las skills, **Configuración › Agentes** los ofrece juntos, sobre las pestañas. Entran los que no pasaron por [Al conectar un agente](#al-conectar-un-agente), porque ese ya se los ofreció:
 

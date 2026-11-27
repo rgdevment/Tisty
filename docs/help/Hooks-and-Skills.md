@@ -276,13 +276,11 @@ If you use the [[Agents|AGENTS-Folder]] folder, **Agents › Global** shows a fi
 
 The **Tisty in your agents** row, at the end of **Settings › Agents › Connected**, and the **Skills and hooks** row, under **From Tisty** in **Agents › Global**, open the same card. Its dot says how they stand: green when both are on, yellow when one is missing and hollow grey when they are off. Hovering says it in words, such as «Hooks missing» or «Hooks only in Claude Code». The card tells what they do:
 
-> Skills teach your agent to work with Tisty: when something is a task or a document, how to tidy up without deleting anything, and how to leave its work clear for the next agent.
+> Skills teach your agent to use Tisty, and hooks remind it on their own where it left off and what to note.
 >
-> Hooks help it on their own: when a session starts they show it the tasks it left open, and if it worked without noting anything in Tisty, they remind it once.
->
-> We recommend turning on both: your agent picks up without you explaining again, and is reminded to note its progress in Tisty, where you see it.
+> We recommend both: your agent picks up without you explaining again, and its progress stays in Tisty, where you see it.
 
-Below, **Skills** and **Hooks**, each with its dot and **Adjust**: the skills' one opens their card, and the hooks' one takes you to **Connected**, where each agent's switch is. **Turn on both**, or **Turn on what's missing**, opens the same ticks as the box below, with the files and folders that will be written; **Turn on** writes what you left ticked and tells you what stood, agent by agent. If what is missing cannot be turned on from there, such as hooks silenced in **Door**, the card says so and leaves you **Adjust**.
+Below, **Skills** and **Hooks**, each with its dot and **Adjust**: the skills' one opens their card, and the hooks' one takes you to **Connected**, where each agent's switch is. **Turn on both**, or **Turn on what's missing**, says «This writes only here and leaves the rest as it is. You can turn them off whenever you like.» and opens two ticks, **Hooks in** your agents and **Skills on this computer**, each with the files or folders it will write. Folded, **What they do and what Tisty reads** carries the same written yes as the box below. **Turn on** writes what you left ticked and tells you what stood, agent by agent. If what is missing cannot be turned on from there, such as hooks silenced in **Door**, the card says so and leaves you **Adjust**.
 
 Also, if you already have connected agents and one of them lacks the hooks or the skills, **Settings › Agents** offers them together, above the tabs. It takes in the ones that did not go through [When you connect an agent](#when-you-connect-an-agent), since that one already offered them:
 

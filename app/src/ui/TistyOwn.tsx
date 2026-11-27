@@ -4,14 +4,14 @@ import { addExtras, bringing } from "../agentsMending";
 import { AGENTS_CHANGED, type TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import type { KnownAgents } from "../knownAgents";
-import { fill, t } from "../locales";
+import { fill, t, type Word } from "../locales";
 import { adds, type Dot, type Own, ownOf, shown } from "../tistyOwn";
 import { Result, type Told } from "./AgentsMending";
 import { button, primary } from "./AgentsReview";
 import Glyph from "./Glyph";
-import { ExtrasTicks } from "./MendAsk";
+import { Files, Ticked } from "./MendAsk";
 import Modal from "./Modal";
-import { TistySkillsCard, useTistySkills } from "./TistySkills";
+import { skillFolders, TistySkillsCard, useTistySkills } from "./TistySkills";
 
 const DOT: Record<Dot, string> = {
   on: "border-hue-green bg-hue-green",
@@ -112,6 +112,59 @@ function Part({
   );
 }
 
+const whatSaid = (own: Own): Word => {
+  if (own.skills && own.hooks) return "tistySkillsHooksWhat";
+  return own.skills ? "tistySkillsHooksWhatSkills" : "tistySkillsHooksWhatHooks";
+};
+
+function Asked({
+  hooks,
+  skills,
+  withHooks,
+  onHooks,
+  withSkills,
+  onSkills,
+}: Readonly<{
+  hooks: readonly Wired[];
+  skills: TistySkills | null;
+  withHooks: boolean;
+  onHooks: (on: boolean) => void;
+  withSkills: boolean;
+  onSkills: (on: boolean) => void;
+}>) {
+  const files = hooks.map((one) => one.hooks?.at ?? "");
+  return (
+    <div className="flex flex-col gap-2.5 text-[12.5px]">
+      <p className="text-[13px] leading-relaxed text-soft">{t("tistySkillsHooksWrites")}</p>
+      {hooks.length > 0 && (
+        <Ticked
+          on={withHooks}
+          onTurn={onHooks}
+          label={fill("tistySkillsHooksTickHooks", names(hooks))}
+        >
+          <Files files={files} />
+        </Ticked>
+      )}
+      {skills && (
+        <Ticked on={withSkills} onTurn={onSkills} label={t("tistySkillsHooksTickSkills")}>
+          <Files files={skillFolders(skills)} />
+        </Ticked>
+      )}
+      <details>
+        <summary className="cursor-pointer text-[12.5px] text-accent hover:underline">
+          {t("tistySkillsHooksMore")}
+        </summary>
+        <div className="mt-1.5 flex flex-col gap-1.5 leading-relaxed text-soft [overflow-wrap:anywhere]">
+          {hooks.length > 0 && <p>{fill("hooksAsk", files.join(", "))}</p>}
+          {hooks.some((one) => one.id === "claude-code") && <p>{t("hooksAskPlugin")}</p>}
+          {skills && <p>{t("tistySkillsLead")}</p>}
+          {skills && <p>{t("tistySkillsAsk")}</p>}
+        </div>
+      </details>
+    </div>
+  );
+}
+
 const codexTrusted = (own: Own) =>
   !own.hooks?.muted && !!own.hooks?.lines.some((one) => one.on && one.id.endsWith("codex"));
 
@@ -168,23 +221,19 @@ export function TistyOwnCard({
   return (
     <Modal title={t("tistySkillsHooksTitle")} wide closable onClose={onClose}>
       {asking ? (
-        <div className="flex flex-col gap-2.5 text-[12.5px]">
-          <p className="text-soft">{t("mendWrites")}</p>
-          <ExtrasTicks
-            hooks={hooksAdd}
-            skills={skillsAdd ? (skills ?? null) : null}
-            withHooks={withHooks}
-            onHooks={setWithHooks}
-            withSkills={withSkills}
-            onSkills={setWithSkills}
-          />
-        </div>
+        <Asked
+          hooks={hooksAdd}
+          skills={skillsAdd ? (skills ?? null) : null}
+          withHooks={withHooks}
+          onHooks={setWithHooks}
+          withSkills={withSkills}
+          onSkills={setWithSkills}
+        />
       ) : (
         <>
           <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-soft">
-            {own.skills && <p>{t("tistySkillsHooksSkillsSaid")}</p>}
-            {own.hooks && <p>{t("tistySkillsHooksHooksSaid")}</p>}
-            <p>{t("tistySkillsHooksWhy")}</p>
+            <p>{t(whatSaid(own))}</p>
+            <p>{t(own.skills && own.hooks ? "tistySkillsHooksWhy" : "tistySkillsHooksWhyOne")}</p>
           </div>
           <ul className="mt-3 flex flex-col gap-1.5">
             {own.skills && (
