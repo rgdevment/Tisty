@@ -10,9 +10,16 @@ export interface RulesOf {
   readonly docs: readonly Filed[];
 }
 
+export interface RuleTarget {
+  readonly level: string;
+  readonly named: string;
+}
+
 export interface AgentGroups {
-  /// Rules for all computers, by agent, wherever each one is kept.
+  /// Rules for all computers, by agent, wherever each one is kept: only agents that hold one.
   readonly rules: readonly RulesOf[];
+  /// The agents a new rule for all computers can be written for: those found here and those holding one.
+  readonly ruleTargets: readonly RuleTarget[];
   /// Skills for all computers, a skill of several files drawn as one.
   readonly skills: readonly Drawn[];
   /// The person's own hooks, for all computers or for this one: each runs only once registered here.
@@ -30,13 +37,15 @@ const rank = (level: string): number => {
   return at === -1 ? ASSISTANTS.length : at;
 };
 
+const byRank = (one: string, two: string) => rank(one) - rank(two) || one.localeCompare(two);
+
 // Cursor keeps its rules in its own settings, so it has no rules file to write.
 const RULELESS: ReadonlySet<string> = new Set(["cursor"]);
 
 const levelNamed = (name: string): string | undefined =>
   ASSISTANTS.find(([, called]) => called === name)?.[0];
 
-/// The agents this computer has a folder for, so «New rule» stands ready before any rule for all exists.
+/// The agents this computer has a folder for, so «New rule» offers them before any rule for all exists.
 const agentsHere = (folders: readonly Folded[]): string[] =>
   folders
     .filter((one) => one.agents?.mine && one.agents.room)
@@ -106,7 +115,6 @@ export const agentGroups = (
       isHook(rows.get(one.file))
     );
   });
-  for (const level of agentsHere(folders)) if (!rules.has(level)) rules.set(level, []);
   const drawnElsewhere = new Set(left.map((one) => one.folder));
   const emptied = new Set(
     folders
@@ -120,8 +128,11 @@ export const agentGroups = (
   );
   return {
     rules: [...rules]
-      .sort(([one], [two]) => rank(one) - rank(two) || one.localeCompare(two))
+      .sort(([one], [two]) => byRank(one, two))
       .map(([level, kept]) => ({ level, named: named(level), docs: kept })),
+    ruleTargets: [...new Set([...agentsHere(folders), ...rules.keys()])]
+      .sort(byRank)
+      .map((level) => ({ level, named: named(level) })),
     skills: grouped(skills, rows),
     hooks,
     left,

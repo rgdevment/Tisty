@@ -277,8 +277,7 @@ describe("the sidebar with computers in Agents", () => {
     await drawnTree();
     expect(screen.getByText("Desk (this computer)")).toBeTruthy();
     expect(screen.getByText("Laptop")).toBeTruthy();
-    // Two folders plus the «Claude» sub-heading Global now draws under Rules for this computer's agent.
-    expect(screen.getAllByText("Claude")).toHaveLength(3);
+    expect(screen.getAllByText("Claude")).toHaveLength(2);
     expect(screen.queryByText("Codex")).toBeNull();
     expect(screen.queryByText("desk")).toBeNull();
   });

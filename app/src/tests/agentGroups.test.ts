@@ -193,18 +193,21 @@ describe("the agent folders Global no longer draws", () => {
   });
 });
 
-describe("the empty rules entries for this computer's agents", () => {
+describe("the agents a new rule for all can be written for", () => {
   const room = (id: string, name: string, mine = true, parent = "laptop") =>
     folder(id, name, parent, { computer: "Laptop", mine, room: true });
   const withRooms = (rooms: Folded[], docs: Filed[] = [], rows: [string, AgentRow][] = []) =>
     agentGroups(docs, [...FOLDERS, ...rooms], new Map(rows), "agents");
+  const targets = (made: ReturnType<typeof withRooms>) =>
+    made.ruleTargets.map((one) => [one.level, one.named]);
 
-  it("adds an empty entry for each agent this computer has a folder for", () => {
-    const made = withRooms([room("l-codex", "Codex"), room("l-gemini", "Gemini")]);
-    expect(made.rules.map((one) => [one.level, one.named, one.docs])).toEqual([
-      ["codex", "Codex", []],
-      ["gemini", "Gemini", []],
+  it("lists each agent this computer has a folder for, and draws no empty rules entry", () => {
+    const made = withRooms([room("l-gemini", "Gemini"), room("l-codex", "Codex")]);
+    expect(targets(made)).toEqual([
+      ["codex", "Codex"],
+      ["gemini", "Gemini"],
     ]);
+    expect(made.rules).toEqual([]);
   });
 
   it("leaves out Cursor, unknown names, another computer's rooms and folders with no room", () => {
@@ -214,17 +217,47 @@ describe("the empty rules entries for this computer's agents", () => {
       room("o-codex", "Codex", false, "other"),
       folder("l-bare", "Gemini", "laptop", { computer: "Laptop", mine: true, room: false }),
     ]);
+    expect(made.ruleTargets).toEqual([]);
     expect(made.rules).toEqual([]);
   });
 
-  it("adds none when rules for that agent already exist, and keeps the order", () => {
+  it("keeps an agent that holds rules once, in the same order as the rules", () => {
     const made = withRooms(
       [room("l-claude", "Claude"), room("l-codex", "Codex")],
       [doc("a", "global")],
       [row("a")],
     );
-    expect(made.rules.map((one) => one.level)).toEqual(["claude", "codex"]);
+    expect(made.rules.map((one) => one.level)).toEqual(["claude"]);
     expect(files(made.rules[0].docs)).toEqual(["a"]);
-    expect(made.rules[1].docs).toEqual([]);
+    expect(made.ruleTargets.map((one) => one.level)).toEqual(["claude", "codex"]);
+  });
+
+  it("adds an agent that holds rules though this computer has no folder for it", () => {
+    const made = withRooms(
+      [room("l-codex", "Codex")],
+      [doc("g", "global"), doc("z", "global")],
+      [row("g", { level: "gemini" }), row("z", { level: "zed" })],
+    );
+    expect(targets(made)).toEqual([
+      ["codex", "Codex"],
+      ["gemini", "Gemini"],
+      ["zed", "zed"],
+    ]);
+    expect(made.rules.map((one) => one.level)).toEqual(["gemini", "zed"]);
+  });
+
+  it("includes Cursor when it holds rules, after the agents ranked before it", () => {
+    const made = withRooms(
+      [room("l-cursor", "Cursor"), room("l-claude", "Claude")],
+      [doc("c", "global")],
+      [row("c", { level: "cursor" })],
+    );
+    expect(made.ruleTargets.map((one) => one.level)).toEqual(["claude", "cursor"]);
+  });
+
+  it("has no targets and no rules when nothing is here", () => {
+    const made = groups([], []);
+    expect(made.ruleTargets).toEqual([]);
+    expect(made.rules).toEqual([]);
   });
 });

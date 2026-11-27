@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Wired } from "../core";
 import { adopt } from "../locales";
-import HooksRow, { tistyHookLines } from "../ui/HooksRow";
+import TistyHooksRow, { hooksStanding, tistyHookLines } from "../ui/HooksRow";
 
 const agent = (id: string, name: string, more: Partial<Wired> = {}): Wired => ({
   id,
@@ -17,97 +17,142 @@ const agent = (id: string, name: string, more: Partial<Wired> = {}): Wired => ({
   ...more,
 });
 
+const off = { on: false, at: "/home/x/hooks.json" };
+
+const row = (agents: Wired[] | null, more: Partial<Parameters<typeof TistyHooksRow>[0]> = {}) =>
+  render(
+    <ul>
+      <TistyHooksRow agents={agents} depth={1} step={12} onOpen={vi.fn()} {...more} />
+    </ul>,
+  );
+
 beforeEach(() => adopt("en"));
 
-describe("the hooks row of Global", () => {
-  it("says for each connected agent whether Tisty's hooks are on or off here", () => {
-    render(
-      <HooksRow
-        agents={[
-          agent("claude", "Claude"),
-          agent("codex", "Codex", { hooks: { on: false, at: "/home/codex/hooks.json" } }),
-        ]}
-        onOpen={vi.fn()}
-      />,
-    );
+describe("Tisty's hooks as one row", () => {
+  it("is one button with the name and, on the right, where they run", () => {
+    row([agent("claude", "Claude"), agent("codex", "Codex")]);
     const buttons = screen.getAllByRole("button");
-    expect(buttons).toHaveLength(2);
-    expect(buttons[0].textContent).toBe("Claude on this computer");
-    expect(buttons[1].textContent).toBe("Codex on this computer");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].textContent).toBe("Tisty's hooksOn");
+  });
+
+  it("names every agent and its state in the label and the title", () => {
+    row([agent("claude", "Claude"), agent("codex", "Codex", { hooks: off })]);
+    const said = "Tisty's hooks: Claude: with hooks; Codex: no hooks";
+    const button = screen.getByRole("button", { name: said });
+    expect(button.getAttribute("title")).toBe(`${said} · Open in Settings › Agents › Connected`);
+  });
+
+  it("draws nothing when no connected agent has hooks, or they are not read yet", () => {
+    for (const none of [
+      [],
+      null,
+      [agent("gemini", "Gemini", { wired: false })],
+      [agent("cursor", "Cursor", { hooks: null })],
+    ]) {
+      const { container, unmount } = row(none);
+      expect(container.querySelectorAll("li")).toHaveLength(0);
+      unmount();
+    }
   });
 
   it("hides an agent that is not connected or has no hooks to read", () => {
-    render(
-      <HooksRow
-        agents={[
-          agent("claude", "Claude"),
-          agent("gemini", "Gemini", { wired: false }),
-          agent("cursor", "Cursor", { hooks: null }),
-          agent("copilot", "Copilot", { hooks: undefined }),
-        ]}
-        onOpen={vi.fn()}
-      />,
+    row([
+      agent("claude", "Claude"),
+      agent("gemini", "Gemini", { wired: false }),
+      agent("cursor", "Cursor", { hooks: null }),
+      agent("copilot", "Copilot", { hooks: undefined }),
+    ]);
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
+      "Tisty's hooks: Claude: with hooks",
     );
-    expect(screen.getAllByRole("button")).toHaveLength(1);
-    expect(screen.queryByText(/Gemini|Cursor|Copilot/)).toBeNull();
   });
 
-  it("says no agent is connected when none is, or when they are not read yet", () => {
-    const { rerender } = render(<HooksRow agents={[]} onOpen={vi.fn()} />);
-    expect(screen.getByText("No agent connected on this computer")).toBeTruthy();
-    rerender(<HooksRow agents={null} onOpen={vi.fn()} />);
-    expect(screen.getByText("No agent connected on this computer")).toBeTruthy();
-    rerender(<HooksRow agents={[agent("gemini", "Gemini", { wired: false })]} onOpen={vi.fn()} />);
-    expect(screen.getByText("No agent connected on this computer")).toBeTruthy();
-    expect(screen.queryAllByRole("button")).toHaveLength(0);
-  });
-
-  it("opens Settings when a row is clicked", () => {
+  it("opens Settings when pressed", () => {
     const onOpen = vi.fn();
-    render(<HooksRow agents={[agent("claude", "Claude")]} onOpen={onOpen} />);
+    row([agent("claude", "Claude")], { onOpen });
     fireEvent.click(screen.getByRole("button"));
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
+  it("adds the Codex approval to the title when Codex has its hooks on", () => {
+    row([agent("claude", "Claude"), agent("codex", "Codex")]);
+    const title = screen.getByRole("button").getAttribute("title") ?? "";
+    expect(title).toContain("Approve it in Codex with /hooks");
+    expect(title.endsWith("Open in Settings › Agents › Connected")).toBe(true);
+  });
+
+  it("says it in Spanish too, for an id that ends in codex", () => {
+    adopt("es");
+    row([agent("openai-codex", "Codex")]);
+    expect(screen.getByRole("button").getAttribute("title")).toContain(
+      "Apruébalo en Codex con /hooks",
+    );
+  });
+
+  it("leaves the approval out when Codex is off or not there", () => {
+    const off_ = row([agent("claude", "Claude"), agent("codex", "Codex", { hooks: off })]);
+    expect(screen.getByRole("button").getAttribute("title")).not.toContain("/hooks");
+    off_.unmount();
+    row([agent("claude", "Claude")]);
+    expect(screen.getByRole("button").getAttribute("title")).not.toContain("/hooks");
+  });
+
+  it("carries no line about approving hooks by hand in Codex", () => {
+    row([agent("claude", "Claude"), agent("codex", "Codex")]);
+    expect(screen.queryByText(/\/hooks/)).toBeNull();
+  });
+
   it("speaks Spanish when the app does", () => {
     adopt("es");
-    render(
-      <HooksRow
-        agents={[agent("claude", "Claude", { hooks: { on: false, at: "x" } })]}
-        onOpen={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("button").textContent).toBe("Claude en este equipo");
+    row([agent("claude", "Claude", { hooks: off }), agent("codex", "Codex", { hooks: off })]);
+    const button = screen.getByRole("button", {
+      name: "Hooks de Tisty: Claude: sin hooks; Codex: sin hooks",
+    });
+    expect(button.textContent).toBe("Hooks de TistyApagados");
   });
 });
 
-describe("the hooks row shows a dot, not a word", () => {
-  const dotOf = (button: HTMLElement) => button.querySelector("[data-on]") as HTMLElement;
+describe("what the right side of the row says", () => {
+  const line = (id: string, name: string, on: boolean) => ({ id, name, on });
 
-  it.each([
-    ["en", { on: true, at: "x" }, true, "Claude on this computer: with hooks"],
-    ["en", { on: false, at: "x" }, false, "Claude on this computer: no hooks"],
-    ["en", { on: false, plugged: true, at: "x" }, true, "Claude on this computer: with hooks"],
-    ["es", { on: true, at: "x" }, true, "Claude en este equipo: con hooks"],
-    ["es", { on: false, at: "x" }, false, "Claude en este equipo: sin hooks"],
-    ["es", { on: false, plugged: true, at: "x" }, true, "Claude en este equipo: con hooks"],
-  ] as const)("in %s with %j: name, title and dot agree", (lang, hooks, on, said) => {
-    adopt(lang);
-    render(
-      <HooksRow agents={[agent("claude", "Claude", { hooks: { ...hooks } })]} onOpen={vi.fn()} />,
-    );
-    const button = screen.getByRole("button", { name: said });
-    const open =
-      lang === "en"
-        ? "Open in Settings › Agents › Connected"
-        : "Abrir en Configuración › Agentes › Conectados";
-    expect(button.getAttribute("title")).toBe(`${said} · ${open}`);
-    expect(button.textContent).not.toMatch(/hooks/i);
-    const dot = dotOf(button);
-    expect(dot.getAttribute("aria-hidden")).toBe("true");
-    expect(dot.getAttribute("data-on")).toBe(String(on));
-    expect(dot.className).toContain(on ? "bg-hue-green" : "border-faint");
-    expect(dot.className).not.toContain(on ? "border-faint" : "bg-hue-green");
+  it("says on when all run them, off when none, and which ones when mixed", () => {
+    expect(hooksStanding([line("a", "Claude", true), line("b", "Codex", true)])).toEqual({
+      said: "On",
+      on: true,
+    });
+    expect(hooksStanding([line("a", "Claude", false), line("b", "Codex", false)])).toEqual({
+      said: "Off",
+      on: false,
+    });
+    expect(hooksStanding([line("a", "Claude", true), line("b", "Codex", false)])).toEqual({
+      said: "Only in Claude",
+      on: true,
+    });
+    expect(
+      hooksStanding([
+        line("a", "Claude", true),
+        line("b", "Codex", true),
+        line("c", "Gemini", false),
+      ]).said,
+    ).toBe("Only in Claude, Codex");
+  });
+
+  it("counts a plugged agent as on and prints the standing in green when some run them", () => {
+    row([
+      agent("claude", "Claude", { hooks: { on: false, plugged: true, at: "x" } }),
+      agent("codex", "Codex", { hooks: off }),
+    ]);
+    expect(screen.getByText("Only in Claude").className).toContain("text-hue-green");
+  });
+
+  it("prints Off in faint, and the mixed standing in Spanish", () => {
+    const first = row([agent("claude", "Claude", { hooks: off })]);
+    expect(screen.getByText("Off").className).toContain("text-faint");
+    first.unmount();
+    adopt("es");
+    row([agent("claude", "Claude"), agent("codex", "Codex", { hooks: off })]);
+    expect(screen.getByText("Solo en Claude")).toBeTruthy();
   });
 });
 
@@ -116,15 +161,15 @@ describe("tistyHookLines", () => {
     expect(
       tistyHookLines([
         agent("claude", "Claude"),
-        agent("codex", "Codex", { hooks: { on: false, at: "x" } }),
+        agent("codex", "Codex", { hooks: off }),
         agent("gemini", "Gemini", { hooks: { on: false, plugged: true, at: "x" } }),
         agent("cursor", "Cursor", { hooks: null }),
         agent("copilot", "Copilot", { wired: false }),
       ]),
     ).toEqual([
-      { id: "claude", name: "Claude", on: true, byHand: false },
-      { id: "codex", name: "Codex", on: false, byHand: true },
-      { id: "gemini", name: "Gemini", on: true, byHand: false },
+      { id: "claude", name: "Claude", on: true },
+      { id: "codex", name: "Codex", on: false },
+      { id: "gemini", name: "Gemini", on: true },
     ]);
   });
 
@@ -135,24 +180,18 @@ describe("tistyHookLines", () => {
 });
 
 describe("the hooks row as a row of the tree", () => {
-  it("passes what rowOf gives for each line, keyed by its agent", () => {
+  it("passes what rowOf gives, keyed tisty-hooks", () => {
     const rowOf = vi.fn((key: string) => ({ "data-row": key, tabIndex: -1 }));
-    render(
-      <HooksRow
-        agents={[agent("claude", "Claude"), agent("codex", "Codex")]}
-        onOpen={vi.fn()}
-        rowOf={rowOf}
-      />,
-    );
-    const [first, second] = screen.getAllByRole("button");
-    expect(first.getAttribute("data-row")).toBe("hooks:claude");
-    expect(second.getAttribute("data-row")).toBe("hooks:codex");
-    expect(first.tabIndex).toBe(-1);
-    expect(rowOf).toHaveBeenCalledWith("hooks:claude");
+    row([agent("claude", "Claude"), agent("codex", "Codex")], { rowOf });
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("data-row")).toBe("tisty-hooks");
+    expect(button.tabIndex).toBe(-1);
+    expect(rowOf).toHaveBeenCalledWith("tisty-hooks");
+    expect(rowOf).toHaveBeenCalledTimes(1);
   });
 
   it("is no row without rowOf", () => {
-    render(<HooksRow agents={[agent("claude", "Claude")]} onOpen={vi.fn()} />);
+    row([agent("claude", "Claude")]);
     expect(screen.getByRole("button").hasAttribute("data-row")).toBe(false);
   });
 });

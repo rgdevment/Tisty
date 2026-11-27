@@ -1,15 +1,13 @@
 import type { ButtonHTMLAttributes } from "react";
 import type { Wired } from "../core";
 import { fill, t } from "../locales";
-import StateDot from "./StateDot";
+import Glyph from "./Glyph";
 
-/// One line of the Hooks group: whose hooks they are and whether they run on this computer.
+/// One connected agent and whether Tisty's hooks run in it on this computer.
 export interface HookLine {
   readonly id: string;
   readonly name: string;
   readonly on: boolean;
-  /// The agent runs them only once the person approves them there, as Codex does with `/hooks`.
-  readonly byHand: boolean;
 }
 
 /// Tisty's own hooks, one line per connected agent; hooks brought by its plugin run too.
@@ -20,50 +18,67 @@ export const tistyHookLines = (agents: readonly Wired[] | null): HookLine[] =>
       id: one.id,
       name: one.name,
       on: !!(one.hooks?.on || one.hooks?.plugged),
-      byHand: one.id.endsWith("codex"),
     }));
 
+/// How the row says where they run, in words: all, none, or only the agents that run them.
+export const hooksStanding = (lines: readonly HookLine[]): { said: string; on: boolean } => {
+  const on = lines.filter((one) => one.on);
+  if (on.length === 0) return { said: t("agentGroupHooksAllOff"), on: false };
+  if (on.length === lines.length) return { said: t("agentGroupHooksAllOn"), on: true };
+  return { said: fill("agentGroupHooksOnlyIn", on.map((one) => one.name).join(", ")), on: true };
+};
+
 interface Props {
-  /// What Settings already read of the connected agents; nothing more is read to draw these rows.
+  /// What Settings already read of the connected agents; nothing more is read to draw this row.
   agents: readonly Wired[] | null;
+  depth: number;
+  step: number;
   onOpen: () => void;
-  /// Makes each line a row of the tree it sits in, reached by its arrow keys.
+  /// Makes the row one more of the tree it sits in, reached by its arrow keys.
   rowOf?: (key: string) => ButtonHTMLAttributes<HTMLButtonElement>;
 }
 
-/// The lines of the Hooks group, read only: their switch lives in Settings, which a press opens.
-export default function HooksRow({ agents, onOpen, rowOf }: Readonly<Props>) {
+/// Tisty's hooks as one read-only row: their switch lives in Settings, which a press opens.
+export default function TistyHooksRow({ agents, depth, step, onOpen, rowOf }: Readonly<Props>) {
   const lines = tistyHookLines(agents);
-  if (lines.length === 0)
-    return <p className="px-2 py-1 text-[12.5px] text-faint">{t("agentGroupHooksNone")}</p>;
+  if (lines.length === 0) return null;
+  const standing = hooksStanding(lines);
+  const each = lines
+    .map((one) => `${one.name}: ${t(one.on ? "agentGroupHooksOn" : "agentGroupHooksOff")}`)
+    .join("; ");
+  const said = `${t("agentGroupTistyHooks")}: ${each}`;
+  // Codex runs them only once the person approves them there, which only Settings otherwise says.
+  const approve = lines.some((one) => one.on && one.id.endsWith("codex"))
+    ? ` · ${t("agentGroupHooksCodex")}`
+    : "";
   return (
-    <ul aria-label={t("agentGroupHooksLabel")}>
-      {lines.map((one) => {
-        const here = fill("agentGroupHooksHere", one.name);
-        const said = `${here}: ${t(one.on ? "agentGroupHooksOn" : "agentGroupHooksOff")}`;
-        return (
-          <li key={one.id}>
-            <button
-              type="button"
-              {...rowOf?.(`hooks:${one.id}`)}
-              onClick={onOpen}
-              aria-label={said}
-              title={`${said} · ${t("agentGroupHooksOpen")}`}
-              className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-[13px] text-ink hover:bg-hover"
-            >
-              <span className="min-w-0">
-                <span className="block truncate">{here}</span>
-                {one.on && one.byHand && (
-                  <span className="block truncate text-[11.5px] text-soft">
-                    {t("agentGroupHooksCodex")}
-                  </span>
-                )}
-              </span>
-              <StateDot on={one.on} />
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <li className="relative">
+      <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+        <span
+          aria-hidden="true"
+          className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+          style={{ marginLeft: `${8 + depth * step}px` }}
+        >
+          <Glyph name="bolt" className="h-[13px] w-[13px]" />
+        </span>
+        <button
+          type="button"
+          {...rowOf?.("tisty-hooks")}
+          onClick={onOpen}
+          aria-label={said}
+          title={`${said}${approve} · ${t("agentGroupHooksOpen")}`}
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+        >
+          <span className="truncate">{t("agentGroupTistyHooks")}</span>
+          <span
+            className={`ml-auto shrink-0 whitespace-nowrap text-[11.5px] ${
+              standing.on ? "text-hue-green" : "text-faint"
+            }`}
+          >
+            {standing.said}
+          </span>
+        </button>
+      </div>
+    </li>
   );
 }

@@ -4,7 +4,7 @@ import type { AgentGroups } from "../agentGroups";
 import type { Filed, Wired } from "../core";
 import { adopt } from "../locales";
 import AgentGroupRows from "../ui/AgentGroupRows";
-import HooksRow from "../ui/HooksRow";
+import TistyHooksRow from "../ui/HooksRow";
 import type { AgentHook, HookLook, Tried } from "../userHooks";
 
 const ipc = vi.hoisted(() => ({
@@ -46,6 +46,7 @@ const doc = (file: string): Filed => ({
 
 const GROUPS: AgentGroups = {
   rules: [],
+  ruleTargets: [],
   skills: [],
   hooks: [],
   left: [],
@@ -283,26 +284,42 @@ describe("Global's Hooks group", () => {
   });
 });
 
-describe("the line of Tisty's own hooks", () => {
-  it("shows the Codex approval line only when its hooks are on", () => {
-    const { rerender } = render(
-      <HooksRow agents={[agent("claude", "Claude"), agent("codex", "Codex")]} onOpen={vi.fn()} />,
+describe("the row of Tisty's own hooks", () => {
+  const tisty = (agents: Wired[]) =>
+    render(
+      <ul>
+        <TistyHooksRow agents={agents} depth={0} step={12} onOpen={vi.fn()} />
+      </ul>,
     );
-    expect(screen.getAllByText("Approve it in Codex with /hooks")).toHaveLength(1);
-    rerender(
-      <HooksRow
-        agents={[
-          agent("claude", "Claude"),
-          agent("codex", "Codex", { hooks: { on: false, at: "/home/codex/hooks.json" } }),
-        ]}
-        onOpen={vi.fn()}
-      />,
-    );
+
+  it("is one row whatever the agents are, with no Codex approval line", () => {
+    tisty([agent("claude", "Claude"), agent("codex", "Codex")]);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.queryByText("Approve it in Codex with /hooks")).toBeNull();
   });
 
-  it("never shows it under another agent", () => {
-    render(<HooksRow agents={[agent("claude", "Claude")]} onOpen={vi.fn()} />);
-    expect(screen.queryByText("Approve it in Codex with /hooks")).toBeNull();
+  it("sits apart from the person's hooks, in the From Tisty group", () => {
+    render(
+      <ul>
+        <AgentGroupRows
+          groups={{ ...GROUPS, hooks: [doc("guard")] }}
+          depth={0}
+          step={12}
+          paper={(one) => <li key={one.id}>{one.title}</li>}
+          skill={() => null}
+          rowOf={() => ({})}
+          tistySkills={false}
+          agents={[agent("claude", "Claude")]}
+          onHooks={vi.fn()}
+        />
+      </ul>,
+    );
+    const person = screen.getByText("guard");
+    const from = screen.getByText("From Tisty");
+    const row = screen.getByRole("button", { name: /^Tisty's hooks:/ });
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(person, from)).toBe(true);
+    expect(follows(from, row)).toBe(true);
   });
 });

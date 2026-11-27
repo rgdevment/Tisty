@@ -170,10 +170,15 @@ describe("the three stages, as pure answers", () => {
 
 describe("the words Agents speaks with", () => {
   it("never says on, off nor the stored name AGENTS", () => {
-    // Tisty's own skills are turned on and off by the owner's word; the folder only syncs.
+    // Tisty's own skills and hooks are turned on and off by the owner's word; the folder only syncs.
     const folders = (all: Record<string, string>) =>
       Object.entries(all)
-        .filter(([key]) => !key.startsWith("tistySkill") && !key.startsWith("tistyLanding"))
+        .filter(
+          ([key]) =>
+            !key.startsWith("tistySkill") &&
+            !key.startsWith("tistyLanding") &&
+            !key.startsWith("agentGroupHooksAll"),
+        )
         .map(([, said]) => said);
     for (const said of [...folders(agentsEn), ...folders(agentsEs)]) {
       expect(said).not.toMatch(/encend|apag|turn on|turn off/i);

@@ -124,7 +124,7 @@ const drawn = async (props: Partial<Parameters<typeof Tree>[0]> = {}) => {
 
 const asked = "Nueva regla de Claude, para todos tus equipos";
 
-describe("the three groups of Global in the tree", () => {
+describe("the groups of Global in the tree", () => {
   it("draws a rule for all under Global > Reglas > Claude, once, and not the folder it is kept in", async () => {
     const { container } = await drawn();
     await waitFor(() => expect(screen.getByText("Horario")).toBeTruthy());
@@ -145,7 +145,7 @@ describe("the three groups of Global in the tree", () => {
   it("makes no heading a row nor a drop target, and the projected rule no drop target", async () => {
     const { container } = await drawn();
     await waitFor(() => expect(screen.getByText("Horario")).toBeTruthy());
-    for (const word of ["Reglas", "Skills"]) {
+    for (const word of ["Reglas", "De Tisty"]) {
       const heading = screen.getByText(word);
       expect(heading.closest("[data-row]")).toBeNull();
       expect(heading.closest("[data-drop]")).toBeNull();
@@ -158,9 +158,9 @@ describe("the three groups of Global in the tree", () => {
     const onNewRule = vi.fn();
     const { container } = await drawn({ onNewRule });
     const plus = await screen.findByRole("button", { name: asked });
-    expect(plus.getAttribute("data-row")).toBe("rules:claude");
+    expect(plus.getAttribute("data-row")).toBe("rules:new");
     expect(plus.closest("[data-drop]")).toBeNull();
-    expect(container.querySelector('[data-drop="rules:claude"]')).toBeNull();
+    expect(container.querySelector('[data-drop="rules:new"]')).toBeNull();
     fireEvent.click(plus);
     expect(onNewRule).toHaveBeenCalledWith("claude");
     expect(onNewRule).toHaveBeenCalledTimes(1);
@@ -184,11 +184,11 @@ describe("the three groups of Global in the tree", () => {
     expect(screen.getByText("Rules")).toBeTruthy();
   });
 
-  it("draws the Hooks heading only when an agent is connected with hooks, and its line opens them", async () => {
+  it("draws the Tisty hooks row under From Tisty only when an agent is connected with hooks, and it opens them", async () => {
     const onHooks = vi.fn();
     const { rerender } = await drawn({ agents: [hooked({ hooks: null })], onHooks });
     await screen.findByText("Horario");
-    expect(screen.queryByText("Hooks")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Hooks de Tisty/ })).toBeNull();
     rerender(
       <Tree
         papers={PAPERS}
@@ -198,52 +198,55 @@ describe("the three groups of Global in the tree", () => {
         onHooks={onHooks}
       />,
     );
-    const heading = await screen.findByText("Hooks");
-    expect(heading.closest("[data-row]")).toBeNull();
-    const line = screen.getByRole("button", { name: /Claude en este equipo/ });
-    expect(line.getAttribute("data-row")).toBe("hooks:claude");
+    const line = await screen.findByRole("button", {
+      name: "Hooks de Tisty: Claude: con hooks",
+    });
+    expect(line.getAttribute("data-row")).toBe("tisty-hooks");
+    expect(line.textContent).toContain("Encendidos");
     fireEvent.click(line);
     expect(onHooks).toHaveBeenCalledTimes(1);
   });
 
-  it("puts the Tisty skills row under Skills", async () => {
-    await drawn();
-    const skills = await screen.findByText("Skills");
-    const row = await screen.findByText("Skills de Tisty");
-    expect(skills.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(skills.closest("[data-row]")).toBeNull();
+  it("keeps Hooks for the person's own hooks: no heading without a plus or a hook", async () => {
+    await drawn({ agents: [hooked()], onHooks: vi.fn() });
+    await screen.findByRole("button", { name: /^Hooks de Tisty/ });
+    expect(screen.queryByText("Hooks")).toBeNull();
   });
 
-  it("walks the Tisty skills row with the arrow keys, between the rules and the Hooks line", async () => {
+  it("puts the Tisty skills row under From Tisty, with no Skills heading of its own", async () => {
+    await drawn();
+    const from = await screen.findByText("De Tisty");
+    const row = await screen.findByText("Skills de Tisty");
+    expect(from.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(from.closest("[data-row]")).toBeNull();
+    expect(screen.queryByText("Skills")).toBeNull();
+    expect(row.closest("button")?.textContent).toContain("Encendidas");
+  });
+
+  it("walks the plus of Rules, the rule, the plus of Hooks and the two Tisty rows with the arrow keys, in order", async () => {
     const { container } = await drawn({
       onNewRule: vi.fn(),
+      onNewHook: vi.fn(),
       agents: [hooked()],
       onHooks: vi.fn(),
     });
-    const rule = (await waitFor(() => {
-      const row = container.querySelector<HTMLElement>('[data-row="r1"]');
-      expect(row).not.toBeNull();
-      return row;
-    })) as HTMLElement;
-    const skills = (await waitFor(() => {
-      const row = container.querySelector<HTMLElement>('[data-row="tisty-skills"]');
-      expect(row).not.toBeNull();
-      return row;
-    })) as HTMLElement;
-    const hooks = (await waitFor(() => {
-      const row = container.querySelector<HTMLElement>('[data-row="hooks:claude"]');
-      expect(row).not.toBeNull();
-      return row;
-    })) as HTMLElement;
-    expect(["-1", "0"]).toContain(skills.getAttribute("tabindex"));
-    rule.focus();
-    fireEvent.keyDown(rule, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(skills);
-    fireEvent.keyDown(skills, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(hooks);
-    fireEvent.keyDown(hooks, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(skills);
-    fireEvent.keyDown(skills, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(rule);
+    const keys = ["rules:new", "r1", "hooks:new", "tisty-skills", "tisty-hooks"];
+    const rowOf = (key: string) =>
+      container.querySelector<HTMLElement>(`[data-row="${key}"]`) as HTMLElement;
+    for (const key of keys) await waitFor(() => expect(rowOf(key)).not.toBeNull());
+    const inDom = [...container.querySelectorAll<HTMLElement>("[data-row]")]
+      .map((one) => one.getAttribute("data-row") ?? "")
+      .filter((one) => keys.includes(one));
+    expect(inDom).toEqual(keys);
+    expect(["-1", "0"]).toContain(rowOf("tisty-skills").getAttribute("tabindex"));
+    rowOf(keys[0]).focus();
+    for (let at = 1; at < keys.length; at += 1) {
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(rowOf(keys[at]));
+    }
+    for (let at = keys.length - 2; at >= 0; at -= 1) {
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: "ArrowUp" });
+      expect(document.activeElement).toBe(rowOf(keys[at]));
+    }
   });
 });
