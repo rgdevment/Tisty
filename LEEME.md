@@ -67,13 +67,13 @@
 
   <p>
     <img
-      src="assets/screens/app/en-brainsty-living-dark.webp"
+      src="assets/screens/app/es-brainsty-3d-dark.webp"
       width="92%"
-      alt="Brainsty, la red de Tisty, viva en la ventana de Tisty, tema
-      oscuro y en inglés: la barra lateral con las tareas de hoy y la
-      Biblioteca y, al lado, cada documento, tarea y etiqueta unidos en una
-      sola red, 1.931 nodos y 2.811 conexiones, girando despacio como un
-      globo mientras viajeros de luz recorren sus líneas"/>
+      alt="Brainsty, la red de Tisty, en 3D en la ventana de Tisty, tema
+      oscuro: 1910 nodos y 4524 conexiones, cada documento, tarea y etiqueta
+      del color de su carpeta o lista; la vista se acerca a una tarea, abre
+      su ficha con sus etiquetas y las tareas que se le parecen, y recorre
+      sus conexiones"/>
   </p>
 
   <p><strong>Descargar Tisty</strong></p>

@@ -67,13 +67,13 @@
 
   <p>
     <img
-      src="assets/screens/app/en-brainsty-living-dark.webp"
+      src="assets/screens/app/es-brainsty-3d-dark.webp"
       width="92%"
-      alt="Brainsty, Tisty's network, alive in the Tisty window, dark theme: the
-      sidebar with the tasks for today and the Library, and beside it every
-      document, task and tag joined in one network, 1,931 nodes and 2,811
-      connections, turning slowly like a globe while travellers of light walk
-      its lines"/>
+      alt="Brainsty, Tisty's network, in 3D in the Tisty window, dark theme,
+      in Spanish: 1,910 nodes and 4,524 connections, every document, task and
+      tag in the colour of its folder or list; the view flies in to one task,
+      opens its card with its tags and the tasks that look like it, and
+      follows its connections"/>
   </p>
 
   <p><strong>Download Tisty</strong></p>
