@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { forgetHealed } from "./agentsAmiss";
 import { AGENTS_CHANGED, type TistySkills, tistySkills } from "./agentsSync";
 import {
@@ -9,7 +9,9 @@ import {
   seenAgents,
   type Wired,
   watchedAgents,
+  wslWatched,
 } from "./core";
+import { looked } from "./wslLooked";
 
 // Writing Claude Code's hooks is what finds its plugin out, so the next look at them already says it.
 const broughtTo = (one: Wired, brought: readonly string[]): Wired =>
@@ -25,6 +27,7 @@ const foundOut = (one: Wired, was: readonly Wired[] | null): Wired => {
 export function useKnownAgents(idle = false) {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [seen, keepAgents] = useState<Wired[] | null>(null);
+  const [inDistros, setInDistros] = useState<Wired[]>([]);
   const [brought, setBrought] = useState<string[]>([]);
   const [hands, setHands] = useState<Assistant[] | null>(null);
   const [skills, setSkills] = useState<TistySkills | null>(null);
@@ -41,8 +44,24 @@ export function useKnownAgents(idle = false) {
     () => seen?.map((one) => broughtTo(one, brought)) ?? null,
     [seen, brought],
   );
+  // The startup look also reaches the distros already looked into, so one left behind by an install is said too.
+  const everywhere = useMemo(() => agents && [...agents, ...inDistros], [agents, inDistros]);
+  const lastLook = useRef(0);
+  const lookDistros = useCallback(() => {
+    const asked = ++lastLook.current;
+    wslWatched(looked())
+      .then((found) => {
+        if (asked !== lastLook.current) return;
+        forgetHealed(found);
+        setInDistros(found);
+      })
+      .catch(() => undefined);
+  }, []);
   const lookDoor = useCallback(() => agentState().then(setAgent), []);
-  const lookAgents = useCallback(() => seenAgents().then(setAgents), [setAgents]);
+  const lookAgents = useCallback(() => {
+    lookDistros();
+    return seenAgents().then(setAgents);
+  }, [setAgents, lookDistros]);
   const lookHands = useCallback(() => assistants().then(setHands), []);
   const lookSkills = useCallback(() => {
     tistySkills()
@@ -58,8 +77,9 @@ export function useKnownAgents(idle = false) {
         if (!seen) return;
         forgetHealed(seen);
         keepAgents((was) => seen.map((one) => foundOut(one, was)));
+        lookDistros();
       }),
-    [],
+    [lookDistros],
   );
 
   // Opening the app brings the skills up to date first, so they are read once that round has said so.
@@ -73,6 +93,9 @@ export function useKnownAgents(idle = false) {
     agent,
     setAgent,
     agents,
+    everywhere,
+    inDistros,
+    lookDistros,
     setAgents,
     learnPlugged,
     hands,

@@ -1,4 +1,4 @@
-import { hushedHere, inState, skillsBehind, unheeded } from "./agentsAmiss";
+import { inState, skillsBehind } from "./agentsAmiss";
 import { pendingSaid } from "./agentsSaid";
 import type { TistySkills } from "./agentsSync";
 import type { About, Carrying, CloudStatus, Ready, Settings, Wired } from "./core";
@@ -142,13 +142,10 @@ function agentItems({ wired, skills, build, door }: Known): Item[] {
     said,
     act: t("attAstrayAct"),
   });
+  // Another install still works, so only the Agents page offers to bring its entries here.
   const lost = inState(wired, "lost");
-  const elsewhere = unheeded(wired, "elsewhere", hushedHere.current().said);
   return [
     ...(lost.length > 0 ? [item("agents-lost", pendingSaid(lost, "lost"))] : []),
-    ...(elsewhere.length > 0
-      ? [item("agents-elsewhere", pendingSaid(elsewhere, "elsewhere"))]
-      : []),
     ...(skillsBehind(skills) ? [item("agents-skills", t("attSkillsBehind"))] : []),
   ];
 }

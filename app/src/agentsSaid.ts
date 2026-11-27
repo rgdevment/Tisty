@@ -34,17 +34,20 @@ const NOTICE: Record<Kind, Word> = {
   mixed: "amissMixed",
 };
 
+export const placeNamed = (one: Wired): string =>
+  one.place ? `${one.name} (${fill("wslTitle", one.place)})` : one.name;
+
 const single = (all: readonly Wired[], state: State) =>
   onlyHooks(partsIn(all[0], state)) ? "hooks" : "connection";
 
 export const pendingSaid = (all: readonly Wired[], state: State): string =>
   all.length === 1
-    ? fill(ONE[state][single(all, state)], all[0].name)
+    ? fill(ONE[state][single(all, state)], placeNamed(all[0]))
     : fill(MANY[state][kindOf(all, state)], String(all.length));
 
 export const noticeSaid = (all: readonly Wired[]): string =>
   all.length === 1
-    ? fill(single(all, "lost") === "hooks" ? "amissHooks" : "amissOne", all[0].name)
+    ? fill(single(all, "lost") === "hooks" ? "amissHooks" : "amissOne", placeNamed(all[0]))
     : fill(NOTICE[kindOf(all, "lost")], String(all.length));
 
 export const partsSaid = (parts: Parts): string => {

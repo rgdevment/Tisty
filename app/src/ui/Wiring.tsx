@@ -17,28 +17,11 @@ import {
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { looked, remember } from "../wslLooked";
 import type { Run, Word } from "./Card";
 import Hooking, { type OnHook, trustedByHand } from "./Hooking";
 import MendAsk, { JoinAsk, type JoinWith, OutAsk } from "./MendAsk";
 import { foldersBehind, TistySkillsAgentLine, teaches } from "./TistySkills";
-
-const LOOKED = "tisty.wsl.looked";
-
-const looked = (): string[] => {
-  try {
-    return JSON.parse(window.localStorage.getItem(LOOKED) ?? "[]");
-  } catch {
-    return [];
-  }
-};
-
-const remember = (all: string[]) => {
-  try {
-    window.localStorage.setItem(LOOKED, JSON.stringify(all));
-  } catch {
-    // A private window keeps nothing, and the distro is asked again next time.
-  }
-};
 
 const ready = (one: Wired) =>
   !one.wired && !one.astray && !one.apart && !one.unread && !one.byHand && !one.maybe;
@@ -143,7 +126,9 @@ function Row(props: Readonly<RowProps>) {
       : one.apart
         ? "wiringStateApart"
         : one.astray
-          ? "wiringStateAstray"
+          ? one.gone
+            ? "wiringStateAstray"
+            : "wiringStateOther"
           : one.wired
             ? "wiringOn"
             : one.maybe
@@ -279,6 +264,8 @@ interface Props {
   skills?: TistySkills | null;
   setSkills?: (now: TistySkills) => void;
   learnPlugged?: (ids: string[], gone: string[]) => void;
+  inDistros?: Wired[];
+  lookDistros?: () => void;
   wakes?: boolean;
   held: boolean;
   quietly: Run;
@@ -294,6 +281,8 @@ export default function Wiring({
   skills,
   setSkills,
   learnPlugged,
+  inDistros,
+  lookDistros,
   wakes = true,
   held,
   quietly,
@@ -316,7 +305,22 @@ export default function Wiring({
     quietly("wiring", wslSeen(name), (found) => {
       setInside((was) => ({ ...was, [name]: { shut: found.distro.shut, seen: found.seen } }));
       remember([...new Set([...looked(), name])]);
+      lookDistros?.();
     });
+
+  // The startup look and this list read the same distros, so a fix made from either shows in both.
+  useEffect(() => {
+    const names = new Set((inDistros ?? []).flatMap((one) => (one.place ? [one.place] : [])));
+    if (names.size === 0) return;
+    setInside((was) => {
+      const now = { ...was };
+      for (const name of names) {
+        const seen = (inDistros ?? []).filter((one) => one.place === name);
+        now[name] = { shut: was[name]?.shut ?? false, seen };
+      }
+      return now;
+    });
+  }, [inDistros]);
 
   useEffect(() => {
     wslDistros()
@@ -341,6 +345,7 @@ export default function Wiring({
     if (one.place) {
       const at = one.place;
       setInside((was) => ({ ...was, [at]: { shut: was[at]?.shut ?? false, seen: now } }));
+      lookDistros?.();
     } else setAgents(now);
   };
 

@@ -145,3 +145,214 @@ fn a_bare_path_on_a_mac_is_widened_to_where_commands_are_installed() {
     assert!(found.contains(&home.path().join(".nvm/versions/node/v22.1.0").join("bin")));
     assert!(usual_bins(Os::Windows, home.path()).is_empty());
 }
+
+fn distro_with_bins_under(root: &Path) -> Place {
+    let home = root.join("home").join("mario");
+    Place {
+        distro: Some("Ubuntu".into()),
+        os: Os::Linux,
+        config: home.join(".config"),
+        dsh: home.join(".dsh"),
+        appdata: None,
+        local: None,
+        bins: distro_bins(root, &home),
+        home,
+        command: "/mnt/c/tisty.exe".into(),
+        open: true,
+        packaged: false,
+        mount: "/mnt/".into(),
+    }
+}
+
+fn install(root: &Path, dir: &str, name: &str) {
+    let bin = dir
+        .split('/')
+        .fold(root.to_path_buf(), |at, step| at.join(step));
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::write(bin.join(name), "").unwrap();
+}
+
+#[test]
+fn an_assistant_installed_with_npm_under_nvm_counts_as_installed_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(
+        root.path(),
+        "home/mario/.nvm/versions/node/v22.1.0/bin",
+        "codex",
+    );
+
+    assert!(distro_with_bins_under(root.path()).runs("codex"));
+}
+
+#[test]
+fn an_assistant_installed_under_the_homes_package_managers_counts_as_installed_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(root.path(), "home/mario/.npm-global/bin", "gemini");
+    install(root.path(), "home/mario/.bun/bin", "bunny");
+    install(root.path(), "home/mario/.volta/bin", "volty");
+    install(root.path(), "home/mario/.cargo/bin", "crabby");
+    let place = distro_with_bins_under(root.path());
+
+    for name in ["gemini", "bunny", "volty", "crabby"] {
+        assert!(place.runs(name), "{name} is on the distro's usual path");
+    }
+}
+
+#[test]
+fn the_systems_and_the_homes_own_bins_are_still_searched_in_a_distro() {
+    let root = tempfile::tempdir().unwrap();
+    install(root.path(), "usr/bin", "from-usr-bin");
+    install(root.path(), "usr/local/bin", "from-usr-local-bin");
+    install(root.path(), "bin", "from-bin");
+    install(root.path(), "home/mario/.local/bin", "from-local-bin");
+    install(root.path(), "home/mario/bin", "from-home-bin");
+    let place = distro_with_bins_under(root.path());
+
+    for name in [
+        "from-usr-bin",
+        "from-usr-local-bin",
+        "from-bin",
+        "from-local-bin",
+        "from-home-bin",
+    ] {
+        assert!(place.runs(name), "{name} is on the distro's path");
+    }
+}
+
+#[test]
+fn an_assistant_that_is_nowhere_in_a_distro_is_not_found() {
+    let root = tempfile::tempdir().unwrap();
+    install(
+        root.path(),
+        "home/mario/.nvm/versions/node/v22.1.0/bin",
+        "codex",
+    );
+    let place = distro_with_bins_under(root.path());
+
+    assert!(!place.runs("claude"));
+    assert_eq!(place.on_path("claude"), None);
+}
+
+fn store_copy(bins: Vec<PathBuf>, command: &str) -> Place {
+    Place {
+        distro: None,
+        os: Os::Windows,
+        home: PathBuf::from("C:/Users/Mario"),
+        config: PathBuf::from("C:/Users/Mario/.config"),
+        dsh: PathBuf::from("C:/Users/Mario/.dsh"),
+        appdata: None,
+        local: None,
+        bins,
+        command: command.into(),
+        open: true,
+        packaged: true,
+        mount: String::new(),
+    }
+}
+
+#[test]
+fn a_store_copy_with_the_bare_name_and_nothing_on_the_path_has_its_alias_off() {
+    let empty = tempfile::tempdir().unwrap();
+    assert!(store_copy(Vec::new(), "tisty").alias_off());
+    assert!(store_copy(vec![empty.path().to_path_buf()], "tisty").alias_off());
+}
+
+#[test]
+fn the_alias_is_not_off_when_the_name_is_found_or_the_command_is_something_else() {
+    let bin = tempfile::tempdir().unwrap();
+    std::fs::write(bin.path().join("tisty.exe"), b"").unwrap();
+    let found = store_copy(vec![bin.path().to_path_buf()], "tisty");
+    assert!(!found.alias_off());
+
+    let unpackaged = Place {
+        packaged: false,
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!unpackaged.alias_off());
+
+    assert!(!store_copy(Vec::new(), r"C:\Apps\tisty.exe").alias_off());
+    assert!(!store_copy(Vec::new(), "C:/Apps/tisty.exe").alias_off());
+
+    let in_distro = Place {
+        distro: Some("Ubuntu".into()),
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!in_distro.alias_off());
+
+    let linux = Place {
+        os: Os::Linux,
+        ..store_copy(Vec::new(), "tisty")
+    };
+    assert!(!linux.alias_off());
+}
+
+fn utf16(text: &str, bom: bool) -> Vec<u8> {
+    let bom = if bom { vec![0xfeffu16] } else { Vec::new() };
+    bom.into_iter()
+        .chain(text.encode_utf16())
+        .flat_map(u16::to_le_bytes)
+        .collect()
+}
+
+fn names(all: &[&str]) -> Vec<String> {
+    all.iter().map(|one| one.to_string()).collect()
+}
+
+#[test]
+fn a_running_distro_is_read_from_utf16() {
+    let known = names(&["Ubuntu-26.04", "Debian"]);
+    let raw = utf16("Ubuntu-26.04\r\n", false);
+    assert_eq!(running_in(&raw, &known), names(&["Ubuntu-26.04"]));
+}
+
+#[test]
+fn a_utf16_answer_with_a_bom_is_read_too() {
+    let known = names(&["Ubuntu-26.04", "Debian"]);
+    let raw = utf16("Ubuntu-26.04\r\n", true);
+    assert_eq!(running_in(&raw, &known), names(&["Ubuntu-26.04"]));
+}
+
+#[test]
+fn only_the_known_names_of_several_running_are_kept() {
+    let known = names(&["Ubuntu", "Debian"]);
+    let raw = utf16("Ubuntu\r\nDocker-Desktop\r\nDebian\r\n", false);
+    assert_eq!(running_in(&raw, &known), names(&["Ubuntu", "Debian"]));
+}
+
+#[test]
+fn utf8_lines_are_read_too() {
+    let known = names(&["Ubuntu", "Debian"]);
+    assert_eq!(
+        running_in(b"Ubuntu\r\nDebian\r\n", &known),
+        names(&["Ubuntu", "Debian"])
+    );
+}
+
+#[test]
+fn a_sentence_saying_none_runs_names_nobody() {
+    let known = names(&["Ubuntu"]);
+    let said = "No hay distribuciones en ejecución.\r\n";
+    assert!(running_in(&utf16(said, false), &known).is_empty());
+    assert!(running_in(said.as_bytes(), &known).is_empty());
+}
+
+#[test]
+fn nothing_said_names_nobody() {
+    let known = names(&["Ubuntu"]);
+    assert!(running_in(b"", &known).is_empty());
+    assert!(running_in(&utf16("\r\n", true), &known).is_empty());
+    assert!(running_in(&utf16("Ubuntu\r\n", false), &[]).is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn the_running_distros_are_some_of_the_known_ones_and_asking_never_hangs() {
+    let known: Vec<String> = distros().into_iter().map(|(name, _)| name).collect();
+    let started = std::time::Instant::now();
+
+    let running = running();
+
+    println!("running: {running:?} of {known:?}");
+    assert!(started.elapsed() < std::time::Duration::from_secs(8));
+    assert!(running.iter().all(|one| known.contains(one)));
+}

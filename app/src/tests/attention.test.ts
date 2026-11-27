@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { hush, hushedHere } from "../agentsAmiss";
+import { hushedHere } from "../agentsAmiss";
 import type { TistySkills } from "../agentsSync";
 import {
   attention,
@@ -161,16 +161,10 @@ describe("what asks for the person's attention", () => {
         "La captura rápida se quedó sin atajo",
         "Elegir otro",
       ],
-      [
-        "agents-elsewhere",
-        { page: "agents", shelf: "wired" },
-        "Cursor apunta a otro Tisty",
-        "Corregir",
-      ],
     ]);
   });
 
-  it("says in one line each what is lost, what points elsewhere and what skills are to be brought up to date", () => {
+  it("says in one line each what is lost and what skills are to be brought up to date, and nothing of what uses another install", () => {
     const said = (wired: Wired[], skills: TistySkills | null = null) =>
       attention(known({ build: build({ door: "espino 3" }), wired, skills }), NOW)?.map(
         (one) => one.said,
@@ -183,8 +177,7 @@ describe("what asks for the person's attention", () => {
         lostOne("Zed", { gone: false }),
         lostOne("Kiro", { gone: false, installed: false }),
       ]),
-    ).toEqual(["2 agentes apuntan a un Tisty que ya no existe", "Zed apunta a otro Tisty"]);
-    hush([lostOne("Zed", { gone: false })], "elsewhere");
+    ).toEqual(["2 agentes apuntan a un Tisty que ya no existe"]);
     expect(said([lostOne("Zed", { gone: false })])).toEqual([]);
     const behind = skillsFor({
       on: true,
@@ -195,6 +188,23 @@ describe("what asks for the person's attention", () => {
     ]);
     expect(said([], { ...behind, on: false })).toEqual([]);
     expect(attention(known({ wired: [lostOne("Cursor")] }), NOW)).toEqual([]);
+  });
+
+  it("says nothing of an agent that uses another install that still works", () => {
+    const other = [lostOne("Zed", { gone: false }), lostOne("Kiro", { gone: false })];
+    const keys = () =>
+      attention(known({ build: build({ door: "espino 3" }), wired: other }), NOW)?.map(
+        (one) => one.key,
+      );
+
+    expect(keys()).toEqual([]);
+    expect(keys()).not.toContain("agents-elsewhere");
+    expect(
+      attention(
+        known({ build: build({ door: "espino 3" }), wired: [...other, lostOne("Cursor")] }),
+        NOW,
+      )?.map((one) => one.key),
+    ).toEqual(["agents-lost"]);
   });
 
   it("counts on the agents' tile what there is to fix", () => {

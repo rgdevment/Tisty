@@ -208,7 +208,17 @@ function Connected({
   chosen,
 }: Props & { onDoor: () => void; chosen: boolean }) {
   const held = isHeld(busy, "wiring");
-  const { agent, agents, setAgents, hands, skills, setSkills, learnPlugged } = known;
+  const {
+    agent,
+    agents,
+    setAgents,
+    hands,
+    skills,
+    setSkills,
+    learnPlugged,
+    inDistros,
+    lookDistros,
+  } = known;
   return (
     <Card row="wired" which="wiring">
       {agent?.on === false && agents && agents.length > 0 && (
@@ -223,6 +233,8 @@ function Connected({
         skills={skills}
         setSkills={setSkills}
         learnPlugged={learnPlugged}
+        inDistros={inDistros}
+        lookDistros={lookDistros}
         wakes={chosen}
         held={held}
         quietly={quietly}

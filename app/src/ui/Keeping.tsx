@@ -162,7 +162,7 @@ export default function Keeping({
     ready,
     audit,
     seen,
-    wired: known.agents,
+    wired: known.everywhere,
     skills: known.skills,
     door: known.agent?.on,
     waiting: answered !== ALL_READ,

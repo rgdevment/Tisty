@@ -34,9 +34,20 @@ const installed = vi.hoisted(() => ({
     at: string;
     wired: boolean;
     astray: boolean;
+    gone?: boolean;
     points?: string;
     maybe?: boolean;
     byHand?: boolean;
+  }[],
+  inDistros: [] as {
+    id: string;
+    name: string;
+    place: string;
+    at: string;
+    wired: boolean;
+    astray: boolean;
+    gone: boolean;
+    points: string;
   }[],
   hands: [] as {
     via: string | null;
@@ -163,6 +174,7 @@ beforeEach(() => {
   asked.file = null;
   asked.sure = false;
   Object.assign(serving, { on: false, called: undefined, asks: true, hooks: true });
+  installed.inDistros = [];
   installed.seen = [
     {
       id: "claude-code",
@@ -270,6 +282,8 @@ beforeEach(() => {
           agent: { ...serving },
           seen: serving.on ? installed.seen.map((one) => ({ ...one })) : null,
         });
+      case "wsl_watched":
+        return Promise.resolve(serving.on ? installed.inDistros.map((one) => ({ ...one })) : []);
       case "wiring":
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       case "assistants":
@@ -3233,6 +3247,7 @@ describe("letting an assistant file work here", () => {
         at: "C:/Users/someone/.codex/config.toml",
         wired: false,
         astray: true,
+        gone: true,
         points: "C:/Programs/Gone/tisty.exe",
       },
     ];
@@ -3259,6 +3274,7 @@ describe("letting an assistant file work here", () => {
         at: "C:/Users/someone/.codex/config.toml",
         wired: false,
         astray: true,
+        gone: true,
         points: "C:/Programs/Gone/tisty.exe",
       },
     ];
@@ -3280,7 +3296,36 @@ describe("letting an assistant file work here", () => {
     expect(sent("agent")).toHaveLength(0);
     expect(sent("wsl_seen")).toHaveLength(0);
     await userEvent.click(screen.getByRole("tab", { name: /^overview/i }));
-    expect(await screen.findByText("Codex points to another Tisty")).toBeTruthy();
+    expect(await screen.findByText("Codex points to a Tisty that no longer exists")).toBeTruthy();
+  });
+
+  it("also says an agent left behind in a distro already looked into, naming the distro, and asks only for the names looked into", async () => {
+    installed.seen = [];
+    installed.inDistros = [
+      {
+        id: "wsl:Ubuntu:claude-code",
+        name: "Claude Code",
+        place: "Ubuntu",
+        at: "//wsl.localhost/Ubuntu/home/someone/.claude.json",
+        wired: false,
+        astray: true,
+        gone: true,
+        points: "/old/tisty",
+      },
+    ];
+    window.localStorage.setItem("tisty.wsl.looked", '["Ubuntu"]');
+    Object.assign(serving, { on: true, called: "espino 3" });
+    render(<Keeping onPack={() => {}} onUnpack={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+
+    await sync();
+
+    await waitFor(() => expect(sent("wsl_watched").length).toBeGreaterThan(0));
+    expect(sent("wsl_watched")[0].args).toEqual({ names: ["Ubuntu"] });
+    expect(sent("wsl_seen")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("tab", { name: /^overview/i }));
+    expect(
+      await screen.findByText("Claude Code (Ubuntu · WSL) points to a Tisty that no longer exists"),
+    ).toBeTruthy();
   });
 
   // The list is one row per assistant, by the name it gives itself, and says what each wrote;

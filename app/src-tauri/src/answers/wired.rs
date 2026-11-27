@@ -75,6 +75,18 @@ pub fn wiring_watched(session: tauri::State<'_, Mutex<Session>>) -> Watched {
     Watched { agent, seen }
 }
 
+// The distros the person already looked into, read only while the door is open.
+#[tauri::command(async)]
+pub fn wsl_watched(
+    session: tauri::State<'_, Mutex<Session>>,
+    names: Vec<String>,
+) -> Vec<wiring::Seen> {
+    match agent_apart(&session).on {
+        true => wiring::seen_in_running(&names),
+        false => Vec::new(),
+    }
+}
+
 #[tauri::command(async)]
 pub fn wiring_known() -> Vec<wiring::Seen> {
     wiring::known()
@@ -94,6 +106,9 @@ pub struct InDistro {
 /// Reading a distro's files starts it, so it is looked into only when the person asks.
 #[tauri::command(async)]
 pub fn wsl_seen(name: String) -> Answer<InDistro> {
+    if wiring::alias_off() {
+        return Err(Refusal::of("aliasOff"));
+    }
     let (distro, seen) =
         wiring::seen_in_distro(&name).ok_or_else(|| Refusal::about("wslUnread", name))?;
     Ok(InDistro { distro, seen })
@@ -152,6 +167,7 @@ pub(crate) fn stuck(why: wiring::Stuck) -> Refusal {
     match why {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
         wiring::Stuck::Shut => Refusal::of("wslShut"),
+        wiring::Stuck::AliasOff => Refusal::of("aliasOff"),
         wiring::Stuck::Unread(at) => Refusal::about("settingsUnread", at),
         wiring::Stuck::Moved(at) => Refusal::about("settingsMoved", at),
         wiring::Stuck::Plugged => Refusal::of("hooksByPlugin"),

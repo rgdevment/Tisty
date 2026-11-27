@@ -421,7 +421,7 @@ describe("the agents' page", () => {
     ];
     render(<Page known={knownFor({ agent: open, agents, skills: skillsHere() })} />);
 
-    const apart = within(screen.getByRole("region", { name: "zed points to another Tisty" }));
+    const apart = within(screen.getByRole("region", { name: "zed uses your other Tisty install" }));
     expect(apart.getByText(/\/other\/tisty, which is not this Tisty/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Fix/ })).toBeNull();
     expect(screen.getByRole("region", { name: t("extrasTitle") })).toBeTruthy();
@@ -568,6 +568,105 @@ function Notice({
 }: Readonly<{ all: Wired[]; onOpen: () => void; agent?: { on: boolean } }>) {
   return <AgentsAmiss amiss={useUnheeded(knownFor({ agent, agents: all }))} onOpen={onOpen} />;
 }
+
+const inUbuntu = (more: Partial<Wired> = {}) =>
+  lostOne("wsl:Ubuntu:claude-code", { name: "Claude Code", place: "Ubuntu", ...more });
+
+function NoticeFor({ known }: Readonly<{ known: KnownAgents }>) {
+  return <AgentsAmiss amiss={useUnheeded(known)} onOpen={() => {}} />;
+}
+
+describe("the agents already running in a WSL distro", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  const watching = (found: unknown) => {
+    ipc.answer = (cmd) => {
+      if (cmd === "wiring_watched") return Promise.resolve({ agent: open, seen: [] });
+      if (cmd === "wsl_watched") return Promise.resolve(found);
+      return Promise.resolve([]);
+    };
+  };
+
+  it("asks about the distros already looked into, and keeps what they found apart from this computer's agents", async () => {
+    window.localStorage.setItem("tisty.wsl.looked", '["Ubuntu","Debian"]');
+    watching([inUbuntu()]);
+    const { result } = renderHook(() => useKnownAgents());
+
+    await act(() => result.current.lookIfOpen());
+
+    expect(sent("wsl_watched")[0].args).toEqual({ names: ["Ubuntu", "Debian"] });
+    expect(result.current.agents).toEqual([]);
+    expect(result.current.everywhere?.map((one) => one.id)).toEqual(["wsl:Ubuntu:claude-code"]);
+  });
+
+  it("asks with no names when no distro was looked into, and a failed ask leaves the rest as it was", async () => {
+    ipc.answer = (cmd) => {
+      if (cmd === "wiring_watched")
+        return Promise.resolve({ agent: open, seen: [lostOne("codex")] });
+      if (cmd === "wsl_watched") return Promise.reject({ code: "wslUnread" });
+      return Promise.resolve([]);
+    };
+    const { result } = renderHook(() => useKnownAgents());
+
+    await act(() => result.current.lookIfOpen());
+
+    expect(sent("wsl_watched")[0].args).toEqual({ names: [] });
+    expect(result.current.everywhere?.map((one) => one.id)).toEqual(["codex"]);
+  });
+
+  it("keeps the newest look's answer when an older look answers late", async () => {
+    const answers: ((rows: Wired[]) => void)[] = [];
+    ipc.answer = (cmd) =>
+      cmd === "wsl_watched"
+        ? new Promise((resolve) => answers.push(resolve as (rows: Wired[]) => void))
+        : Promise.resolve([]);
+    const { result } = renderHook(() => useKnownAgents());
+    await act(async () => {
+      result.current.lookDistros();
+      result.current.lookDistros();
+    });
+    expect(answers).toHaveLength(2);
+
+    await act(async () => answers[1]([inUbuntu({ astray: false, gone: false, wired: true })]));
+    await act(async () => answers[0]([inUbuntu()]));
+
+    expect(result.current.inDistros.map((one) => [one.id, one.wired, one.gone])).toEqual([
+      ["wsl:Ubuntu:claude-code", true, false],
+    ]);
+  });
+
+  it("says the lost one in the window's notice with its distro, though this computer's own are fine", () => {
+    const fine = wiredOne("codex", { wired: true });
+    render(
+      <NoticeFor
+        known={knownFor({ agent: open, agents: [fine], everywhere: [fine, inUbuntu()] })}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole("status")).getByText(
+        "Claude Code (Ubuntu · WSL) can no longer find Tisty",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("lists it on the agents' page with its distro, and one button fixes it by its own id", async () => {
+    ipc.answer = (cmd, args) =>
+      Promise.resolve(
+        cmd === "mend" ? { seen: [inUbuntu({ astray: false, gone: false, wired: true })] } : args,
+      );
+    const fine = wiredOne("codex", { wired: true });
+    render(
+      <Page known={knownFor({ agent: open, agents: [fine], everywhere: [fine, inUbuntu()] })} />,
+    );
+
+    const todo = within(screen.getByRole("region", { name: "1 agent to fix" }));
+    expect(todo.getByText("Claude Code (Ubuntu · WSL)")).toBeTruthy();
+    await userEvent.click(todo.getByRole("button", { name: /^Fix/ }));
+
+    await waitFor(() => expect(ids("mend")).toEqual(["wsl:Ubuntu:claude-code"]));
+  });
+});
 
 describe("the notice in the window", () => {
   it("says who was lost and leads there", async () => {

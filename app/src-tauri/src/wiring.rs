@@ -69,10 +69,12 @@ pub struct Distro {
     pub command: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stuck {
     NoSuch,
     Shut,
+    /// The Store's alias is turned off, so what would be written runs nowhere.
+    AliasOff,
     Unread(String),
     Moved(String),
     Plugged,
@@ -124,6 +126,19 @@ pub fn seen_in_distro(name: &str) -> Option<(Distro, Vec<Seen>)> {
         },
         found,
     ))
+}
+
+/// Reading a stopped distro would start it, so only those already running are looked into.
+pub fn seen_in_running(names: &[String]) -> Vec<Seen> {
+    if names.is_empty() || alias_off() {
+        return Vec::new();
+    }
+    places::running()
+        .iter()
+        .filter(|one| names.contains(one))
+        .filter_map(|one| seen_in_distro(one))
+        .flat_map(|(_, seen)| seen)
+        .collect()
 }
 
 fn distro(name: &str) -> Option<Place> {
@@ -197,9 +212,7 @@ pub fn wire(id: &str) -> Result<Vec<Seen>, Stuck> {
 }
 
 fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
-    if !place.open {
-        return Err(Stuck::Shut);
-    }
+    reachable(place)?;
     let was = files::text(at)?;
     let there = client.holds(&was);
     let told = client.reads(&was).map(|one| leads(place, &one));
@@ -280,9 +293,7 @@ pub fn hook(id: &str) -> Result<Vec<Seen>, Stuck> {
 }
 
 fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
-    if !place.open {
-        return Err(Stuck::Shut);
-    }
+    reachable(place)?;
     let (kind, at) = hooks_of(client, place)?;
     let was = files::text(&at)?;
     if hooks::apart(kind, &was) {
@@ -291,6 +302,19 @@ fn hook_at(client: &Client, place: &Place) -> Result<(), Stuck> {
     let now = hooks::with(kind, &was, place)
         .ok_or_else(|| Stuck::HooksPuzzling(at.display().to_string()))?;
     Writes::default().change(&at, &was, &now, place.moved_aside(&at))
+}
+
+fn reachable(place: &Place) -> Result<(), Stuck> {
+    match (place.open, place.alias_off()) {
+        (false, _) => Err(Stuck::Shut),
+        (true, true) => Err(Stuck::AliasOff),
+        (true, false) => Ok(()),
+    }
+}
+
+/// A distro reaches Tisty through this computer's command, so with the alias off it has nothing to run.
+pub fn alias_off() -> bool {
+    here().is_some_and(|place| place.alias_off())
 }
 
 fn homes_of(place: &Place) -> Option<agents::Homes> {
@@ -422,8 +446,8 @@ fn mend_at(
     at: &Path,
     ask: &Mend,
 ) -> (Option<Stuck>, Option<Stuck>) {
-    if !place.open {
-        return (Some(Stuck::Shut), Some(Stuck::Shut));
+    if let Err(why) = reachable(place) {
+        return (Some(why.clone()), Some(why));
     }
     let mut writes = Writes::default();
     let connection = ask
@@ -484,6 +508,7 @@ fn hooks_repointed(
 
 fn asked(id: &str) -> Result<(Client, Place, PathBuf), Stuck> {
     let (place, client_id) = match id.strip_prefix(WSL).and_then(|rest| rest.rsplit_once(':')) {
+        Some(_) if alias_off() => return Err(Stuck::AliasOff),
         Some((named, client)) => (distro(named).ok_or(Stuck::NoSuch)?, client),
         None => (here().ok_or(Stuck::NoSuch)?, id),
     };

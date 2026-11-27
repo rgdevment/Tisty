@@ -1004,6 +1004,7 @@ export const watchedAgents = (): Promise<{ agent: Agent; seen: Wired[] | null } 
 export const wiringKnown = (): Promise<Wired[]> => invoke("wiring_known");
 export const wslDistros = (): Promise<string[]> => invoke("wsl_distros");
 export const wslSeen = (name: string): Promise<InDistro> => invoke("wsl_seen", { name });
+export const wslWatched = (names: string[]): Promise<Wired[]> => invoke("wsl_watched", { names });
 
 /** One assistant as the person meets it: what it is called, whether it is wired, what it wrote. */
 export interface Assistant {

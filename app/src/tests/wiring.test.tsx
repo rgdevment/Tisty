@@ -77,6 +77,19 @@ beforeEach(() => {
   offeredHere.put([]);
 });
 
+describe("what a row says of a connection that leads to another Tisty", () => {
+  it("says it uses the other install while that one is still there, and points at another only once it is gone", () => {
+    shown([
+      one("codex", { astray: true, gone: false, points: "/other/tisty" }),
+      one("gemini", { astray: true, gone: true, points: "/old/tisty" }),
+    ]);
+
+    expect(screen.getAllByText("Uses your other Tisty install")).toHaveLength(1);
+    expect(screen.getAllByText("Points at another Tisty")).toHaveLength(1);
+    expect(screen.getByText("Points at /old/tisty, which is no longer there")).toBeTruthy();
+  });
+});
+
 describe("connecting assistants", () => {
   it("connects every one found at once, leaving the doubtful and the by-hand ones out", async () => {
     shown([
@@ -829,5 +842,92 @@ describe("the hooks of Codex, which the person approves by hand", () => {
     const tell = await toggled("codex", false);
 
     expect(tell).toHaveBeenCalledWith({ card: "wiring", text: t("hooksGone") });
+  });
+});
+
+describe("the agents already running in a WSL distro", () => {
+  const inUbuntu = (more: Partial<Wired> = {}) =>
+    one("wsl:Ubuntu:codex", { name: "Codex", place: "Ubuntu", ...more });
+
+  const props = (more: Partial<ComponentProps<typeof Wiring>> = {}) => ({
+    agents: [] as Wired[],
+    setAgents: () => {},
+    hands: [],
+    held: false,
+    quietly: ((
+      _card: string,
+      work: Promise<unknown> | (() => Promise<unknown>),
+      then: (answer: unknown) => void,
+    ) => {
+      void (typeof work === "function" ? work() : work).then(then);
+    }) as never,
+    tell: () => {},
+    fail: () => {},
+    wroteSaid: () => "nothing written yet",
+    ...more,
+  });
+
+  const onlyUbuntu = (more: Record<string, unknown> = {}) => {
+    ipc.answer = (cmd) => {
+      if (cmd === "wsl_distros") return Promise.resolve(["Ubuntu"]);
+      if (cmd in more) return Promise.resolve(more[cmd]);
+      return Promise.resolve([]);
+    };
+  };
+
+  const section = async () =>
+    within((await screen.findByText("Ubuntu · WSL")).closest("section") as HTMLElement);
+
+  it("shows what the startup look found in its distro, and follows it when it changes", async () => {
+    onlyUbuntu();
+    const { rerender } = render(<Wiring {...props({ inDistros: [inUbuntu({ wired: true })] })} />);
+
+    const first = await section();
+    expect(await first.findByText("Codex")).toBeTruthy();
+    expect(first.getByText("Connected")).toBeTruthy();
+    expect(first.queryByRole("button", { name: /^Look in/ })).toBeNull();
+    expect(sent("wsl_seen")).toHaveLength(0);
+
+    rerender(
+      <Wiring
+        {...props({ inDistros: [inUbuntu({ astray: true, gone: true, points: "/old/tisty" })] })}
+      />,
+    );
+
+    await waitFor(async () => expect((await section()).queryByText("Connected")).toBeNull());
+    expect((await section()).getByText("Points at another Tisty")).toBeTruthy();
+  });
+
+  it("asks the startup look to read again once a fix in one of its rows is answered", async () => {
+    const lookDistros = vi.fn();
+    onlyUbuntu({ mend: { seen: [inUbuntu({ wired: true })] } });
+    render(
+      <Wiring
+        {...props({
+          inDistros: [inUbuntu({ astray: true, gone: true, points: "/old/tisty" })],
+          lookDistros,
+        })}
+      />,
+    );
+
+    const rows = await section();
+    await userEvent.click(await rows.findByRole("button", { name: "Fix" }));
+    expect(lookDistros).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Yes, fix" }));
+
+    await waitFor(() => expect(lookDistros).toHaveBeenCalledTimes(1));
+    expect(sent("mend")[0].args.id).toBe("wsl:Ubuntu:codex");
+    expect((await section()).getByText("Connected")).toBeTruthy();
+  });
+
+  it("asks the startup look to read again after an explicit look into the distro", async () => {
+    const lookDistros = vi.fn();
+    onlyUbuntu({ wsl_seen: { distro: { name: "Ubuntu", shut: false }, seen: [inUbuntu()] } });
+    render(<Wiring {...props({ lookDistros })} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Look in Ubuntu" }));
+
+    await waitFor(() => expect(lookDistros).toHaveBeenCalledTimes(1));
+    expect(sent("wsl_seen")[0].args.name).toBe("Ubuntu");
   });
 });
