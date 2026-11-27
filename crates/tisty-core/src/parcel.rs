@@ -16,9 +16,12 @@ use crate::{
 
 pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
-const VERSION: u32 = 3;
+const VERSION: u32 = 4;
+/// Only deep parcels carry it, so an older Tisty says newer instead of folding levels 5-6 into 4.
+const DEEPER_FROM: u32 = 4;
 /// From here a parcel speaks Tisty's own words; what an older one says is turned on its way in.
 const SPOKEN_FROM: u32 = 3;
+const _: () = assert!(SPOKEN_FROM < DEEPER_FROM && DEEPER_FROM <= VERSION);
 const MANIFEST: &str = "tisty-docs.json";
 const READING: &str = "README.txt";
 const READ_ME: &str = "This is a Tisty parcel.
@@ -537,7 +540,7 @@ fn filled(
     let held: BTreeSet<&str> = bodies.iter().map(|(one, _)| one.file.as_str()).collect();
     let mut manifest = Manifest {
         kind: KIND.into(),
-        version: VERSION,
+        version: SPOKEN_FROM,
         // Named stores tie every parcel they write together, and a signature already says whose it is.
         from: match signer {
             Some(_) => String::new(),
@@ -586,7 +589,10 @@ fn filled(
             .collect(),
     };
 
-    manifest.version = VERSION;
+    manifest.version = match levels(&manifest.folders) > crate::model::DEEPEST_BEFORE {
+        true => DEEPER_FROM,
+        false => SPOKEN_FROM,
+    };
     if signer.is_none() {
         manifest.seal = crate::store::secret(paths).and_then(|keep| sealed(&manifest, &keep));
     }
@@ -727,6 +733,28 @@ fn shelves(state: &State, bodies: &[(&Kept, String)]) -> Vec<Shelf> {
         .collect();
     found.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     found
+}
+
+fn levels(shelves: &[Shelf]) -> usize {
+    let up: BTreeMap<&str, Option<&str>> = shelves
+        .iter()
+        .map(|one| (one.id.as_str(), one.parent.as_deref()))
+        .collect();
+    shelves
+        .iter()
+        .map(|one| {
+            let mut deep = 0;
+            let mut walk = Some(one.id.as_str());
+            while let Some(at) = walk
+                && deep <= shelves.len()
+            {
+                deep += 1;
+                walk = up.get(at).copied().flatten();
+            }
+            deep
+        })
+        .max()
+        .unwrap_or(0)
 }
 
 pub fn read(

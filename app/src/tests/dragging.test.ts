@@ -221,14 +221,14 @@ describe("what the window must not promise", () => {
     expect(fits({ id: "f2", kind: "folder", tall: 1 }, kid, "before")).toBe(false);
   });
 
-  it("refuses a branch that would push the tree past four levels", () => {
-    const deep = folder({ id: "f9", line: ["a", "b", "c"], depth: 3 });
+  it("refuses a branch that would push the tree past six levels", () => {
+    const deep = folder({ id: "f9", line: ["a", "b", "c", "d", "e"], depth: 5 });
     expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "in")).toBe(false);
     expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "before")).toBe(true);
   });
 
-  it("lets a lone folder into a folder three levels down, which still fits", () => {
-    const deep = folder({ id: "f9", line: ["a", "b"], depth: 2 });
+  it("lets a lone folder into a folder four levels down, which still fits", () => {
+    const deep = folder({ id: "f9", line: ["a", "b", "c", "d"], depth: 4 });
     expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "in")).toBe(true);
   });
 

@@ -390,7 +390,7 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "name": { "type": "string", "description": "Its own name, a word or two, at most 40 characters; a path only to say where to nest it, every step but the last existing" },
-                    "inside": { "type": "string", "description": "An existing folder to nest it in, by name, path or id; four deep at most" },
+                    "inside": { "type": "string", "description": "An existing folder to nest it in, by name, path or id; six deep at most" },
                     "icon": { "type": "string", "description": "One emoji, or a drawn name: home, work, money, study, travel, health, food, family, code and the like" },
                     "color": { "type": "string", "description": "red, orange, amber, green, teal, blue, indigo, purple, pink, brown or gray" }
                 },

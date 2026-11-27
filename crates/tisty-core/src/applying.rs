@@ -339,13 +339,14 @@ impl State {
         }
     }
 
-    pub(crate) fn folder_moved(&mut self, id: &FolderId, d: &Filed) {
+    pub(crate) fn folder_moved(&mut self, event: &Event, id: &FolderId, d: &Filed) {
+        let deepest = crate::event::deepest_for(event.version);
         let landed = match d.folder {
             None => true,
             Some(parent) => {
-                let room = parent.is_none_or(|at| self.has_room_under(at))
+                let room = parent.is_none_or(|at| self.has_room_under(at, deepest))
                     && !self.would_loop(*id, parent)
-                    && self.depth(parent) + self.tallest_under(*id) <= crate::model::DEEPEST;
+                    && self.depth(parent) + self.tallest_under(*id) <= deepest;
                 if room && let Some(folder) = self.folders.get_mut(id) {
                     folder.parent = parent;
                 }

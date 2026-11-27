@@ -1,7 +1,7 @@
+import { DEEPEST } from "../core";
+
 export type Kind = "doc" | "folder";
 export type Where = "before" | "in" | "after";
-
-export const DEEPEST = 4;
 
 export interface Spot {
   id: string;

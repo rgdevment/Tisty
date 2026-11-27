@@ -22,7 +22,7 @@ expression: tool
         "type": "string"
       },
       "inside": {
-        "description": "An existing folder to nest it in, by name, path or id; four deep at most",
+        "description": "An existing folder to nest it in, by name, path or id; six deep at most",
         "type": "string"
       },
       "name": {

@@ -33,7 +33,16 @@ fn main() {
                 std::process::exit(1);
             }
         }
-        ["ls", "all"] => println!("{}", person.open()),
+        ["ls", "all"] => {
+            if let Err(trouble) = tisty_core::store::read_all(Path::new(&data).join("store")) {
+                let trouble = format!("{trouble:?}");
+                if ASKS_TO_UPDATE.iter().any(|said| trouble.contains(said)) {
+                    eprintln!("a newer Tisty wrote here, so nothing was listed: {trouble}");
+                    std::process::exit(1);
+                }
+            }
+            println!("{}", person.open());
+        }
         [said] => person.begins(said),
         _ => {
             eprintln!(

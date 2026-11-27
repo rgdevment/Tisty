@@ -1110,14 +1110,16 @@ describe("what a folder's own menu can do", () => {
     seedFolder({ name: "Uno" });
     const two = seedFolder({ name: "Dos", parent: "folder1" });
     const three = seedFolder({ name: "Tres", parent: two.id });
-    seedFolder({ name: "Cuatro", parent: three.id });
+    const four = seedFolder({ name: "Cuatro", parent: three.id });
+    const five = seedFolder({ name: "Cinco", parent: four.id });
+    seedFolder({ name: "Seis", parent: five.id });
     await boot();
 
-    fireEvent.contextMenu(menuFor("Tres"), { clientX: 5, clientY: 5 });
+    fireEvent.contextMenu(menuFor("Cinco"), { clientX: 5, clientY: 5 });
     expect(await screen.findByRole("menuitem", { name: t("newFolder") })).toBeTruthy();
     await userEvent.keyboard("{Escape}");
 
-    fireEvent.contextMenu(menuFor("Cuatro"), { clientX: 5, clientY: 5 });
+    fireEvent.contextMenu(menuFor("Seis"), { clientX: 5, clientY: 5 });
     const full = await screen.findByRole("menuitem", { name: t("newFolder") });
     expect(full.getAttribute("title")).toBe(t("tooDeepSaid"));
     expect(screen.getByRole("menuitem", { name: t("newDoc") }).getAttribute("title")).toBeNull();
