@@ -460,6 +460,17 @@ fn the_list_being_read_joins_the_ones_being_filtered() {
 }
 
 #[test]
+fn a_view_asks_for_what_an_agent_said_apart() {
+    let said = View {
+        said: true,
+        ..bare()
+    };
+
+    assert!(said.resolve().unwrap().said);
+    assert!(!bare().resolve().unwrap().said);
+}
+
+#[test]
 fn a_list_that_is_not_an_id_is_refused_rather_than_ignored() {
     let view = View {
         lists: vec!["not an id".into()],
@@ -512,6 +523,7 @@ fn bare() -> View {
         window: None,
         repeating: false,
         reading: None,
+        said: false,
     }
 }
 
@@ -1462,6 +1474,42 @@ fn a_slice_narrowed_to_one_list_counts_what_that_list_holds_in_it() {
     assert_eq!(counts[&format!("tasks@{}", home.id)], 1);
     assert_eq!(counts[&format!("all@{}", work.id)], 2);
     assert_eq!(counts[&format!("repeating@{}", work.id)], 0);
+}
+
+#[test]
+fn what_an_agent_said_is_counted_apart_and_per_list() {
+    let mut state = State::default();
+    let work = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "trabajo", "a0");
+    state.lists.insert(work.id, work.clone());
+    let speak = |title: &str, list: Option<tisty_core::model::ListId>, closed: bool| {
+        let mut task = held(title);
+        task.list = list;
+        task.resolved = Some(tisty_core::model::Resolved {
+            at: jiff::Timestamp::from_second(1_800_000_000).unwrap(),
+            by: tisty_core::event::DeviceId("dev_agent".into()),
+            entry: ulid::Ulid::generate(),
+            via: None,
+            drop: false,
+        });
+        if closed {
+            task.status = tisty_core::model::Status::Done;
+        }
+        task
+    };
+    for task in [
+        speak("en trabajo", Some(work.id), false),
+        speak("suelta", None, false),
+        speak("ya cerrada", Some(work.id), true),
+        held("nadie dijo nada"),
+    ] {
+        kept(&mut state, task);
+    }
+
+    let counts = crate::summing::tally(&state);
+
+    assert_eq!(counts["said"], 2);
+    assert_eq!(counts[&format!("said@{}", work.id)], 1);
+    assert_eq!(counts["all"], 3);
 }
 
 #[test]

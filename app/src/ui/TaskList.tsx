@@ -10,6 +10,7 @@ import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentNamed, agentTag } from "../who";
+import AgentWord from "./AgentWord";
 import Grouping from "./Axis";
 import { modKey, onMac } from "./macKeys";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
@@ -43,6 +44,8 @@ interface Props {
   onComplete?: (id: string, title: string) => void;
   onError?: (problem: unknown) => void;
   onFold?: (id: string, away: boolean) => void;
+  onConfirm?: (task: Task) => void;
+  onKeepOpen?: (task: Task) => void;
   above?: React.ReactNode;
   ask?: (id: string) => React.ReactNode;
   closing?: string;
@@ -75,6 +78,8 @@ export default function TaskList({
   onComplete,
   onError,
   onFold,
+  onConfirm,
+  onKeepOpen,
   above,
   ask,
   closing,
@@ -362,6 +367,14 @@ export default function TaskList({
               stands={standings?.[task.id]}
               signing={signing}
             />
+            {onConfirm && onKeepOpen && (
+              <AgentWord
+                task={task}
+                signing={signing}
+                onConfirm={onConfirm}
+                onKeepOpen={onKeepOpen}
+              />
+            )}
             {paces?.[task.id] && <PaceBar paced={paces[task.id]} />}
           </div>
 

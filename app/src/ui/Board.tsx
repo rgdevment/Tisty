@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { capture } from "../capturing";
-import { fold } from "../core";
+import { discard, fold, stillOpen } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
 import { fill, t } from "../locales";
@@ -56,6 +56,7 @@ export default function Board() {
     standings,
     paces,
   } = useDesk();
+  const confirming = found === null && chosen.named === "tasks" && chosen.slice === "said";
   const view = JSON.stringify(seen);
   const [turn, setTurn] = useState(() => ({ view, at: Math.random() }));
   if (turn.view !== view) setTurn({ view, at: Math.random() });
@@ -103,7 +104,11 @@ export default function Board() {
           fresh={captured?.id}
           reveal={reveal}
           bands={
-            found !== null || chosen.list || chosen.named === "tags" || chosen.tags?.length
+            found !== null ||
+            chosen.list ||
+            chosen.named === "tags" ||
+            chosen.tags?.length ||
+            confirming
               ? undefined
               : chosen.named === "archive"
                 ? "month"
@@ -129,6 +134,16 @@ export default function Board() {
           }
           onError={(e) => setError(saidPlainly(e))}
           onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
+          onConfirm={
+            confirming
+              ? (one) => {
+                  if (one.resolved?.drop) act(discard(one.id));
+                  else marking(one.id, one.title);
+                  if (one.id === selected) setSelected(undefined);
+                }
+              : undefined
+          }
+          onKeepOpen={confirming ? (one) => act(stillOpen(one.id)) : undefined}
           closing={asking?.id}
           ask={(id) => (asking?.id === id ? strip : null)}
           below={

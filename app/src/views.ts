@@ -36,7 +36,7 @@ export type Heading = "pick" | "cloud" | "folder";
 
 export type Lean = "tasks" | "docs";
 
-export type Slice = "today" | "upcoming" | "repeating" | "all" | "overdue" | "late";
+export type Slice = "today" | "upcoming" | "repeating" | "all" | "overdue" | "late" | "said";
 
 export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
 
@@ -131,6 +131,8 @@ function sliced(slice: Slice = "today"): View {
       return { window: "overdue" };
     case "late":
       return { window: "late" };
+    case "said":
+      return { said: true };
     default:
       return {};
   }
@@ -193,6 +195,7 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0, at
   if (chosen.slice === "upcoming") return fill("upcomingEmpty", offered(ahead(), at));
   if (chosen.slice === "overdue") return t("overdueEmpty");
   if (chosen.slice === "late") return t("lateEmpty");
+  if (chosen.slice === "said") return t("saidEmpty");
   if (chosen.slice === "repeating") return fill("repeatingEmpty", offered(repeating(), at));
   if (chosen.lists?.length) return fill("listEmpty", offered(every(), at));
   if (chosen.slice === "all") return t("allEmpty");
