@@ -4,16 +4,18 @@ import { deletes, taken } from "./steps.mjs";
 export const INVARIANT =
   "after every step that is not Backspace, Delete, a word or line delete, undo, redo or a key over a selection, " +
   "every letter of the Markdown before the step is still in it, in the same order; " +
-  "a typed space with nothing selected grows the Markdown by exactly one space";
+  "a typed space with nothing selected grows the Markdown by exactly one space; " +
+  "Enter on a blank top-level line adds one block to the page";
 
 const NOISE = /^(window|page): (ResizeObserver loop|Script error\.)/;
 const OPENED_MS = 400;
 const DRAWN_EVERY = 5;
 const SETTLE_MS = 3000;
 
-// The x of a done step's box is its mark, not a letter written: an empty step ended by Enter takes it with it.
+// A kept blank line is `&nbsp;` and the x of a done step's box is its mark, neither a letter written:
+// the first key written over a blank line takes its `&nbsp;` away, and an empty step ended by Enter takes its box.
 const lettersOf = (text) =>
-  text.replace(/^([ \t>]*[-*+][ \t]+)\[[xX]\]/gm, "$1[ ]").normalize("NFC").match(/\p{L}/gu) ?? [];
+  text.replace(/&nbsp;/g, "").replace(/^([ \t>]*[-*+][ \t]+)\[[xX]\]/gm, "$1[ ]").normalize("NFC").match(/\p{L}/gu) ?? [];
 
 const lettersLost = (was, now) => {
   const before = lettersOf(was);
@@ -32,6 +34,16 @@ const spaceCollapsed = (was, now, step) => {
   return grew === 1 ? null : `a typed space grew the source by ${grew} spaces, not 1`;
 };
 
+const blockAdded = async (page, frame, was, step) => {
+  if (step[0] !== "press" || step[1] !== "Enter" || !was.onBlankLine || was.spread) return null;
+  await settled(page);
+  const after = await stateOf(page, frame);
+  if (after.walked || after.blocks === undefined) return null;
+  return after.blocks === was.blocks + 1
+    ? null
+    : `Enter on a blank top-level line left the page with ${after.blocks} blocks, not ${was.blocks + 1}`;
+};
+
 const stateOf = async (page, frame) => {
   const held = await page
     .evaluate(() => (window.engines ? { text: window.engines.text(), errors: window.engines.errors() } : null))
@@ -42,7 +54,13 @@ const stateOf = async (page, frame) => {
   const spread = await frame
     .evaluate(() => !getSelection().isCollapsed || Boolean(document.querySelector(".chosen-block")))
     .catch(() => true);
-  return { text: held.text, errors: held.errors.filter((said) => !NOISE.test(said)), spread };
+  const lines = await frame
+    .evaluate(() => ({
+      blocks: document.querySelectorAll(".page > [data-at]").length,
+      onBlankLine: Boolean(getSelection().anchorNode?.parentElement?.closest(".page > [data-ghost]")),
+    }))
+    .catch(() => ({}));
+  return { text: held.text, errors: held.errors.filter((said) => !NOISE.test(said)), spread, ...lines };
 };
 
 const settled = async (page) => {
@@ -69,6 +87,8 @@ const faultAfter = async (page, frame, was, step, at, last) => {
   if (lost) return { fault: { at, kind: "letters", said: lost } };
   const squeezed = spaceCollapsed(was, now, step);
   if (squeezed) return { fault: { at, kind: "spaces", said: squeezed } };
+  const unmade = await blockAdded(page, frame, was, step);
+  if (unmade) return { fault: { at, kind: "blocks", said: unmade } };
   if ((at + 1) % DRAWN_EVERY !== 0 && !last) return { now };
   const fits = await settled(page);
   const after = await stateOf(page, frame);

@@ -51,8 +51,9 @@ import { startIn } from "./pageSpots";
 import { wholeReach } from "./pageWholes";
 import { choiceKept, keptUnlaid, titleBegun, type Writer } from "./pageWriter";
 
-// Code and a note keep words of their own to write in; a table, a diagram, a fold or a sticky note go whole.
-const GOES_WHOLE = ".table, figure:not(.code), .math, details, hr, blockquote[data-callout='idea']";
+// Code and a note keep words of their own to write in; a table, a diagram, a fold, a sticky note or a kept blank line go whole.
+const GOES_WHOLE =
+  ".table, figure:not(.code), .math, details, hr, blockquote[data-callout='idea'], p.blank";
 // A line of only a card or a formula set apart is a piece of its own; tags, icons and inline pieces are words.
 const ALONE = "a.card, .doc-card, math[display='block']";
 

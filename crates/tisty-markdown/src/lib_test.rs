@@ -1450,3 +1450,17 @@ fn an_entity_among_spaces_is_left_as_written() {
     assert!(drawn.contains("&copy; \u{a0}b"), "{drawn:?}");
     assert!(!drawn.contains("&amp;copy;"), "{drawn:?}");
 }
+
+#[test]
+fn a_paragraph_holding_only_a_no_break_space_is_drawn_as_a_blank_line_with_its_place() {
+    let text = "uno\n\n&nbsp;\n\ndos";
+    let drawn = html_placed(&read(text));
+    assert!(
+        drawn.contains("<p class=\"blank\" data-at=\"5-12\""),
+        "{drawn:?}"
+    );
+    assert_eq!(drawn.matches("class=\"blank\"").count(), 1, "{drawn:?}");
+    assert!(!html(&read("uno\n\ndos")).contains("blank"));
+    assert!(!html(&read("uno &nbsp; dos")).contains("blank"));
+    assert_eq!(BLANK, "&nbsp;");
+}

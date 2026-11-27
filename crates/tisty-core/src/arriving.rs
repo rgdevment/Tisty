@@ -1,3 +1,5 @@
+#[path = "arriving_breaks.rs"]
+mod breaks;
 #[path = "arriving_html.rs"]
 mod html;
 #[path = "arriving_lists.rs"]
@@ -21,11 +23,14 @@ pub use word::{WORD_AT_MOST, Word, from_word};
 
 /// Plain text from a clipboard in Tisty's words, or `None` when it already reads as it should.
 pub fn from_text(text: &str) -> Option<String> {
-    from_plain(text).or_else(|| {
+    let said = from_plain(text).or_else(|| {
         let even = plain::even(text);
         let said = crate::speaking::turned(&even);
         (said != even).then_some(said)
-    })
+    });
+    let base = said.clone().unwrap_or_else(|| plain::even(text));
+    let landed = breaks::unbroken(&spaces::spaced_back(&base));
+    (said.is_some() || landed != base).then_some(landed)
 }
 
 /// The documents already here, by the title a note from elsewhere would call them.
@@ -79,10 +84,15 @@ const TAGS: [(&str, &str, &str); 8] = [
 /// What arrives from elsewhere in Tisty's words; a document already here is mended by `tidied` alone.
 pub fn arrived_among(body: &str, titles: &Titles) -> Tidied {
     let even = spaces::spaced_back(body);
-    let mut made = tidied_among(&even, titles);
+    let broken = breaks::unbroken(&even);
+    let mut made = tidied_among(&broken, titles);
     if even != body {
         made.changed
             .push("spaces written as &nbsp;, as plain spaces now");
+    }
+    if broken != even {
+        made.changed
+            .push("line breaks written as <br>, in Tisty's own words now");
     }
     made
 }

@@ -477,9 +477,19 @@ export const keysOn = (
     return true;
   };
 
+  // Blank lines kept at a page's end hold nothing until words follow them, so they go once the caret leaves.
+  const blanksLeft = () => {
+    const text = hands.text();
+    const tail = /(?:\r?\n\r?\n&nbsp;)+\s*$/.exec(text);
+    const at = caret.caretSpan()?.from;
+    if (!tail || at === undefined || at > tail.index) return;
+    put({ from: tail.index, to: text.length, insert: text.endsWith("\n") ? "\n" : "" }, at);
+  };
+
   const leftBehind = (from: string | null) => {
     if (caret.blockStart() === from) return;
     leftEmpty(from);
+    blanksLeft();
     hands.settle?.();
   };
 
