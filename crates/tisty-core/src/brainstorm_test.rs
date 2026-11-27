@@ -263,7 +263,7 @@ fn library(docs: &[(&str, &str, bool)]) -> (tempfile::TempDir, State) {
         crate::docs::create_named(tmp.path(), file, body).unwrap();
         let said = marked.then(|| crate::event::Said::of(body));
         let op = crate::Op::DocAdd {
-            id: ulid::Ulid::generate(),
+            id: ulid::Ulid::from_parts(at as u64 + 1, 0),
             d: crate::event::DocAdd {
                 wrote: None,
                 guest: false,
