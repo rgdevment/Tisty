@@ -5,6 +5,7 @@ import { AGENTS_CHANGED, type TistySkills } from "../agentsSync";
 import type { Wired } from "../core";
 import type { KnownAgents } from "../knownAgents";
 import { fill, t, type Word } from "../locales";
+import { saidPlainly } from "../refusal";
 import { adds, type Dot, type Own, ownOf, shown } from "../tistyOwn";
 import { Result, type Told } from "./AgentsMending";
 import { button, primary } from "./AgentsReview";
@@ -168,6 +169,146 @@ function Asked({
 const codexTrusted = (own: Own) =>
   !own.hooks?.muted && !!own.hooks?.lines.some((one) => one.on && one.id.endsWith("codex"));
 
+interface CardProps {
+  own: Own;
+  skills: TistySkills | undefined;
+  known?: KnownAgents;
+  onSkills: (now: TistySkills) => void;
+  onHooks?: () => void;
+  onClose: () => void;
+}
+
+function useTurnOn(known?: KnownAgents) {
+  const [busy, setBusy] = useState(false);
+  const [told, setTold] = useState<Told | null>(null);
+  const [trouble, setTrouble] = useState<string>();
+  const run = (hooks: readonly Wired[], skills: boolean, after: () => void) => {
+    setBusy(true);
+    setTrouble(undefined);
+    addExtras(hooks, skills)
+      .then((all) => {
+        known?.learnPlugged(bringing(all, true), bringing(all, false));
+        known?.lookAgents().catch(() => undefined);
+        known?.lookSkills();
+        window.dispatchEvent(new Event(AGENTS_CHANGED));
+        setTold({ how: "added", all });
+        after();
+      })
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => setBusy(false));
+  };
+  return { busy, told, trouble, run, seen: () => setTold(null) };
+}
+
+function useLookOnOpen(known?: KnownAgents) {
+  const look = known?.lookAgents;
+  useEffect(() => {
+    look?.().catch(() => undefined);
+  }, [look]);
+}
+
+function Overview({
+  own,
+  skills,
+  told,
+  onSeen,
+  onSkills,
+  onHooks,
+}: Readonly<{
+  own: Own;
+  skills: TistySkills | undefined;
+  told: Told | null;
+  onSeen: () => void;
+  onSkills?: () => void;
+  onHooks?: () => void;
+}>) {
+  return (
+    <>
+      <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-soft">
+        <p>{t(whatSaid(own))}</p>
+        <p>{t(own.skills && own.hooks ? "tistySkillsHooksWhy" : "tistySkillsHooksWhyOne")}</p>
+      </div>
+      <ul className="mt-3 flex flex-col gap-1.5">
+        {own.skills && (
+          <Part
+            glyph="puzzle"
+            label={t("tistySkillsHooksPartSkills")}
+            dot={own.skills.on ? "on" : "off"}
+            detail={own.skills.on && !skills?.on ? t("tistySkillsRowPlugged") : undefined}
+            onAdjust={onSkills}
+          />
+        )}
+        {own.hooks && (
+          <Part
+            glyph="bolt"
+            label={t("tistySkillsHooksPartHooks")}
+            dot={hooksDot(own)}
+            detail={hooksDetail(own)}
+            onAdjust={onHooks}
+          />
+        )}
+      </ul>
+      {own.dot !== "on" && !adds(own) && (
+        <p className="mt-3 text-[12.5px] text-soft">{t("tistySkillsHooksByHand")}</p>
+      )}
+      {codexTrusted(own) && <p className="mt-3 text-[12.5px] text-soft">{t("hooksCodexTrust")}</p>}
+      {told && <Result told={told} onClose={onSeen} />}
+    </>
+  );
+}
+
+function Footer({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <div className="sticky -bottom-6 z-10 -mx-6 mt-4 -mb-6 flex items-center justify-end gap-2 border-t border-hair bg-bg px-6 py-3 text-[12.5px]">
+      {children}
+    </div>
+  );
+}
+
+function AskButtons({
+  held,
+  onBack,
+  onYes,
+}: Readonly<{ held: boolean; onBack: () => void; onYes: () => void }>) {
+  return (
+    <>
+      <button type="button" onClick={onBack} className={button}>
+        {t("tistySkillsHooksBack")}
+      </button>
+      <button type="button" disabled={held} onClick={onYes} className={primary}>
+        {t("tistySkillsHooksYes")}
+      </button>
+    </>
+  );
+}
+
+function OfferButtons({
+  offers,
+  both,
+  busy,
+  onClose,
+  onAsk,
+}: Readonly<{
+  offers: boolean;
+  both: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onAsk: () => void;
+}>) {
+  return (
+    <>
+      <button type="button" onClick={onClose} className={button}>
+        {t(offers ? "agentsNotNow" : "close")}
+      </button>
+      {offers && (
+        <button type="button" disabled={busy} onClick={onAsk} className={primary}>
+          {t(both ? "tistySkillsHooksBoth" : "tistySkillsHooksRest")}
+        </button>
+      )}
+    </>
+  );
+}
+
 export function TistyOwnCard({
   own,
   skills,
@@ -175,192 +316,126 @@ export function TistyOwnCard({
   onSkills,
   onHooks,
   onClose,
-}: Readonly<{
-  own: Own;
-  skills: TistySkills | undefined;
-  known?: KnownAgents;
-  onSkills: (now: TistySkills) => void;
-  onHooks?: () => void;
-  onClose: () => void;
-}>) {
+}: Readonly<CardProps>) {
   const [asking, setAsking] = useState(false);
   const [withHooks, setWithHooks] = useState(true);
   const [withSkills, setWithSkills] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [told, setTold] = useState<Told | null>(null);
   const [skillsOpen, setSkillsOpen] = useState(false);
-  const look = known?.lookAgents;
-  useEffect(() => {
-    look?.().catch(() => undefined);
-  }, [look]);
+  const turning = useTurnOn(known);
+  useLookOnOpen(known);
   const hooksAdd = own.hooks?.adds ?? [];
-  const skillsAdd = !!own.skills?.adds && !!skills;
+  const skillsAdd = own.skills?.adds && skills ? skills : null;
   const takesHooks = hooksAdd.length > 0 && withHooks;
-  const takesSkills = skillsAdd && withSkills;
-  const both = skillsAdd && hooksAdd.length > 0 && own.dot === "off";
-
-  const turnOn = () => {
-    setBusy(true);
-    addExtras(takesHooks ? hooksAdd : [], takesSkills)
-      .then((all) => {
-        known?.learnPlugged(bringing(all, true), bringing(all, false));
-        known?.lookAgents().catch(() => undefined);
-        known?.lookSkills();
-        window.dispatchEvent(new Event(AGENTS_CHANGED));
-        setTold({ how: "added", all });
-        setAsking(false);
-      })
-      .finally(() => setBusy(false));
-  };
+  const takesSkills = !!skillsAdd && withSkills;
 
   if (skillsOpen && skills)
     return (
       <TistySkillsCard skills={skills} onTaken={onSkills} onClose={() => setSkillsOpen(false)} />
     );
 
+  const turnOn = () => turning.run(takesHooks ? hooksAdd : [], takesSkills, () => setAsking(false));
+  const adjustHooks =
+    onHooks &&
+    (() => {
+      onClose();
+      onHooks();
+    });
+
   return (
     <Modal title={t("tistySkillsHooksTitle")} wide closable onClose={onClose}>
       {asking ? (
         <Asked
           hooks={hooksAdd}
-          skills={skillsAdd ? (skills ?? null) : null}
+          skills={skillsAdd}
           withHooks={withHooks}
           onHooks={setWithHooks}
           withSkills={withSkills}
           onSkills={setWithSkills}
         />
       ) : (
-        <>
-          <div className="flex flex-col gap-1.5 text-[13px] leading-relaxed text-soft">
-            <p>{t(whatSaid(own))}</p>
-            <p>{t(own.skills && own.hooks ? "tistySkillsHooksWhy" : "tistySkillsHooksWhyOne")}</p>
-          </div>
-          <ul className="mt-3 flex flex-col gap-1.5">
-            {own.skills && (
-              <Part
-                glyph="puzzle"
-                label={t("tistySkillsHooksPartSkills")}
-                dot={own.skills.on ? "on" : "off"}
-                detail={own.skills.on && !skills?.on ? t("tistySkillsRowPlugged") : undefined}
-                onAdjust={skills ? () => setSkillsOpen(true) : undefined}
-              />
-            )}
-            {own.hooks && (
-              <Part
-                glyph="bolt"
-                label={t("tistySkillsHooksPartHooks")}
-                dot={hooksDot(own)}
-                detail={hooksDetail(own)}
-                onAdjust={
-                  onHooks &&
-                  (() => {
-                    onClose();
-                    onHooks();
-                  })
-                }
-              />
-            )}
-          </ul>
-          {own.dot !== "on" && !adds(own) && (
-            <p className="mt-3 text-[12.5px] text-soft">{t("tistySkillsHooksByHand")}</p>
-          )}
-          {codexTrusted(own) && (
-            <p className="mt-3 text-[12.5px] text-soft">{t("hooksCodexTrust")}</p>
-          )}
-          {told && <Result told={told} onClose={() => setTold(null)} />}
-        </>
+        <Overview
+          own={own}
+          skills={skills}
+          told={turning.told}
+          onSeen={turning.seen}
+          onSkills={skills ? () => setSkillsOpen(true) : undefined}
+          onHooks={adjustHooks}
+        />
       )}
-      <div className="sticky -bottom-6 z-10 -mx-6 mt-4 -mb-6 flex items-center justify-end gap-2 border-t border-hair bg-bg px-6 py-3 text-[12.5px]">
+      {turning.trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{turning.trouble}</p>}
+      <Footer>
         {asking ? (
-          <>
-            <button type="button" onClick={() => setAsking(false)} className={button}>
-              {t("tistySkillsHooksBack")}
-            </button>
-            <button
-              type="button"
-              disabled={busy || !(takesHooks || takesSkills)}
-              onClick={turnOn}
-              className={primary}
-            >
-              {t("tistySkillsHooksYes")}
-            </button>
-          </>
+          <AskButtons
+            held={turning.busy || !(takesHooks || takesSkills)}
+            onBack={() => setAsking(false)}
+            onYes={turnOn}
+          />
         ) : (
-          <>
-            <button type="button" onClick={onClose} className={button}>
-              {t(adds(own) ? "agentsNotNow" : "close")}
-            </button>
-            {adds(own) && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setAsking(true)}
-                className={primary}
-              >
-                {t(both ? "tistySkillsHooksBoth" : "tistySkillsHooksRest")}
-              </button>
-            )}
-          </>
+          <OfferButtons
+            offers={adds(own)}
+            both={!!skillsAdd && hooksAdd.length > 0 && own.dot === "off"}
+            busy={turning.busy}
+            onClose={onClose}
+            onAsk={() => setAsking(true)}
+          />
         )}
-      </div>
+      </Footer>
     </Modal>
   );
 }
 
-interface OpenerProps extends Seeing {
-  onHooks?: () => void;
-  className: string;
-  row?: ButtonHTMLAttributes<HTMLButtonElement>;
-  children: (own: Own) => ReactNode;
-  lead?: ReactNode;
-  wrap: (button: ReactNode) => ReactNode;
-  labelled?: (said: string) => string;
-}
-
-function Opener({
-  onHooks,
-  className,
-  row,
-  children,
-  lead,
-  wrap,
-  labelled = (said) => said,
-  ...seeing
-}: Readonly<OpenerProps>) {
+function useOwnOpener({ onHooks, ...seeing }: Readonly<Seeing & { onHooks?: () => void }>) {
   const { own, skills, setSkills } = useOwn(seeing);
   const [open, setOpen] = useState(false);
-  if (!shown(own)) return null;
-  const said = fill("tistySkillsHooksSaid", ownSaid(own));
+  const card = open
+    ? createPortal(
+        <TistyOwnCard
+          own={own}
+          skills={skills}
+          known={seeing.known}
+          onSkills={setSkills}
+          onHooks={onHooks}
+          onClose={() => setOpen(false)}
+        />,
+        document.body,
+      )
+    : null;
+  return {
+    own,
+    said: fill("tistySkillsHooksSaid", ownSaid(own)),
+    card,
+    show: () => setOpen(true),
+  };
+}
+
+type Opened = ReturnType<typeof useOwnOpener>;
+
+function OwnButton({
+  opened,
+  className,
+  row,
+  label,
+  children,
+}: Readonly<{
+  opened: Opened;
+  className: string;
+  row?: ButtonHTMLAttributes<HTMLButtonElement>;
+  label?: string;
+  children: ReactNode;
+}>) {
   return (
-    <>
-      {lead}
-      {wrap(
-        <button
-          type="button"
-          data-row="tisty-own"
-          data-dot={own.dot}
-          {...row}
-          onClick={() => setOpen(true)}
-          aria-label={labelled(said)}
-          title={said}
-          className={className}
-        >
-          {children(own)}
-        </button>,
-      )}
-      {open &&
-        createPortal(
-          <TistyOwnCard
-            own={own}
-            skills={skills}
-            known={seeing.known}
-            onSkills={setSkills}
-            onHooks={onHooks}
-            onClose={() => setOpen(false)}
-          />,
-          document.body,
-        )}
-    </>
+    <button
+      type="button"
+      data-row="tisty-own"
+      data-dot={opened.own.dot}
+      {...row}
+      onClick={opened.show}
+      aria-label={label ?? opened.said}
+      title={opened.said}
+      className={className}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -379,36 +454,34 @@ export function TistyOwnRow({
     onHooks?: () => void;
   }
 >) {
+  const opened = useOwnOpener(rest);
+  if (!shown(opened.own)) return null;
   return (
-    <Opener
-      {...rest}
-      lead={lead}
-      row={rowOf?.("tisty-own")}
-      className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
-      wrap={(button) => (
-        <li className="relative">
-          <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
-            <span
-              aria-hidden="true"
-              className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
-              style={{ marginLeft: `${8 + depth * step}px` }}
-            >
-              <Glyph name="plug" className="h-[13px] w-[13px]" />
-            </span>
-            {button}
-          </div>
-        </li>
-      )}
-    >
-      {(own) => (
-        <>
-          <span className="truncate">{t("tistySkillsHooks")}</span>
-          <span className="ml-auto grid h-4 w-4 place-items-center">
-            <OwnDot dot={own.dot} />
+    <>
+      {lead}
+      <li className="relative">
+        <div className="relative flex items-center rounded-md has-[:focus-visible]:bg-hover">
+          <span
+            aria-hidden="true"
+            className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+            style={{ marginLeft: `${8 + depth * step}px` }}
+          >
+            <Glyph name="plug" className="h-[13px] w-[13px]" />
           </span>
-        </>
-      )}
-    </Opener>
+          <OwnButton
+            opened={opened}
+            row={rowOf?.("tisty-own")}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] text-soft hover:bg-hover"
+          >
+            <span className="truncate">{t("tistySkillsHooks")}</span>
+            <span className="ml-auto grid h-4 w-4 place-items-center">
+              <OwnDot dot={opened.own.dot} />
+            </span>
+          </OwnButton>
+        </div>
+      </li>
+      {opened.card}
+    </>
   );
 }
 
@@ -416,56 +489,49 @@ export function TistyOwnEntry({
   className,
   ...rest
 }: Readonly<Seeing & { className: string; onHooks?: () => void }>) {
+  const opened = useOwnOpener(rest);
+  if (!shown(opened.own)) return null;
   return (
-    <Opener
-      {...rest}
-      className={className}
-      wrap={(button) => <li className="flex break-inside-avoid items-center">{button}</li>}
-    >
-      {(own) => (
-        <>
+    <>
+      <li className="flex break-inside-avoid items-center">
+        <OwnButton opened={opened} className={className}>
           <span className="shrink-0 text-faint">
             <Glyph name="plug" className="h-3.5 w-3.5" />
           </span>
           <span className="truncate text-ink">{t("tistySkillsHooks")}</span>
           <span className="ml-auto grid h-4 w-4 place-items-center">
-            <OwnDot dot={own.dot} />
+            <OwnDot dot={opened.own.dot} />
           </span>
-        </>
-      )}
-    </Opener>
+        </OwnButton>
+      </li>
+      {opened.card}
+    </>
   );
 }
 
 export function TistyOwnSettingsRow(props: Readonly<Seeing>) {
+  const opened = useOwnOpener(props);
+  if (!shown(opened.own)) return null;
   return (
-    <Opener
-      {...props}
-      className={`${button} flex shrink-0 items-center gap-1.5 border border-line`}
-      wrap={(opener) => <SettingsShelf>{opener}</SettingsShelf>}
-      labelled={(said) => `${t("agentSee")} · ${said}`}
-    >
-      {(own) => (
-        <>
-          <OwnDot dot={own.dot} />
+    <>
+      <section
+        aria-label={t("tistySkillsHooksTitle")}
+        className="mt-3 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold">{t("tistySkillsHooksTitle")}</span>
+          <span className="block text-[12.5px] text-soft">{t("tistySkillsHooksLine")}</span>
+        </span>
+        <OwnButton
+          opened={opened}
+          label={`${t("agentSee")} · ${opened.said}`}
+          className={`${button} flex shrink-0 items-center gap-1.5 border border-line`}
+        >
+          <OwnDot dot={opened.own.dot} />
           {t("agentSee")}
-        </>
-      )}
-    </Opener>
-  );
-}
-
-function SettingsShelf({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <section
-      aria-label={t("tistySkillsHooksTitle")}
-      className="mt-3 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold">{t("tistySkillsHooksTitle")}</span>
-        <span className="block text-[12.5px] text-soft">{t("tistySkillsHooksLine")}</span>
-      </span>
-      {children}
-    </section>
+        </OwnButton>
+      </section>
+      {opened.card}
+    </>
   );
 }
