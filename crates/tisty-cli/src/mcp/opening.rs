@@ -51,11 +51,11 @@ pub(crate) fn opening(paths: &Paths, client: &str) -> Option<String> {
             pressed.trim_end_matches(')').replacen(" (", " ", 1)
         ));
     }
-    lines.push(
+    lines.push(format!(
         "Before working on one of these tasks, `read` it; as you finish steps, `tick` them, and \
-         `say_done` with the proof when it is done. `catch_up` gives the whole picture."
-            .to_string(),
-    );
+         `say_done` with the proof when it is done. {} `catch_up` gives the whole picture.",
+        super::ONE_OWNER
+    ));
     Some(capped(lines))
 }
 

@@ -14,8 +14,8 @@ use super::asked::{
 use super::jsonrpc::{speaking_through, told};
 use super::mistaken::not_a_task_id;
 use super::{
-    INBOX_TAG, Refused, already, gone, history, hitch, how_it_ended, moved, opened, order, said,
-    unticked, when,
+    INBOX_TAG, ONE_OWNER, Refused, already, gone, history, hitch, how_it_ended, moved, opened,
+    order, said, unticked, when,
 };
 
 /// Eight tasks in one call instead of eight calls: what the door costs an agent is mostly the
@@ -112,7 +112,7 @@ pub(super) fn propose(
         .count();
     Ok(told(
         format!(
-            "{written} written, {already} already there, {turned} turned away.\n{}{}",
+            "{written} written, {already} already there, {turned} turned away.\n{}{}{}",
             done.iter()
                 .map(|one| match one.get("refused").and_then(Value::as_str) {
                     Some(why) => format!("{} — {why}", said(one, "title")),
@@ -164,6 +164,10 @@ pub(super) fn propose(
                 n => format!(
                     "\n{n} of them carry steps: `tick` each as you do it, `say_done` when all are."
                 ),
+            },
+            match written {
+                0 => String::new(),
+                _ => format!("\n{ONE_OWNER}"),
             }
         ),
         json!({ "tasks": done, "written": written, "refused": turned }),
@@ -394,11 +398,12 @@ pub(super) fn proposed(
     Ok(told(
         match planned {
             0 => format!(
-                "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}.{parts_said} [{id}]"
+                "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}.{parts_said} \
+                 {ONE_OWNER} [{id}]"
             ),
             n => format!(
                 "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
-                 `tick` each as you do it, `say_done` when all are.{parts_said} [{id}]"
+                 `tick` each as you do it, `say_done` when all are.{parts_said} {ONE_OWNER} [{id}]"
             ),
         },
         Value::Object(kept),
@@ -820,7 +825,10 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         said.push_str(&format!("{} ticked already. ", already.len()));
     }
     said.push_str(&match &next {
-        None => "None left: `say_done` when the work is done.".to_string(),
+        None => "None left: `say_done` once the work is done and proven, with the branch, the \
+                 commit and how you verified it. Publishing and merging are the person's: do not \
+                 wait for them."
+            .to_string(),
         Some(next) => format!("{left} still unticked; next: {next:?}."),
     });
     Ok(told(
@@ -1054,8 +1062,10 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
     if !drop && open_parts > 0 {
         return Err(Refused::Tool(format!(
             "{:?} still has {open_parts} part(s) open, and a whole is done only when its parts \
-             are. Say each done as you finish it; whether to let the rest go is the person's \
-             call, so say what is left with `note`.",
+             are. Say each of yours done as you finish it. What only the person can do goes to \
+             them with `unplan` and `to_person`, and their part never holds the whole; then \
+             `say_done`. Whether to let the rest go is the person's call: say what is left with \
+             `note`.",
             task.title
         )));
     }

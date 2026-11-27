@@ -427,7 +427,7 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "body": { "type": "string", "description": "What you did and what makes you sure (the command and its answer, the commit), in the Tisty language" }
+                    "body": { "type": "string", "description": "What you did and how you know it holds, in the Tisty language: the branch and commit, the command that verified it and its answer, and what is left for the person" }
                 },
                 "required": ["task", "body"]
             }))

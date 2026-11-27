@@ -88,6 +88,8 @@ const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const TOOLS_STAY_FRESH: i64 = 3_600_000;
 const INBOX_TAG: &str = tisty_core::model::AGENT_TAG;
 const LISTED_AT_MOST: usize = 200;
+pub(crate) const ONE_OWNER: &str = "A task is yours or the person's, never both: what only they \
+    can do goes in their own task.";
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
     let mut tally = Tally::default();
@@ -618,8 +620,10 @@ fn unticked(task: &Task) -> Option<Refused> {
         named.push(format!("and {} more", left.len() - UNTICKED_NAMED));
     }
     Some(Refused::Tool(format!(
-        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did; if one no longer \
-         applies, say so with `note` and leave the task open — the person decides.",
+        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did. A step only the \
+         person can do — trying it by hand, a real device, publishing, merging, deciding — is \
+         theirs: hand it over with `unplan` and `to_person`, then `say_done`. One that no longer \
+         applies: say so with `note` and leave the task open — the person decides.",
         task.title,
         left.len(),
         named.join(", ")
