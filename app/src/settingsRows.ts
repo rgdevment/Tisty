@@ -84,6 +84,7 @@ export const ROWS = {
   report: row("health", "reportTitle", "reportLine"),
   update: row("about", "lookNow", undefined, ["updateInstall"]),
   candidates: row("about", "betaTake", "betaWarns"),
+  autoUpdates: row("about", "autoTake", "autoWhy"),
   greet: row("about", "greetAgain", "greetAgainWhy", ["welcomeGuide"]),
   site: row("about", "helpOnSite", "helpOnSiteWhy"),
   support: row("about", "supportTitle", "supportWhy"),

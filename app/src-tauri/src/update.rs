@@ -208,6 +208,16 @@ pub fn remembered(now: &str, said: Option<&str>, kept: Kept, wants: Option<bool>
     (kept_version > here).then(|| offered(kept_version.to_string(), kept))
 }
 
+pub fn still_offered(kept: &str, now: &str, found: Option<&str>) -> bool {
+    let (Ok(kept_version), Ok(here)) = (
+        kept.parse::<semver::Version>(),
+        now.parse::<semver::Version>(),
+    ) else {
+        return false;
+    };
+    found == Some(kept) && kept_version > here
+}
+
 /// A clock put back leaves the last look in the future, and a copy that only counts forward from
 /// it would wait out the difference before ever looking again.
 pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {

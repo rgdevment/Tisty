@@ -3,6 +3,7 @@ use std::sync::Mutex;
 mod admitting;
 mod answers;
 mod asked;
+mod awaiting;
 mod booking;
 mod bringing;
 mod command;
@@ -432,6 +433,12 @@ fn worded(locale: &Option<String>, key: &str) -> String {
 struct Updating(OneAtATime);
 
 #[derive(Default)]
+pub(crate) struct Landed(pub(crate) std::sync::atomic::AtomicBool);
+
+#[derive(Default)]
+struct Fetching(OneAtATime);
+
+#[derive(Default)]
 struct Packing(OneAtATime);
 
 /// The account whose cloud left behind is being emptied, which goes on without the round's hold.
@@ -702,6 +709,10 @@ pub(crate) fn opened(
         }
     }
 
+    if !viewing {
+        awaiting::installs(app, &mut session, awaiting::When::Opening);
+    }
+
     answers::agents::opened_by_default(&mut session);
     let paths = session.paths.clone();
     std::thread::spawn(move || pathing::keep(paths));
@@ -754,6 +765,9 @@ pub(crate) fn opened(
     let session_keys = session.config.quick_keys.clone();
     let idea_keys = session.config.idea_keys.clone();
     let came_back = back_from_an_update(&mut session);
+    app.state::<Landed>()
+        .0
+        .store(came_back, std::sync::atomic::Ordering::SeqCst);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(
@@ -1124,6 +1138,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::updating::update_ready,
         answers::updating::update_install,
         answers::updating::update_candidates,
+        answers::updating::update_automatic,
+        answers::updating::update_alone_due,
         answers::tasks::star_due,
         answers::tasks::star_done,
         answers::tasks::door_due,
@@ -1322,6 +1338,8 @@ pub fn run() {
         .manage(Packing::default())
         .manage(Erasing::default())
         .manage(Updating::default())
+        .manage(Landed::default())
+        .manage(Fetching::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Parting::default())
         .manage(desktop::Departed::default())

@@ -638,6 +638,8 @@ export interface About {
   store: string;
   candidates: boolean;
   candidatesApply: boolean;
+  autoUpdates: boolean;
+  autoUpdatesApply: boolean;
   keptByTheStore: boolean;
   notSold?: boolean;
   standing?: Standing;
@@ -731,6 +733,11 @@ export const about = (): Promise<About> => invoke("about");
 
 export const updateCandidates = (wants: boolean): Promise<void> =>
   invoke("update_candidates", { wants });
+
+export const updateAutomatic = (wants: boolean): Promise<void> =>
+  invoke("update_automatic", { wants });
+
+export const updateAloneDue = (): Promise<boolean> => invoke("update_alone_due");
 export const notices = (): Promise<string> => invoke("notices");
 export const licences = (): Promise<string> => invoke("licences");
 

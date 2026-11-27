@@ -1902,6 +1902,9 @@ const en = {
   updateUnconfirmed: "The list of updates could not be confirmed just now. Try again in a while.",
   updateMoved: "That version is no longer offered; {name} is.",
   updateStopped: "The update stopped before it was installed.",
+  autoTake: "Install updates automatically",
+  autoWhy:
+    "They download in the background and install when you quit or open Tisty, never while you work.",
   betaTake: "Take release candidates",
   betaWarns:
     "Candidates come out before a release is finished, so they are less tested and some break. Turning this off leaves any candidate already installed where it is: the next stable release replaces it.",
@@ -1992,6 +1995,13 @@ const en = {
   wakeOfferNo: "No, thanks",
   wakeOfferSeen: "Got it",
   wakeOfferLater: "Not now",
+  aloneLabel: "Automatic updates",
+  aloneTitle: "Install the next updates on their own?",
+  aloneWhy:
+    "Tisty was just updated. With this on, the next ones download by themselves and install when you quit or open Tisty, never while you work.",
+  aloneGo: "Turn on",
+  aloneNo: "Don't ask again",
+  aloneLater: "Not now",
   noHits: "Nothing matched. Try a shorter word, or widen the scope above.",
   noHitsHere: "Nothing in the archive matched. Try a shorter word.",
   searchInvite: "Type to search. It looks in the archive too.",
@@ -5825,6 +5835,9 @@ const es: Catalog = {
     "Ahora mismo no se pudo confirmar la lista de actualizaciones. Prueba de nuevo en un rato.",
   updateMoved: "Esa versión ya no se ofrece; ahora se ofrece la {name}.",
   updateStopped: "La actualización se detuvo antes de instalarse.",
+  autoTake: "Instalar actualizaciones automáticamente",
+  autoWhy:
+    "Se descargan en segundo plano y se instalan al salir o al abrir Tisty, nunca mientras trabajas.",
   betaTake: "Recibir versiones candidatas",
   betaWarns:
     "Las candidatas salen antes de que una versión esté terminada, así que están menos probadas y algunas fallan. Desactivarlo no deshace la candidata que ya tengas: la reemplaza la siguiente versión estable.",
@@ -5917,6 +5930,13 @@ const es: Catalog = {
   wakeOfferNo: "No, gracias",
   wakeOfferSeen: "Entendido",
   wakeOfferLater: "Ahora no",
+  aloneLabel: "Actualizaciones automáticas",
+  aloneTitle: "¿Que las próximas actualizaciones se instalen solas?",
+  aloneWhy:
+    "Tisty acaba de actualizarse. Con esto activado, las siguientes se descargan solas y se instalan al salir o al abrir Tisty, nunca mientras trabajas.",
+  aloneGo: "Activar",
+  aloneNo: "No volver a preguntar",
+  aloneLater: "Ahora no",
   noHits:
     "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
   noHitsHere: "No coincide nada en el archivo. Prueba con una palabra más corta.",

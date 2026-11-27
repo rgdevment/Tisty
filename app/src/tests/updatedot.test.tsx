@@ -27,6 +27,8 @@ vi.mock("@tauri-apps/api/core", () => ({
       store: "C:/store",
       candidates: false,
       candidatesApply: true,
+      autoUpdates: false,
+      autoUpdatesApply: true,
     });
   },
 }));
@@ -187,7 +189,7 @@ describe("what About suggests", () => {
   it("takes the candidates only when somebody asks for them, and says what that means", async () => {
     render(<About ready={null} onError={vi.fn()} />);
 
-    const asks = await screen.findByRole("checkbox");
+    const asks = await screen.findByRole("checkbox", { name: /release candidates/i });
     expect(asks).toHaveProperty("checked", false);
     expect(screen.getByText(/less tested/i)).toBeTruthy();
 

@@ -57,7 +57,8 @@ export type Which =
   | "sealWipe"
   | "sealOff"
   | "update"
-  | "candidates";
+  | "candidates"
+  | "autoUpdates";
 /** `busy` marks a round turned away by another, whatever its words say. */
 export type Word = { card: Which; text: string; busy?: boolean; again?: () => void };
 
@@ -124,6 +125,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sealOff: "sealOff",
   update: "lookNow",
   candidates: "betaTake",
+  autoUpdates: "autoTake",
 };
 
 const TAKING_LONG = 60;

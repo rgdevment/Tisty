@@ -28,9 +28,25 @@ pub async fn update_ready(
     session: tauri::State<'_, Mutex<Session>>,
     look: Option<update::Look>,
 ) -> Answer<Option<update::Ready>> {
+    let ready = looked_now(&app, &session, look).await?;
+    let alone = held(&session).config.auto_updates == Some(true);
+    if let Some(offer) = ready.as_ref().filter(|one| alone && one.installs) {
+        tauri::async_runtime::spawn(crate::awaiting::fetch_ahead(
+            app.clone(),
+            offer.version.clone(),
+        ));
+    }
+    Ok(ready)
+}
+
+async fn looked_now(
+    app: &tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    look: Option<update::Look>,
+) -> Answer<Option<update::Ready>> {
     let kept = update::route();
     let (last, found, the_shop_said, wants) = {
-        let held = held(&session);
+        let held = held(session);
         (
             held.config.checked_at,
             held.config.found_version.clone(),
@@ -50,7 +66,7 @@ pub async fn update_ready(
             version: found,
             offered: the_shop_said,
         };
-        let Some(window) = owner(&app) else {
+        let Some(window) = owner(app) else {
             return Ok(shop::last_said(HERE, &was));
         };
         let settled = tauri::async_runtime::spawn_blocking(shop::settled)
@@ -75,7 +91,7 @@ pub async fn update_ready(
         };
         let heard = answered(&shelf, &ahead);
         let verdict = shop::verdict(shelf, ahead, HERE, was);
-        held(&session).keep(|c| {
+        held(session).keep(|c| {
             c.checked_at = Some(now);
             if heard {
                 c.update_heard_at = Some(now);
@@ -102,7 +118,7 @@ pub async fn update_ready(
         update::Heard::Said(said) => said,
         update::Heard::Unsigned => {
             let ahead = found.filter(|version| update::later(HERE, version));
-            held(&session).keep(|c| {
+            held(session).keep(|c| {
                 c.checked_at = Some(now);
                 c.found_version = ahead.clone();
             })?;
@@ -121,7 +137,7 @@ pub async fn update_ready(
 
     let seen = update::newer(HERE, &manifest, kept, wants);
     let version = seen.as_ref().map(|one| one.version.clone());
-    held(&session).keep(|c| {
+    held(session).keep(|c| {
         c.checked_at = Some(now);
         c.update_heard_at = Some(now);
         c.found_version = version;
@@ -186,14 +202,7 @@ async fn installing(
         return Err(moved_on(&session, kept, wants).await);
     };
 
-    let Some(update) = looked(&app, &want, None).await? else {
-        return Err(moved_on(&session, kept, wants).await);
-    };
-    let update = match update::updater_key(&update.signature) {
-        None => Some(update),
-        Some(spare) => looked(&app, &want, Some(spare)).await?,
-    };
-    let Some(mut update) = update else {
+    let Some(mut update) = offered(&app, &want).await? else {
         return Err(moved_on(&session, kept, wants).await);
     };
 
@@ -264,6 +273,19 @@ async fn installing(
     app.run_on_main_thread(move || handle.restart())
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
     Ok(())
+}
+
+pub(crate) async fn offered(
+    app: &tauri::AppHandle,
+    want: &str,
+) -> Answer<Option<tauri_plugin_updater::Update>> {
+    let Some(update) = looked(app, want, None).await? else {
+        return Ok(None);
+    };
+    match update::updater_key(&update.signature) {
+        None => Ok(Some(update)),
+        Some(spare) => looked(app, want, Some(spare)).await,
+    }
 }
 
 /// `key` stands in for the one in tauri.conf.json, since the plugin checks a package against one key only.
@@ -365,6 +387,36 @@ pub fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool)
         c.found_in_the_shop = None;
     })?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn update_automatic(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    wants: bool,
+) -> Answer<()> {
+    let found = {
+        let mut held = held(&session);
+        held.keep(|c| c.auto_updates = Some(wants))?;
+        if !wants {
+            crate::awaiting::forget(&held.paths);
+        }
+        held.config.found_version.clone()
+    };
+    if let Some(version) = found.filter(|_| wants) {
+        tauri::async_runtime::spawn(crate::awaiting::fetch_ahead(app, version));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_alone_due(
+    session: tauri::State<'_, Mutex<Session>>,
+    landed: tauri::State<'_, crate::Landed>,
+) -> bool {
+    landed.0.swap(false, std::sync::atomic::Ordering::SeqCst)
+        && held(&session).config.auto_updates.is_none()
+        && crate::refusing::takes_itself_there()
 }
 
 #[cfg(test)]

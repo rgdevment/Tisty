@@ -117,6 +117,8 @@ pub struct About {
     store: String,
     candidates: bool,
     candidates_apply: bool,
+    auto_updates: bool,
+    auto_updates_apply: bool,
     /// Kept by the Microsoft Store: updates come from it alone, and «none» means it has none yet.
     kept_by_the_store: bool,
     /// Installed where the Store installs, by other means: nobody brings this copy updates.
@@ -346,6 +348,8 @@ pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
         // switch wired to nothing.
         candidates_apply: update::self_installs(update::route().route),
+        auto_updates: session.config.auto_updates == Some(true),
+        auto_updates_apply: crate::refusing::takes_itself_there(),
         kept_by_the_store: update::route().route == update::Route::Store,
         not_sold: update::route().route == update::Route::Store && !crate::shop::sold(),
         standing,
