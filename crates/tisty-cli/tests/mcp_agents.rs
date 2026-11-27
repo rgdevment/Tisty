@@ -526,7 +526,11 @@ const NAMES_A_DOCUMENT: [&str; 8] = [
 const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
 const PROPOSES: [&str; 3] = ["write_doc", "edit_doc", "append_doc"];
 // A task, step, note, path, heading, cell or setting: never a document or a folder.
-const NAMES_NEITHER: [&str; 54] = [
+const NAMES_NEITHER: [&str; 58] = [
+    "branch",
+    "pr",
+    "for",
+    "to_person",
     "again",
     "anyway",
     "archived",

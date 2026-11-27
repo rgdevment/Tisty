@@ -52,6 +52,8 @@ fn resolved(entry: Ulid, drop: bool) -> Resolved {
         by: DeviceId("dev_agent".into()),
         entry,
         via: None,
+        branch: None,
+        pr: None,
         drop,
     }
 }

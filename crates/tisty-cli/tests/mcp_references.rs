@@ -105,7 +105,7 @@ fn text(said: &Value) -> &str {
 fn proposes_work(talk: &mut Connection) -> String {
     let said = talk.call(
         "propose",
-        json!({ "title": "Ship the export", "steps": ["Write the parser"], "list": "Work" }),
+        json!({ "for": "agent", "title": "Ship the export", "steps": ["Write the parser"], "list": "Work" }),
     );
     shown(&said)["id"].as_str().unwrap().to_string()
 }
@@ -297,8 +297,7 @@ fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_w
     );
     let proposed = talk.call(
         "propose",
-        json!({
-            "title": "Ship the import",
+        json!({ "for": "agent", "title": "Ship the import",
             "list": "Work",
             "parts": [{ "title": "Read first", "description": "As «Brainsty: decisiones» says." }],
         }),

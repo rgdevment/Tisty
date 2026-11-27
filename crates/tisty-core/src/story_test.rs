@@ -1072,3 +1072,72 @@ fn an_assistants_words_on_a_closed_task_of_the_persons_are_no_chapter() {
         ]
     );
 }
+
+fn an_agent_filed_for(id: TaskId, step: StepId, for_person: bool) -> Vec<Event> {
+    let mut log = an_agent_filed(id, step);
+    if let Op::TaskAdd { d, .. } = &mut log[1].op {
+        d.for_person = for_person;
+    }
+    log
+}
+
+fn ticked_chapters(told: &Story) -> usize {
+    chapters(told)
+        .iter()
+        .filter(|one| matches!(one, Chapter::Ticked { .. }))
+        .count()
+}
+
+#[test]
+fn a_tick_an_assistant_gave_on_its_own_task_is_a_chapter() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed_for(id, step, false);
+    log.push(by_agent(
+        4,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    assert_eq!(ticked_chapters(&story(&log, id)), 1);
+}
+
+#[test]
+fn a_tick_an_assistant_gave_on_a_task_it_filed_for_the_person_never_landed_so_it_is_no_chapter() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed_for(id, step, true);
+    log.push(by_agent(
+        4,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    assert_eq!(ticked_chapters(&story(&log, id)), 0);
+}
+
+#[test]
+fn the_persons_tick_on_a_task_an_assistant_filed_for_them_is_a_chapter() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed_for(id, step, true);
+    log.push(event(
+        4,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    assert_eq!(ticked_chapters(&story(&log, id)), 1);
+}
+
+#[test]
+fn the_flag_in_a_task_add_changes_nothing_in_how_it_is_born() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let plain = story(&an_agent_filed_for(id, step, false), id);
+    let theirs = story(&an_agent_filed_for(id, step, true), id);
+
+    assert_eq!(chapters(&plain), chapters(&theirs));
+}

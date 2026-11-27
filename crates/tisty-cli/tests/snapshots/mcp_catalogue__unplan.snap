@@ -9,7 +9,7 @@ expression: tool
     "openWorldHint": false,
     "readOnlyHint": false
   },
-  "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
+  "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped; with `to_person`, to the person's own task. One ticked step among them and nothing changes.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -28,9 +28,17 @@ expression: tool
         "description": "The task id",
         "type": "string"
       },
+      "title": {
+        "description": "The companion's title if made, in their language",
+        "type": "string"
+      },
       "to": {
         "description": "Id of another open task, not said done, to hand them to",
         "type": "string"
+      },
+      "to_person": {
+        "description": "Hand them to the task's one companion for the person, made as its part if missing",
+        "type": "boolean"
       }
     },
     "required": [

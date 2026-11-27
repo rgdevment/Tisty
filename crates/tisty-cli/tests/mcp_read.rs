@@ -110,7 +110,7 @@ fn text(said: &Value) -> &str {
 fn proposed(talk: &mut Connection, title: &str) -> String {
     let said = talk.call(
         "propose",
-        json!({ "title": title, "list": "Personal", "steps": ["one", "two"] }),
+        json!({ "for": "agent", "title": title, "list": "Personal", "steps": ["one", "two"] }),
     );
     shown(&said)["id"].as_str().unwrap().to_string()
 }
@@ -448,7 +448,7 @@ fn a_projects_parts_say_once_what_every_part_shares() {
     let mut talk = served.connect();
     let said = talk.call(
         "propose",
-        json!({ "title": "Move house", "list": "Personal", "parts": [
+        json!({ "for": "agent", "title": "Move house", "list": "Personal", "parts": [
             { "title": "Pack the books", "steps": ["one"] },
             { "title": "Book the van", "steps": ["one"] },
         ]}),

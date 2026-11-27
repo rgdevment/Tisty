@@ -70,7 +70,10 @@ impl Served {
     }
 
     fn task_with_a_page(&self, title: &str, note: &str) -> (String, String) {
-        let made = self.call("propose", json!({ "title": title, "list": "Personal" }));
+        let made = self.call(
+            "propose",
+            json!({ "for": "agent", "title": title, "list": "Personal" }),
+        );
         let task = made["structuredContent"]["id"]
             .as_str()
             .unwrap()
@@ -381,7 +384,7 @@ fn a_task_the_person_let_go_is_never_named_by_its_source() {
     let served = Served::new();
     let made = served.call(
         "propose",
-        json!({ "title": "secret zebra gift", "source": "mail:77", "list": "Personal" }),
+        json!({ "for": "agent", "title": "secret zebra gift", "source": "mail:77", "list": "Personal" }),
     );
     let task = made["structuredContent"]["id"]
         .as_str()
@@ -392,7 +395,7 @@ fn a_task_the_person_let_go_is_never_named_by_its_source() {
     let found = served.call("brain", json!({ "source": "mail:77" }));
     let proposed = served.call(
         "propose",
-        json!({ "title": "otra", "source": "mail:77", "list": "Personal" }),
+        json!({ "for": "agent", "title": "otra", "source": "mail:77", "list": "Personal" }),
     );
 
     for said in [&found, &proposed] {
@@ -410,7 +413,7 @@ fn a_task_the_person_let_go_is_never_named_by_its_source() {
     );
     let again = served.call(
         "propose",
-        json!({ "title": "otra vez", "source": "mail:77", "list": "Personal", "again": true }),
+        json!({ "for": "agent", "title": "otra vez", "source": "mail:77", "list": "Personal", "again": true }),
     );
     assert_eq!(again["structuredContent"]["proposed"], true, "{again}");
 }

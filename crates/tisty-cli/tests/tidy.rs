@@ -52,7 +52,7 @@ impl Served {
     }
 
     fn filed(&self, title: &str) -> String {
-        said(&self.call("propose", json!({ "title": title })))["id"]
+        said(&self.call("propose", json!({ "for": "agent", "title": title })))["id"]
             .as_str()
             .unwrap()
             .to_string()
@@ -228,10 +228,13 @@ fn open_steps_handed_on_leave_one_task_and_join_the_other() {
     let served = Served::new();
     let from = served.call(
         "propose",
-        json!({ "title": "Release", "steps": ["tag it", "write the notes", "ship"] }),
+        json!({ "for": "agent", "title": "Release", "steps": ["tag it", "write the notes", "ship"] }),
     );
     let from = said(&from)["id"].as_str().unwrap().to_string();
-    let to = served.call("propose", json!({ "title": "Docs", "steps": ["outline"] }));
+    let to = served.call(
+        "propose",
+        json!({ "for": "agent", "title": "Docs", "steps": ["outline"] }),
+    );
     let to = said(&to)["id"].as_str().unwrap().to_string();
 
     went(&served.call(
@@ -258,7 +261,7 @@ fn a_ticked_step_among_those_handed_on_moves_none() {
     let served = Served::new();
     let from = served.call(
         "propose",
-        json!({ "title": "Release", "steps": ["tag it", "ship"] }),
+        json!({ "for": "agent", "title": "Release", "steps": ["tag it", "ship"] }),
     );
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let to = served.filed("Docs");
@@ -279,7 +282,10 @@ fn a_ticked_step_among_those_handed_on_moves_none() {
 #[test]
 fn steps_go_to_the_persons_task_too() {
     let served = Served::new();
-    let from = served.call("propose", json!({ "title": "Release", "steps": ["ship"] }));
+    let from = served.call(
+        "propose",
+        json!({ "for": "agent", "title": "Release", "steps": ["ship"] }),
+    );
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let persons = served.person().captures("the person's plan");
 
@@ -941,7 +947,10 @@ fn a_task_left_in_the_inbox_is_pointed_at_the_closest_list() {
     let served = Served::new();
     served.person().adds_list("Garden");
 
-    let near = served.call("propose", json!({ "title": "Water the garden" }));
+    let near = served.call(
+        "propose",
+        json!({ "for": "agent", "title": "Water the garden" }),
+    );
     let text = near["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("closest list by name: Garden"), "{text}");
 }
@@ -957,7 +966,7 @@ fn the_new_tool_and_its_fields_are_listed() {
 fn digested(served: &Served) -> String {
     let task = said(&served.call(
         "propose",
-        json!({ "title": "Login work", "steps": ["read the old flow", "write the new one"] }),
+        json!({ "for": "agent", "title": "Login work", "steps": ["read the old flow", "write the new one"] }),
     ))["id"]
         .as_str()
         .unwrap()

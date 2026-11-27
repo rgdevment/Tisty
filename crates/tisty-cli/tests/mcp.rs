@@ -78,7 +78,10 @@ impl Served {
 fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
     let served = Served::new();
 
-    let said = served.call("propose", serde_json::json!({ "title": "not yet" }));
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "not yet" }),
+    );
     assert_eq!(said["result"]["isError"], true);
     assert!(
         said["result"]["content"][0]["text"]
@@ -102,7 +105,7 @@ fn a_hand_turned_away_leaves_its_knock_for_the_window() {
     .to_string();
     let asked = serde_json::json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-        "params": { "name": "propose", "arguments": { "title": "not yet" } },
+        "params": { "name": "propose", "arguments": { "for": "agent", "title": "not yet" } },
     })
     .to_string();
     assert!(!knocked.exists());
@@ -124,7 +127,10 @@ fn a_hand_let_in_leaves_no_knock() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    served.call("propose", serde_json::json!({ "title": "welcome" }));
+    served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "welcome" }),
+    );
 
     assert!(
         !served
@@ -156,7 +162,7 @@ fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     served.person().lets_the_agent_in();
     served.call(
         "propose",
-        serde_json::json!({ "title": "buy pink card stock" }),
+        serde_json::json!({ "for": "agent", "title": "buy pink card stock" }),
     );
 
     let mine = std::fs::read_to_string(served.home.path().join("config/config.toml")).unwrap();
@@ -184,12 +190,12 @@ fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
 fn the_same_source_is_never_filed_twice() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let args = serde_json::json!({ "title": "card stock", "source": "wa:msg-991" });
+    let args = serde_json::json!({ "for": "agent", "title": "card stock", "source": "wa:msg-991" });
 
     let first = served.call("propose", args.clone());
     let again = served.call(
         "propose",
-        serde_json::json!({ "title": "same thing, read again", "source": "wa:msg-991" }),
+        serde_json::json!({ "for": "agent", "title": "same thing, read again", "source": "wa:msg-991" }),
     );
 
     assert_eq!(first["result"]["structuredContent"]["proposed"], true);
@@ -209,15 +215,15 @@ fn it_files_into_a_list_that_exists_and_nowhere_else() {
 
     let placed = served.call(
         "propose",
-        serde_json::json!({ "title": "somewhere else", "list": "Work" }),
+        serde_json::json!({ "for": "agent", "title": "somewhere else", "list": "Work" }),
     );
     let made_up = served.call(
         "propose",
-        serde_json::json!({ "title": "nowhere", "list": "A List Nobody Made" }),
+        serde_json::json!({ "for": "agent", "title": "nowhere", "list": "A List Nobody Made" }),
     );
     served.call(
         "propose",
-        serde_json::json!({ "title": "card stock", "tags": ["school"] }),
+        serde_json::json!({ "for": "agent", "title": "card stock", "tags": ["school"] }),
     );
 
     assert_eq!(
@@ -359,7 +365,7 @@ fn a_date_in_words_is_refused_with_the_shape_it_wanted() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "card stock", "deadline": "next monday" }),
+        serde_json::json!({ "for": "agent", "title": "card stock", "deadline": "next monday" }),
     );
 
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
@@ -444,7 +450,10 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
 }
 
 fn filed(served: &Served, title: &str) -> String {
-    let said = served.call("propose", serde_json::json!({ "title": title }));
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": title }),
+    );
     said["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -647,7 +656,7 @@ fn what_it_attaches_says_where_it_came_from() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "the slack thread" }),
+        serde_json::json!({ "for": "agent", "title": "the slack thread" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
@@ -674,7 +683,10 @@ fn what_it_attaches_says_where_it_came_from() {
 fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_the_agent() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let filed = served.call("propose", serde_json::json!({ "title": "el contrato" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "el contrato" }),
+    );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -744,7 +756,10 @@ fn a_file_kept_in_a_document_is_added_at_its_end() {
 fn a_task_takes_a_large_file_as_a_document_does() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "la charla" }),
+    );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -780,7 +795,10 @@ fn a_task_takes_a_large_file_as_a_document_does() {
 fn a_file_goes_to_one_place_and_it_has_to_be_named() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "la charla" }),
+    );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -927,7 +945,7 @@ fn a_misspelt_argument_is_refused_instead_of_dropped() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "pay the deposit", "due": "2026-09-01" }),
+        serde_json::json!({ "for": "agent", "title": "pay the deposit", "due": "2026-09-01" }),
     );
 
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
@@ -946,7 +964,10 @@ fn a_misspelt_argument_is_refused_instead_of_dropped() {
 fn what_the_person_wrote_is_not_reported_as_the_agents() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("propose", serde_json::json!({ "title": "what it filed" }));
+    served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "what it filed" }),
+    );
 
     let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
     let mine = &found["result"]["structuredContent"]["matches"][0];
@@ -1016,7 +1037,7 @@ fn a_note_comes_back_whole_even_when_it_carries_a_link() {
 
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "what the audit found" }),
+        serde_json::json!({ "for": "agent", "title": "what the audit found" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -1043,7 +1064,10 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let filed = served.call("propose", serde_json::json!({ "title": "a long note" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "a long note" }),
+    );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -1080,7 +1104,10 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let filed = served.call("propose", serde_json::json!({ "title": "a migrated note" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "a migrated note" }),
+    );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -1166,7 +1193,7 @@ fn a_path_from_this_disk_is_still_elided() {
 
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "a task with a note" }),
+        serde_json::json!({ "for": "agent", "title": "a task with a note" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -1191,7 +1218,10 @@ fn an_id_reaches_a_client_that_only_shows_the_text() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let filed = served.call("propose", serde_json::json!({ "title": "card stock" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "card stock" }),
+    );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
     assert!(
@@ -1207,12 +1237,15 @@ fn an_id_reaches_a_client_that_only_shows_the_text() {
 fn turning_the_agent_off_takes_its_voice_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("propose", serde_json::json!({ "title": "while it could" }));
+    served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "while it could" }),
+    );
 
     served.person().shuts_the_agent_out();
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "after it could not" }),
+        serde_json::json!({ "for": "agent", "title": "after it could not" }),
     );
 
     assert_eq!(said["result"]["isError"], true);
@@ -1230,7 +1263,7 @@ fn an_agent_may_only_take_files_from_where_a_download_lands() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "somewhere to put it" }),
+        serde_json::json!({ "for": "agent", "title": "somewhere to put it" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
@@ -1264,8 +1297,7 @@ fn two_callers_racing_on_one_source_file_it_once() {
     served.person().lets_the_agent_in();
     let call = serde_json::json!({
         "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-        "params": { "name": "propose", "arguments": {
-            "title": "call the bank", "source": "wa:msg-991"
+        "params": { "name": "propose", "arguments": { "for": "agent", "title": "call the bank", "source": "wa:msg-991"
         }},
     })
     .to_string();
@@ -1334,11 +1366,11 @@ fn a_title_that_would_outlive_its_worth_is_refused() {
 
     let huge = served.call(
         "propose",
-        serde_json::json!({ "title": "x".repeat(10_000) }),
+        serde_json::json!({ "for": "agent", "title": "x".repeat(10_000) }),
     );
     let sneaky = served.call(
         "propose",
-        serde_json::json!({ "title": "innocent\u{1b}[2K\u{1b}[1ANOT WHAT IT SAYS" }),
+        serde_json::json!({ "for": "agent", "title": "innocent\u{1b}[2K\u{1b}[1ANOT WHAT IT SAYS" }),
     );
 
     assert_eq!(
@@ -2000,7 +2032,7 @@ fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
     }
     served.call(
         "propose",
-        serde_json::json!({ "title": "llamar al gasfiter", "date": "2026-09-21", "source": "x#1" }),
+        serde_json::json!({ "for": "agent", "title": "llamar al gasfiter", "date": "2026-09-21", "source": "x#1" }),
     );
 
     let theirs = served.call("brain", serde_json::json!({ "by_agent": true }));
@@ -2093,8 +2125,7 @@ fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
     served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
-        serde_json::json!({
-            "title": "llevar el acta",
+        serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "date": "2026-09-20",
             "source": "correo#1"
         }),
@@ -2160,8 +2191,7 @@ fn a_day_is_taken_off_by_sending_nothing_in_its_place() {
     served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
-        serde_json::json!({
-            "title": "llevar el acta",
+        serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "deadline": "2026-09-20",
             "source": "correo#2"
         }),
@@ -2189,7 +2219,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
     served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
-        serde_json::json!({ "title": "llevar el acta", "source": "sereno#1" }),
+        serde_json::json!({ "for": "agent", "title": "llevar el acta", "source": "sereno#1" }),
     );
     let id = first["result"]["structuredContent"]["id"]
         .as_str()
@@ -2199,7 +2229,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
     for said in ["sereno: #1", "Sereno #1", "sereno:#1"] {
         let again = served.call(
             "propose",
-            serde_json::json!({ "title": "llevar el acta otra vez", "source": said }),
+            serde_json::json!({ "for": "agent", "title": "llevar el acta otra vez", "source": said }),
         );
         let kept = &again["result"]["structuredContent"];
         assert_eq!(
@@ -2218,7 +2248,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
 
     let other = served.call(
         "propose",
-        serde_json::json!({ "title": "otra cosa", "source": "sereno#11" }),
+        serde_json::json!({ "for": "agent", "title": "otra cosa", "source": "sereno#11" }),
     );
     assert_eq!(
         other["result"]["structuredContent"]["proposed"],
@@ -2233,8 +2263,7 @@ fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
     served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
-        serde_json::json!({
-            "title": "llevar el acta",
+        serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "date": "2026-09-20",
             "description": "lo que se hablo en la reunion",
             "steps": ["imprimirla", "firmarla"],
@@ -2280,7 +2309,7 @@ fn a_name_that_is_not_there_is_refused_with_the_names_that_are() {
 
     let lost = served.call(
         "propose",
-        serde_json::json!({ "title": "algo", "list": "Bodega", "source": "x#9" }),
+        serde_json::json!({ "for": "agent", "title": "algo", "list": "Bodega", "source": "x#9" }),
     );
     let said = lost["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("Casa"), "{said}");
@@ -2573,7 +2602,7 @@ fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_
 
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -2631,7 +2660,7 @@ fn what_moved_and_the_tags_come_capped_with_how_many_more() {
     let recipes = served.person().writes_doc("# Recetas\n\nArroz.");
     served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     );
     for n in 0..45 {
         served.person().captures(&format!("chore {n} #tag{n}"));
@@ -2698,7 +2727,7 @@ fn a_client_that_names_itself_another_way_is_still_the_same_hand() {
     };
     served.talk(&[
         &greeting("codex"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
 
     let back = served.talk(&[
@@ -2751,7 +2780,7 @@ fn each_client_picks_up_its_own_task_and_hears_the_other_by_name() {
     served.talk(&[&greeting("claude-code"), catching_up]);
     served.talk(&[
         &greeting("codex"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
 
     let back = served.talk(&[&greeting("claude-code"), catching_up]);
@@ -2812,10 +2841,13 @@ fn asking_with_a_cursor_only_reads_and_a_cut_page_hands_the_cursor_for_the_rest(
 fn a_task_said_done_is_not_offered_to_pick_up_and_no_older_one_stands_in() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("propose", serde_json::json!({ "title": "old chore" }));
+    served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "old chore" }),
+    );
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -2842,7 +2874,7 @@ fn reading_a_task_by_a_field_it_does_not_have_names_the_ones_it_does() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -2864,8 +2896,7 @@ fn every_key_a_whole_read_hands_back_can_be_asked_for_alone() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({
-            "title": "renew the passport",
+        serde_json::json!({ "for": "agent", "title": "renew the passport",
             "description": "Before the trip.",
             "deadline": "2026-12-20",
             "tags": ["travel"],
@@ -2909,7 +2940,7 @@ fn a_task_page_longer_than_one_read_comes_as_its_sections() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "move payments to v2" }),
+        serde_json::json!({ "for": "agent", "title": "move payments to v2" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -2940,7 +2971,7 @@ fn showing_a_table_from_a_task_id_says_it_is_a_task() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -2993,7 +3024,7 @@ fn a_description_is_left_out_only_when_its_page_holds_it_line_for_line() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -3033,7 +3064,7 @@ fn a_description_with_its_own_headings_is_found_on_its_page() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -3056,7 +3087,7 @@ fn a_count_of_notes_below_zero_is_refused_saying_what_works() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -3074,7 +3105,7 @@ fn reading_a_task_brings_its_page_in_the_text_and_its_latest_notes_with_who_wrot
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport", "description": "for the trip in March" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport", "description": "for the trip in March" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -3142,10 +3173,10 @@ fn several_tasks_go_in_one_call_and_a_bad_one_does_not_take_the_rest() {
     let back = served.call(
         "propose",
         serde_json::json!({ "tasks": [
-            { "title": "llevar el acta", "date": "2026-09-20", "source": "correo#1" },
-            { "title": "sin lista que exista", "list": "Bodega", "source": "correo#2" },
-            { "title": "regar el patio", "list": "Casa", "source": "correo#3" },
-            { "source": "correo#4" }
+            { "for": "agent", "title": "llevar el acta", "date": "2026-09-20", "source": "correo#1" },
+            { "for": "agent", "title": "sin lista que exista", "list": "Bodega", "source": "correo#2" },
+            { "for": "agent", "title": "regar el patio", "list": "Casa", "source": "correo#3" },
+            { "for": "agent", "source": "correo#4" }
         ]}),
     );
     let kept = &back["result"]["structuredContent"];
@@ -3178,8 +3209,8 @@ fn the_same_source_twice_in_one_batch_is_still_filed_once() {
     let back = served.call(
         "propose",
         serde_json::json!({ "tasks": [
-            { "title": "llevar el acta", "source": "correo#9" },
-            { "title": "llevar el acta otra vez", "source": "correo: #9" }
+            { "for": "agent", "title": "llevar el acta", "source": "correo#9" },
+            { "for": "agent", "title": "llevar el acta otra vez", "source": "correo: #9" }
         ]}),
     );
     let kept = &back["result"]["structuredContent"];
@@ -3197,11 +3228,11 @@ fn audit_a_source_with_a_space_before_the_colon_is_still_the_same_source() {
     served.person().lets_the_agent_in();
     served.call(
         "propose",
-        serde_json::json!({ "title": "llevar el acta", "source": "sereno#1" }),
+        serde_json::json!({ "for": "agent", "title": "llevar el acta", "source": "sereno#1" }),
     );
     let again = served.call(
         "propose",
-        serde_json::json!({ "title": "otra vez", "source": "sereno : #1" }),
+        serde_json::json!({ "for": "agent", "title": "otra vez", "source": "sereno : #1" }),
     );
     assert_eq!(
         again["result"]["structuredContent"]["proposed"],
@@ -3335,9 +3366,9 @@ fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
     served.call(
         "propose",
         serde_json::json!({ "tasks": [
-            { "title": "llevar el acta", "source": "sereno#1" },
-            { "title": "pagar la cuota", "source": "sereno: #2" },
-            { "title": "algo del correo", "source": "correo#1" }
+            { "for": "agent", "title": "llevar el acta", "source": "sereno#1" },
+            { "for": "agent", "title": "pagar la cuota", "source": "sereno: #2" },
+            { "for": "agent", "title": "algo del correo", "source": "correo#1" }
         ]}),
     );
 
@@ -3823,7 +3854,7 @@ fn a_document_that_is_not_there_says_so_and_a_task_id_is_not_one() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "a task, not a doc" }),
+        serde_json::json!({ "for": "agent", "title": "a task, not a doc" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
@@ -3859,7 +3890,7 @@ fn what_a_session_writes_says_which_client_spoke() {
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-code","version":"1"}}}"#,
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
@@ -3898,7 +3929,7 @@ fn a_second_client_is_told_which_hand_already_said_it_was_done() {
     };
     let said = served.talk(&[
         &greeting("claude-code"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
@@ -3932,7 +3963,7 @@ fn a_client_named_in_meta_is_kept_too() {
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"codex","version":"2"}}}}"#,
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
@@ -4333,7 +4364,7 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
     for n in 0..3 {
         served.call(
             "propose",
-            serde_json::json!({ "title": format!("regar el patio {n}") }),
+            serde_json::json!({ "for": "agent", "title": format!("regar el patio {n}") }),
         );
     }
 
@@ -4360,7 +4391,7 @@ fn find_shows_ten_tasks_unless_more_are_asked_for() {
     for n in 0..12 {
         served.call(
             "propose",
-            serde_json::json!({ "title": format!("regar el patio {n}") }),
+            serde_json::json!({ "for": "agent", "title": format!("regar el patio {n}") }),
         );
     }
 
@@ -5085,8 +5116,7 @@ fn an_appointment_can_be_filed_already_set_to_ring() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "kermes at school",
+        serde_json::json!({ "for": "agent", "title": "kermes at school",
             "date": on(2),
             "remind": [soon(1, 20)],
         }),
@@ -5108,7 +5138,7 @@ fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "remind": ["2026-09-10"] }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "remind": ["2026-09-10"] }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -5143,7 +5173,7 @@ fn what_was_filed_without_a_reminder_can_be_given_one_later() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "date": on(2) }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "date": on(2) }),
     );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -5172,8 +5202,7 @@ fn an_hour_the_person_chose_is_never_taken_away() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({
-            "title": "the dentist",
+        serde_json::json!({ "for": "agent", "title": "the dentist",
             "date": on(2),
             "remind": [soon(1, 20)],
         }),
@@ -5201,7 +5230,7 @@ fn a_moment_already_gone_is_turned_away_rather_than_promised() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "remind": [soon(-2, 20)] }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "remind": [soon(-2, 20)] }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -5221,7 +5250,7 @@ fn a_moment_that_is_not_even_a_word_is_turned_away_rather_than_dropped() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "remind": [20260910] }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "remind": [20260910] }),
     );
 
     assert_eq!(
@@ -5236,7 +5265,7 @@ fn the_same_instant_under_another_zone_name_rings_once() {
     served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "date": on(2), "remind": [soon(1, 20)] }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "date": on(2), "remind": [soon(1, 20)] }),
     );
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -5262,7 +5291,7 @@ fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "remind": many }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "remind": many }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -5323,7 +5352,7 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "paint the door", "date": on(8), "deadline": on(1) }),
+        serde_json::json!({ "for": "agent", "title": "paint the door", "date": on(8), "deadline": on(1) }),
     );
     assert_eq!(said["result"]["isError"], true, "{said}");
 
@@ -5355,8 +5384,8 @@ fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
     let said = served.call(
         "propose",
         serde_json::json!({ "tasks": [
-            { "title": "a good one", "source": "b#1" },
-            { "title": "a stray", "nonsense": "x", "source": "b#2" },
+            { "for": "agent", "title": "a good one", "source": "b#1" },
+            { "for": "agent", "title": "a stray", "nonsense": "x", "source": "b#2" },
         ] }),
     );
 
@@ -5480,7 +5509,7 @@ fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "the dentist", "remind": "2026-09-10T20:00" }),
+        serde_json::json!({ "for": "agent", "title": "the dentist", "remind": "2026-09-10T20:00" }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -5513,7 +5542,7 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar la cartulina", "description": A_STORY }),
+        serde_json::json!({ "for": "agent", "title": "comprar la cartulina", "description": A_STORY }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -5599,7 +5628,7 @@ fn what_was_closed_having_left_nothing_written_is_served_as_history() {
             .to_string();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+        serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -5649,7 +5678,7 @@ fn a_closed_task_that_taught_something_is_still_found() {
     served.person().lets_the_agent_in();
     served.call(
         "propose",
-        serde_json::json!({ "title": "exposición del colegio", "description": A_STORY }),
+        serde_json::json!({ "for": "agent", "title": "exposición del colegio", "description": A_STORY }),
     );
     closed_by_the_person(&served, "exposición del colegio");
 
@@ -5677,7 +5706,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
-        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77" }),
+        serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -5694,7 +5723,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
 
     let twice = served.call(
         "propose",
-        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77" }),
+        serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77" }),
     );
     let kept = &twice["result"]["structuredContent"];
     assert_eq!(kept["proposed"], serde_json::json!(false), "{twice}");
@@ -5712,8 +5741,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
 
     let anew = served.call(
         "propose",
-        serde_json::json!({
-            "title": "pedir la cartulina otra vez",
+        serde_json::json!({ "for": "agent", "title": "pedir la cartulina otra vez",
             "source": "wa:msg-77",
             "again": true,
             "description": "La anterior se cerró el mismo día: la cartulina se compró en la librería de la esquina."
@@ -5733,7 +5761,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     );
     let thrice = served.call(
         "propose",
-        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77", "again": true }),
+        serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77", "again": true }),
     );
     assert_eq!(
         thrice["result"]["structuredContent"]["proposed"],
@@ -5781,7 +5809,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+        serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -5804,7 +5832,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
 
     let again = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+        serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     );
     let kept = &again["result"]["structuredContent"];
     assert_eq!(kept["proposed"], serde_json::json!(false), "{again}");
@@ -5825,7 +5853,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
 
     let wanted = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410", "again": true }),
+        serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410", "again": true }),
     );
     assert_eq!(
         wanted["result"]["structuredContent"]["proposed"],
@@ -6054,8 +6082,7 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
     served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "pasar biome sobre el front",
+        serde_json::json!({ "for": "agent", "title": "pasar biome sobre el front",
             "steps": ["lint", "format", "commit"]
         }),
     );
@@ -6102,8 +6129,7 @@ fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
     served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "release",
+        serde_json::json!({ "for": "agent", "title": "release",
             "steps": ["test", "test", "pagar la inscripcio\u{301}n"]
         }),
     );
@@ -6147,7 +6173,7 @@ fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_l
     let steps: Vec<String> = (1..=8).map(|n| format!("step number {n}")).collect();
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "release", "steps": steps }),
+        serde_json::json!({ "for": "agent", "title": "release", "steps": steps }),
     );
     let id = said["result"]["structuredContent"]["id"]
         .as_str()
@@ -6196,14 +6222,17 @@ fn proposing_several_with_steps_says_what_to_do_with_them_once() {
     let said = served.call(
         "propose",
         serde_json::json!({ "tasks": [
-            { "title": "one", "steps": ["a"] },
-            { "title": "two" },
-            { "title": "three", "steps": ["b", "c"] }
+            { "for": "agent", "title": "one", "steps": ["a"] },
+            { "for": "agent", "title": "two" },
+            { "for": "agent", "title": "three", "steps": ["b", "c"] }
         ] }),
     );
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        text.ends_with("2 of them carry steps: `tick` each as you do it, `say_done` when all are."),
+        text.contains(
+            "2 of them carry steps: `tick` each as you do it, `say_done` when all are.
+"
+        ),
         "{text}"
     );
     assert_eq!(
@@ -6222,7 +6251,7 @@ fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
     served.person().lets_the_agent_in();
     let planned = served.call(
         "propose",
-        serde_json::json!({ "title": "release", "steps": ["tag", "build"] }),
+        serde_json::json!({ "for": "agent", "title": "release", "steps": ["tag", "build"] }),
     );
     let planned = planned["result"]["structuredContent"]["id"]
         .as_str()
@@ -6695,7 +6724,7 @@ fn a_step_past_the_limit_turns_the_whole_call_away() {
 
     let proposed = served.call(
         "propose",
-        serde_json::json!({ "title": "ordenar el garaje", "steps": ["vaciar", long] }),
+        serde_json::json!({ "for": "agent", "title": "ordenar el garaje", "steps": ["vaciar", long] }),
     );
     assert_eq!(proposed["result"]["isError"], true, "{proposed}");
     assert!(!served.person().open().contains("ordenar el garaje"));
@@ -6739,7 +6768,7 @@ fn read_tells_a_part_an_agent_said_done_as_waiting_on_the_person() {
     served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
-        serde_json::json!({ "title": "Ship the brain", "parts": [
+        serde_json::json!({ "for": "agent", "title": "Ship the brain", "parts": [
             { "title": "Rank" },
             { "title": "Gates" },
             { "title": "Docs" },
@@ -6805,7 +6834,7 @@ fn read_says_every_part_waits_once_when_all_of_them_do() {
     served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
-        serde_json::json!({ "title": "Ship the cards", "parts": [
+        serde_json::json!({ "for": "agent", "title": "Ship the cards", "parts": [
             { "title": "Draw" },
             { "title": "Gate" }
         ]}),
@@ -6836,8 +6865,7 @@ fn a_whole_and_its_parts_are_written_in_one_call() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "move house",
+        serde_json::json!({ "for": "agent", "title": "move house",
             "parts": [
                 { "title": "book the van", "steps": ["compare prices"] },
                 { "title": "pack the kitchen" },
@@ -6887,7 +6915,7 @@ fn one_bad_part_and_nothing_at_all_is_written() {
     ] {
         let said = served.call(
             "propose",
-            serde_json::json!({ "title": "move house", "parts": parts }),
+            serde_json::json!({ "for": "agent", "title": "move house", "parts": parts }),
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
     }
@@ -6906,14 +6934,14 @@ fn a_part_goes_under_any_open_task() {
 
     let under_persons = served.call(
         "propose",
-        serde_json::json!({ "title": "pack", "part_of": persons }),
+        serde_json::json!({ "for": "agent", "title": "pack", "part_of": persons }),
     );
     assert_ne!(under_persons["result"]["isError"], true, "{under_persons}");
     assert!(served.person().open().contains("pack"));
 
     let under_its_own = served.call(
         "propose",
-        serde_json::json!({ "title": "book the van", "part_of": &its_own }),
+        serde_json::json!({ "for": "agent", "title": "book the van", "part_of": &its_own }),
     );
     assert_ne!(under_its_own["result"]["isError"], true, "{under_its_own}");
     let read = served.call("read", serde_json::json!({ "task": &its_own }));
@@ -6935,7 +6963,7 @@ fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
     served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "move house", "parts": [{ "title": "book the van" }] }),
+        serde_json::json!({ "for": "agent", "title": "move house", "parts": [{ "title": "book the van" }] }),
     );
     let whole = content(&said)["id"].as_str().unwrap().to_string();
     let part = content(&said)["parts"][0]["id"]
@@ -6966,7 +6994,7 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
     served.person().lets_the_agent_in();
     served.call(
         "propose",
-        serde_json::json!({ "title": "read the thread", "source": "sereno#1" }),
+        serde_json::json!({ "for": "agent", "title": "read the thread", "source": "sereno#1" }),
     );
 
     for parts in [
@@ -6979,7 +7007,7 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
     ] {
         let said = served.call(
             "propose",
-            serde_json::json!({ "title": "move house", "source": "move#9", "parts": parts }),
+            serde_json::json!({ "for": "agent", "title": "move house", "source": "move#9", "parts": parts }),
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
     }
@@ -6992,8 +7020,7 @@ fn a_part_the_person_hid_does_not_hold_its_whole_back() {
     served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "move house",
+        serde_json::json!({ "for": "agent", "title": "move house",
             "parts": [{ "title": "book the van" }, { "title": "pack" }]
         }),
     );
@@ -7031,8 +7058,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
     served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
-        serde_json::json!({
-            "title": "spring clean",
+        serde_json::json!({ "for": "agent", "title": "spring clean",
             "source": "home#1",
             "parts": [{ "title": "windows", "source": "home#1.1" }]
         }),
@@ -7047,8 +7073,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
 
     let again = served.call(
         "propose",
-        serde_json::json!({
-            "title": "spring clean",
+        serde_json::json!({ "for": "agent", "title": "spring clean",
             "source": "home#1",
             "again": true,
             "parts": [{ "title": "windows", "source": "home#1.1" }]
@@ -7083,7 +7108,7 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
     served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "migrar el lector", "steps": ["leer el formato", "escribir el nuevo", "sobra"] }),
+        serde_json::json!({ "for": "agent", "title": "migrar el lector", "steps": ["leer el formato", "escribir el nuevo", "sobra"] }),
     );
     let id = said["result"]["structuredContent"]["id"]
         .as_str()
@@ -7201,7 +7226,7 @@ fn a_part_and_its_whole_are_both_mended() {
     let whole = persons_task(&served, "move house");
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "pack the books", "part_of": &whole, "steps": ["buy boxes"] }),
+        serde_json::json!({ "for": "agent", "title": "pack the books", "part_of": &whole, "steps": ["buy boxes"] }),
     );
     let part = said["result"]["structuredContent"]["id"]
         .as_str()
@@ -7241,8 +7266,7 @@ fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "move house",
+        serde_json::json!({ "for": "agent", "title": "move house",
             "description": "the thread said <b>loud</b>",
             "parts": [{ "title": "book the van", "description": "a <u>cheap</u> one" }]
         }),
@@ -7467,7 +7491,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
     assert!(log > 250_000, "the log is about 256 KB: {log}");
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "move payments to v2", "steps": ["sign", "upload", "resume a cut upload"] }),
+        serde_json::json!({ "for": "agent", "title": "move payments to v2", "steps": ["sign", "upload", "resume a cut upload"] }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -7535,7 +7559,7 @@ fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_u
     served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
-        serde_json::json!({ "title": "renew the passport" }),
+        serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -7553,8 +7577,7 @@ fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_u
 fn agents_task(served: &Served, title: &str) -> String {
     served.call(
         "propose",
-        serde_json::json!({
-            "title": title,
+        serde_json::json!({ "for": "agent", "title": title,
             "description": "Move the payments to the v2 API.",
             "steps": ["switch the client"],
         }),

@@ -251,7 +251,7 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
     let mut talk = served.connect();
     let made = talk.call(
         "propose",
-        json!({ "title": "Rank the search", "steps": ["Sort by place", "Quote the newest line"], "list": "Work" }),
+        json!({ "for": "agent", "title": "Rank the search", "steps": ["Sort by place", "Quote the newest line"], "list": "Work" }),
     );
     let task = made["structuredContent"]["id"]
         .as_str()
@@ -298,7 +298,7 @@ fn a_task_card_counts_a_step_the_agent_said_done_apart_as_its_project_view_does(
 
     let whole = talk.call(
         "propose",
-        json!({ "title": "Certificates", "parts": [{ "title": "Renew" }] }),
+        json!({ "for": "agent", "title": "Certificates", "parts": [{ "title": "Renew" }] }),
     );
     let whole = whole["structuredContent"]["id"]
         .as_str()
@@ -323,7 +323,7 @@ fn a_project_groups_its_open_parts_by_how_far_each_got() {
     let mut talk = served.connect();
     let made = talk.call(
         "propose",
-        json!({ "title": "Ship the brain", "list": "Work", "parts": [
+        json!({ "for": "agent", "title": "Ship the brain", "list": "Work", "parts": [
             { "title": "Rank", "steps": ["one", "two"] },
             { "title": "Cards", "steps": ["one"] },
             { "title": "Gates", "steps": ["one"] },
@@ -406,7 +406,7 @@ fn nothing_asked_names_the_lists_folders_and_tags_with_their_counts() {
     let mut talk = served.connect();
     talk.call(
         "propose",
-        json!({ "title": "Pay the rent", "list": "Work", "tags": ["home"] }),
+        json!({ "for": "agent", "title": "Pay the rent", "list": "Work", "tags": ["home"] }),
     );
     talk.call("folder", json!({ "name": "Recipes" }));
     let hidden = served.person().captures("Hide this one #home");
@@ -785,7 +785,7 @@ fn words_nothing_holds_say_so_and_a_scope_lists_a_projects_parts_plainly() {
     let mut talk = served.connect();
     let made = talk.call(
         "propose",
-        json!({ "title": "Ship it", "list": "Work", "parts": [
+        json!({ "for": "agent", "title": "Ship it", "list": "Work", "parts": [
             { "title": "Rank", "steps": ["one"] },
             { "title": "Cards", "steps": ["one"] }
         ]}),
@@ -852,7 +852,7 @@ fn a_long_project_pages_on_and_says_how() {
     let mut talk = served.connect();
     let made = talk.call(
         "propose",
-        json!({ "title": "Big", "list": "Work", "parts": [
+        json!({ "for": "agent", "title": "Big", "list": "Work", "parts": [
             { "title": "One", "steps": ["a"] },
             { "title": "Two", "steps": ["a"] },
             { "title": "Three", "steps": ["a"] }
@@ -895,7 +895,7 @@ fn a_closed_task_has_no_stage_and_an_old_state_says_so() {
     let mut talk = served.connect();
     let made = talk.call(
         "propose",
-        json!({ "title": "Write it", "steps": ["a"], "list": "Work" }),
+        json!({ "for": "agent", "title": "Write it", "steps": ["a"], "list": "Work" }),
     );
     let task = made["structuredContent"]["id"]
         .as_str()
@@ -1193,7 +1193,7 @@ fn the_inbox_is_asked_for_as_a_list_and_the_zones_say_how() {
     let mut talk = served.connect();
     talk.call(
         "propose",
-        json!({ "title": "Pay the rent", "list": "Work" }),
+        json!({ "for": "agent", "title": "Pay the rent", "list": "Work" }),
     );
     let done = served.person().captures("Return the book");
     served.person().closes(done);
@@ -1299,7 +1299,10 @@ fn a_list_answers_with_the_open_count_announced_beside_its_archived_ones() {
     let person = served.person();
     let mut talk = served.connect();
     for title in ["Pay the rent", "Buy paint", "Call the bank"] {
-        talk.call("propose", json!({ "title": title, "list": "Work" }));
+        talk.call(
+            "propose",
+            json!({ "for": "agent", "title": title, "list": "Work" }),
+        );
     }
     person.dates(person.id_of("Buy paint"), "today");
     let called = person.id_of("Call the bank").to_string();
@@ -1348,7 +1351,10 @@ fn a_list_answers_with_the_open_count_announced_beside_its_archived_ones() {
 fn an_answer_with_nothing_says_what_to_try_in_both_the_text_and_the_json() {
     let served = Served::new();
     let mut talk = served.connect();
-    talk.call("propose", json!({ "title": "Pay", "tags": ["home"] }));
+    talk.call(
+        "propose",
+        json!({ "for": "agent", "title": "Pay", "tags": ["home"] }),
+    );
 
     for (args, hint) in [
         (
@@ -1381,7 +1387,10 @@ fn leaving_out_what_an_agent_said_done_says_how_many_so_the_counts_add_up() {
     let person = served.person();
     let mut talk = served.connect();
     for title in ["Pay the rent", "Call the bank"] {
-        talk.call("propose", json!({ "title": title, "list": "Work" }));
+        talk.call(
+            "propose",
+            json!({ "for": "agent", "title": title, "list": "Work" }),
+        );
     }
     let called = person.id_of("Call the bank").to_string();
     talk.call(
@@ -1418,7 +1427,7 @@ fn a_reader_of_the_text_alone_sees_the_day_and_the_deadline() {
     let mut talk = served.connect();
     talk.call(
         "propose",
-        json!({ "title": "Enroll Rina", "list": "Work", "date": "2099-01-04", "deadline": "2099-02-09" }),
+        json!({ "for": "agent", "title": "Enroll Rina", "list": "Work", "date": "2099-01-04", "deadline": "2099-02-09" }),
     );
 
     let (_, said) = both(&mut talk, json!({ "list": "Work" }));
@@ -1481,7 +1490,10 @@ fn a_sift_with_no_scope_brings_the_open_first_and_pages_on_into_the_archived() {
     let person = served.person();
     let mut talk = served.connect();
     for title in ["Done one", "Done two", "Open loose", "Open dated"] {
-        talk.call("propose", json!({ "title": title, "list": "Work" }));
+        talk.call(
+            "propose",
+            json!({ "for": "agent", "title": title, "list": "Work" }),
+        );
     }
     person.dates(person.id_of("Open dated"), "today");
     person.dates(person.id_of("Done two"), "today");

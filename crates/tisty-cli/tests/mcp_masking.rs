@@ -38,7 +38,10 @@ impl Served {
     }
 
     fn filed(&self, title: &str) -> String {
-        let made = self.call("propose", json!({ "title": title, "list": "Personal" }));
+        let made = self.call(
+            "propose",
+            json!({ "for": "agent", "title": title, "list": "Personal" }),
+        );
         made["structuredContent"]["id"]
             .as_str()
             .unwrap()

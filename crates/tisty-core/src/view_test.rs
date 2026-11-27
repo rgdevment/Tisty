@@ -445,6 +445,8 @@ fn spoken(title: &str, drop: bool) -> Task {
         entry: Ulid::generate(),
         via: None,
         drop,
+        branch: None,
+        pr: None,
     });
     t
 }

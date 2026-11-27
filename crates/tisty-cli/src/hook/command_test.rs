@@ -194,3 +194,119 @@ fn only_the_writes_after_a_move_are_marked() {
         [false, true]
     );
 }
+
+#[test]
+fn a_push_a_pull_request_opened_or_merged_publishes() {
+    for command in [
+        "git push",
+        "git push origin main",
+        "git push -u origin feat/x",
+        "git push --force-with-lease",
+        "gh pr create --title x --body y",
+        "gh pr create",
+        "gh pr merge 12 --squash",
+        "gh pr merge",
+        "/usr/bin/git push",
+        "git.exe push",
+    ] {
+        assert!(publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn options_before_the_subcommand_do_not_hide_a_push() {
+    for command in [
+        "git -C ../repo push",
+        "git -C ../repo push origin main",
+        "git -c user.name=x push",
+        "git -c core.editor=true -C repo push",
+        "git --git-dir x push",
+        "git --work-tree y push",
+        "git --no-pager push",
+        "git --git-dir=x push",
+        "gh -R owner/repo pr merge 3",
+        "gh --repo owner/repo pr create",
+        "gh -R owner/repo pr create --fill",
+    ] {
+        assert!(publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn a_push_chained_with_other_commands_still_publishes() {
+    for command in [
+        "git add . && git commit -m x && git push",
+        "git status; git push",
+        "git push && echo done",
+        "git push || echo failed",
+        "git push\necho done",
+        "echo start; gh pr create --fill; echo end",
+        "cargo test && gh pr merge 4 --squash",
+        "(git push)",
+        "{ git push; }",
+    ] {
+        assert!(publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn what_only_looks_at_a_repository_or_a_pull_request_does_not_publish() {
+    for command in [
+        "git status",
+        "git pull",
+        "git fetch",
+        "git commit -m x",
+        "git stash push",
+        "git log --oneline",
+        "git diff",
+        "git branch push",
+        "git remote add push url",
+        "gh pr view",
+        "gh pr view 12 --json state",
+        "gh pr list",
+        "gh pr checks",
+        "gh pr status",
+        "gh issue create",
+        "gh -R owner/repo pr view 3",
+        "ls",
+        "",
+    ] {
+        assert!(!publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn a_quoted_push_is_text_and_not_a_command() {
+    for command in [
+        "echo \"git push\"",
+        "echo 'git push'",
+        "echo \"gh pr merge 3\"",
+        "printf 'run git push later'",
+        "grep \"git push\" notes.md",
+    ] {
+        assert!(!publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn a_push_written_inside_a_here_document_is_not_run() {
+    for command in [
+        "cat <<EOF\ngit push\nEOF",
+        "cat <<'EOF' > notes.md\ngit push origin main\ngh pr merge 3\nEOF",
+        "cat > run.sh <<EOF\ngit push\nEOF\nls",
+        "cat <<EOF\ngh pr create\nEOF\necho done",
+    ] {
+        assert!(!publishes(command), "{command}");
+    }
+}
+
+#[test]
+fn a_push_after_a_here_document_is_still_run() {
+    let command = "cat <<EOF > notes.md\nthe plan\nEOF\ngit push";
+    assert!(publishes(command));
+}
+
+#[test]
+fn a_push_written_into_a_here_string_is_not_run() {
+    assert!(!publishes("cat <<< \"git push\""));
+}

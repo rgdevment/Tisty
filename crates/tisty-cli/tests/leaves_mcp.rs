@@ -4429,8 +4429,7 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
 fn filed_with_steps(served: &Served) -> String {
     let said = served.call(
         "propose",
-        serde_json::json!({
-            "title": "migrate the reader",
+        serde_json::json!({ "for": "agent", "title": "migrate the reader",
             "steps": ["read the old format", "write the new one"],
         }),
     );
@@ -4745,13 +4744,13 @@ fn a_call_that_fits_neither_way_of_proposing_or_paging_is_told_both_ways() {
 
     let one = served.call(
         "propose",
-        serde_json::json!({ "title": "comprar pan", "tasks": null }),
+        serde_json::json!({ "for": "agent", "title": "comprar pan", "tasks": null }),
     );
     assert!(one["result"]["isError"].as_bool() != Some(true), "{one}");
 
     let many = served.call(
         "propose",
-        serde_json::json!({ "tasks": [{ "title": "una" }, { "description": "sin titulo" }] }),
+        serde_json::json!({ "tasks": [{ "for": "agent", "title": "una" }, { "for": "agent", "description": "sin titulo" }] }),
     );
     assert!(
         !text(&many).contains("several"),
@@ -4781,6 +4780,7 @@ fn a_client_that_sends_null_for_every_field_it_leaves_out_is_read_as_leaving_the
     let whole = served.call(
         "propose",
         serde_json::json!({
+            "for": "agent",
             "title": "mudanza",
             "tasks": null,
             "parts": [{ "title": "cajas", "tasks": null, "parts": null, "part_of": null, "again": null }]
@@ -4798,7 +4798,7 @@ fn what_comes_beside_a_list_of_tasks_is_refused_instead_of_lost() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "source": "sereno#9", "tasks": [{ "title": "a" }, { "title": "b" }] }),
+        serde_json::json!({ "source": "sereno#9", "tasks": [{ "for": "agent", "title": "a" }, { "for": "agent", "title": "b" }] }),
     );
 
     assert_eq!(said["result"]["isError"], serde_json::json!(true), "{said}");
@@ -5347,7 +5347,7 @@ fn a_missed_step_names_twelve_of_the_steps_and_counts_the_rest() {
     let steps: Vec<String> = (1..=14).map(|n| format!("step {n}")).collect();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "a long checklist", "steps": steps }),
+        serde_json::json!({ "for": "agent", "title": "a long checklist", "steps": steps }),
     );
     let task = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 

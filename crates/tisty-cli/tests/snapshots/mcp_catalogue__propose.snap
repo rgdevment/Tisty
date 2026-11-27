@@ -29,6 +29,14 @@ expression: tool
         "description": "What you read, in the Tisty language",
         "type": "string"
       },
+      "for": {
+        "description": "Required, whose it is, never both: \"agent\" if you do and check it, \"person\" if only they can (testing by hand, a device, publishing, deciding). A part without it is its whole's",
+        "enum": [
+          "agent",
+          "person"
+        ],
+        "type": "string"
+      },
       "list": {
         "description": "An existing list, by name, as `catch_up` names it. Left out, it lands in the inbox, which needs a reason",
         "type": "string"

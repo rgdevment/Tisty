@@ -95,7 +95,10 @@ impl Served {
 #[test]
 fn a_task_is_found_by_the_words_of_its_document_and_the_document_is_not_listed_on_its_own() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -122,7 +125,10 @@ fn a_task_is_found_by_the_words_of_its_document_and_the_document_is_not_listed_o
 #[test]
 fn an_assistant_writes_a_task_s_page_with_the_document_tools_but_never_files_it() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -160,7 +166,10 @@ fn an_assistant_writes_a_task_s_page_with_the_document_tools_but_never_files_it(
 #[test]
 fn a_page_that_loses_the_lines_naming_its_task_is_put_back() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -232,7 +241,10 @@ fn a_box_written_on_the_persons_page_is_a_step_and_its_tick_waits_for_them() {
 #[test]
 fn what_an_assistant_changes_on_a_task_it_filed_reaches_its_page() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -290,7 +302,10 @@ fn what_an_assistant_changes_on_a_task_it_filed_reaches_its_page() {
 #[test]
 fn a_task_with_no_page_gets_one_from_its_template_the_first_time_it_is_written() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -313,7 +328,10 @@ fn a_task_with_no_page_gets_one_from_its_template_the_first_time_it_is_written()
 #[test]
 fn an_assistant_adds_to_the_page_of_a_task_it_filed_under_its_own_notes_by_the_task_s_id() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -360,7 +378,10 @@ fn the_persons_task_takes_assistant_notes_on_its_page() {
 #[test]
 fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since() {
     let served = Served::new();
-    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "for": "agent", "title": "Rina's booster" }),
+    );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
@@ -722,8 +743,7 @@ fn no_tool_names_or_writes_a_task_the_person_hid() {
     let served = Served::new();
     let filed = served.call(
         "propose",
-        serde_json::json!({
-            "title": "secret surprise for Ana",
+        serde_json::json!({ "for": "agent", "title": "secret surprise for Ana",
             "source": "mail:42",
             "date": "2026-12-01",
             "parts": [{ "title": "book the restaurant" }]
@@ -773,7 +793,7 @@ fn no_tool_names_or_writes_a_task_the_person_hid() {
     for again in [false, true] {
         let proposed = served.call(
             "propose",
-            serde_json::json!({ "title": "otra", "source": "mail:42", "again": again }),
+            serde_json::json!({ "for": "agent", "title": "otra", "source": "mail:42", "again": again }),
         );
         assert_eq!(
             proposed["result"]["structuredContent"]["proposed"], false,
@@ -933,7 +953,7 @@ fn the_small_answers_about_a_task_say_what_truly_happened() {
     let served = Served::new();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "Rina's booster", "date": "2026-12-01", "steps": ["Call the vet"] }),
+        serde_json::json!({ "for": "agent", "title": "Rina's booster", "date": "2026-12-01", "steps": ["Call the vet"] }),
     );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -1002,7 +1022,7 @@ fn a_hidden_task_s_page_and_tags_never_reach_another_answer() {
     let served = Served::new();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "secret zebra plan", "tags": ["zebratag"] }),
+        serde_json::json!({ "for": "agent", "title": "secret zebra plan", "tags": ["zebratag"] }),
     );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -1032,7 +1052,7 @@ fn the_page_read_hands_back_is_written_back_as_it_came() {
     let served = Served::new();
     let filed = served.call(
         "propose",
-        serde_json::json!({ "title": "Rina's booster", "date": "2026-12-09", "tags": ["vet"] }),
+        serde_json::json!({ "for": "agent", "title": "Rina's booster", "date": "2026-12-09", "tags": ["vet"] }),
     );
     let task = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -1135,4 +1155,91 @@ fn an_outline_keeps_every_chapter_and_a_cut_line_says_so() {
     }
     assert_eq!(line["result"]["structuredContent"]["cut"], true, "{line}");
     assert!(text_of(&line).contains("runs past"), "{line}");
+}
+
+fn filed_for(served: &Served, who: &str, title: &str) -> String {
+    let said = served.call("propose", serde_json::json!({ "for": who, "title": title }));
+    let task = said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "plan",
+        serde_json::json!({ "task": task, "steps": ["pagar"] }),
+    );
+    task
+}
+
+fn imported_copy(served: &Served, task: &str, from: &str, to: &str) -> serde_json::Value {
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let copy = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap()
+        .replace(from, to);
+    let at = served.home.path().join("copy.md");
+    std::fs::write(&at, copy).unwrap();
+    served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_string_lossy() }),
+    )
+}
+
+#[test]
+fn a_tick_on_a_copy_of_a_page_an_assistant_filed_for_the_person_is_held_back() {
+    let served = Served::new();
+    let task = filed_for(&served, "person", "probar a mano");
+
+    let brought = imported_copy(&served, &task, "- [ ] pagar", "- [x] pagar");
+
+    assert_ne!(brought["result"]["isError"], true, "{brought}");
+    let state = served.person().state();
+    let step = &state.tasks[&person::task(&task)].steps[0];
+    assert!(!step.done, "the person ticks their own steps");
+}
+
+#[test]
+fn a_box_ticked_by_editing_the_page_of_a_task_filed_for_the_person_is_only_a_word() {
+    let served = Served::new();
+    let task = filed_for(&served, "person", "probar a mano");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "- [ ] pagar", "new": "- [x] pagar" }),
+    );
+
+    assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let state = served.person().state();
+    let step = &state.tasks[&person::task(&task)].steps[0];
+    assert!(!step.done, "the person ticks their own steps");
+    assert!(step.said, "the box shown ticked is the assistant's word");
+}
+
+#[test]
+fn a_box_ticked_by_editing_the_page_of_a_task_filed_for_the_agent_is_a_real_tick() {
+    let served = Served::new();
+    let task = filed_for(&served, "agent", "hacerlo yo");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let edited = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "- [ ] pagar", "new": "- [x] pagar" }),
+    );
+
+    assert_ne!(edited["result"]["isError"], true, "{edited}");
+    let state = served.person().state();
+    assert!(state.tasks[&person::task(&task)].steps[0].done);
+}
+
+#[test]
+fn a_tick_on_a_copy_of_a_page_an_assistant_filed_for_itself_is_a_real_tick() {
+    let served = Served::new();
+    let task = filed_for(&served, "agent", "hacerlo yo");
+
+    let brought = imported_copy(&served, &task, "- [ ] pagar", "- [x] pagar");
+
+    assert_ne!(brought["result"]["isError"], true, "{brought}");
+    let state = served.person().state();
+    let step = &state.tasks[&person::task(&task)].steps[0];
+    assert!(step.done);
 }

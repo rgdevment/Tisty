@@ -136,7 +136,7 @@ impl Served {
     fn task_with_a_page(&self) -> (String, String) {
         let made = self.call(
             "propose",
-            json!({ "title": "Renovar el pasaporte", "list": "Personal", "description": "Pedir hora." }),
+            json!({ "for": "agent", "title": "Renovar el pasaporte", "list": "Personal", "description": "Pedir hora." }),
         );
         let task = made["structuredContent"]["id"]
             .as_str()

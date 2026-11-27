@@ -14,7 +14,15 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "body": {
-        "description": "What you did and what makes you sure (the command and its answer, the commit), in the Tisty language",
+        "description": "What you did and what makes you sure (the commit, the command and its answer), what is left for the person, in the Tisty language",
+        "type": "string"
+      },
+      "branch": {
+        "description": "The work's branch",
+        "type": "string"
+      },
+      "pr": {
+        "description": "Its pull request, number or link",
         "type": "string"
       },
       "task": {

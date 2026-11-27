@@ -82,6 +82,8 @@ fn a_task_an_agent_said_done_or_the_person_put_away_presses_no_one() {
                     by: tisty_core::DeviceId("agent".into()),
                     entry: Ulid::nil(),
                     via: None,
+                    branch: None,
+                    pr: None,
                     drop: false,
                 });
             }
