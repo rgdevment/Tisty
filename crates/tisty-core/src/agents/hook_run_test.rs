@@ -119,12 +119,49 @@ fn a_script_that_outlasts_its_time_takes_what_it_started_with_it() {
     let ran = run_named("t.sh", &script, b"{}", Duration::from_millis(500));
     assert!(ran.timed_out);
     let pid = std::fs::read_to_string(&left).unwrap();
-    let alive = std::process::Command::new("/bin/sh")
-        .args(["-c", "kill -0 \"$1\" 2>/dev/null", "sh", pid.trim()])
-        .status()
-        .unwrap()
-        .success();
-    assert!(!alive, "sleep {} outlived its script", pid.trim());
+    assert!(
+        gone_within(pid.trim(), Duration::from_secs(5)),
+        "sleep {} outlived its script",
+        pid.trim()
+    );
+}
+
+// A KILL lands only once the process runs again, and its orphan stays a zombie until reaped.
+#[cfg(unix)]
+fn gone_within(pid: &str, time: Duration) -> bool {
+    let began = Instant::now();
+    while running(pid) {
+        if began.elapsed() >= time {
+            return false;
+        }
+        std::thread::sleep(POLL);
+    }
+    true
+}
+
+#[cfg(target_os = "linux")]
+fn running(pid: &str) -> bool {
+    std::fs::read_to_string(format!("/proc/{pid}/stat"))
+        .ok()
+        .and_then(|stat| {
+            let (_, after_name) = stat.rsplit_once(')')?;
+            after_name
+                .split_whitespace()
+                .next()
+                .map(|state| state != "Z")
+        })
+        .unwrap_or(false)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn running(pid: &str) -> bool {
+    let shown = std::process::Command::new("/bin/ps")
+        .args(["-o", "stat=", "-p", pid])
+        .output()
+        .unwrap();
+    let state = String::from_utf8_lossy(&shown.stdout);
+    let state = state.trim();
+    !state.is_empty() && !state.starts_with('Z')
 }
 
 #[test]
