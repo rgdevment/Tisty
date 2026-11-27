@@ -389,6 +389,30 @@ fn without_a_system_to_book_with_the_window_rings_everything() {
     assert!(!booking.holds(&due(&pan), moment("2026-08-12T13:00:20Z")));
 }
 
+#[test]
+fn with_no_system_to_book_with_nothing_shows_notices() {
+    assert!(!Booking::new(None, 64).shows());
+}
+
+#[test]
+fn a_system_that_shows_notices_says_so() {
+    let book = Arc::new(Fake::default());
+
+    assert!(booking(&book).shows());
+    assert_eq!(book.asked(), 1);
+}
+
+#[test]
+fn a_system_that_cannot_show_notices_says_so() {
+    let book = Arc::new(Fake {
+        blind: true,
+        ..Fake::default()
+    });
+
+    assert!(!booking(&book).shows());
+    assert_eq!(book.asked(), 1);
+}
+
 #[cfg(windows)]
 mod toasts {
     use super::ring;

@@ -7,7 +7,10 @@ use crate::surviving::survived;
 pub struct Screen {
     app: tauri::AppHandle,
     words: Words,
+    sounds: bool,
 }
+
+const NOTICE_SOUNDS: bool = cfg!(windows);
 
 #[derive(Clone)]
 pub struct Words {
@@ -31,21 +34,26 @@ impl Channel for Screen {
             Happening::Missed { count } => self.words.missed.replace("{n}", &count.to_string()),
             _ => what.title().unwrap_or_default().to_string(),
         };
-        self.app
+        let notice = self
+            .app
             .notification()
             .builder()
             .title(&self.words.due)
-            .body(body)
-            .show()
-            .map_err(|why| Trouble {
-                channel: "screen",
-                why: why.to_string(),
-            })
+            .body(body);
+        let notice = match self.sounds && system_shows(&self.app) {
+            true => notice.sound("Default"),
+            false => notice,
+        };
+        notice.show().map_err(|why| Trouble {
+            channel: "screen",
+            why: why.to_string(),
+        })
     }
 }
 
 pub struct Chime {
     app: tauri::AppHandle,
+    noticed: bool,
 }
 
 impl Channel for Chime {
@@ -54,7 +62,8 @@ impl Channel for Chime {
     }
 
     fn tell(&self, what: &Happening) -> Result<(), Trouble> {
-        let Some(tone) = tone_for(what) else {
+        let noticed = self.noticed && on_screen(what) && system_shows(&self.app);
+        let Some(tone) = chimed(what, noticed) else {
             return Ok(());
         };
         self.app.emit("chime", tone).map_err(|why| Trouble {
@@ -66,6 +75,18 @@ impl Channel for Chime {
 
 fn on_screen(what: &Happening) -> bool {
     matches!(what, Happening::Due { .. } | Happening::Missed { .. })
+}
+
+fn system_shows(app: &tauri::AppHandle) -> bool {
+    app.try_state::<crate::booking::Booking>()
+        .is_some_and(|booking| booking.shows())
+}
+
+fn chimed(what: &Happening, noticed: bool) -> Option<&'static str> {
+    match noticed && on_screen(what) {
+        true => None,
+        false => tone_for(what),
+    }
 }
 
 fn tone_for(what: &Happening) -> Option<&'static str> {
@@ -157,15 +178,20 @@ pub fn respeak(app: &tauri::AppHandle, quiet: &[String], urgent: bool) {
 
 fn built(app: &tauri::AppHandle, words: &Words, quiet: &[String]) -> Heralds {
     let mut heralds = Heralds::default();
+    let (shown, heard) = (speaks("screen", quiet), speaks("chime", quiet));
     let screen = Screen {
         app: app.clone(),
         words: words.clone(),
+        sounds: heard && NOTICE_SOUNDS,
     };
-    if speaks(screen.named(), quiet) {
+    if shown {
         heralds = heralds.with(Box::new(screen));
     }
-    let chime = Chime { app: app.clone() };
-    if speaks(chime.named(), quiet) {
+    let chime = Chime {
+        app: app.clone(),
+        noticed: shown && NOTICE_SOUNDS,
+    };
+    if heard {
         heralds = heralds.with(Box::new(chime));
     }
     heralds

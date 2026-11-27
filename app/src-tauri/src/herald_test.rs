@@ -316,6 +316,36 @@ fn both_of_them_sound_and_a_sync_stays_quiet() {
     assert_eq!(tone_for(&Happening::Carried { brought: 2 }), None);
 }
 
+#[test]
+fn what_the_system_notice_already_sounds_for_does_not_chime_twice() {
+    let missed = Happening::Missed { count: 3 };
+
+    assert_eq!(chimed(&due(), true), None);
+    assert_eq!(chimed(&missed, true), None);
+}
+
+#[test]
+fn a_capture_or_a_finish_still_chimes_beside_a_system_notice() {
+    assert_eq!(chimed(&filed(), true), Some("filed"));
+    assert_eq!(chimed(&finished(), true), Some("done"));
+    assert_eq!(chimed(&Happening::Carried { brought: 2 }, true), None);
+}
+
+#[test]
+fn without_a_system_notice_the_chime_sounds_as_the_tone_says() {
+    let all = [
+        due(),
+        Happening::Missed { count: 3 },
+        filed(),
+        finished(),
+        Happening::Carried { brought: 2 },
+    ];
+
+    for what in &all {
+        assert_eq!(chimed(what, false), tone_for(what));
+    }
+}
+
 static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 fn quietly<T>(work: impl FnOnce() -> T) -> T {
