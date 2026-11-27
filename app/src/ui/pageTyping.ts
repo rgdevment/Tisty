@@ -1,3 +1,4 @@
+import { charsAt } from "tisty-editor/read";
 import type { Begun } from "./pageBegun";
 import { blank } from "./pageBlocks";
 import type { Caret } from "./pageCaret";
@@ -19,6 +20,7 @@ import {
 import { closedRun } from "./pageMarks";
 import type { Mend } from "./pageMends";
 import { atGhost, elementOf, inCode, onSheet, sectioned } from "./pageNodes";
+import { placeOf } from "./pagePlaces";
 import { mendOf } from "./pageWholes";
 import { compositionOpened, type Writer } from "./pageWriter";
 
@@ -29,6 +31,10 @@ type Composing = {
   readonly mend: Mend | null;
 };
 
+// A blank line kept on the page is a paragraph holding only `&nbsp;`; the first key written in it takes its place.
+const BLANK = "&nbsp;";
+const NESTED = "li, blockquote, td, th, details, figure";
+
 export const typingOn = (
   writer: Writer,
   caret: Caret,
@@ -38,6 +44,15 @@ export const typingOn = (
 ) => {
   const { page, hands } = writer;
   let composing: Composing | null = null;
+
+  const blankAround = (range: AbstractRange): Span | null => {
+    const line = elementOf(range.startContainer)?.closest(".page > p.blank");
+    const at = line && placeOf(line);
+    if (!at) return null;
+    const text = hands.text();
+    const from = charsAt(text, at[0]);
+    return text.slice(from).startsWith(BLANK) ? { from, to: from + BLANK.length } : null;
+  };
 
   // A slash opens the blocks where a word could start, as it always did; inside code it is only a slash.
   const slashes = (text: string, one: Span, range: AbstractRange) =>
@@ -57,6 +72,8 @@ export const typingOn = (
 
   const typedIn = (one: Span, range: AbstractRange, typed: string, mend: Mend | null = null) => {
     const text = hands.text();
+    const blank = one.from === one.to ? blankAround(range) : null;
+    if (blank) return put({ ...blank, insert: typed });
     if (typed === "/" && slashes(text, one, range)) return hands.blocks(caret.caretPoint(), true);
     if (one.from === one.to) {
       const fence = !inCode(range.startContainer) && fenceOpened(text, one.from, typed);
@@ -92,7 +109,13 @@ export const typingOn = (
       text[one.from - 1] === "\n" &&
       /\r?\n$/.test(text.slice(0, one.from - 1)) &&
       (one.from >= text.length || /[\r\n]/.test(text[one.from] ?? ""));
-    if (kind === "insertParagraph" && one.from === one.to && blankLine) return;
+    if (kind === "insertParagraph" && one.from === one.to && blankLine) {
+      // Another Enter on a blank line keeps that line: a paragraph of its own holds it, but never inside a list, a quote or a table.
+      if (elementOf(range.startContainer)?.closest(NESTED)) return;
+      const end = text.includes("\r\n") ? "\r\n" : "\n";
+      const blank = `${BLANK}${end}${end}`;
+      return put({ from: one.from, to: one.from, insert: blank }, one.from + blank.length);
+    }
     const fold = elementOf(range.startContainer)?.closest(".page details[data-at] > summary")
       ?.parentElement as HTMLDetailsElement | null | undefined;
     if (kind === "insertParagraph" && fold) return begun.intoFold(fold);

@@ -551,11 +551,11 @@ describe("a space the browser writes as a non-breaking one", () => {
     expect(text).toBe("Uno dosx\n");
   });
 
-  it("stays a no-break space in the source when that is what was typed", () => {
+  it("lands as a plain space in the source when a no-break space was typed", () => {
     opened();
     const words = wordsOf(paragraphs()[0]);
     expect(typedNatively(words, 5, nbsp)).toBe(true);
-    expect(text).toBe(BODY.replace("Uno ñ", `Uno ñ${nbsp}`));
+    expect(text).toBe(BODY.replace("Uno ñ", "Uno ñ "));
   });
 
   it("lands as a plain space in the source when a plain space was typed and the browser shows it as one", () => {
@@ -1106,17 +1106,17 @@ describe("matching what the core drew against what the browser wrote", () => {
 describe("the edit read from the key itself, not from a diff of the words", () => {
   const nbsp = " ";
 
-  it("keeps a no-break space and the letter after it on their sides of the blank", () => {
+  it("writes a no-break space as a plain one and keeps the letter after it on its side of the blank", () => {
     opened(
       '<p data-at="0-15"><span data-src="0-15">Segundo parrafo</span></p>',
       "Segundo parrafo\n",
     );
     const words = wordsOf(paragraphs()[0]);
     expect(typedNatively(words, 7, nbsp)).toBe(true);
-    expect(text).toBe(`Segundo${nbsp} parrafo\n`);
+    expect(text).toBe("Segundo  parrafo\n");
     expect(words.data).toBe(`Segundo${nbsp} parrafo`);
     expect(typedNatively(words, 8, "x")).toBe(true);
-    expect(text).toBe(`Segundo${nbsp}x parrafo\n`);
+    expect(text).toBe("Segundo x parrafo\n");
   });
 
   it("writes a plain space at the place typed when the browser shows it as a no-break one", () => {

@@ -186,7 +186,7 @@ pub(crate) fn arrived_as(
         .as_ref()
         .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
     let titles = tisty_core::arriving::Titles::of(&tisty_core::docs::all(&paths.docs()));
-    let body = tisty_core::arriving::tidied_among(&raw, &titles).body;
+    let body = tisty_core::arriving::arrived_among(&raw, &titles).body;
     let mut reach = |at: &std::path::Path| {
         let at = at
             .canonicalize()
@@ -302,7 +302,7 @@ pub fn doc_from_html(html: String) -> Answer<String> {
             weighed(PASTED_AT_MOST as u64),
         ));
     }
-    let said = tisty_core::arriving::tidied(&tisty_core::arriving::from_pasted_html(&html)).body;
+    let said = tisty_core::arriving::arrived(&tisty_core::arriving::from_pasted_html(&html)).body;
     Ok(said.trim().to_string())
 }
 
