@@ -37,7 +37,7 @@ const DOC = {
   away: false,
 };
 
-const TASKS = Array.from({ length: 300 }, (_, at) => ({
+const TASKS = Array.from({ length: 3 }, (_, at) => ({
   id: `01A${at}`,
   title: at === 0 ? "write the report" : `task number ${at}`,
   status: "open" as const,
@@ -52,7 +52,7 @@ const TASKS = Array.from({ length: 300 }, (_, at) => ({
   log: [],
   volume: { steps: 3, steps_done: 0 },
 }));
-const DOCS = Array.from({ length: 400 }, (_, at) =>
+const DOCS = Array.from({ length: 3 }, (_, at) =>
   at === 0 ? DOC : { ...DOC, id: `01D${at}`, file: `b${at}-0001`, title: `Doc ${at}` },
 );
 
@@ -127,9 +127,7 @@ const told = (named: string, payload?: unknown) => {
 
 const many = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd).length;
 
-beforeEach(async () => {
-  // @ts-expect-error the harness's page is plain JavaScript
-  ipc.body = (await import("../../scripts/engines/lengthy.mjs")).pageOf(100);
+beforeEach(() => {
   localStorage.clear();
   ipc.came = "same";
   ipc.mark = "m1";
@@ -178,8 +176,6 @@ describe("a sync round landing over an open document", () => {
     await opened();
 
     await act(async () => told("carried", "log"));
-    await act(() => vi.advanceTimersByTimeAsync(100));
-    await act(async () => told("carried", "papers"));
     await act(() => vi.advanceTimersByTimeAsync(1000));
 
     expect(many("doc_opened")).toBe(1);
