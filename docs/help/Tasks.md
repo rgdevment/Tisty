@@ -74,6 +74,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered. The first icon in the sidebar's row of views, **All tasks**, opens it over every list.
 - **Overdue** and **Late** — only what is overdue, or only what is late, each opened from its count among the day's four at the top of the sidebar; while you are on one, it shows beside Today. The other two counts, **for today** and **ahead**, open Today and Upcoming. A count always opens over every list, even when you had narrowed the view to a few. Past 99, a count says **+99**, and the whole number waits on hover.
+- **◆ To confirm** — only the tasks an agent said are done or should not be done, waiting on your word. It shows after **All**, with how many, only while one waits, and it counts only the lists you narrowed the view to. Each row says what the agent said, signed as you chose in **Settings › Agents** for rows, and offers both answers right there: **Complete** (or **Not doing it**, when it said it should not be done) closes it, and **Still to do** takes the mark off. Steps an agent says are done are not here: they wait on the task's page.
 
 There is no prize for emptying the list.
 

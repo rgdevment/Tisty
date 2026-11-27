@@ -37,6 +37,8 @@ pub(crate) struct View {
     pub(crate) soonest: bool,
     #[serde(default)]
     pub(crate) reading: Option<String>,
+    #[serde(default)]
+    pub(crate) said: bool,
 }
 
 pub(crate) fn ahead(
@@ -192,6 +194,7 @@ impl View {
             hidden: self.hidden,
             priority: None,
             repeating: self.repeating,
+            said: self.said,
             reading: match self.reading.as_deref() {
                 Some("story") => Some(Reading::Story),
                 Some("routine") => Some(Reading::Routine),

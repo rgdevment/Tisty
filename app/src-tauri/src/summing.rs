@@ -151,6 +151,13 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
         ),
         ("all", Filter::default()),
         (
+            "said",
+            Filter {
+                said: true,
+                ..Default::default()
+            },
+        ),
+        (
             "archive",
             Filter {
                 scope: Scope::Archived,
@@ -238,7 +245,7 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
 }
 
 /// The slices the task bar shows, also counted per list so a bar narrowed to some lists counts only them.
-pub const SLICED: [&str; 4] = ["tasks", "upcoming", "repeating", "all"];
+pub const SLICED: [&str; 5] = ["tasks", "upcoming", "repeating", "all", "said"];
 
 /// The parts are included because the window can unfold them even when the view leaves them out.
 pub fn standings<'a>(

@@ -49,7 +49,7 @@ For closing, reopening, dropping and deleting there is no tool at all — not hi
 
 When an agent finishes one of the tasks it filed, it says so and leaves an account of what it did in the journal — the command it ran and what it answered, the commit, whatever holds the claim up. **The task stays open.**
 
-Those tasks gather under **To confirm** at the foot of the list, with a count of how many wait on you, so you can go through them in one pass. What is overdue, due soon, late, for today or underway does not move: it stays in its own band, marked, because a thing with a date should be where you look for it.
+Those tasks gather under **To confirm** at the foot of the list, with a count of how many wait on you, so you can go through them in one pass, or see only them with **◆ To confirm** in the bar above the list ([Tasks](Tasks#the-views)). What is overdue, due soon, late, for today or underway does not move: it stays in its own band, marked, because a thing with a date should be where you look for it.
 
 - **Tick it** and it closes like any other, keeping both signatures in the archive — who resolved it and who finished it.
 - **Still to do** sends it back to its day. The mark comes off and the account stays, so next time you can both see what was claimed.
