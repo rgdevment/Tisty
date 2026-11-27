@@ -356,3 +356,90 @@ fn the_running_distros_are_some_of_the_known_ones_and_asking_never_hangs() {
     assert!(started.elapsed() < std::time::Duration::from_secs(8));
     assert!(running.iter().all(|one| known.contains(one)));
 }
+
+const PASSWD: &str = "root:x:0:0:root:/root:/bin/bash\n\
+    mario:x:1000:1000::/home/mario:/bin/bash\n\
+    rina:x:1001:1001::/home/rina:/bin/zsh\n\
+    winuser:x:1002:1002::/mnt/c/Users/x:/bin/bash\n\
+    winmoved:x:1003:1003::/win/c/x:/bin/bash\n\
+    dots:x:1004:1004::/home/../etc:/bin/bash\n\
+    dot:x:1005:1005::/home/./mario:/bin/bash\n\
+    top:x:1006:1006::/:/bin/bash\n\
+    toor:x:0:0::/home/toor:/bin/bash\n\
+    rooted:x:1007:1007::/root:/bin/bash\n";
+
+fn root() -> PathBuf {
+    PathBuf::from("wsl-root")
+}
+
+#[test]
+fn the_home_is_found_under_the_distro_root_by_uid() {
+    assert_eq!(
+        home_under(&root(), PASSWD, "", 1000),
+        Some(root().join("home").join("mario"))
+    );
+    assert_eq!(home_under(&root(), PASSWD, "", 4242), None);
+}
+
+#[test]
+fn the_user_wsl_conf_names_decides_the_home_before_the_uid() {
+    let conf = "[user]\ndefault=rina\n";
+    assert_eq!(
+        home_under(&root(), PASSWD, conf, 1000),
+        Some(root().join("home").join("rina"))
+    );
+    assert_eq!(
+        agents_home(&root(), PASSWD, conf, 1000).map(|one| (one.linux, one.uid)),
+        Some(("/home/rina".to_string(), 1001))
+    );
+}
+
+#[test]
+fn a_home_stepping_out_of_the_root_or_equal_to_it_is_refused() {
+    for uid in [1004, 1005, 1006] {
+        assert_eq!(home_under(&root(), PASSWD, "", uid), None, "{uid}");
+        assert!(agents_home(&root(), PASSWD, "", uid).is_none(), "{uid}");
+    }
+}
+
+#[test]
+fn agents_never_write_in_roots_home_though_the_mcp_wiring_may_read_it() {
+    assert_eq!(
+        home_under(&root(), PASSWD, "", 0),
+        Some(root().join("root"))
+    );
+    assert!(agents_home(&root(), PASSWD, "", 0).is_none());
+    let conf = "[user]\ndefault=root\n";
+    assert!(agents_home(&root(), PASSWD, conf, 1000).is_none());
+    assert!(
+        agents_home(&root(), PASSWD, "", 1007).is_none(),
+        "root's folder, whoever has it"
+    );
+    let toor = "[user]\ndefault=toor\n";
+    assert!(
+        agents_home(&root(), PASSWD, toor, 1000).is_none(),
+        "uid 0 under another folder"
+    );
+}
+
+#[test]
+fn agents_never_write_in_a_home_on_a_windows_drive() {
+    assert!(agents_home(&root(), PASSWD, "", 1002).is_none());
+    assert_eq!(
+        home_under(&root(), PASSWD, "", 1002),
+        Some(root().join("mnt").join("c").join("Users").join("x"))
+    );
+    assert!(agents_home(&root(), PASSWD, "", 1003).is_some());
+    let moved = "[automount]\nroot = /win/\n";
+    assert!(agents_home(&root(), PASSWD, moved, 1003).is_none());
+    assert!(agents_home(&root(), PASSWD, moved, 1002).is_some());
+}
+
+#[test]
+fn a_users_home_is_theirs_and_carries_the_uid_and_both_spellings() {
+    let found = agents_home(&root(), PASSWD, "", 1000).unwrap();
+    assert_eq!(found.root, root());
+    assert_eq!(found.home, root().join("home").join("mario"));
+    assert_eq!(found.linux, "/home/mario");
+    assert_eq!(found.uid, 1000);
+}

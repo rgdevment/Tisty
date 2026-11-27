@@ -36,7 +36,7 @@ pub fn brainstorm_begun(
 }
 
 pub fn beginning(session: &mut Session, title: &str) -> Answer<String> {
-    if let Some((file, _)) = found(session) {
+    if let Some((file, _)) = found(session, true) {
         return Ok(file);
     }
     let file = made_anew(session, title)?;
@@ -53,8 +53,13 @@ pub struct Pinned {
 
 #[tauri::command(async)]
 pub fn brainstorm_of(session: tauri::State<'_, Mutex<Session>>) -> Option<Pinned> {
-    let mut session = held(&session);
-    let (file, body) = found(&mut session)?;
+    pinned(&mut held(&session))
+}
+
+pub fn pinned(session: &mut Session) -> Option<Pinned> {
+    let whole = !session.brainstorm_looked;
+    session.brainstorm_looked = true;
+    let (file, body) = found(session, whole)?;
     let marked = session
         .state
         .docs
@@ -125,11 +130,12 @@ pub fn filing(session: &mut Session, file: &str, idea: &str, heading: &str) -> A
     Ok(())
 }
 
-fn found(session: &mut Session) -> Option<(String, String)> {
+fn found(session: &mut Session, whole: bool) -> Option<(String, String)> {
     let kept = tisty_core::brainstorm::find(
         &session.paths.docs(),
         &session.state,
         session.brainstorm.as_deref(),
+        whole,
     )
     .map(|(one, body)| (one.file.clone(), body));
     session.brainstorm = kept.as_ref().map(|(file, _)| file.clone());
@@ -153,7 +159,7 @@ pub fn jotting(
         ));
     }
     let root = session.paths.docs();
-    let (file, was, made) = match found(session) {
+    let (file, was, made) = match found(session, true) {
         Some((file, body)) => (file, body, false),
         None => {
             let file = made_anew(session, title)?;

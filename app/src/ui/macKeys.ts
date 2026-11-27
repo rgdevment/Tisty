@@ -9,6 +9,12 @@ type Moving = {
   readonly shiftKey: boolean;
 };
 
+// A Mac opens the menu on Control and a click too, as it does on the right button.
+export const menuClick = (event: { readonly button: number; readonly ctrlKey: boolean }): boolean =>
+  event.button === 2 || (onMac && event.button === 0 && event.ctrlKey);
+
+export const PASTE_PLAIN = onMac ? "⌥ Shift V" : "Shift V";
+
 export const moveKey = (event: Moving): boolean =>
   onMac ? event.ctrlKey && event.altKey && !event.metaKey && !event.shiftKey : event.altKey;
 

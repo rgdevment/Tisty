@@ -190,3 +190,76 @@ describe("the slice pills with some lists picked", () => {
     expect(pill(t("sliceAll")).textContent).toBe(`${t("sliceAll")}61`);
   });
 });
+
+describe("the chip for what an agent said", () => {
+  const show = (
+    chosen: Parameters<typeof SliceBar>[0]["chosen"],
+    counts: Record<string, number>,
+  ) => {
+    const setChosen = vi.fn();
+    render(
+      <SliceBar
+        chosen={chosen}
+        counts={counts}
+        lists={lists}
+        setChosen={setChosen}
+        setSelected={vi.fn()}
+      />,
+    );
+    return setChosen;
+  };
+
+  const chip = () => screen.queryByRole("button", { name: new RegExp(t("agentBand")) });
+
+  beforeEach(() => window.localStorage.clear());
+
+  it("stays out of the bar while nothing waits", () => {
+    show({ named: "tasks", slice: "today" }, { tasks: 3, said: 0 });
+
+    expect(chip()).toBeNull();
+  });
+
+  it("appears with its count when something waits", () => {
+    show({ named: "tasks", slice: "today" }, { tasks: 3, said: 2 });
+
+    expect(chip()?.textContent).toBe(`◆${t("agentBand")}2`);
+  });
+
+  it("counts only what the picked lists hold", () => {
+    show(
+      { named: "tasks", slice: "today", lists: ["01A", "01C"] },
+      { said: 9, "said@01A": 1, "said@01C": 2 },
+    );
+
+    expect(chip()?.textContent).toBe(`◆${t("agentBand")}3`);
+  });
+
+  it("stays out when the picked lists hold none, though others do", () => {
+    show({ named: "tasks", slice: "today", lists: ["01B"] }, { said: 5, "said@01B": 0 });
+
+    expect(chip()).toBeNull();
+  });
+
+  it("stays while chosen, even with nothing left to confirm", () => {
+    show({ named: "tasks", slice: "said" }, { said: 0 });
+
+    expect(chip()?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("chooses the slice with the lists, without becoming the one remembered", async () => {
+    const setChosen = show({ named: "tasks", slice: "today", lists: ["01A"] }, { "said@01A": 1 });
+
+    await userEvent.click(chip() as HTMLElement);
+
+    expect(setChosen).toHaveBeenCalledWith({ named: "tasks", slice: "said", lists: ["01A"] });
+    expect(window.localStorage.getItem("tisty.slice")).toBeNull();
+  });
+
+  it("still remembers the ordinary slices", async () => {
+    show({ named: "tasks", slice: "today" }, {});
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(`^${t("sliceAll")}`) }));
+
+    expect(window.localStorage.getItem("tisty.slice")).toBe("all");
+  });
+});

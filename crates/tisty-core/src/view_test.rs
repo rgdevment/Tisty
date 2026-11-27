@@ -436,3 +436,57 @@ fn a_task_holds_each_word_its_name_or_its_words_say() {
     assert!(terms_held(&one, &[]).is_empty());
     assert!(terms_held(&task("Nothing here"), &terms).is_empty());
 }
+
+fn spoken(title: &str, drop: bool) -> Task {
+    let mut t = task(title);
+    t.resolved = Some(crate::model::Resolved {
+        at: jiff::Timestamp::from_second(1_800_000_000).unwrap(),
+        by: crate::event::DeviceId("dev_agent".into()),
+        entry: Ulid::generate(),
+        via: None,
+        drop,
+    });
+    t
+}
+
+#[test]
+fn the_said_filter_keeps_open_tasks_an_agent_called_done_or_not_worth_doing() {
+    let f = filter(|f| f.said = true);
+
+    assert!(f.matches(&spoken("said done", false), today()));
+    assert!(f.matches(&spoken("said not doing", true), today()));
+    assert!(!f.matches(&task("nobody spoke"), today()));
+}
+
+#[test]
+fn the_said_filter_drops_a_closed_task_that_still_carries_the_word() {
+    let f = filter(|f| {
+        f.said = true;
+        f.scope = Scope::Either;
+    });
+    let mut done = spoken("closed", false);
+    done.status = Status::Done;
+    let mut dropped = spoken("also closed", true);
+    dropped.status = Status::Dropped;
+
+    assert!(!f.matches(&done, today()));
+    assert!(!f.matches(&dropped, today()));
+    assert!(f.matches(&spoken("still open", false), today()));
+}
+
+#[test]
+fn the_said_filter_narrows_to_the_lists_asked() {
+    let list = Ulid::generate();
+    let mut here = spoken("here", false);
+    here.list = Some(list);
+    let mut there = spoken("there", false);
+    there.list = Some(Ulid::generate());
+
+    let f = filter(|f| {
+        f.said = true;
+        f.lists = vec![list];
+    });
+
+    assert!(f.matches(&here, today()));
+    assert!(!f.matches(&there, today()));
+}

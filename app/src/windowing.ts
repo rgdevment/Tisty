@@ -11,6 +11,7 @@ import {
   type Task,
 } from "./core";
 import { decidesByBlock, decidesWhole } from "./deciding";
+import { freshness } from "./freshness";
 import { useNote } from "./glance";
 import { useListening } from "./listening";
 import { useMarking } from "./marking";
@@ -115,7 +116,7 @@ export function useWindow() {
   });
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
-  const [carried, setCarried] = useState(0);
+  const [carried] = useState(freshness);
 
   const lookForAStar = () => {
     starDue()
@@ -164,7 +165,7 @@ export function useWindow() {
     greeted,
     returning,
     setReturning,
-    setCarried,
+    carried,
     setError,
     noted,
     carries,
@@ -272,7 +273,6 @@ export function useWindow() {
     showing,
     setShowing,
     carried,
-    setCarried,
     lookForAStar,
     told,
     held,

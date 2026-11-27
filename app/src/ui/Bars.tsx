@@ -26,7 +26,9 @@ const sliceWord = (slice: Slice) =>
           ? ("sliceOverdue" as const)
           : slice === "late"
             ? ("sliceLate" as const)
-            : ("sliceAll" as const);
+            : slice === "said"
+              ? ("agentBand" as const)
+              : ("sliceAll" as const);
 
 const counted = (counts: Snapshot["counts"], key: string, lists?: string[]) =>
   lists?.length
@@ -48,12 +50,14 @@ export function SliceBar({
   setSelected,
 }: Steering & { lists: List[] }) {
   const standing = STANDINGS.find((one) => one === chosen.slice);
-  const shown = standing ? [standing, ...SLICES] : SLICES;
+  const waiting = chosen.slice === "said" || Boolean(counted(counts, "said", chosen.lists));
+  const shown = [...(standing ? [standing] : []), ...SLICES, ...(waiting ? ["said" as const] : [])];
   return (
     <div className="flex gap-1 px-2.5 pb-1">
       {shown.map((slice) => {
         const on = (chosen.slice ?? "today") === slice;
         const many = counted(counts, slice === "today" ? "tasks" : slice, chosen.lists);
+        const spoken = slice === "said";
         return (
           <button
             key={slice}
@@ -68,6 +72,11 @@ export function SliceBar({
               on ? "border-ink bg-ink text-bg" : "border-line text-faint hover:text-soft"
             }`}
           >
+            {spoken && (
+              <span aria-hidden="true" className={`mr-1 ${on ? "" : "text-hue-teal"}`}>
+                ◆
+              </span>
+            )}
             {t(sliceWord(slice))}
             {many ? <span className="ml-1 tabular-nums opacity-70">{many}</span> : null}
           </button>

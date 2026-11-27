@@ -32,6 +32,7 @@ const store = vi.hoisted(() => ({
   locks: [] as { id: string; shut: boolean }[],
   before: {} as Record<string, string>,
   backs: [] as string[],
+  backables: 0,
   coming: false,
   refuse: null as { code: string; name: string } | null,
   picked: null as string[] | null,
@@ -76,6 +77,7 @@ vi.mock("@tauri-apps/api/core", async () => ({
           return Promise.resolve(`![${name}](${name})`);
         }
         case "doc_backable":
+          store.backables += 1;
           return Promise.resolve(store.before[String(args?.id)] !== undefined);
         case "doc_back": {
           const id = String(args?.id);
@@ -1149,6 +1151,26 @@ describe("a document that moved on disk while it was open", () => {
     await waitFor(() =>
       expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("pan"),
     );
+  });
+
+  it("does not look for a copy to go back to again when the round left the words as they were", async () => {
+    const props = { open: "a3f1-0001", onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} known={known} fresh={0} />);
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value"));
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
+    rerender(<Docs {...props} known={known} fresh={1} />);
+    await screen.findByRole("button", { name: t("docStirredSee") });
+    await waitFor(() => expect(store.backables).toBeGreaterThan(0));
+    const looked = store.backables;
+
+    const again = known.map((one) => ({ ...one }));
+    rerender(<Docs {...props} known={again} fresh={2} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(store.reads).toBeGreaterThan(0);
+    expect(store.backables).toBe(looked);
   });
 
   it("lands a round's words though the list behind it refreshes while they are read", async () => {

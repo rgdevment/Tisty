@@ -1,4 +1,4 @@
-use super::gated::{ME, consented, gated, gated_in};
+use super::gated::{ME, consented, gated, gated_in, id_of};
 use super::*;
 use tisty_core::agents::{doc_of, found};
 use tisty_core::event::DeviceId;
@@ -1041,4 +1041,142 @@ fn only_a_global_skill_is_left_for_the_shared_folder_in_cursors() {
         &card(GLOBAL, Kind::Skill, "pdf/SKILL.md"),
         &elsewhere
     ));
+}
+
+fn fenced(tmp: &Path, told: &[(&'static str, &Path)]) -> Homes {
+    let root = tmp.join("distro");
+    let home = root.join("home").join("mario");
+    std::fs::create_dir_all(home.join(".claude")).unwrap();
+    std::fs::create_dir_all(home.join(".codex")).unwrap();
+    Homes {
+        fence: Some(root),
+        ..Homes::with(&home, told)
+    }
+}
+
+#[test]
+fn a_home_outside_the_distro_root_has_no_homes_there() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("distro");
+    assert!(Homes::in_distro(&root.join("home").join("mario"), &root).is_some());
+    assert!(Homes::in_distro(&tmp.path().join("elsewhere"), &root).is_none());
+    assert!(Homes::in_distro(Path::new("relative"), Path::new("relative")).is_none());
+}
+
+// The process's own variables name this computer's folders, never the distro's.
+#[test]
+fn a_distros_homes_never_read_the_variables_of_this_process() {
+    const CHILD: &str = "TISTY_TEST_DISTRO_CHILD";
+    let tmp = tempfile::tempdir().unwrap();
+    let base = std::env::var_os(CHILD).map_or_else(|| tmp.path().to_path_buf(), PathBuf::from);
+    let root = base.join("distro");
+    let home = root.join("home").join("mario");
+    let elsewhere = base.join("elsewhere");
+    if std::env::var_os(CHILD).is_none() {
+        let name =
+            "wiring::agents::tests::a_distros_homes_never_read_the_variables_of_this_process";
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", name, "--nocapture"])
+            .env(CHILD, tmp.path())
+            .env("CLAUDE_CONFIG_DIR", &elsewhere)
+            .env("USERPROFILE", &home)
+            .env("HOME", &home)
+            .output()
+            .unwrap();
+        let said = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            out.status.success(),
+            "{said}{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(said.contains("1 passed") || said.contains("ok"), "{said}");
+        return;
+    }
+    let here = Homes::here().unwrap();
+    assert_eq!(
+        here.root("claude"),
+        Some(elsewhere),
+        "the variable moves this computer's Claude"
+    );
+    let distro = Homes::in_distro(&home, &root).unwrap();
+    assert_eq!(distro.root("claude"), Some(home.join(".claude")));
+    assert!(distro.told.is_empty());
+}
+
+#[test]
+fn a_distro_target_is_marked_and_nothing_lands_outside_the_fence() {
+    let tmp = tempfile::tempdir().unwrap();
+    let elsewhere = tmp.path().join("windows-codex");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let homes = fenced(tmp.path(), &[("CODEX_HOME", &elsewhere)]);
+    let docs = vec![
+        (
+            "a".to_string(),
+            doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+        ),
+        (
+            "b".to_string(),
+            doc("codex", Kind::Rule, "AGENTS.md", "# Codex\n"),
+        ),
+        (
+            "c".to_string(),
+            doc(GLOBAL, Kind::Skill, "pr/SKILL.md", "pr\n"),
+        ),
+    ];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    assert!(!placed.is_empty());
+    let fence = homes.fence.clone().unwrap();
+    for one in &placed {
+        assert!(one.target.distro, "{:?}", one.target.at);
+        assert!(one.target.at.starts_with(&fence), "{:?}", one.target.at);
+    }
+    let claude = homes.root("claude").unwrap().join("CLAUDE.md");
+    assert!(placed.iter().any(|one| one.target.at == claude));
+    assert!(
+        !placed
+            .iter()
+            .any(|one| one.target.assistant == "codex" && one.target.at.starts_with(&elsewhere)),
+        "codex moved out of the distro is out of reach"
+    );
+    assert!(
+        !placed
+            .iter()
+            .any(|one| gated.named(&one.files).contains(&"b"))
+    );
+}
+
+#[test]
+fn a_computers_own_targets_are_not_marked_as_a_distros() {
+    let (_tmp, homes) = seeded();
+    let docs = vec![(
+        "a".to_string(),
+        doc("claude", Kind::Rule, "CLAUDE.md", "# Claude\n"),
+    )];
+    let ledger = consented();
+    let gated = gated(&ledger, &docs);
+    let placed = targets(&homes, &gated.gate, &ledger);
+    assert!(!placed.is_empty() && placed.iter().all(|one| !one.target.distro));
+}
+
+#[test]
+fn a_hook_reaches_no_distro() {
+    let tmp = tempfile::tempdir().unwrap();
+    let homes = fenced(tmp.path(), &[]);
+    let trigger = agents::Trigger {
+        event: agents::Event::BeforeTool,
+        tools: agents::Tools::Shell,
+        timeout: 5,
+        agents: vec!["claude-code".into()],
+    };
+    let body = agents::hook_doc("guard.sh", None, &trigger, "exit 2\n").unwrap();
+    let mut ledger = consented();
+    let (yes, _) = agents::yes_of(&body).unwrap();
+    let file = id_of("h");
+    ledger.register_hook(&file, yes);
+    ledger.take(&file, true);
+    let gated = gated(&ledger, &[("h".to_string(), body)]);
+    let landed = placed(&homes, &gated.gate, &ledger, &BTreeSet::new());
+    assert!(landed.is_empty(), "{landed:?}");
 }

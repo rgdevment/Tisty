@@ -1,5 +1,5 @@
 import { bytesIn, unitFrom } from "../placing";
-import { onMac } from "./macKeys";
+import { onMac, onWindows } from "./macKeys";
 import type { Caret } from "./pageCaret";
 import { applied, type Edit } from "./pageEdits";
 import type { Laying } from "./pageLaying";
@@ -8,10 +8,11 @@ import { recorded, type Writer } from "./pageWriter";
 
 const SWITCH = "tisty.nativeTyping";
 
-/** The browser writes plain words itself only where it was tried: on Windows and Linux once switched on, on a Mac only when asked by name. */
+/** The browser writes plain words itself where it was tried: on Windows and on a Mac unless switched off, on Linux once switched on. */
 export const nativeTyping = (): boolean => {
   const said = globalThis.localStorage?.getItem(SWITCH) ?? null;
-  return said === "everywhere" || (said === "on" && !onMac);
+  if (said === "off") return false;
+  return said === "on" || said === "everywhere" || onWindows || onMac;
 };
 
 const KINDS = new Set([

@@ -81,11 +81,33 @@ describe("the command key", () => {
     expect(option.event.defaultPrevented).toBe(false);
   });
 
-  it("takes a sign written with AltGr, as Ctrl+\\ is on a German Windows", async () => {
+  it("leaves a sign written with AltGr to the text, as Ctrl+Alt+\\ is on a German Windows", async () => {
     const { press } = await pressing(WINDOWS);
 
     const side = press({ key: "\\", code: "Minus", ctrlKey: true, altKey: true });
-    expect(side.acts.side).toHaveBeenCalled();
+    expect(side.acts.side).not.toHaveBeenCalled();
+    expect(side.event.defaultPrevented).toBe(false);
+    expect(press({ key: "\\", code: "Minus", ctrlKey: true }).acts.side).toHaveBeenCalled();
+  });
+
+  it("jumps between headings with Alt and the arrows, and with no command key held", async () => {
+    const windows = await pressing(WINDOWS);
+    const down = windows.press({ key: "ArrowDown", altKey: true });
+    expect(down.acts.head).toHaveBeenCalledWith(1);
+    expect(down.event.defaultPrevented).toBe(true);
+    expect(windows.press({ key: "ArrowUp", altKey: true }).acts.head).toHaveBeenCalledWith(-1);
+  });
+
+  it("leaves Ctrl+Alt and Cmd+Alt with an arrow to the system, which takes them for its own", async () => {
+    const windows = await pressing(WINDOWS);
+    const control = windows.press({ key: "ArrowDown", ctrlKey: true, altKey: true });
+    expect(control.acts.head).not.toHaveBeenCalled();
+    expect(control.event.defaultPrevented).toBe(false);
+
+    const mac = await pressing(MAC);
+    const command = mac.press({ key: "ArrowDown", metaKey: true, altKey: true });
+    expect(command.acts.head).not.toHaveBeenCalled();
+    expect(command.event.defaultPrevented).toBe(false);
   });
 
   it("brings the true size back by the zero key where it writes a letter, as AZERTY and Thai do", async () => {

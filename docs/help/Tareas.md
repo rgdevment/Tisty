@@ -74,6 +74,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 - **Se repiten**: lo que vuelve por su cuenta.
 - **Todas**: todo lo abierto, sin filtro. El primer icono de la fila de vistas en la barra lateral, **Todas las tareas**, la abre sobre todas las listas.
 - **Vencidas** y **Atrasadas**: solo lo vencido, o solo lo atrasado. Cada una se abre desde su cuenta entre las cuatro del día, arriba en la barra lateral, y mientras estás en ella aparece junto a Hoy. Las otras dos cuentas, **para hoy** y **por venir**, abren Hoy y Próximo. Una cuenta siempre se abre sobre todas las listas, aunque hubieras filtrado la vista a algunas. Pasado 99, una cuenta dice **+99**, y el número completo aparece al pasar el puntero.
+- **◆ Por confirmar**: solo las tareas que un agente dio por hechas o dijo que no se harán, esperando tu decisión. Aparece después de **Todas**, con cuántas son, solo mientras alguna espera, y cuenta solo las listas a las que filtraste la vista. Cada fila dice lo que dijo el agente, firmado como elegiste en **Ajustes › Agentes** para las filas, y ofrece las dos respuestas ahí mismo: **Completar** (o **No lo haré**, si dijo que no se haría) la cierra, y **Sigue pendiente** le quita la marca. Los pasos que un agente da por listos no están aquí: esperan en la página de la tarea.
 
 No hay premios por vaciar la lista.
 

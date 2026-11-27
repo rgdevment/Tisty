@@ -40,7 +40,7 @@ export const keyHeard =
   (e: KeyboardEvent): void => {
     let act: (() => void) | undefined;
     if (e.key === "Escape") act = keyed.escape;
-    else if (modKey(e)) act = withCommand(keyed, e);
+    else if (modKey(e)) act = e.altKey ? undefined : withCommand(keyed, e);
     else if (e.altKey && e.key === "ArrowDown") act = () => keyed.head(1);
     else if (e.altKey && e.key === "ArrowUp") act = () => keyed.head(-1);
     else if (e.altKey && e.key === "ArrowLeft") act = keyed.back;

@@ -3,6 +3,7 @@ import { agentsTree, folderShown, isAgentsFolder } from "../agentsSync";
 import { taskStepMarked } from "../citing";
 import { discard, patch, sow } from "../core";
 import { seeing, useDesk } from "../desk";
+import { useRounds } from "../freshness";
 import { cameFrom as helpFrom } from "../guide/help";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -83,6 +84,7 @@ export default function Stage() {
   } = desk;
   const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
   const pinned = usePinned(papers);
+  const rounds = useRounds(carried);
   const agentsFolders = useMemo(() => agentsTree(papers.folders), [papers.folders]);
   const groups = useMemo(
     () => [
@@ -191,7 +193,7 @@ export default function Stage() {
       heard={data.tasks}
       onBack={bringBack}
       onAsideShut={setAsideShut}
-      fresh={carried}
+      fresh={rounds}
     />
   ) : chosen.named === "lists" && !chosen.list && !sheet ? (
     <Lists

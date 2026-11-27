@@ -8,8 +8,10 @@ import { decideAll, putOffSaid } from "./deciding";
 import { departing } from "./departing";
 import { fireAll } from "./dropLater";
 import { CALENDAR, caughtBy, whenFilesLand } from "./dropped";
+import type { Freshness } from "./freshness";
 import { keptAll } from "./kept";
 import { t } from "./locales";
+import { gathering, type Refresh } from "./refreshing";
 import { saidPlainly } from "./refusal";
 import { attachedAll } from "./reshaping";
 import { resentThen } from "./saving";
@@ -28,7 +30,7 @@ interface Hands {
   greeted: number;
   returning: string | null;
   setReturning: (at: string | null) => void;
-  setCarried: Setter<number>;
+  carried: Freshness;
   setError: (text: string | null) => void;
   noted: (text: string, fades?: number) => void;
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
@@ -46,7 +48,7 @@ export function useListening({
   greeted,
   returning,
   setReturning,
-  setCarried,
+  carried,
   setError,
   noted,
   carries,
@@ -57,6 +59,16 @@ export function useListening({
   setAfoot,
 }: Hands) {
   const wasAwry = useRef<string | null>(null);
+  const refreshed = useRef<(asked: Refresh) => void>(() => {});
+  refreshed.current = ({ tasks, papers, fresh, seen }) => {
+    if (tasks) latest.current();
+    if (papers) lookPapers();
+    if (fresh) carried.landed();
+    if (seen) void lookAgain();
+  };
+  const round = useRef<ReturnType<typeof gathering> | null>(null);
+  round.current ??= gathering((asked) => refreshed.current(asked));
+  useEffect(() => () => round.current?.stop(), []);
   useEffect(() => {
     const again = cameBack(() => {
       latest.current();
@@ -90,11 +102,7 @@ export function useListening({
   }, [latest]);
   useEffect(() => {
     const carrier = carrying(
-      () => {
-        setCarried((was) => was + 1);
-        latest.current();
-        lookPapers();
-      },
+      () => round.current?.ask({ tasks: true, papers: true, fresh: true }),
       (ids) => {
         decideAll(ids)
           .then(({ said, putOff }) => {
@@ -115,7 +123,7 @@ export function useListening({
     );
     carries.current = carrier;
     return () => carrier.stop();
-  }, [noted, setCarried, latest, lookPapers, carries, setError]);
+  }, [noted, latest, lookPapers, carries, setError]);
 
   useEffect(() => {
     syncState()
@@ -150,23 +158,19 @@ export function useListening({
       setOffering(null);
     });
     const caught = listen("captured", () => latest.current());
-    const jotted = listen("jotted", () => {
-      lookPapers();
-      setCarried((was) => was + 1);
-    });
+    const jotted = listen("jotted", () => round.current?.ask({ papers: true, fresh: true }));
     // The snapshot carries no documents, so a paper written from outside would go unseen till relaunch.
-    const stirred = listen("stirred", () => {
-      latest.current();
-      lookPapers();
-      setCarried((was) => was + 1);
-      void lookAgain();
-    });
-    const landed = listen<string>("carried", (far) => {
-      latest.current();
-      if (far.payload === "papers") lookPapers();
-      setCarried((was) => was + 1);
-      void lookAgain();
-    });
+    const stirred = listen("stirred", () =>
+      round.current?.ask({ tasks: true, papers: true, fresh: true, seen: true }),
+    );
+    const landed = listen<string>("carried", (far) =>
+      round.current?.ask({
+        tasks: true,
+        papers: far.payload === "papers",
+        fresh: true,
+        seen: true,
+      }),
+    );
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
@@ -183,7 +187,7 @@ export function useListening({
       sound.then((off) => off()).catch(() => {});
       along.then((off) => off()).catch(() => {});
     };
-  }, [lookPapers, setLeaving, setAfoot, setOffering, setStarring, setCarried, latest]);
+  }, [lookPapers, setLeaving, setAfoot, setOffering, setStarring, latest]);
 
   const where = useRef(chosen);
   where.current = chosen;

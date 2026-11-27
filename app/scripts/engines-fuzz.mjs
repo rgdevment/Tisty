@@ -18,6 +18,7 @@ const { values: asked } = parseArgs({
   options: {
     seed: { type: "string" },
     runs: { type: "string" },
+    seeds: { type: "string" },
     steps: { type: "string" },
     engine: { type: "string" },
     replay: { type: "string" },
@@ -43,7 +44,7 @@ const walksAsked = () => {
   }
   if (asked.runs !== undefined)
     return Array.from({ length: counted("runs") }, () => walkOf(Math.floor(Math.random() * 1_000_000)));
-  return [...REPLAYS.map((one) => ({ ...one, replayed: true })), ...SEEDS.map((seed) => walkOf(seed))];
+  return [...REPLAYS.map((one) => ({ ...one, replayed: true })), ...SEEDS.slice(0, asked.seeds === undefined ? SEEDS.length : counted("seeds")).map((seed) => walkOf(seed))];
 };
 
 const shrunk = async (replayed, steps, fault, until) => {

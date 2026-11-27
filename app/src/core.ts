@@ -258,6 +258,7 @@ export interface View {
   hidden?: boolean;
   window?: "today" | "upcoming" | "overdue" | "late" | "undated";
   repeating?: boolean;
+  said?: boolean;
   most?: number;
   board?: boolean;
   spread?: boolean;

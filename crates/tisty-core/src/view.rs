@@ -43,6 +43,7 @@ pub struct Filter {
     pub window: Option<Window>,
     pub repeating: bool,
     pub reading: Option<Reading>,
+    pub said: bool,
 }
 
 impl Filter {
@@ -75,6 +76,10 @@ impl Filter {
         }
 
         if self.repeating && task.repeat.is_none() {
+            return false;
+        }
+
+        if self.said && !(task.is_open() && task.resolved.is_some()) {
             return false;
         }
 

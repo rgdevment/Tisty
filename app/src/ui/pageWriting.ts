@@ -182,7 +182,7 @@ export const writtenOn = (page: Document, hands: Hands): PageWriting => {
   // Enter on a collapsible's name would fold it, as a click does, so it opens a line under the name instead.
   const named = (event: KeyboardEvent) => {
     if (event.key !== "Enter" || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.shiftKey && composingKey(event)) return;
+    if (composingKey(event)) return;
     const fold = elementOf(caret.chosen()?.startContainer)?.closest(
       ".page details[data-at] > summary",
     )?.parentElement as HTMLDetailsElement | null | undefined;

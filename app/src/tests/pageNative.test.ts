@@ -1142,3 +1142,55 @@ describe("the edit read from the key itself, not from a diff of the words", () =
     expect(text).toBe("a a b\n");
   });
 });
+
+describe("the platform default of nativeTyping", () => {
+  const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)";
+  const LINUX = "Mozilla/5.0 (X11; Linux x86_64)";
+
+  const onPlatform = async (agent: string, said: string | null) => {
+    vi.resetModules();
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
+    if (said === null) localStorage.removeItem(SWITCH);
+    else localStorage.setItem(SWITCH, said);
+    return (await import("../ui/pageNative")).nativeTyping();
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+  });
+
+  it("is on by default on Windows", async () => {
+    expect(await onPlatform(WINDOWS, null)).toBe(true);
+  });
+
+  it("is off on Windows when the switch says off", async () => {
+    expect(await onPlatform(WINDOWS, "off")).toBe(false);
+  });
+
+  it("stays on in Windows with on or everywhere", async () => {
+    expect(await onPlatform(WINDOWS, "on")).toBe(true);
+    expect(await onPlatform(WINDOWS, "everywhere")).toBe(true);
+  });
+
+  it("is on by default on a Mac", async () => {
+    expect(await onPlatform(MAC, null)).toBe(true);
+  });
+
+  it("is off by default on Linux", async () => {
+    expect(await onPlatform(LINUX, null)).toBe(false);
+  });
+
+  it("is off on a Mac when the switch says off", async () => {
+    expect(await onPlatform(MAC, "off")).toBe(false);
+  });
+
+  it("is on with the switch on Linux, and on or everywhere on a Mac", async () => {
+    expect(await onPlatform(LINUX, "on")).toBe(true);
+    expect(await onPlatform(LINUX, "everywhere")).toBe(true);
+    expect(await onPlatform(MAC, "on")).toBe(true);
+    expect(await onPlatform(MAC, "everywhere")).toBe(true);
+    expect(await onPlatform(LINUX, "off")).toBe(false);
+  });
+});

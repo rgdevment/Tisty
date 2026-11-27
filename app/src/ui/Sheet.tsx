@@ -59,7 +59,7 @@ import type { CardsShown } from "./liveCards";
 import { livelyChoices } from "./livelyMenu";
 import { LivelyBelow, TitleRow, useFrameScroll, type Viewing } from "./liveSheet";
 import Menu, { type Choice } from "./Menu";
-import { MOVE_KEYS, onMac, onWindows } from "./macKeys";
+import { MOVE_KEYS, onMac, onWindows, PASTE_PLAIN } from "./macKeys";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { seatedNow } from "./pageLate";
@@ -86,6 +86,7 @@ import { seatedChoices, useSeated } from "./seated";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
+import { spelledAgain } from "./spelledAgain";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
@@ -842,7 +843,9 @@ export default function Sheet(props: Readonly<Props>) {
             },
             learned: () => {
               back();
-              if (word) void learnedWord(word.said, tongue);
+              if (!word) return;
+              const sheet = page?.querySelector<HTMLElement>(".page");
+              void learnedWord(word.said, tongue).then((kept) => kept && spelledAgain(sheet));
             },
             cut: carried(() => {
               if (liveWriter(writer) === writer) held?.cut?.();
@@ -855,7 +858,7 @@ export default function Sheet(props: Readonly<Props>) {
               const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
               sheet?.focus({ preventScroll: true });
               resume?.();
-              const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? "Shift V" : "V")));
+              const byKeys = () => lost(fill("pasteByKeys", pressed(plain ? PASTE_PLAIN : "V")));
               if (!sheet || sheet.ownerDocument.activeElement !== sheet) return byKeys();
               if (plain) liveWriter(writer).plainNext();
               void pasteHeard(sheet, menuPasted(plain)).then((heard) => heard || byKeys());
@@ -1378,7 +1381,7 @@ export default function Sheet(props: Readonly<Props>) {
         }}
         className={`tisty-sheet relative mx-auto overflow-hidden ${props.agent ? "border-x border-line bg-sheet " : "rounded-[10px] bg-sheet "}${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
-        {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
+        {!ready && !shown.current && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
         {lively && ready && !props.sheet && props.more && (
           <TitleRow frame={framed}>{props.more}</TitleRow>

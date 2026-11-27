@@ -456,3 +456,39 @@ describe("the log stirring from outside", () => {
     expect(told).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("the distros Tisty has looked into", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it("catches each one up once when the window opens, never waking it", async () => {
+    window.localStorage.setItem("tisty.wsl.looked", '["Ubuntu","Debian"]');
+    render(<AgentsKeeper />);
+
+    await waitFor(() => expect(sent("agents_wsl_round")).toHaveLength(2));
+    expect(sent("agents_wsl_round").map((one) => one.args)).toEqual([
+      { name: "Ubuntu", wake: false },
+      { name: "Debian", wake: false },
+    ]);
+    expect(sent("agents_wsl_set")).toHaveLength(0);
+  });
+
+  it("asks about no distro when none was looked into", async () => {
+    render(<AgentsKeeper />);
+
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 20));
+    });
+    expect(sent("agents_wsl_round")).toHaveLength(0);
+  });
+
+  it("goes on when a distro cannot be rounded", async () => {
+    window.localStorage.setItem("tisty.wsl.looked", '["Ubuntu","Debian"]');
+    ipc.answer = (cmd, args) =>
+      cmd === "agents_wsl_round" && args.name === "Ubuntu"
+        ? Promise.reject("gone")
+        : Promise.resolve({ told: [], both: [] });
+    render(<AgentsKeeper />);
+
+    await waitFor(() => expect(sent("agents_wsl_round")).toHaveLength(2));
+  });
+});

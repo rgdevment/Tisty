@@ -49,7 +49,7 @@ Para cerrar, reabrir, descartar y borrar no hay herramienta: no es que esté esc
 
 Cuando un agente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, lo que sostenga lo que afirma. **La tarea sigue abierta.**
 
-Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada. Lo vencido, por vencer, atrasado, para hoy o en curso no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
+Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada, o verlas solas con **◆ Por confirmar** en la barra sobre la lista ([Tareas](Tareas#las-vistas)). Lo vencido, por vencer, atrasado, para hoy o en curso no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
 
 - **Márcala** y se cierra como cualquier otra, guardando las dos firmas en el archivo: quién la resolvió y quién la terminó.
 - **Sigue pendiente** la devuelve a su día. La marca se quita y la cuenta se queda, para que la próxima vez los dos vean lo que se afirmó.
