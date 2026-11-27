@@ -439,10 +439,8 @@ pub struct Config {
     /// somebody saying so here, and a manifest cannot do it on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidates: Option<bool>,
-    /// Unanswered, it is asked once after an update; declined, it is never asked again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_updates: Option<bool>,
-    /// The version an automatic install last started on, so a failed one is never started again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_tried: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

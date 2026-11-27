@@ -150,7 +150,6 @@ pub fn installs<R: tauri::Runtime>(
     };
     let found = session.config.found_version.clone();
     let version = said.version.clone();
-    // Marked before the installer runs: it ends the process, so a failed one would otherwise start again on every launch.
     if session
         .keep(|c| {
             c.auto_tried = Some(version.clone());
@@ -222,7 +221,6 @@ fn restored<R: tauri::Runtime>(
         .ok_or_else(|| "what was kept no longer names this version".to_string())
 }
 
-// The plugin asks for an administrator's password when it cannot write the bundle, and nobody is there to give one.
 #[cfg(target_os = "macos")]
 fn replaceable() -> bool {
     std::env::current_exe()

@@ -288,7 +288,6 @@ pub(crate) async fn offered(
     }
 }
 
-/// `key` stands in for the one in tauri.conf.json, since the plugin checks a package against one key only.
 async fn looked(
     app: &tauri::AppHandle,
     want: &str,

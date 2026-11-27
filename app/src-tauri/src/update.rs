@@ -270,7 +270,6 @@ pub fn feed_key() -> Option<&'static str> {
     option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
 }
 
-/// A build without the feed's own key reads the feed unsigned, spare or not.
 pub fn feed_keys() -> Option<[&'static str; 2]> {
     feed_key().map(|key| [key, FEED_SPARE])
 }
@@ -297,8 +296,6 @@ fn key_id_of(encoded: &str) -> Option<[u8; 8]> {
     key_id(std::str::from_utf8(&file).ok()?)
 }
 
-/// The updater checks one key at a time, so a package signed by the spare is checked against the
-/// spare; any other is left to the key in tauri.conf.json.
 pub fn updater_key(signature: &str) -> Option<&'static str> {
     updater_key_among(signature, UPDATER_SPARE)
 }
