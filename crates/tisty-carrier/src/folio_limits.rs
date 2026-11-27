@@ -9,6 +9,8 @@ pub const LIMITS_URL: &str = from_folio!("limits/limits.json");
 pub const SIGNATURE_URL: &str = from_folio!("limits/limits.json.minisig");
 
 pub(crate) const KEY: &str = "RWTBkOCJN2ITUeWMK6V3gXmiJGo2hT6mX+hgcjpQ9F6QBO9sWnO84Mak";
+const SPARE: &str = include_str!("../folio-spare.pub").trim_ascii();
+pub(crate) const KEYS: [&str; 2] = [KEY, SPARE];
 const SIGNED_AS: &str = "limits.json";
 pub(crate) const KEPT: &str = "folio-limits.json";
 const SIGNED_KEPT: &str = "folio-limits.signed.json";
@@ -140,9 +142,9 @@ impl SharingNow {
     }
 }
 
-fn read_under(said: &[u8], signature: &str, key: &str) -> Result<FolioLimits, Refused> {
+fn read_under(said: &[u8], signature: &str, keys: &[&str]) -> Result<FolioLimits, Refused> {
     policy::believed(said, signature, || {
-        policy::signed_as(said, signature, key, SIGNED_AS)
+        policy::signed_as(said, signature, keys, SIGNED_AS)
     })
 }
 
@@ -151,7 +153,7 @@ pub fn kept(home: &Path) -> Option<FolioLimits> {
 }
 
 pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits, Refused> {
-    let limits = read_under(said, signature, KEY)?;
+    let limits = read_under(said, signature, &KEYS)?;
     if let Some(kept) = kept(home)
         && limits.serial < kept.serial
     {
@@ -174,7 +176,7 @@ pub fn accepted(home: &Path, said: &[u8], signature: &str) -> Result<FolioLimits
 pub fn maker(home: &Path) -> Option<FolioMaker> {
     let said = std::fs::read(home.join(SIGNED_KEPT)).ok()?;
     let signature = std::fs::read_to_string(home.join(SIGNATURE_KEPT)).ok()?;
-    read_under(&said, &signature, KEY).ok()?.maker
+    read_under(&said, &signature, &KEYS).ok()?.maker
 }
 
 pub fn maker_root(home: &Path) -> Option<String> {

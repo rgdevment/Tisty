@@ -163,8 +163,6 @@ async fn installing(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, Updating>,
 ) -> Answer<()> {
-    use tauri_plugin_updater::UpdaterExt;
-
     let _busy = alone
         .inner()
         .0
@@ -188,30 +186,13 @@ async fn installing(
         return Err(moved_on(&session, kept, wants).await);
     };
 
-    let asked = want.clone();
-    let mut building = app.updater_builder();
-    if let Some(platform) = update::platform(desktop::translated()) {
-        building = building.target(platform);
-    }
-    let update = building
-        .endpoints(
-            update::feeds_for(&want)
-                .into_iter()
-                .map(|one| one.parse())
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|_| Refusal::of("internal"))?,
-        )
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
-        // Pinned to what the person was shown, so a feed that moves in between cannot quietly
-        // hand them a different version than the one they agreed to.
-        .version_comparator(move |_, release| release.version.to_string() == asked)
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
-        .check()
-        .await
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
-
+    let Some(update) = looked(&app, &want, None).await? else {
+        return Err(moved_on(&session, kept, wants).await);
+    };
+    let update = match update::updater_key(&update.signature) {
+        None => Some(update),
+        Some(spare) => looked(&app, &want, Some(spare)).await?,
+    };
     let Some(mut update) = update else {
         return Err(moved_on(&session, kept, wants).await);
     };
@@ -283,6 +264,42 @@ async fn installing(
     app.run_on_main_thread(move || handle.restart())
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
     Ok(())
+}
+
+/// `key` stands in for the one in tauri.conf.json, since the plugin checks a package against one key only.
+async fn looked(
+    app: &tauri::AppHandle,
+    want: &str,
+    key: Option<&'static str>,
+) -> Answer<Option<tauri_plugin_updater::Update>> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let asked = want.to_owned();
+    let mut building = app.updater_builder();
+    if let Some(platform) = update::platform(desktop::translated()) {
+        building = building.target(platform);
+    }
+    if let Some(key) = key {
+        building = building.pubkey(key);
+    }
+    building
+        .endpoints(
+            update::feeds_for(want)
+                .into_iter()
+                .map(|one| one.parse())
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| Refusal::of("internal"))?,
+        )
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
+        // Pinned to what the person was shown, so a feed that moves in between cannot quietly
+        // hand them a different version than the one they agreed to.
+        .version_comparator(move |_, release| release.version.to_string() == asked)
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
+        .check()
+        .await
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))
 }
 
 /// The version the person was shown is not on the feed any more — a copy left closed for weeks

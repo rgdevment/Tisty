@@ -253,13 +253,49 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
     Kept::plain(if brewed { Route::Brew } else { Route::Download })
 }
 
+const FEED_SPARE: &str = include_str!("../spare/feed.pub").trim_ascii();
+const UPDATER_SPARE: &str = include_str!("../spare/updater.pub").trim_ascii();
+
 pub fn feed_key() -> Option<&'static str> {
     option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
 }
 
-pub fn trusted(said: &[u8], signature: &[u8], key: &str, name: &str) -> bool {
+/// A build without the feed's own key reads the feed unsigned, spare or not.
+pub fn feed_keys() -> Option<[&'static str; 2]> {
+    feed_key().map(|key| [key, FEED_SPARE])
+}
+
+pub fn trusted(said: &[u8], signature: &[u8], keys: &[&str], name: &str) -> bool {
     std::str::from_utf8(signature)
-        .is_ok_and(|signature| tisty_carrier::policy::signed_as(said, signature, key, name))
+        .is_ok_and(|signature| tisty_carrier::policy::signed_as(said, signature, keys, name))
+}
+
+fn key_id(file: &str) -> Option<[u8; 8]> {
+    use base64::Engine;
+    let line = file.lines().nth(1)?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(line.trim())
+        .ok()?;
+    bytes.get(2..10)?.try_into().ok()
+}
+
+fn key_id_of(encoded: &str) -> Option<[u8; 8]> {
+    use base64::Engine;
+    let file = base64::engine::general_purpose::STANDARD
+        .decode(encoded.trim())
+        .ok()?;
+    key_id(std::str::from_utf8(&file).ok()?)
+}
+
+/// The updater checks one key at a time, so a package signed by the spare is checked against the
+/// spare; any other is left to the key in tauri.conf.json.
+pub fn updater_key(signature: &str) -> Option<&'static str> {
+    updater_key_among(signature, UPDATER_SPARE)
+}
+
+fn updater_key_among<'a>(signature: &str, spare: &'a str) -> Option<&'a str> {
+    let signer = key_id_of(signature)?;
+    (key_id_of(spare) == Some(signer)).then_some(spare)
 }
 
 fn named(url: &str) -> &str {
@@ -353,7 +389,7 @@ fn pair(client: &reqwest::blocking::Client, url: &str, past: &str) -> Option<(Ve
 fn read_signed(
     client: &reqwest::blocking::Client,
     url: &str,
-    key: &str,
+    keys: &[&str],
     wanted: impl Fn(&[u8]) -> bool,
 ) -> Signed {
     let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
@@ -361,7 +397,7 @@ fn read_signed(
         let Some((said, signature)) = pair(client, url, past) else {
             return Signed::Nothing;
         };
-        if trusted(&said, &signature, key, named(url)) && wanted(&said) {
+        if trusted(&said, &signature, keys, named(url)) && wanted(&said) {
             return Signed::Said(said);
         }
     }
@@ -380,7 +416,7 @@ pub fn fetch() -> Heard {
             Heard::Nothing
         }
     };
-    let Some(key) = feed_key() else {
+    let Some(keys) = feed_keys() else {
         static ONCE: std::sync::Once = std::sync::Once::new();
         ONCE.call_once(|| {
             witness::note(
@@ -391,7 +427,7 @@ pub fn fetch() -> Heard {
         });
         return asked(&client, MANIFEST, &FEED_FILE).map_or(Heard::Nothing, text);
     };
-    match read_signed(&client, MANIFEST, key, |_| true) {
+    match read_signed(&client, MANIFEST, &keys, |_| true) {
         Signed::Said(said) => text(said),
         Signed::Nothing => Heard::Nothing,
         Signed::Unsigned => {
@@ -518,7 +554,7 @@ pub fn same_channel(said: &[u8], read: &serde_json::Value) -> bool {
 
 // The plugin reads the channel itself and cannot be handed one, so what it read must be the very JSON the feed's key signed.
 pub fn channel_vouched(read: &serde_json::Value, version: &str) -> bool {
-    let Some(key) = feed_key() else {
+    let Some(keys) = feed_keys() else {
         return true;
     };
     let Some(client) = client() else {
@@ -527,7 +563,7 @@ pub fn channel_vouched(read: &serde_json::Value, version: &str) -> bool {
     let feeds = feeds_for(version);
     let vouched = feeds.iter().any(|url| {
         matches!(
-            read_signed(&client, url, key, |said| same_channel(said, read)),
+            read_signed(&client, url, &keys, |said| same_channel(said, read)),
             Signed::Said(_)
         )
     });

@@ -617,24 +617,24 @@ const SIGNATURE: &str =
 #[test]
 fn a_feed_is_believed_only_with_the_feed_s_own_signature() {
     let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
-    assert!(super::trusted(said, signature, FEED_KEY, "lowered.json"));
+    assert!(super::trusted(said, signature, &[FEED_KEY], "lowered.json"));
     let altered = SIGNED.replace("1000", "9000");
     assert!(!super::trusted(
         altered.as_bytes(),
         signature,
-        FEED_KEY,
+        &[FEED_KEY],
         "lowered.json"
     ));
     assert!(!super::trusted(
         said,
         b"not a signature",
-        FEED_KEY,
+        &[FEED_KEY],
         "lowered.json"
     ));
     assert!(!super::trusted(
         said,
         &[0xff, 0xfe],
-        FEED_KEY,
+        &[FEED_KEY],
         "lowered.json"
     ));
 }
@@ -652,7 +652,7 @@ fn an_update_installs_only_from_the_very_channel_the_feed_s_key_signed() {
     let read: serde_json::Value = serde_json::from_str(SIGNED).unwrap();
     let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
     assert!(
-        !super::trusted(said, signature, FEED_KEY, "latest.json"),
+        !super::trusted(said, signature, &[FEED_KEY], "latest.json"),
         "a file signed under one name stood in for another"
     );
     assert_eq!(super::named(super::LATEST), "latest.json");
@@ -662,4 +662,87 @@ fn an_update_installs_only_from_the_very_channel_the_feed_s_key_signed() {
     other["serial"] = serde_json::json!(9);
     assert!(!super::same_channel(SIGNED.as_bytes(), &other));
     assert!(!super::same_channel(b"not json", &read));
+}
+
+const OTHER_FEED_KEY: &str =
+    include_str!("../../../crates/tisty-carrier/src/folio_signed/hosts/key.pub");
+const CONFIG_PUBKEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMyRTMzOTg4NDlDMkFBQzIKUldUQ3FzSkppRG5qTWtvSW9sUWxORldEditlbEp1WkwrQ0NtYkRWYjRUcUVOZ0M1bkFjeVFjWU4K";
+const CONFIG_ID: [u8; 8] = [0xC2, 0xAA, 0xC2, 0x49, 0x88, 0x39, 0xE3, 0x32];
+
+fn minisign_file(first_line: &str, id: [u8; 8]) -> String {
+    use base64::Engine;
+    let mut body = b"Ed".to_vec();
+    body.extend_from_slice(&id);
+    body.extend_from_slice(&[7u8; 64]);
+    let line = base64::engine::general_purpose::STANDARD.encode(body);
+    base64::engine::general_purpose::STANDARD.encode(format!(
+        "{first_line}
+{line}
+trusted comment: x
+AAAA
+"
+    ))
+}
+
+#[test]
+fn a_feed_signed_by_the_spare_is_believed_when_the_spare_is_listed_second() {
+    let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
+
+    assert!(super::trusted(
+        said,
+        signature,
+        &[OTHER_FEED_KEY.trim(), FEED_KEY],
+        "lowered.json"
+    ));
+    assert!(!super::trusted(
+        said,
+        signature,
+        &[OTHER_FEED_KEY.trim()],
+        "lowered.json"
+    ));
+}
+
+#[test]
+fn the_key_id_of_the_updater_key_in_the_config_is_the_one_its_comment_names() {
+    assert_eq!(super::key_id_of(CONFIG_PUBKEY), Some(CONFIG_ID));
+}
+
+#[test]
+fn a_package_signed_with_the_spare_s_id_is_checked_against_the_spare_and_any_other_is_not() {
+    let spare = minisign_file("untrusted comment: spare", CONFIG_ID);
+    let by_spare = minisign_file("untrusted comment: signature", CONFIG_ID);
+    let by_main = minisign_file("untrusted comment: signature", [1; 8]);
+
+    assert_eq!(
+        super::updater_key_among(&by_spare, &spare),
+        Some(spare.as_str())
+    );
+    assert_eq!(super::updater_key_among(&by_main, &spare), None);
+    assert_eq!(
+        super::updater_key_among(&minisign_file("x", CONFIG_ID), CONFIG_PUBKEY),
+        Some(CONFIG_PUBKEY),
+        "the real key of tauri.conf.json names the id the test builds"
+    );
+}
+
+#[test]
+fn a_signature_or_key_that_is_not_minisign_has_no_spare_to_name() {
+    use base64::Engine;
+    let spare = minisign_file("untrusted comment: spare", CONFIG_ID);
+    let short = base64::engine::general_purpose::STANDARD.encode(
+        "a
+RWQ=
+",
+    );
+    let not_base64_line = base64::engine::general_purpose::STANDARD.encode(
+        "a
+!!!
+",
+    );
+
+    for bad in ["", "not base64 !!", "garbage", &short, &not_base64_line] {
+        assert_eq!(super::updater_key_among(bad, &spare), None, "{bad}");
+        assert_eq!(super::updater_key_among(&spare, bad), None, "{bad}");
+    }
+    assert_eq!(super::updater_key(&spare), None);
 }

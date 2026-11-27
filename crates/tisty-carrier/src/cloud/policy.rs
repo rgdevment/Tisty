@@ -76,29 +76,30 @@ pub fn now() -> u64 {
 }
 
 // The trusted comment is signed too, so a file signed under one name cannot stand in for another.
-pub fn signed_as(said: &[u8], signature: &str, key: &str, name: &str) -> bool {
+pub fn signed_as(said: &[u8], signature: &str, keys: &[&str], name: &str) -> bool {
     let named = format!("file:{name}");
-    verified(said, signature, key).is_some_and(|one| {
+    verified(said, signature, keys).is_some_and(|one| {
         one.trusted_comment()
             .split_whitespace()
             .any(|word| word == named)
     })
 }
 
-pub fn signed(said: &[u8], signature: &str, key: &str) -> bool {
-    verified(said, signature, key).is_some()
+pub fn signed(said: &[u8], signature: &str, keys: &[&str]) -> bool {
+    verified(said, signature, keys).is_some()
 }
 
-fn verified(said: &[u8], signature: &str, key: &str) -> Option<Signature> {
-    let key = PublicKey::from_base64(key).ok()?;
+fn verified(said: &[u8], signature: &str, keys: &[&str]) -> Option<Signature> {
     let signature = Signature::decode(signature).ok()?;
-    key.verify(said, &signature, false).ok()?;
-    Some(signature)
+    keys.iter()
+        .filter_map(|key| PublicKey::from_base64(key).ok())
+        .any(|key| key.verify(said, &signature, false).is_ok())
+        .then_some(signature)
 }
 
 // The signature is checked on the bytes as they came, before a single field is believed.
-pub fn read(said: &[u8], signature: &str, key: &str) -> Result<Policy, Refused> {
-    believed(said, signature, || signed(said, signature, key))
+pub fn read(said: &[u8], signature: &str, keys: &[&str]) -> Result<Policy, Refused> {
+    believed(said, signature, || signed(said, signature, keys))
 }
 
 pub(crate) fn believed<T: DeserializeOwned>(
@@ -148,10 +149,10 @@ pub fn accepted(
     home: &Path,
     said: &[u8],
     signature: &str,
-    key: &str,
+    keys: &[&str],
     provider: &str,
 ) -> Result<Policy, Refused> {
-    let policy = read(said, signature, key)?.for_provider(provider);
+    let policy = read(said, signature, keys)?.for_provider(provider);
     if let Some(kept) = kept(home)
         && policy.serial < kept.serial
     {

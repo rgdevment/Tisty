@@ -418,10 +418,13 @@ fn policy_key() -> Option<&'static str> {
     option_env!("TISTY_CLOUD_POLICY_KEY").filter(|key| !key.is_empty())
 }
 
+const POLICY_SPARE: &str = include_str!("../spare/cloud-policy.pub").trim_ascii();
+
 pub fn heed(home: &Path, provider: &str) {
     let Some(key) = policy_key() else {
         return;
     };
+    let keys = [key, POLICY_SPARE];
     if !policy::ask_now(&home.join(POLICY_ASKED), POLICY_EVERY) {
         return;
     }
@@ -429,7 +432,7 @@ pub fn heed(home: &Path, provider: &str) {
         return;
     };
     let signature = String::from_utf8_lossy(&signed);
-    if let Err(why) = policy::accepted(home, &said, &signature, key, provider) {
+    if let Err(why) = policy::accepted(home, &said, &signature, &keys, provider) {
         witness::warn(
             channel::CLOUD,
             "the signed word on the cloud was not taken, so the last one taken still stands",

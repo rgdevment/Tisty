@@ -3,6 +3,7 @@ use std::cell::Cell;
 use super::{a_domain, checked_under, kept_at, proof_of, shard_of};
 
 const KEY: &str = include_str!("folio_signed/domains/key.pub");
+const OTHER_KEY: &str = include_str!("folio_signed/hosts/key.pub");
 const SHARD: &[u8] = include_bytes!("folio_signed/domains/75.json");
 const SIGNED: &[u8] = include_bytes!("folio_signed/domains/75.json.minisig");
 const SIGNED_ELSEWHERE: &[u8] = include_bytes!("folio_signed/domains/elsewhere.json.minisig");
@@ -60,21 +61,21 @@ fn a_domain_is_checked_when_its_proof_is_in_a_shard_folio_signed() {
         ROOT,
         DOMAIN,
         &serving(SIGNED),
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert!(!checked_under(
         home.path(),
         &"B".repeat(43),
         DOMAIN,
         &serving(SIGNED),
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert!(!checked_under(
         home.path(),
         ROOT,
         "otro.dev",
         &serving(SIGNED),
-        KEY.trim()
+        &[KEY.trim()]
     ));
 }
 
@@ -86,21 +87,21 @@ fn a_shard_signed_for_another_name_a_missing_one_or_another_key_checks_nothing()
         ROOT,
         DOMAIN,
         &serving(SIGNED_ELSEWHERE),
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert!(!checked_under(
         home.path(),
         ROOT,
         DOMAIN,
         &|_: &str| None,
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert!(!checked_under(
         home.path(),
         ROOT,
         DOMAIN,
         &serving(SIGNED),
-        crate::folio_limits::KEY
+        &crate::folio_limits::KEYS
     ));
 }
 
@@ -117,14 +118,14 @@ fn a_shard_is_kept_a_day_and_read_again_under_its_signature() {
         ROOT,
         DOMAIN,
         &counting,
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert!(checked_under(
         home.path(),
         ROOT,
         DOMAIN,
         &counting,
-        KEY.trim()
+        &[KEY.trim()]
     ));
     assert_eq!(asked.get(), 2, "the second look reads the copy kept here");
 
@@ -135,7 +136,7 @@ fn a_shard_is_kept_a_day_and_read_again_under_its_signature() {
         ROOT,
         DOMAIN,
         &|_: &str| None,
-        KEY.trim()
+        &[KEY.trim()]
     ));
 }
 
@@ -151,6 +152,27 @@ fn a_domain_approved_after_the_day_s_copy_was_kept_is_looked_for_again() {
         ROOT,
         DOMAIN,
         &serving(SIGNED),
-        KEY.trim()
+        &[KEY.trim()]
+    ));
+}
+
+#[test]
+fn a_domain_is_checked_when_the_right_key_comes_second_and_not_without_it() {
+    let home = tempfile::tempdir().unwrap();
+    assert!(checked_under(
+        home.path(),
+        ROOT,
+        DOMAIN,
+        &serving(SIGNED),
+        &[OTHER_KEY.trim(), KEY.trim()]
+    ));
+
+    let home = tempfile::tempdir().unwrap();
+    assert!(!checked_under(
+        home.path(),
+        ROOT,
+        DOMAIN,
+        &serving(SIGNED),
+        &[OTHER_KEY.trim()]
     ));
 }

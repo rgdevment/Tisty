@@ -3,6 +3,7 @@ use std::cell::Cell;
 use super::{brought, keep, kept, kept_at};
 
 const KEY: &str = include_str!("folio_signed/hosts/key.pub");
+const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const HOSTS: &[u8] = include_bytes!("folio_signed/hosts/hosts.json");
 const SIGNED: &[u8] = include_bytes!("folio_signed/hosts/hosts.json.minisig");
 const OLDER_SIGNED: &[u8] = include_bytes!("folio_signed/hosts/older.json.minisig");
@@ -26,7 +27,7 @@ fn a_signature_caught_mid_publish_is_asked_for_once_more() {
             )
         }
     };
-    let signed = brought(&serving, URL, NAMED, KEY.trim()).expect("the second pair holds");
+    let signed = brought(&serving, URL, NAMED, &[KEY.trim()]).expect("the second pair holds");
     assert_eq!(signed.said, HOSTS);
     assert_eq!(signatures.get(), 2);
 }
@@ -38,7 +39,7 @@ fn a_pair_that_never_holds_is_asked_for_twice_and_refused() {
         asked.set(asked.get() + 1);
         Some(if url == URL { HOSTS } else { OLDER_SIGNED }.to_vec())
     };
-    assert!(brought(&serving, URL, NAMED, KEY.trim()).is_none());
+    assert!(brought(&serving, URL, NAMED, &[KEY.trim()]).is_none());
     assert_eq!(asked.get(), 4);
 }
 
@@ -49,7 +50,7 @@ fn nothing_reached_is_not_asked_for_again() {
         asked.set(asked.get() + 1);
         None
     };
-    assert!(brought(&serving, URL, NAMED, KEY.trim()).is_none());
+    assert!(brought(&serving, URL, NAMED, &[KEY.trim()]).is_none());
     assert_eq!(asked.get(), 1);
 }
 
@@ -61,11 +62,24 @@ fn what_is_kept_holds_only_under_its_name() {
     keep(
         &said_at,
         &signature_at,
-        &brought(&serving, URL, NAMED, KEY.trim()).unwrap(),
+        &brought(&serving, URL, NAMED, &[KEY.trim()]).unwrap(),
     );
     assert_eq!(
-        kept(&said_at, &signature_at, NAMED, KEY.trim()).as_deref(),
+        kept(&said_at, &signature_at, NAMED, &[KEY.trim()]).as_deref(),
         Some(HOSTS)
     );
-    assert!(kept(&said_at, &signature_at, "domains/75.json", KEY.trim()).is_none());
+    assert!(kept(&said_at, &signature_at, "domains/75.json", &[KEY.trim()]).is_none());
+}
+
+#[test]
+fn what_is_signed_is_brought_when_the_right_key_comes_second_and_not_without_it() {
+    let serving = |url: &str| Some(if url == URL { HOSTS } else { SIGNED }.to_vec());
+
+    let brought_with = |keys: &[&str]| brought(&serving, URL, NAMED, keys);
+
+    assert_eq!(
+        brought_with(&[OTHER_KEY.trim(), KEY.trim()]).map(|one| one.said),
+        Some(HOSTS.to_vec())
+    );
+    assert!(brought_with(&[OTHER_KEY.trim()]).is_none());
 }
