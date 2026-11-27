@@ -388,20 +388,7 @@ pub(crate) fn looked_with(
             files: found
                 .iter()
                 .filter(|seen| seen.assistant == one.id)
-                .map(|seen| FileSeen {
-                    at: seen.at.to_string_lossy().into_owned(),
-                    name: seen.name.clone(),
-                    kind: seen.kind.word(),
-                    skip: match agents::shipped_copy(ledger, &seen.at)
-                        || super::tisty_skills::shipped_alike(seen, bundled, None)
-                    {
-                        true => Some(skip_word(agents::Skip::Tisty)),
-                        false => seen.skip.map(skip_word),
-                    },
-                    held: known(&held, &writes, seen)
-                        && !agents::shipped_copy(ledger, &seen.at)
-                        && !super::tisty_skills::shipped_alike(seen, bundled, None),
-                })
+                .map(|seen| file_seen(seen, ledger, &held, &writes, bundled))
                 .collect(),
         })
         .collect();
@@ -429,6 +416,46 @@ pub(crate) fn looked_with(
     }
 }
 
+fn file_seen(
+    seen: &Found,
+    ledger: &Ledger,
+    held: &BTreeSet<String>,
+    writes: &BTreeSet<PathBuf>,
+    bundled: &[agents::Bundled],
+) -> FileSeen {
+    let tisty = agents::shipped_copy(ledger, &seen.at)
+        || super::tisty_skills::shipped_alike(seen, bundled, None);
+    FileSeen {
+        at: seen.at.to_string_lossy().into_owned(),
+        name: seen.name.clone(),
+        kind: seen.kind.word(),
+        skip: match tisty {
+            true => Some(skip_word(agents::Skip::Tisty)),
+            false => seen.skip.map(skip_word),
+        },
+        held: known(held, writes, seen) && !tisty,
+    }
+}
+
+// What «look again» would tick: a rule or skill Tisty holds nothing for yet, told by its name alone.
+pub(crate) fn takeable_with(
+    seen: &Gathered,
+    homes: &Homes,
+    found: &[Found],
+    bundled: &[agents::Bundled],
+) -> Vec<String> {
+    let ledger = &seen.ledger;
+    let held = addresses(&seen.bodies, &seen.gate);
+    let writes = written_now(ledger, &places::targets(homes, &seen.gate, ledger));
+    found
+        .iter()
+        .filter(|one| one.kind != Kind::Memory)
+        .map(|one| file_seen(one, ledger, &held, &writes, bundled))
+        .filter(|one| one.skip.is_none() && !one.held)
+        .map(|one| one.at)
+        .collect()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Loose {
@@ -454,7 +481,12 @@ fn frees(
             let card = piece.card();
             let elsewhere = card.level != GLOBAL
                 && places::target_of(homes, card).map(|(_, there)| there) != Some(at.to_path_buf());
-            Some(elsewhere || places::wordless(piece) || stands.aside_at(homes, card, file, at))
+            Some(
+                elsewhere
+                    || places::wordless(piece)
+                    || stands.aside_at(homes, card, file, at)
+                    || places::left_for_shared(homes, card, at),
+            )
         }
         Some(_) => None,
     }
@@ -491,6 +523,7 @@ pub(crate) fn loose_in(
             || places::agents_own(homes, at)
             || files.is_empty()
             || agents::shipped_copy(ledger, at)
+            || super::cursor_copies::goes_alone(homes, gate, ledger, at, files)
         {
             continue;
         }
@@ -796,10 +829,15 @@ fn round_after(
         .into_iter()
         .map(|(one, _)| one)
         .collect();
+    let placing: BTreeSet<String> = placed
+        .iter()
+        .map(|one| agents::path_key(&one.target.at))
+        .collect();
     let (paused, going): (Vec<Placed>, Vec<Placed>) = placed
         .into_iter()
         .partition(|one| one.lead_in.as_ref().is_some_and(|lead| unled(ledger, lead)));
     let mut out = rounded(data, ledger, &going);
+    super::cursor_copies::retired(data, homes, &gate, ledger, &placing, &out.told);
     out.told.extend(paused.iter().map(|one| Told {
         at: one.target.at.to_string_lossy().into_owned(),
         assistant: one.target.assistant.clone(),

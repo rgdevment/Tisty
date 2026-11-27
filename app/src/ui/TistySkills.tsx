@@ -28,7 +28,7 @@ const NAMES: Record<string, string> = {
   dsh: "DeepSeek Harness",
 };
 
-const SHARED = new Set(["codex", "copilot", "gemini", "dsh"]);
+const SHARED = new Set(["codex", "copilot", "gemini", "dsh", "cursor"]);
 
 const sharedName = [...SHARED].map((id) => NAMES[id] ?? id).join(" · ");
 

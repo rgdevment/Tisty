@@ -87,11 +87,11 @@ The list brings only what your agent really reads. The rest does not show, not e
 | Agent | Skills folder | Where a skill can be |
 | :-- | :-- | :-- |
 | Claude Code | `~/.claude/skills` | right inside, such as `skills/pr/` |
-| Codex | `~/.agents/skills`, which it shares with Copilot, Gemini and DeepSeek Harness | up to six folders down, such as `skills/work/pr/` |
-| DeepSeek Harness | `~/.agents/skills`, which it shares with Codex, Copilot and Gemini | up to six folders down, such as `skills/work/pr/` |
+| Codex | `~/.agents/skills`, which it shares with Copilot, Gemini, DeepSeek Harness and Cursor | up to six folders down, such as `skills/work/pr/` |
+| DeepSeek Harness | `~/.agents/skills`, which it shares with Codex, Copilot, Gemini and Cursor | up to six folders down, such as `skills/work/pr/` |
 | GitHub Copilot CLI | `~/.copilot/skills` | right inside |
 | Gemini CLI | `~/.gemini/skills` | right inside |
-| Cursor | `~/.cursor/skills` | in any category folder |
+| Cursor | `~/.cursor/skills`, and `~/.agents/skills` with Codex and the others | in any category folder |
 
 A folder without a `SKILL.md` that its agent does not read deeper is not a skill and does not show. Tisty never looks for a skill inside another: a `SKILL.md` deeper inside `pr/` is just one more file of **pr**. Each skill is **one row**, such as **pr · Skill · 3 files**, with one box that brings it whole: each file of the skill becomes a document, and in the sidebar it shows as a single row, **pr**, with **3 files** on the right. A credentials file inside a skill, such as a `.pem` key, still stays out.
 
@@ -198,7 +198,7 @@ If this computer has not let you read your agents' files yet, for example becaus
 
 ### Look again
 
-**Look again** is on the right-click of Agents itself, in state 2, brought but not synced, and in state 3, syncing. It looks again on this computer for your agents and their files, as the first time did: if you installed a new one, it makes its subfolder, and opens **Bring another file** with **only what is new already ticked**. What is already in Agents shows dimmed with **already in Agents**, and agent memory comes unticked, as always. Check the boxes and press **Bring**.
+**Look again** is the **⟳** beside the name at the top of Agents, and is also on the right-click of Agents itself, in state 2, brought but not synced, and in state 3, syncing. It looks again on this computer for your agents and their files, as the first time did: if you installed a new one, it makes its subfolder, and opens **Bring another file** with **only what is new already ticked**. What is already in Agents shows dimmed with **already in Agents**, and agent memory comes unticked, as always. Check the boxes and press **Bring**.
 
 **An example.** Marisol had Agents syncing with Claude and Codex. One afternoon she installs Gemini CLI, asks it to remember her dog's name, and writes a new skill for Claude in `~/.claude/skills/report/`. Right-click **Agents** and **Look again**:
 
@@ -217,6 +217,10 @@ The memory Marisol left out is still there: the next time she looks again, `GEMI
 **Not now** closes it.
 
 ![The Bring another file box opened by Look again, with nothing to bring: at the top the line Nothing new found. This is what each agent has:, and below three lines, each with its agent's icon: the orange chat bubble with Claude · already in Agents, the teal terminal with Codex · already in Agents and the green compass with Gemini · already in Agents; no boxes to tick; at the bottom right, Not now and Bring](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/help/agents/en-17-look-again.png)
+
+**«2 new».** When you come back to Tisty's window, at most once a minute, Tisty counts the names in your agents' rules and skills folders, without opening any file. If a rule or skill appeared since you last looked again, the **⟳** says how many, such as **⟳ 2 new**. Nothing comes in by itself: press it to see them. It only counts on a computer that already gave permission, and it does not watch the disk in between.
+
+<!-- Screenshot pending: assets/screens/help/agents/en-17b-look-again-new.png · alt: The top of Agents with its name and, beside it, ⟳ 2 new in the accent color -->
 
 **On a computer that has not given permission yet**, such as a second computer where Agents came in brought, **Look again** opens the first-time box instead, with its names and sizes and its two buttons. It opens no file and makes no subfolder before your **Bring** or your **Bring and sync**.
 
@@ -408,9 +412,25 @@ agent: global/skill/pdf/scripts/extract.py
 
 A Global skill is written once where several read it at a time:
 
-- in `~/.claude/skills/pdf/`, for Claude Code;
-- in `~/.cursor/skills/pdf/`, for Cursor;
-- in `~/.agents/skills/pdf/`, one copy that Codex, Copilot, Gemini and DeepSeek Harness all read.
+- in `~/.agents/skills/pdf/`, one copy that Codex, Copilot, Gemini, DeepSeek Harness and Cursor all read;
+- in `~/.claude/skills/pdf/`, for Claude Code, the one agent that does not read that folder.
+
+`~/.agents/skills` is the folder of the [Agent Skills](https://agentskills.io) standard, which most agents already read. Tisty writes no links: each agent gets a real copy, so a change in one never reaches another.
+
+**If an earlier Tisty also wrote it to `~/.cursor/skills/`,** Cursor saw it twice. Now Tisty takes that copy away by itself, with a backup, once the one in `~/.agents/skills` is written, and only if it is still as Tisty wrote it. If you changed it, Tisty does not touch it: it asks you, like any [file you left with your agents](#files-you-left-with-your-agents).
+
+#### What each agent reads
+
+| Agent | Global skills | Its own skills | Global rules |
+| :-- | :-- | :-- | :-- |
+| **Claude Code** | `~/.claude/skills/` | `~/.claude/skills/` | `~/.claude/CLAUDE.md` and `rules/` |
+| **Codex** | `~/.agents/skills/` | `~/.agents/skills/` | `~/.codex/AGENTS.md` |
+| **GitHub Copilot CLI** | `~/.agents/skills/` | `~/.copilot/skills/` | `~/.copilot/copilot-instructions.md` and `instructions/` |
+| **Gemini CLI** | `~/.agents/skills/` | `~/.gemini/skills/` | `~/.gemini/tisty-rules.md`, through `GEMINI.md` |
+| **Cursor** | `~/.agents/skills/` | `~/.cursor/skills/` | None: its rules live in its settings |
+| **DeepSeek Harness** | `~/.agents/skills/` | `~/.agents/skills/` | its `AGENTS.md` |
+
+There is no shared folder for rules or hooks: each agent reads its own file, so Tisty writes Global's rules and its hooks into each one.
 
 The `SKILL.md`'s own properties stay out of the text: its `name` is the card's name, its `description` sits under it in a quiet line, and the rest, such as `disable-model-invocation: true`, go in small rows of the facts box. The script is kept in a code block and written as is, without the block: the card's **Format** row names the script's kind, such as SH · LF, and a Markdown document says Markdown · LF.
 
@@ -440,7 +460,7 @@ Here you see them as a fixed row at the end of **Agents › Global**, **Tisty's 
 | **Codex** | `~/.codex` | `CODEX_HOME` | `AGENTS.md`, and `AGENTS.override.md` if you have a document for it | `~/.agents/skills/` | — |
 | **GitHub Copilot CLI** | `~/.copilot` | `COPILOT_HOME` | `copilot-instructions.md` and what goes in `instructions/` | `skills/` in its folder; Global's, in `~/.agents/skills/` | — |
 | **Gemini CLI** | `~/.gemini` | `GEMINI_CLI_HOME`, the folder that holds `.gemini` | `tisty-rules.md`, and the line `@tisty-rules.md` in `GEMINI.md` | `skills/` in its folder; Global's, in `~/.agents/skills/` | `GEMINI.md` |
-| **Cursor** | `~/.cursor` | — | None: its rules live in its settings | `skills/` in its folder | — |
+| **Cursor** | `~/.cursor` | — | None: its rules live in its settings | `skills/` in its folder; Global's, in `~/.agents/skills/` | — |
 
 What Tisty does with each one:
 

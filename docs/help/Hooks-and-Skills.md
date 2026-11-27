@@ -201,10 +201,9 @@ The phrases are the ones their card shows, under **How to use them**: «Write it
 | Agent | Folder |
 | :-- | :-- |
 | **Claude Code** | `~/.claude/skills/tisty/`, `~/.claude/skills/consolidate/`, `~/.claude/skills/next-agent/` |
-| **Cursor** | `~/.cursor/skills/…`, with the same three folders |
-| **Codex**, **GitHub Copilot**, **Gemini CLI** and **DeepSeek Harness** | `~/.agents/skills/…`, a single copy the four of them read |
+| **Codex**, **GitHub Copilot**, **Gemini CLI**, **DeepSeek Harness** and **Cursor** | `~/.agents/skills/…`, a single copy the five of them read |
 
-`~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. The card shows only the folders of the agents you have on this computer. The shared one says «Codex · Copilot · Gemini · DeepSeek Harness» and warns about it: «Codex, Copilot, Gemini and DeepSeek Harness share this folder: turning them on or off here does it for the four.».
+`~` is your user folder: `C:\Users\you` on Windows and `/Users/you` on macOS. The card shows only the folders of the agents you have on this computer. The shared one says «Codex · Copilot · Gemini · DeepSeek Harness · Cursor» and warns about it: «Codex, Copilot, Gemini, DeepSeek Harness and Cursor share this folder: turning them on or off here does it for the five.». A copy an earlier Tisty wrote to `~/.cursor/skills/` goes by itself, with a backup, while it is still as Tisty wrote it.
 
 ### Turning them on
 

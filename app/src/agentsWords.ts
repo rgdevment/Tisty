@@ -628,6 +628,8 @@ const words = {
   ],
   agentApplyHere: ["Apply here", "Aplicar aquí"],
   agentsRescan: ["Look again", "Buscar de nuevo"],
+  agentsNewOne: ["1 new", "1 nuevo"],
+  agentsNewMany: ["{name} new", "{name} nuevos"],
   agentNotHere: ["Not on this computer", "No en este equipo"],
   agentAgree: ["Approve this text", "Aprobar este texto"],
   agentAgreeSure: [
@@ -854,8 +856,8 @@ const words = {
   ],
   tistySkillsWhere: ["Where they go on this computer", "Dónde van en este equipo"],
   tistySkillsShared: [
-    "Codex, Copilot, Gemini and DeepSeek Harness share this folder: turning them on or off here does it for the four.",
-    "Codex, Copilot, Gemini y DeepSeek Harness comparten esta carpeta: encenderlos o apagarlos aquí vale para los cuatro.",
+    "Codex, Copilot, Gemini, DeepSeek Harness and Cursor share this folder: turning them on or off here does it for the five.",
+    "Codex, Copilot, Gemini, DeepSeek Harness y Cursor comparten esta carpeta: encenderlos o apagarlos aquí vale para los cinco.",
   ],
   tistySkillsUpdate: [
     "They update when you update Tisty, and never write over a skill of yours with the same name.",

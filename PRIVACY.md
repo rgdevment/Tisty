@@ -751,11 +751,13 @@ release, checked against a fingerprint built into the app, are written.
   records named below and any copy Tisty wrote before, to tell whether it
   changed.
 - **With it, Tisty reads and writes only this:** one folder per skill in each
-  agent's skills folder on this computer (such as `~/.claude/skills/tisty`,
-  `~/.cursor/skills/tisty` and the shared `~/.agents/skills/tisty`), the other
-  files already in those folders, to leave alone any skill that is not
-  Tisty's, and, for Claude Code, `plugins/installed_plugins.json` and
-  `settings.json`, only to tell whether the Tisty plugin already brings them.
+  agent's skills folder on this computer (such as `~/.claude/skills/tisty`
+  and the shared `~/.agents/skills/tisty`, which Cursor reads too, plus a copy
+  an earlier Tisty left in `~/.cursor/skills/tisty`, only to take it away
+  with a backup), the other files already in those folders, to leave alone
+  any skill that is not Tisty's, and, for Claude Code,
+  `plugins/installed_plugins.json` and `settings.json`, only to tell whether
+  the Tisty plugin already brings them.
   Nothing else in those files is kept, copied or shown. No rule, memory or
   other file of your agents is opened.
 - **Pausing Agents does not reach them.** A pause, for one agent or for the

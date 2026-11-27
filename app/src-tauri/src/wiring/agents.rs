@@ -8,7 +8,8 @@ pub const HUE: &str = "purple";
 pub const FOLDER: &str = tisty_core::agents::FOLDER;
 pub const GLOBAL_FOLDER: &str = "Global";
 
-const SHARED_SKILLS_OWNERS: [&str; 4] = ["codex", "copilot", "gemini", "dsh"];
+// Cursor comes last: it reads the shared folder too, and the order decides who owns copies already written there.
+const SHARED_SKILLS_READERS: [&str; 5] = ["codex", "copilot", "gemini", "dsh", "cursor"];
 const GEMINI_RULES: &str = "tisty-rules.md";
 const GEMINI_MEMORY: &str = "GEMINI.md";
 const CODEX_OVERRIDE: &str = "AGENTS.override.md";
@@ -162,10 +163,10 @@ impl Homes {
             .collect()
     }
 
-    // Codex, Copilot, Gemini and the DeepSeek Harness all read `~/.agents/skills`; the first
+    // Codex, Copilot, Gemini, the DeepSeek Harness and Cursor all read `~/.agents/skills`; the first
     // one here owns it, so it is written once.
     fn shared_owner(&self, detected: &[&Assistant]) -> Option<&'static str> {
-        SHARED_SKILLS_OWNERS
+        SHARED_SKILLS_READERS
             .into_iter()
             .find(|id| detected.iter().any(|one| one.id == *id))
     }
@@ -370,7 +371,7 @@ fn everywhere(homes: &Homes, detected: &[&'static Assistant], card: &Card) -> Ve
     detected
         .iter()
         .filter_map(|one| {
-            let shared = SHARED_SKILLS_OWNERS.contains(&one.id);
+            let shared = SHARED_SKILLS_READERS.contains(&one.id);
             if shared && owner != Some(one.id) {
                 return None;
             }
@@ -722,6 +723,19 @@ pub fn card_at(homes: &Homes, at: &Path) -> Option<(&'static str, Kind, String)>
     })
 }
 
+pub fn cursor_twin(homes: &Homes, at: &Path) -> Option<(PathBuf, PathBuf)> {
+    let (_, skills) = homes.skills_of("cursor")?;
+    let rest = at.strip_prefix(&skills).ok()?;
+    let first = rest.components().next()?;
+    let (_, shared) = homes.skills_of("codex")?;
+    Some((skills.join(first), shared.join(rest)))
+}
+
+// Cursor reads the shared folder, so a Global skill no longer lands in its own.
+pub fn left_for_shared(homes: &Homes, card: &Card, at: &Path) -> bool {
+    card.level == GLOBAL && card.kind == Kind::Skill && cursor_twin(homes, at).is_some()
+}
+
 pub fn owner_of(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
     let detected = homes.detected();
     if at.starts_with(homes.shared()) {
@@ -742,7 +756,7 @@ pub fn readers_of(homes: &Homes, at: &Path, owner: &str) -> Vec<&'static Assista
     homes
         .detected()
         .into_iter()
-        .filter(|one| SHARED_SKILLS_OWNERS.contains(&one.id))
+        .filter(|one| SHARED_SKILLS_READERS.contains(&one.id))
         .collect()
 }
 
@@ -752,7 +766,7 @@ pub fn owner_any(homes: &Homes, at: &Path) -> Option<(&'static str, PathBuf)> {
         return Some(found);
     }
     if at.starts_with(homes.shared()) {
-        return Some((SHARED_SKILLS_OWNERS[0], homes.shared()));
+        return Some((SHARED_SKILLS_READERS[0], homes.shared()));
     }
     ASSISTANTS.iter().find_map(|one| {
         homes
