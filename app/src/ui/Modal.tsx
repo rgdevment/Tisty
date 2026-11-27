@@ -15,7 +15,15 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function Modal({ title, wide, art, onClose, closable, first, children }: Props) {
+export default function Modal({
+  title,
+  wide,
+  art,
+  onClose,
+  closable,
+  first,
+  children,
+}: Readonly<Props>) {
   const box = useRef<HTMLDivElement>(null);
   const heading = useId();
 

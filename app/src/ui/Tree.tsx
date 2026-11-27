@@ -252,7 +252,7 @@ export default function Tree({
       .filter(isDoc);
     const ends = [order.indexOf(anchor.current ?? ""), order.indexOf(id)];
     if (ends.includes(-1)) return null;
-    const [from, to] = ends.sort((a, b) => a - b);
+    const [from, to] = [Math.min(...ends), Math.max(...ends)];
     return order.slice(from, to + 1);
   };
 

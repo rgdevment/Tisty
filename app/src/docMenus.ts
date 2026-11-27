@@ -526,6 +526,17 @@ const languagesChoice = (doc: Filed, h: Hands, place: Place): Choice => {
   );
 };
 
+const awayWhy = (doc: Filed, place: Place): string | null => {
+  if (byAnother(doc)) return t("folderIsAway");
+  return doc.archived ? null : placeWhy(place, "goes");
+};
+
+const dropWhy = (doc: Filed, place: Place): string | null => {
+  if (doc.locked) return t("lockedSaid");
+  if (byAnother(doc)) return t("folderIsAway");
+  return placeWhy(place, "goes");
+};
+
 const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
   unless(
     h,
@@ -564,7 +575,7 @@ const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
         docAway(doc.id, true).then(h.changed).catch(h.fail);
       },
     },
-    byAnother(doc) ? t("folderIsAway") : doc.archived ? null : placeWhy(place, "goes"),
+    awayWhy(doc, place),
   ),
   unless(
     h,
@@ -576,7 +587,7 @@ const everyChoice = (doc: Filed, h: Hands, place: Place): Choice[] => [
       danger: true,
       onPick: () => h.dropDoc(doc),
     },
-    doc.locked ? t("lockedSaid") : byAnother(doc) ? t("folderIsAway") : placeWhy(place, "goes"),
+    dropWhy(doc, place),
   ),
 ];
 

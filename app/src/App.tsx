@@ -117,7 +117,7 @@ export default function App() {
             apart: true,
             onPick: () => {
               letGo();
-              awayDocs(docs);
+              void awayDocs(docs);
             },
           },
           {
