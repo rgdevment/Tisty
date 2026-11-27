@@ -1,11 +1,13 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { folderShown } from "../agentsSync";
 import {
   FOLDER_NAME_AT_MOST,
   folderAdd,
   folderLook,
   folderRename,
+  openLink,
   type Pick,
+  RELEASES,
   type Rift,
   reopen,
   updateInstall,
@@ -60,6 +62,7 @@ export interface MenuOpen {
 }
 
 export default function Layers({ parcels }: { parcels: ReactNode }) {
+  const [stumbled, setStumbled] = useState(false);
   const {
     act,
     cheered,
@@ -194,10 +197,16 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
             setError(null);
             setChosen({ named: "keeping", tab: "sync", movedAt: Date.now() });
           }}
+          onDownload={
+            stumbled && ready && ready.route !== "store"
+              ? () => openLink(RELEASES).catch((problem) => setError(saidPlainly(problem)))
+              : undefined
+          }
           onInstall={() => {
             setUnderway({ stage: "getting", far: 0 });
             updateInstall().catch((problem) => {
               setUnderway(null);
+              setStumbled(true);
               setError(saidPlainly(problem));
               if (offerMoved(problem)) {
                 void lookAgain();
@@ -207,6 +216,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
           onClose={() => {
             setError(null);
             setBehind(false);
+            setStumbled(false);
           }}
         />
       )}

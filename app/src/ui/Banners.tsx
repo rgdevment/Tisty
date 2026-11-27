@@ -8,10 +8,20 @@ interface Alarming {
   underway: Underway | null;
   onTakeMe: () => void;
   onInstall: () => void;
+  onDownload?: () => void;
   onClose: () => void;
 }
 
-export function Alarm({ error, stuck, offer, underway, onTakeMe, onInstall, onClose }: Alarming) {
+export function Alarm({
+  error,
+  stuck,
+  offer,
+  underway,
+  onTakeMe,
+  onInstall,
+  onDownload,
+  onClose,
+}: Alarming) {
   return (
     <div
       role="alert"
@@ -41,6 +51,15 @@ export function Alarm({ error, stuck, offer, underway, onTakeMe, onInstall, onCl
                 : "updateInstalling"
               : "updateInstall",
           )}
+        </button>
+      )}
+      {onDownload && (
+        <button
+          type="button"
+          onClick={onDownload}
+          className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
+        >
+          {t("updateFromWeb")}
         </button>
       )}
       <button

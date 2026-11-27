@@ -9,6 +9,7 @@ import {
   licences,
   notices,
   openLink,
+  RELEASES,
   type Ready,
   type Underway,
   updateAutomatic,
@@ -66,6 +67,7 @@ export default function About({
   const [build, setBuild] = useState<Build | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
   const [asked, setAsked] = useState(false);
+  const [stumbled, setStumbled] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [texts, setTexts] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
@@ -84,6 +86,11 @@ export default function About({
   useEffect(() => {
     setFound(null);
   }, [ready]);
+
+  const offeredVersion = ready?.version;
+  useEffect(() => {
+    if (offeredVersion !== undefined) setStumbled(false);
+  }, [offeredVersion]);
 
   const cards = useCards(() => {});
   const failed = (card: "update" | "candidates" | "autoUpdates") => (problem: unknown) =>
@@ -226,6 +233,7 @@ export default function About({
                         })
                         .catch((problem) => {
                           setAsked(false);
+                          setStumbled(true);
                           onGaveUp?.();
                           if (offerMoved(problem)) lookAgain();
                           failed("update")(problem);
@@ -235,6 +243,22 @@ export default function About({
                   >
                     {t("updateInstall")}
                   </button>
+                )}
+                {!step &&
+                  newer.route !== "store" &&
+                  (stumbled || build?.autoFailed === newer.version) && (
+                    <button
+                      type="button"
+                      onClick={() => openLink(RELEASES).catch(onError)}
+                      className={mild}
+                    >
+                      {t("updateFromWeb")}
+                    </button>
+                  )}
+                {build?.autoFailed === newer.version && (
+                  <span className="w-full text-[11.5px] text-faint">
+                    {fill("updateAloneFailed", newer.version)}
+                  </span>
                 )}
                 <span className="w-full">
                   <Feedback which="update" />

@@ -208,6 +208,12 @@ pub fn remembered(now: &str, said: Option<&str>, kept: Kept, wants: Option<bool>
     (kept_version > here).then(|| offered(kept_version.to_string(), kept))
 }
 
+pub fn alone_failed(now: &str, tried: Option<&str>, found: Option<&str>) -> Option<String> {
+    tried
+        .filter(|one| found == Some(*one) && later(now, one))
+        .map(str::to_owned)
+}
+
 pub fn still_offered(kept: &str, now: &str, found: Option<&str>) -> bool {
     let (Ok(kept_version), Ok(here)) = (
         kept.parse::<semver::Version>(),
