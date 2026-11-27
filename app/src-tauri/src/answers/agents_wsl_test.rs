@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 
-use super::*;
+use super::{InDistro, counted, round_in};
+use crate::answers::agents_sync::Rounded;
 use crate::answers::agents_sync::gated;
 use crate::answers::agents_sync::tests::{HERE, Room, put, room};
+use crate::wiring::agents::{self as places, Homes};
+use tisty_core::agents::{self, Bundled, Ledger};
 
 const DISTRO_ID: &str = "{ABC-12}";
 

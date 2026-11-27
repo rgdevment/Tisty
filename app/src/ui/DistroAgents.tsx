@@ -44,13 +44,13 @@ export default function DistroAgents({
       return;
     }
     last.current = Date.now();
-    agentsWslRound(name, false)
+    void agentsWslRound(name, false)
       .then(setNow)
       .catch(() => undefined);
   }, [name]);
 
   useEffect(() => {
-    agentsWsl([name])
+    void agentsWsl([name])
       .then(([first]) => {
         setNow(first ?? null);
         if (first?.running && (first.agents || first.skills)) round();
@@ -66,7 +66,7 @@ export default function DistroAgents({
 
   const run = (step: Promise<InDistro>) => {
     setBusy(true);
-    step
+    void step
       .then(setNow)
       .catch(failed)
       .finally(() => setBusy(false));
