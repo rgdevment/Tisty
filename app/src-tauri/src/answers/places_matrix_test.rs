@@ -525,6 +525,18 @@ fn doc_away_the_live_ideas_sheet() {
 }
 
 #[test]
+fn doc_the_unmarked_unremembered_live_ideas_sheet_stays() {
+    let mut m = matrix();
+    let live = sheet(&mut m.session);
+    m.session.state.docs.get_mut(&live).unwrap().brainstorm = false;
+    m.session.brainstorm = None;
+    m.refused(|s| s.drop_doc(&live.to_string()), "ideasStay");
+    m.refused(|s| may_go(s, live), "ideasStay");
+    assert!(may_go(&m.session, m.plain).is_ok());
+    assert!(m.session.drop_doc(&m.plain.to_string()).is_ok());
+}
+
+#[test]
 fn doc_away_a_plain_doc_and_the_diary_still_go() {
     let mut m = matrix();
     sheet(&mut m.session);
