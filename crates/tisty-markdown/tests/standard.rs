@@ -117,3 +117,29 @@ fn only_the_word_mmd_turns_into_mermaid_never_letters_inside_a_title() {
         "```title=\"commd\" mermaid\ngraph TD; A-->B\n```\n"
     );
 }
+
+#[test]
+fn a_run_of_spaces_inside_words_goes_out_with_the_spaces_after_the_first_as_nbsp() {
+    assert_eq!(alone("uno   dos"), "uno &nbsp;&nbsp;dos");
+    assert_eq!(alone("# Un   título"), "# Un &nbsp;&nbsp;título");
+    assert_eq!(alone("uno  dos y tres"), "uno &nbsp;dos y tres");
+    assert_eq!(alone("a **b  c** d"), "a **b &nbsp;c** d");
+}
+
+#[test]
+fn a_run_of_spaces_stays_as_written_where_it_means_something_else() {
+    for (kept, out) in [
+        ("x `a   b` y", "x `a   b` y"),
+        ("```\na   b\n```", "```\na   b\n```"),
+        ("- uno   dos", "- uno   dos"),
+        ("1.   uno", "1.   uno"),
+        ("#   Título", "#   Título"),
+        ("[a   b](https://x.y)", "[a   b](https://x.y)"),
+        ("uno\n   dos", "uno\\\n   dos"),
+        ("    codigo   aqui", "    codigo   aqui"),
+        ("uno  \ndos", "uno  \ndos"),
+        ("uno   ", "uno   "),
+    ] {
+        assert_eq!(alone(kept), out, "{kept:?}");
+    }
+}

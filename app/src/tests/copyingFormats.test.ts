@@ -183,6 +183,10 @@ describe("copying the page as plain text", () => {
     expect(plain).toBe(plain.trim());
   });
 
+  it("copies a run of spaces drawn with no-break spaces as plain spaces", () => {
+    expect(copiedAs("", fragment("<p>uno   dos</p>")).plain).toBe("uno   dos");
+  });
+
   it("drops the furniture", () => {
     for (const text of FURNITURE_TEXT) expect(plain).not.toContain(text);
   });

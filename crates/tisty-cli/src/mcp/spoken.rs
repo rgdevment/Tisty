@@ -40,7 +40,7 @@ pub(super) fn heard(mut reply: Value, changed: &[&str]) -> Value {
 
 /// One piece of Markdown in the Tisty language, noting what had to change.
 pub(super) fn said_in_tisty(said: &str, changed: &mut Vec<&'static str>) -> String {
-    let made = tisty_core::arriving::tidied(said);
+    let made = tisty_core::arriving::arrived(said);
     for what in made.changed {
         if what != "Windows line endings" && !changed.contains(&what) {
             changed.push(what);

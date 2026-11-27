@@ -15,6 +15,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no | no |
 | [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí | salvo una `https://…` suelta |
 | [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta | las junta |
+| [Espacios seguidos](#párrafos-y-saltos-de-línea) | `uno   dos` | los junta | los junta |
 | [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí | listas, no etapas |
 | [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí | citas, no avisos |
 | [Secciones plegables](#secciones-plegables) | `:::details Título` … `:::` | no | no |
@@ -121,6 +122,8 @@ Este ya es un párrafo nuevo.
 GitHub junta esas dos líneas en una cuando muestra un archivo; Tisty las deja separadas. Una barra invertida al final de la línea la corta en todas partes.
 
 Escribiendo en un bloque, `Enter` deja esa línea en blanco y empieza un párrafo, y `Shift` + `Enter` corta la línea con una barra invertida al final, que la corta en cualquier lector. En un título, que no admite cortes, empieza la línea siguiente.
+
+Varios espacios seguidos dentro de una línea se quedan como los escribes, y Tisty los dibuja todos. GitHub y CommonMark los juntan en uno; al exportar a Markdown estándar, Tisty escribe los que sobran como `&nbsp;` para que se vean igual. Al principio y al final de una línea, al final de un párrafo y en los bordes de una celda no cuentan, y cuatro espacios al empezar una línea la vuelven código.
 
 Para escribir una línea que si no empezaría otra cosa (un título, una lista, una cita), pon una barra invertida delante: `\#`, `\-`, `1\.`, `\>`.
 

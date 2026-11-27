@@ -110,8 +110,20 @@ fn converted(html: &str, pasted: bool) -> String {
     }
     match super::pasted::arrived(&tree.root()) {
         Arrived::Laid(said) | Arrived::Written(said) => said,
-        Arrived::Formatted => converter.convert(&tree).unwrap_or_default(),
+        Arrived::Formatted => evened(&converter.convert(&tree).unwrap_or_default()),
     }
+}
+
+// Tisty draws a run of spaces as typed, so a gap held with no-break spaces arrives as plain ones; at a line's start they stay, or four would make code.
+fn evened(said: &str) -> String {
+    said.split('\n')
+        .map(|line| {
+            let words = line.trim_start_matches([' ', '\u{a0}']);
+            let lead = &line[..line.len() - words.len()];
+            format!("{lead}{}", words.replace('\u{a0}', " "))
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 const TURNS: [&str; 4] = [

@@ -10,6 +10,8 @@ mod pasted;
 mod plain;
 #[path = "arriving_separated.rs"]
 mod separated;
+#[path = "arriving_spaces.rs"]
+mod spaces;
 #[path = "arriving_word.rs"]
 mod word;
 
@@ -73,6 +75,21 @@ const TAGS: [(&str, &str, &str); 8] = [
     ("del", "~~", "~~"),
     ("strike", "~~", "~~"),
 ];
+
+/// What arrives from elsewhere in Tisty's words; a document already here is mended by `tidied` alone.
+pub fn arrived_among(body: &str, titles: &Titles) -> Tidied {
+    let even = spaces::spaced_back(body);
+    let mut made = tidied_among(&even, titles);
+    if even != body {
+        made.changed
+            .push("spaces written as &nbsp;, as plain spaces now");
+    }
+    made
+}
+
+pub fn arrived(body: &str) -> Tidied {
+    arrived_among(body, &Titles::default())
+}
 
 pub fn tidied(body: &str) -> Tidied {
     tidied_among(body, &Titles::default())

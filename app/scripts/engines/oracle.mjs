@@ -3,7 +3,8 @@ import { deletes, taken } from "./steps.mjs";
 
 export const INVARIANT =
   "after every step that is not Backspace, Delete, a word or line delete, undo, redo or a key over a selection, " +
-  "every letter of the Markdown before the step is still in it, in the same order";
+  "every letter of the Markdown before the step is still in it, in the same order; " +
+  "a typed space with nothing selected grows the Markdown by exactly one space";
 
 const NOISE = /^(window|page): (ResizeObserver loop|Script error\.)/;
 const OPENED_MS = 400;
@@ -21,6 +22,14 @@ const lettersLost = (was, now) => {
   if (at === before.length) return null;
   const change = changeOf(was, now);
   return `lost "${before[at]}": took ${JSON.stringify(change.was)} and wrote ${JSON.stringify(change.now)}`;
+};
+
+const spacesOf = (text) => (text.match(/ /g) ?? []).length;
+
+const spaceCollapsed = (was, now, step) => {
+  if (step[0] !== "type" || step[1] !== " " || was.spread) return null;
+  const grew = spacesOf(now.text) - spacesOf(was.text);
+  return grew === 1 ? null : `a typed space grew the source by ${grew} spaces, not 1`;
 };
 
 const stateOf = async (page, frame) => {
@@ -58,6 +67,8 @@ const faultAfter = async (page, frame, was, step, at, last) => {
   const keeps = !was.spread && !deletes(step);
   const lost = keeps && lettersLost(was.text, now.text);
   if (lost) return { fault: { at, kind: "letters", said: lost } };
+  const squeezed = spaceCollapsed(was, now, step);
+  if (squeezed) return { fault: { at, kind: "spaces", said: squeezed } };
   if ((at + 1) % DRAWN_EVERY !== 0 && !last) return { now };
   const fits = await settled(page);
   const after = await stateOf(page, frame);

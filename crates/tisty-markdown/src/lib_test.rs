@@ -1422,3 +1422,31 @@ fn marks_written_inside_an_address_and_again_past_it_still_draw_the_page() {
     let marked = html(&read("see https://x.com/a==b and ==yellow== here"));
     assert!(marked.contains("<mark"), "{marked:?}");
 }
+
+#[test]
+fn spaces_typed_in_a_row_are_drawn_each_one_after_the_first_unbreakable() {
+    let drawn = html(&read("uno   dos"));
+    assert!(drawn.contains("uno \u{a0}\u{a0}dos"), "{drawn:?}");
+    let drawn = html(&read("uno dos y tres"));
+    assert!(drawn.contains("uno dos y tres"), "{drawn:?}");
+    assert!(!drawn.contains('\u{a0}'), "{drawn:?}");
+}
+
+#[test]
+fn spaces_in_a_row_keep_their_run_in_the_placed_page_and_in_inline_code() {
+    let placed_page = html_placed(&read("uno   dos **a  b**"));
+    assert!(
+        placed_page.contains("uno \u{a0}\u{a0}dos "),
+        "{placed_page:?}"
+    );
+    assert!(placed_page.contains("a \u{a0}b"), "{placed_page:?}");
+    let code = html(&read("x `a   b` y"));
+    assert!(code.contains("<code>a \u{a0}\u{a0}b</code>"), "{code:?}");
+}
+
+#[test]
+fn an_entity_among_spaces_is_left_as_written() {
+    let drawn = html(&read("a &copy;  b"));
+    assert!(drawn.contains("&copy; \u{a0}b"), "{drawn:?}");
+    assert!(!drawn.contains("&amp;copy;"), "{drawn:?}");
+}
