@@ -200,6 +200,18 @@ Con los hooks, cuando un turno editó archivos y no escribió nada en Tisty, el 
 
 Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty: un turno fuera de una tarea cuesta como mucho un turno extra.
 
+### 11. Lo que solo puedes hacer tú va en tu tarea
+
+Una tarea es del agente o tuya, nunca de los dos: si se mezclan, no termina nunca. Por eso `propose` pide `for`, «agent» o «person». Cuando un paso del agente resulta tuyo, como probarlo a mano, publicar o mergear, lo pasa a tu tarea:
+
+```json
+> unplan {"task": "…", "step": "Probar el pago en el teléfono", "to_person": true}
+{ "to_person": true, "companion_made": true,
+  "said": "Handed 1 step(s) from \"Webhook de confirmación\" to the person, in a new task of theirs, \"Webhook de confirmación: lo que te toca\", filed as its part: it never holds yours open. 2 left on \"Webhook de confirmación\"; `say_done` it when they are done." }
+```
+
+Cada tarea tiene una sola compañera tuya, así que tus tareas siguen siendo pocas. Tu parte nunca deja abierta la del agente, y al confirmar la del agente la tuya sigue ahí. Al terminar, el agente hace `say_done` con la rama o el PR y cómo lo comprobó, sin esperar el merge, que es tuyo.
+
 Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmación» **en curso**, con 1 de 3 pasos y la primera línea de su estado.
 
 ## Lo que ves tú
@@ -209,6 +221,8 @@ Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmaci
 - **En Enlazado desde**, «Pagos: decisiones» ahora nombra la tarea.
 - **En la red de Brainsty**, las nuevas líneas entran a la base a los pocos segundos, y las ves la próxima vez que abres la red.
 - **Nada se cierra sin ti.** Cuando el agente dice que una tarea está hecha, espera en **Por confirmar**.
+- **Dos secciones en cada lista.** **Te toca** junta lo tuyo, con su casilla de siempre. **Lo hace el agente** junta lo suyo: ahí solo confirmas o lo dejas pendiente, y la fila muestra las primeras líneas de su prueba, con la rama o el PR, así que no hace falta abrirla. Con dos o más ya hechas aparece **Confirmar las N hechas**.
+- **Tu parte enlazada.** Tu tarea compañera dice **espera a «…»** mientras el agente trabaja, y **tu parte de «…»** cuando ya terminó.
 
 ## Las herramientas que pasaron a `brain` y a `read`
 

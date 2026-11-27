@@ -23,7 +23,7 @@ Las reglas detrás están en [[Qué puede hacer un agente|Qué-puede-hacer-un-ag
 
 | Herramienta | Qué hace |
 | :-- | :-- |
-| `propose` | Proponer una tarea con un `title`, y sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
+| `propose` | Proponer una tarea con un `title` y `for`, de quién es: «agent» si la hace el agente, «person» si solo puedes hacerla tú. Lleva sus pasos, fecha, lista y origen, o varias a la vez en `tasks`, cada una con sus propios campos. Una tarea hecha a partir de una idea de **Ideas** lleva la idea como origen, y la idea sale de la hoja, como cuando tú la conviertes en tarea |
 | `remind` | Hacer que una tarea suene a una hora |
 | `reschedule` | Mover el día de una tarea que anotó un agente |
 | `describe` | Escribir la descripción de una tarea abierta, también las tuyas, reemplazando la anterior |
@@ -32,11 +32,11 @@ Las reglas detrás están en [[Qué puede hacer un agente|Qué-puede-hacer-un-ag
 | `reword_note` | Reescribir una nota de la bitácora de una tarea |
 | `plan` | Añadir pasos a una tarea |
 | `reword_step` | Reescribir un paso abierto |
-| `unplan` | Quitar pasos abiertos de una tarea o, con `to`, pasarlos a la tarea a la que pertenecen |
+| `unplan` | Quitar pasos abiertos de una tarea; con `to`, pasarlos a la tarea a la que pertenecen, y con `to_person`, a tu tarea compañera, que se crea la primera vez |
 | `move` | Colgar una tarea de otra como parte, soltar una parte o mover una tarea a otra lista |
 | `tick` | Marcar los pasos que hizo; en una tarea tuya esperan a que los confirmes. En la misma llamada deja el estado de la tarea, una sección «Estado» en su página que se escribe entera cada vez: lo hecho, lo que falta, las decisiones vigentes y lo descartado |
 | `untick` | Quitar una marca que puso por error |
-| `say_done` | Decir que una tarea está terminada, también las tuyas, para que lo confirmes |
+| `say_done` | Decir que una tarea está terminada, también las tuyas, para que lo confirmes, con la rama (`branch`) o el PR (`pr`) si los hay |
 | `say_not_doing` | Decir que una tarea no debería hacerse, también las tuyas, para que lo confirmes |
 
 ## Documentos

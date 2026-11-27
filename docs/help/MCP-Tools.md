@@ -23,7 +23,7 @@ See [[What an agent may do|MCP-Permissions]] for the rules behind them.
 
 | Tool | What it does |
 | :-- | :-- |
-| `propose` | Propose a task with a `title`, and its steps, date, list and source — or several at once in `tasks`, each carrying its own fields. A task made from an idea in **Ideas** names the idea as its source, and the idea leaves the sheet, as it does when you turn it into a task |
+| `propose` | Propose a task with a `title` and `for`, whose it is: «agent» when the agent does it, «person» when only you can. It carries its steps, date, list and source — or several at once in `tasks`, each carrying its own fields. A task made from an idea in **Ideas** names the idea as its source, and the idea leaves the sheet, as it does when you turn it into a task |
 | `remind` | Set a task to ring at an hour |
 | `reschedule` | Move the day of a task an agent filed |
 | `describe` | Write the description of an open task, yours too, replacing the old one |
@@ -32,11 +32,11 @@ See [[What an agent may do|MCP-Permissions]] for the rules behind them.
 | `reword_note` | Rewrite a note in a task's journal |
 | `plan` | Add steps to a task |
 | `reword_step` | Rewrite an open step |
-| `unplan` | Take open steps off a task — or, with `to`, hand them to the task they belong on |
+| `unplan` | Take open steps off a task; with `to`, hand them to the task they belong on, and with `to_person`, to your companion task, made the first time |
 | `move` | Hang a task under another as a part, let a part go, or move a task to another list |
 | `tick` | Tick the steps it did; on a task of yours they wait for you to confirm. In the same call it leaves the task's state, a «State» section on its page written whole each time: what is done, what is left, the decisions in force and what was ruled out |
 | `untick` | Take back a tick it gave by mistake |
-| `say_done` | Say a task is finished, yours too — for you to confirm |
+| `say_done` | Say a task is finished, yours too — for you to confirm, with the branch (`branch`) or pull request (`pr`) when there is one |
 | `say_not_doing` | Say a task should not be done, yours too — for you to confirm |
 
 ## Documents
