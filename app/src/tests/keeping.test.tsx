@@ -3684,6 +3684,8 @@ describe("the settings search index", () => {
             store: "",
             candidates: false,
             candidatesApply: true,
+            autoUpdates: false,
+            autoUpdatesApply: true,
             keptByTheStore: false,
           })
         : before(cmd, args);

@@ -65,6 +65,8 @@ vi.mock("@tauri-apps/api/core", () => ({
           store: "",
           candidates: false,
           candidatesApply: true,
+          autoUpdates: false,
+          autoUpdatesApply: true,
           keptByTheStore: false,
           standing: { ...ipc.standing },
         });

@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useRef, useState } from "react";
-import { type Ready, type Underway, updateReady } from "./core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Ready, type Underway, updateAloneDue, updateReady } from "./core";
 import { noticeBehind } from "./refusal";
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
@@ -56,6 +56,24 @@ export function useUpdates() {
       .catch(() => {});
 
   return { ready, lookAgain, underway, setUnderway, behind, setBehind };
+}
+
+export function useAloneOffer(looked: unknown) {
+  const [alone, setAlone] = useState(false);
+  const putOff = useRef(false);
+  useEffect(() => {
+    if (putOff.current || looked === undefined) return;
+    updateAloneDue()
+      .then((due) => {
+        if (due && !putOff.current) setAlone(true);
+      })
+      .catch(() => {});
+  }, [looked]);
+  const settleAlone = useCallback(() => {
+    putOff.current = true;
+    setAlone(false);
+  }, []);
+  return { alone, settleAlone };
 }
 
 export function useTight() {

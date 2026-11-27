@@ -27,7 +27,7 @@ import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
 import { usePinned } from "./usePinned";
 import { type Chosen, type Slice, useReach } from "./views";
-import { useAloud, useTight, useUpdates } from "./watching";
+import { useAloneOffer, useAloud, useTight, useUpdates } from "./watching";
 
 export type Mode = "columns" | "sheet";
 
@@ -155,6 +155,7 @@ export function useWindow() {
   });
   useCalledTasks({ setChosen, setHeld, setSelected });
   const { waking, settleWaking } = useWakeOffer(data);
+  const { alone, settleAlone } = useAloneOffer(data);
   useOnlyAlive(data?.lists, chosen, setChosen);
 
   useListening({
@@ -291,6 +292,8 @@ export function useWindow() {
     latest,
     waking,
     settleWaking,
+    alone,
+    settleAlone,
     settling,
     stuck,
     setStuck,

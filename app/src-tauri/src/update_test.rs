@@ -746,3 +746,36 @@ RWQ=
     }
     assert_eq!(super::updater_key(&spare), None);
 }
+
+#[test]
+fn what_was_kept_is_still_offered_when_the_feed_found_it_and_it_is_newer() {
+    assert!(still_offered("0.3.0", "0.2.0", Some("0.3.0")));
+}
+
+#[test]
+fn what_was_kept_is_not_offered_when_the_feed_found_another_version_or_none() {
+    assert!(!still_offered("0.3.0", "0.2.0", Some("0.4.0")));
+    assert!(!still_offered("0.3.0", "0.2.0", None));
+}
+
+#[test]
+fn what_was_kept_is_not_offered_once_this_copy_is_that_version_or_newer() {
+    assert!(!still_offered("0.3.0", "0.3.0", Some("0.3.0")));
+    assert!(!still_offered("0.3.0", "0.4.0", Some("0.3.0")));
+}
+
+#[test]
+fn what_was_kept_is_not_offered_when_either_version_is_not_semver() {
+    assert!(!still_offered("soon", "0.2.0", Some("soon")));
+    assert!(!still_offered("0.3.0", "dev", Some("0.3.0")));
+}
+
+#[test]
+fn a_candidate_newer_than_the_stable_copy_is_still_offered() {
+    assert!(still_offered("0.3.0-rc.1", "0.2.0", Some("0.3.0-rc.1")));
+}
+
+#[test]
+fn a_candidate_of_the_version_already_running_is_not_offered() {
+    assert!(!still_offered("0.3.0-rc.1", "0.3.0", Some("0.3.0-rc.1")));
+}

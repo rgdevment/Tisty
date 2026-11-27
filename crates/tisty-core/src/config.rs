@@ -440,6 +440,10 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidates: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_updates: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_tried: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub here_since: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_for_a_star: Option<bool>,
@@ -530,6 +534,8 @@ impl Config {
             guide: None,
             sown: Some(false),
             candidates: None,
+            auto_updates: None,
+            auto_tried: None,
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
             asked_to_wire: None,

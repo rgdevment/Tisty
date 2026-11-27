@@ -50,6 +50,8 @@ const build = (over: Partial<Standing> = {}): About => ({
   store: "",
   candidates: false,
   candidatesApply: true,
+  autoUpdates: false,
+  autoUpdatesApply: true,
   keptByTheStore: false,
   standing: standing(over),
 });

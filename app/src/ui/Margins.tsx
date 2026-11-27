@@ -1,6 +1,7 @@
 import { useDesk } from "../desk";
 import { saidPlainly } from "../refusal";
 import { shown } from "../tongues";
+import Alone from "./Alone";
 import Detail from "./Detail";
 import Door from "./Door";
 import Pulse from "./Pulse";
@@ -28,6 +29,8 @@ export default function Margins() {
     setError,
     waking,
     settleWaking,
+    alone,
+    settleAlone,
   } = useDesk();
   return (
     <>
@@ -94,15 +97,34 @@ export default function Margins() {
         />
       )}
 
-      {starring && !offering && !waking && quiet && (aside || chosen.named === "docs") && (
-        <Star
+      {alone && !offering && !waking && quiet && (
+        <Alone
           apart={
-            aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+            aside
+              ? "right-3 @min-[884px]:right-[324px]"
+              : chosen.named === "docs"
+                ? "right-3 @min-[1440px]:right-[344px]"
+                : "right-3"
           }
-          onSettled={() => setStarring(false)}
+          onSettled={settleAlone}
           onError={(problem) => setError(saidPlainly(problem))}
         />
       )}
+
+      {starring &&
+        !offering &&
+        !waking &&
+        !alone &&
+        quiet &&
+        (aside || chosen.named === "docs") && (
+          <Star
+            apart={
+              aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+            }
+            onSettled={() => setStarring(false)}
+            onError={(problem) => setError(saidPlainly(problem))}
+          />
+        )}
     </>
   );
 }

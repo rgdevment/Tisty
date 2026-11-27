@@ -11,6 +11,7 @@ import {
   openLink,
   type Ready,
   type Underway,
+  updateAutomatic,
   updateCandidates,
   updateInstall,
   updateReady,
@@ -85,7 +86,7 @@ export default function About({
   }, [ready]);
 
   const cards = useCards(() => {});
-  const failed = (card: "update" | "candidates") => (problem: unknown) =>
+  const failed = (card: "update" | "candidates" | "autoUpdates") => (problem: unknown) =>
     cards.fail({ card, text: saidPlainly(problem) });
 
   const lookAgain = () => {
@@ -268,6 +269,36 @@ export default function About({
               <div {...settingAt("candidates")} className="mt-3">
                 <span className="block text-[12.5px]">{t("betaTake")}</span>
                 <Note kind="na">{t("betaStore")}</Note>
+              </div>
+            )}
+
+            {build?.autoUpdatesApply && (
+              <div {...settingAt("autoUpdates")} className="mt-3">
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={build.autoUpdates}
+                    onChange={(e) => {
+                      const wants = e.target.checked;
+                      setBuild((was) => (was ? { ...was, autoUpdates: wants } : was));
+                      cards.clear("autoUpdates");
+                      updateAutomatic(wants)
+                        .then(() => cards.tell({ card: "autoUpdates", text: t("settingsKept") }))
+                        .catch((problem) => {
+                          setBuild((was) => (was ? { ...was, autoUpdates: !wants } : was));
+                          failed("autoUpdates")(problem);
+                        });
+                    }}
+                    className="mt-px size-[13px] shrink-0 accent-accent"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[12.5px]">{t("autoTake")}</span>
+                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-faint">
+                      {t("autoWhy")}
+                    </span>
+                  </span>
+                </label>
+                <Feedback which="autoUpdates" />
               </div>
             )}
 
