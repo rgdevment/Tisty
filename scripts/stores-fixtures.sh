@@ -78,7 +78,7 @@ fetch() {
   mkdir -p "$dir/unpacked"
   gh release download "v$version" --repo "$repo" --pattern "$file" --dir "$dir" \
     || fail "$file could not be downloaded"
-  gh attestation verify "$dir/$file" --repo "$repo" \
+  gh attestation verify "$dir/$file" --owner "${repo%%/*}" \
     --signer-workflow "$repo/.github/workflows/release.yml" > /dev/null \
     || fail "$file is not what $repo built, so nothing was run"
   case $file in

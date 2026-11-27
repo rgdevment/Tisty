@@ -142,8 +142,13 @@ Only two places:
 
 - The **releases page** of this repository, where every artefact carries a
   SHA256 checksum and a [Sigstore](https://www.sigstore.dev/) attestation tying
-  it to the commit, workflow and runner that produced it. Verify it with
-  `gh attestation verify <file> --repo rgdevment/Tisty`.
+  it to the commit, workflow and runner that produced it. Verify it with:
+
+  ```sh
+  gh attestation verify <file> --owner rgdevment \
+    --signer-workflow rgdevment/Tisty/.github/workflows/release.yml
+  ```
+
 - The **stores and package managers** listed in the README.
 
 A build from anywhere else is not ours, however it is named.

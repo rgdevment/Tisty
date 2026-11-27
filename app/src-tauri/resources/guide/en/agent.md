@@ -16,7 +16,7 @@ This sheet is a page of the guide. It tells you how to work with an AI agent in 
 
 **Connect the 3 found**, with however many wait, connects every one waiting in one go. If yours is not there, the search under the list finds it among the agents Tisty knows.
 
-When you connect Claude Code, Cursor, Gemini CLI or GitHub Copilot, its hooks and Tisty's skills, which this page tells further down, come with it and stay on: Tisty shows you the files first, with a tick to leave each one out. What you untick stays off, with its switch under the agent's row. Codex, which has no hooks, sees only the skills.
+When you connect Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI or GitHub Copilot, its hooks and Tisty's skills, which this page tells further down, come with it and stay on: Tisty shows you the files first, with a tick to leave each one out. What you untick stays off, with its switch under the agent's row. Codex runs the hooks only once you approve them there with `/hooks`, and its row reminds you.
 
 Then quit the agent completely and open it again: it reads its settings when it starts. If you would rather do it by hand, with a plugin or inside WSL, every way is in [agents and MCP](https://www.tisty.app/docs/agents-and-mcp/).
 
@@ -34,7 +34,7 @@ Nothing listens until you connect one: the agent starts Tisty when it needs it, 
 An agent deep in code forgets about Tisty. Two things help, and you can turn both off in **Settings › Agents › Door**:
 
 - **Ask it to keep its task up to date**: if it keeps working and the task it opened has gone ten minutes without a word from it, or while it writes three other things, Tisty's next answer asks it once to tick what it did and, if it finished, to say so with the proof. It reaches every agent, though only when it calls Tisty.
-- **The hooks**: in Claude Code, Cursor, Gemini CLI and GitHub Copilot, the **Tisty's hooks** switch, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. Turning it off takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
+- **The hooks**: in Claude Code, Codex, Cursor, Antigravity CLI, Gemini CLI and GitHub Copilot, the **Tisty's hooks** switch, under the row of the connected agent, tells you which file it will write and puts Tisty's hooks there. From its next session on, and while the door is open, every session starts with the last open tasks that same agent wrote in, what moved and what is pressing, even if the agent never calls Tisty; and if a turn edited files without writing anything in Tisty, it hands the turn back once so it ticks what it finished. Turning it off takes them out, and **Remind it when a turn starts and ends** turns them off without taking them out.
 
 ## So it knows how to work: Tisty's skills
 
@@ -46,7 +46,7 @@ Tisty brings three skills that teach your agent to work with it. There are no co
 | `consolidate` | Tidying what is kept: it proposes each fix and never deletes | “Tidy up my Tisty” |
 | `next-agent` | Writing so the next agent understands it without the conversation | “Make this page clear for the next agent” |
 
-You turn them on when you connect an agent or in **Settings › Agents › Connected**, with the switch under each agent or on the **Tisty's skills** row, at the end of the list: **See** opens their card, which says where they go on this computer and what Tisty reads to write them, and **Turn on here** is their yes. They have their own yes and need no Agents folder: they reach `~/.claude/skills`, `~/.cursor/skills` and `~/.agents/skills`, the one Codex, Copilot and Gemini share.
+You turn them on when you connect an agent or in **Settings › Agents › Connected**, with the switch under each agent or on the **Tisty's skills** row, at the end of the list: **See** opens their card, which says where they go on this computer and what Tisty reads to write them, and **Turn on here** is their yes. They have their own yes and need no Agents folder: they reach `~/.claude/skills`, for Claude Code, and `~/.agents/skills`, the folder of the Agent Skills standard that Codex, Copilot, Gemini, DeepSeek Harness and Cursor share.
 
 - **They update by themselves** with each Tisty version, and never write over a skill of yours with the same name or a copy you changed.
 - **They count only on this computer**: on another one you decide there. Pausing Agents does not reach them: they have their own switch.
@@ -56,6 +56,17 @@ You turn them on when you connect an agent or in **Settings › Agents › Conne
 **An example.** Yisset connects Claude Code and leaves its hooks and the skills ticked. The next day she writes “Pick up where we left off”: the agent asks for `catch_up`, opens the task it was on, «Export the monthly report to CSV», and carries on from its **State**. Before she goes, “Leave this ready for the next agent” leaves the steps ticked, the state up to date and a note with what it ruled out. That stays on the task: another day, in Codex, name the task by its title and Codex reads the state and the note right there. “Pick up where we left off”, instead, takes each agent to the last thing it left.
 
 All of it, case by case and with the agent's calls, is in [hooks and skills](https://www.tisty.app/docs/hooks-and-skills/).
+
+## Your own hooks
+
+Besides Tisty's, you can write your own: a script your agent runs at a moment you choose.
+
+1. In the sidebar, **Agents › Global › Hooks**, press **+**. Give it a name, the kind of script (`.ps1`, `.sh`, `.py` or `.js`), the moment (when a session starts, when you send a message, before or after a tool, when a turn ends), the tools and the agents. It starts as **Only this computer**.
+2. Write the script on its page, like any document.
+3. **Register** shows you the whole script and the files it will touch, and **Yes, register** puts it in each chosen agent. It is one yes per hook and per computer, and any change to its words asks again, on every computer.
+4. **Verify** says, agent by agent, whether it is in its file and runs this Tisty. **Try it once** runs the script for real, with a sample of what the agent would send, and tells you how it ended.
+
+The script gets what the agent sends, plus `TISTY_HOOK_EVENT` and `TISTY_HOOK_AGENT`. If it ends with 0, it lets the call through; if it ends with 2 before a tool, it stops it and the agent reads what it wrote to stderr. With the door closed, it does not run. No agent makes or changes a hook: only you, in Tisty.
 
 ## What it reads: Brainsty
 

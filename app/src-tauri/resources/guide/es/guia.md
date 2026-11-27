@@ -283,7 +283,7 @@ Un manual para la gente con la que trabajas, en español y en inglés; un contra
 
 ![Esta guía con su selector Español / English, el papel de sus hojas y su índice en el panel de al lado](idiomas.png)
 
-**Para traducir uno**, abre el menú del documento y elige **Traducir a…**: Tisty crea una copia de su texto y de sus páginas, lista para que la traduzcas sección por sección. Si ya tienes los dos escritos, **Unir con su otro idioma…** los junta, y **Separar de sus idiomas** los vuelve a separar.
+**Para traducir uno**, abre el menú del documento y elige **Traducir a…**: Tisty crea una copia de su texto y de sus páginas, lista para que la traduzcas sección por sección. Si ya tienes los dos escritos, **Unir con su otro idioma…** los junta, y **Separar de sus idiomas** los vuelve a separar. Ideas y el Diario son uno solo: no se traducen ni se unen con otro idioma.
 
 El selector está en el panel del título y te deja en la misma sección del otro idioma. **Pruébalo:** elige English en esta guía y llegas aquí mismo, en inglés; vuelve con Español. Mover, archivar o borrar actúa sobre todos los idiomas a la vez.
 
@@ -492,7 +492,7 @@ Tisty no guarda una versión en cada tecla. Lo que había queda como versión cu
 
 - **La página de una tarea** tiene lo mismo en **Versiones de esta página**, y vuelven las palabras sin quitar ningún paso.
 - **Cada página de un libro y tu hoja de Ideas** llevan su propio historial.
-- **Un documento de Agentes** lo abre con **Historial**, al pie de su ficha. Ahí los **Respaldos** son otra cosa: lo que tenía el archivo de tu agente antes de que Tisty escribiera en él. Lo cuenta [Agentes: las reglas de tus agentes](tisty:agents).
+- **Un documento de Agentes** lo abre con **Historial**, al pie de su ficha. En la misma lista están las copias del archivo, que son otra cosa: lo que tenía el archivo de tu agente antes de que Tisty escribiera en él. **Vaciar el historial** no las borra. Lo cuenta [Agentes: las reglas de tus agentes](tisty:agents).
 - **Un documento archivado** muestra su historial, pero no ofrece volver: desarchívalo primero.
 - **Una fila en gris** es una versión que guarda otro de tus equipos, «No está en este equipo; lo guarda…». Se lee allá.
 - **Tu agente** también puede listar las versiones, leer una y volver a ella, y nunca vaciar el historial ni ver el de tu diario. Lo cuenta [la página de tu agente](tisty:agent).

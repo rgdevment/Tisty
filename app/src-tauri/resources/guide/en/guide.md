@@ -283,7 +283,7 @@ A manual for the people you work with, in Spanish and English; a contract in two
 
 ![This guide with its Español / English selector, the paper of its sheets and its outline in the side panel](languages.png)
 
-**To translate one**, open the document's menu and choose **Translate into…**: Tisty makes a copy of its text and its pages, ready for you to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again.
+**To translate one**, open the document's menu and choose **Translate into…**: Tisty makes a copy of its text and its pages, ready for you to translate section by section. If you already have both written, **Join with its other language…** brings them together, and **Take out of its languages** separates them again. Ideas and the Diary are one each: they are not translated or joined with another language.
 
 The switch sits in the title panel and takes you to the same section in the other language. **Try it:** pick Español in this guide and you land right here, in Spanish; come back with English. Moving, archiving or deleting acts on every language at once.
 
@@ -492,7 +492,7 @@ Tisty does not keep a version at every key. What was there is kept as a version 
 
 - **A task's page** has the same under **Versions of this page**, and the words come back without removing any step.
 - **Each page of a book and your Ideas sheet** carry a history of their own.
-- **An Agents document** opens it with **History**, at the foot of its card. There, **Backups** are something else: what your agent's file held before Tisty wrote in it. [Agents: your agents' rules](tisty:agents) tells it.
+- **An Agents document** opens it with **History**, at the foot of its card. The same list holds the file's copies, which are something else: what your agent's file held before Tisty wrote in it. **Empty the history** does not remove them. [Agents: your agents' rules](tisty:agents) tells it.
 - **An archived document** shows its history but does not offer to go back: unarchive it first.
 - **A greyed row** is a version another of your computers keeps, «Not on this computer; … keeps it». It is read there.
 - **Your agent** can also list the versions, read one and go back to it, and never empty the history or see your diary's. [Your agent's page](tisty:agent) tells it.
