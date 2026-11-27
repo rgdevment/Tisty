@@ -1380,7 +1380,7 @@ export default function Sheet(props: Readonly<Props>) {
         }}
         className={`tisty-sheet relative mx-auto overflow-hidden ${props.agent ? "border-x border-line bg-sheet " : "rounded-[10px] bg-sheet "}${lively ? "flex min-h-0 flex-1 flex-col" : "shrink-0"} ${widthOf}`}
       >
-        {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
+        {!ready && !shown.current && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         {lively && ready && <FrameThumb frame={framed} ready={ready} turned={turned} />}
         {lively && ready && !props.sheet && props.more && (
           <TitleRow frame={framed}>{props.more}</TitleRow>
