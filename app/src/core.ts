@@ -401,6 +401,8 @@ export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Pro
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 
+export const RELEASES = "https://github.com/rgdevment/Tisty/releases/latest";
+
 export type Viewed = { id: string; file: string; title: string; place: string };
 export type Showing = PieceShowing | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
@@ -640,6 +642,7 @@ export interface About {
   candidatesApply: boolean;
   autoUpdates: boolean;
   autoUpdatesApply: boolean;
+  autoFailed?: string | null;
   keptByTheStore: boolean;
   notSold?: boolean;
   standing?: Standing;

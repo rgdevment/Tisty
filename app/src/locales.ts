@@ -1902,6 +1902,8 @@ const en = {
   updateUnconfirmed: "The list of updates could not be confirmed just now. Try again in a while.",
   updateMoved: "That version is no longer offered; {name} is.",
   updateStopped: "The update stopped before it was installed.",
+  updateFromWeb: "Download from the website",
+  updateAloneFailed: "The automatic update to {name} did not finish.",
   autoTake: "Install updates automatically",
   autoWhy:
     "They download in the background and install when you quit or open Tisty, never while you work.",
@@ -5835,6 +5837,8 @@ const es: Catalog = {
     "Ahora mismo no se pudo confirmar la lista de actualizaciones. Prueba de nuevo en un rato.",
   updateMoved: "Esa versión ya no se ofrece; ahora se ofrece la {name}.",
   updateStopped: "La actualización se detuvo antes de instalarse.",
+  updateFromWeb: "Descargar desde la web",
+  updateAloneFailed: "La actualización automática a la {name} no se completó.",
   autoTake: "Instalar actualizaciones automáticamente",
   autoWhy:
     "Se descargan en segundo plano y se instalan al salir o al abrir Tisty, nunca mientras trabajas.",

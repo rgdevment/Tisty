@@ -779,3 +779,29 @@ fn a_candidate_newer_than_the_stable_copy_is_still_offered() {
 fn a_candidate_of_the_version_already_running_is_not_offered() {
     assert!(!still_offered("0.3.0-rc.1", "0.3.0", Some("0.3.0-rc.1")));
 }
+
+#[test]
+fn an_automatic_update_that_did_not_finish_is_the_offered_one_still_ahead_of_this_copy() {
+    assert_eq!(
+        alone_failed("1.0.0", Some("1.1.0"), Some("1.1.0")),
+        Some("1.1.0".to_string())
+    );
+}
+
+#[test]
+fn nothing_failed_when_the_offer_is_another_version_or_none() {
+    assert_eq!(alone_failed("1.0.0", Some("1.1.0"), Some("1.2.0")), None);
+    assert_eq!(alone_failed("1.0.0", Some("1.1.0"), None), None);
+}
+
+#[test]
+fn nothing_failed_when_no_automatic_update_was_tried() {
+    assert_eq!(alone_failed("1.0.0", None, Some("1.1.0")), None);
+    assert_eq!(alone_failed("1.0.0", None, None), None);
+}
+
+#[test]
+fn nothing_failed_when_the_tried_version_is_already_here_or_behind() {
+    assert_eq!(alone_failed("1.1.0", Some("1.1.0"), Some("1.1.0")), None);
+    assert_eq!(alone_failed("1.2.0", Some("1.1.0"), Some("1.1.0")), None);
+}
