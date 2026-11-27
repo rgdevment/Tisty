@@ -21,12 +21,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. Every task says whose it is in `for`: never both, or it never ends. An idea named as `source` leaves Ideas. Tisty tags it #agent.",
+            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Ideas. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one, at most 32; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
-                    "for": { "type": "string", "enum": ["agent", "person"], "description": "Whose it is, required: \"agent\" when you will do it and check it yourself; \"person\" when only they can (a manual test, a real device, publishing, merging, deciding). A part left without it is its whole's" },
+                    "for": { "type": "string", "enum": ["agent", "person"], "description": "Required, whose it is, never both: \"agent\" if you do and check it, \"person\" if only they can (testing by hand, a device, publishing, deciding). A part without it is its whole's" },
                     "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
                     "part_of": { "type": "string", "description": "Id of an open task this one is a part of" },
                     "description": { "type": "string", "description": "What you read, in the Tisty language" },
@@ -118,7 +118,7 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "unplan",
             "title": "Take open steps off a task",
-            "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped; with `to_person`, what only the person can do goes to their own task, then `say_done` yours. One ticked step among them and nothing changes.",
+            "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped; with `to_person`, to the person's own task. One ticked step among them and nothing changes.",
             "inputSchema": on_a_task(
                 {
                     let mut fields = steps_by_text("to take off");
@@ -128,11 +128,11 @@ pub(super) fn tools_without_hints() -> Value {
                     });
                     fields["to_person"] = json!({
                         "type": "boolean",
-                        "description": "Hand them to the person: to the task's one companion for them, made as its part the first time, which never holds yours open"
+                        "description": "Hand them to the task's one companion for the person, made as its part if missing"
                     });
                     fields["title"] = json!({
                         "type": "string",
-                        "description": "With `to_person`, the companion's title when it is made, in the person's language"
+                        "description": "The companion's title if made, in their language"
                     });
                     fields
                 },
@@ -436,7 +436,9 @@ pub(super) fn tools_without_hints() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "body": { "type": "string", "description": "What you did and how you know it holds, in the Tisty language: the branch and commit, the command that verified it and its answer, and what is left for the person" }
+                    "body": { "type": "string", "description": "What you did and what makes you sure (the commit, the command and its answer), what is left for the person, in the Tisty language" },
+                    "branch": { "type": "string", "description": "The work's branch" },
+                    "pr": { "type": "string", "description": "Its pull request, number or link" }
                 },
                 "required": ["task", "body"]
             }))
@@ -525,7 +527,7 @@ pub(super) fn tools_without_hints() -> Value {
         json!({
             "name": "rules",
             "title": "Read the rules for working here, by topic",
-            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,200 characters each, 34,800 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
+            "description": "Read the rules an agent works by here, one guide per `topic`, 3,000 to 11,600 characters each, 35,200 for `all`; without `topic`, the basics and an index. Read the one the instructions name before a first write of its kind. Markdown syntax is `language`; how the app works, `help`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "topic": {

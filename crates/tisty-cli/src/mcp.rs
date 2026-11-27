@@ -33,6 +33,7 @@ mod referencing;
 mod resources;
 mod resuming;
 mod reviewing;
+mod saying;
 mod spoken;
 mod task_notes;
 mod task_reading;
@@ -55,12 +56,13 @@ use asked::{Takes, only_what_it_takes, short_and_plain, text, what_it_takes, wit
 
 use attaching::attach;
 use catalogue::{instructions, tools};
-use chores::{describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, untick};
+use chores::{describe, note, plan, propose, remind, reschedule, untick};
 use gists::{A_GIST_IN_A_LINE, gist_of, gist_told, sum_up};
 use guide::language;
 use helping::help;
 use looking::{NEWEST_SHOWN, catch_up, gone, how_it_ended, read};
 use mending::{rename, reword_note, reword_step, unplan};
+use saying::{say_done, say_not_doing};
 use spoken::spoken;
 
 pub(crate) use catalogue::{is_tool, writes};
@@ -602,7 +604,7 @@ fn when(at: jiff::Timestamp) -> String {
 const UNTICKED_NAMED: usize = 5;
 
 /// A mark beside an unticked checklist reads as work nobody did.
-fn unticked(task: &Task) -> Option<Refused> {
+fn unticked(task: &Task, own: bool) -> Option<Refused> {
     let left: Vec<&str> = task
         .steps
         .iter()
@@ -620,11 +622,20 @@ fn unticked(task: &Task) -> Option<Refused> {
     if left.len() > UNTICKED_NAMED {
         named.push(format!("and {} more", left.len() - UNTICKED_NAMED));
     }
+    let next = match own {
+        true => {
+            "A step only the person can do — trying it by hand, a real device, publishing, \
+             merging, deciding — is theirs: hand it over with `unplan` and `to_person`, then \
+             `say_done`."
+        }
+        false => {
+            "It is the person's task: a `tick` of yours on a step gives your word, and the steps \
+             you did not do stay theirs, so say what you did with `note` instead."
+        }
+    };
     Some(Refused::Tool(format!(
-        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did. A step only the \
-         person can do — trying it by hand, a real device, publishing, merging, deciding — is \
-         theirs: hand it over with `unplan` and `to_person`, then `say_done`. One that no longer \
-         applies: say so with `note` and leave the task open — the person decides.",
+        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did. {next} One that no \
+         longer applies: say so with `note` and leave the task open — the person decides.",
         task.title,
         left.len(),
         named.join(", ")
