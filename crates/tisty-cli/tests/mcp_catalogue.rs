@@ -59,7 +59,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 40_892;
+const DOOR_AT_MOST: usize = 41_700;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -133,14 +133,14 @@ fn the_guides_weigh_what_the_rules_tool_says_they_do() {
     for topic in ["tasks", "documents", "tidying", "ideas"] {
         let size = rules(Some(topic)).chars().count();
         assert!(
-            (3_000..=11_200).contains(&size),
-            "«{topic}» is {size} characters, and `rules` says 3,000 to 11,200: say the new size there"
+            (3_000..=11_600).contains(&size),
+            "«{topic}» is {size} characters, and `rules` says 3,000 to 11,600: say the new size there"
         );
     }
     let all = rules(Some("all")).chars().count();
     assert!(
-        all <= 34_800,
-        "`all` is {all} characters, and `rules` says 34,800: say the new size there"
+        all <= 35_200,
+        "`all` is {all} characters, and `rules` says 35,200: say the new size there"
     );
 }
 

@@ -797,6 +797,8 @@ pub struct TaskAdd {
     /// What this task was written from, so the same thing is not filed twice.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub for_person: bool,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -822,6 +824,7 @@ impl TaskAdd {
             after: None,
             part_of: None,
             source: None,
+            for_person: false,
         }
     }
 }
@@ -929,6 +932,10 @@ pub struct Resolve {
     /// Said of a task the person kept: only a word, so older logs that lack it replay as before.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub word: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pr: Option<String>,
 }
 
 impl Resolve {
@@ -940,7 +947,15 @@ impl Resolve {
             via: None,
             drop: false,
             word: false,
+            branch: None,
+            pr: None,
         }
+    }
+
+    pub fn landing(mut self, branch: Option<String>, pr: Option<String>) -> Self {
+        self.branch = branch;
+        self.pr = pr;
+        self
     }
 
     pub fn as_word(mut self, word: bool) -> Self {

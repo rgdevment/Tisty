@@ -8,6 +8,14 @@ import type { Paced, Standing } from "../deadlines";
 import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
+import {
+  type Companion,
+  companionOf,
+  confirmable,
+  type Owner,
+  ownerOf,
+  useFirstMeeting,
+} from "../owners";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentNamed, agentTag } from "../who";
 import AgentWord from "./AgentWord";
@@ -46,6 +54,8 @@ interface Props {
   onFold?: (id: string, away: boolean) => void;
   onConfirm?: (task: Task) => void;
   onKeepOpen?: (task: Task) => void;
+  onConfirmAll?: (tasks: Task[]) => void;
+  confirming?: boolean;
   above?: React.ReactNode;
   ask?: (id: string) => React.ReactNode;
   closing?: string;
@@ -80,6 +90,8 @@ export default function TaskList({
   onFold,
   onConfirm,
   onKeepOpen,
+  onConfirmAll,
+  confirming,
   above,
   ask,
   closing,
@@ -153,23 +165,41 @@ export default function TaskList({
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
   const timed = !(by && by !== "time") && bands === "day";
   // A long project would fill today every day, so what is underway starts folded.
-  const closed = (band: string) => (timed && band === t("underwayBand")) !== shut.has(band);
-  const hidden = (band: string) => heads && closed(band);
-  const many = useMemo(() => {
-    const tally = new Map<string, number>();
-    for (const row of rows) tally.set(row.band, (tally.get(row.band) ?? 0) + 1);
-    return tally;
-  }, [rows]);
-
+  const closed = (band: string, owner: Owner = "person") =>
+    (timed && band === t("underwayBand")) !== shut.has(`${owner}:${band}`);
+  const hidden = (band: string, owner: Owner = "person") => heads && closed(band, owner);
+  const owned = useMemo(
+    () => !dense && top.some((task) => ownerOf(task) === "agent"),
+    [top, dense],
+  );
   const sheets = useMemo(() => {
-    const out = new Map<string, typeof rows>();
-    for (const row of rows) {
-      const kept = out.get(row.band);
-      if (kept) kept.push(row);
-      else out.set(row.band, [row]);
+    const out = new Map<string, { band: string; owner: Owner; rows: typeof rows }>();
+    const owners: Owner[] = owned ? ["person", "agent"] : ["person"];
+    for (const owner of owners) {
+      for (const row of rows) {
+        if (owned && ownerOf(row.task) !== owner) continue;
+        const key = `${owner}:${row.band}`;
+        const kept = out.get(key);
+        if (kept) kept.rows.push(row);
+        else out.set(key, { band: row.band, owner, rows: [row] });
+      }
     }
-    return [...out].map(([band, held]) => ({ band, rows: held }));
-  }, [rows]);
+    return [...out.values()];
+  }, [rows, owned]);
+  const heading = (at: number) =>
+    owned && (at === 0 || sheets[at - 1].owner !== sheets[at].owner) ? sheets[at].owner : undefined;
+  const ownedBy = (owner: Owner) =>
+    sheets
+      .filter((leaf) => leaf.owner === owner)
+      .flatMap((leaf) => leaf.rows.map((row) => row.task));
+  const ready = (owner: Owner) => {
+    if (!onConfirmAll || (owner === "person" && !confirming)) return [];
+    const shown = sheets
+      .filter((leaf) => leaf.owner === owner && !hidden(leaf.band, owner))
+      .flatMap((leaf) => leaf.rows.map((row) => row.task))
+      .filter(confirmable);
+    return shown.filter((task, at) => shown.findIndex((one) => one.id === task.id) === at);
+  };
 
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
   const signing = useSigning("rows");
@@ -190,8 +220,7 @@ export default function TaskList({
   const [reached, setReached] = useState<string | null>(null);
 
   const drawn = sheets
-    .flatMap((leaf) => leaf.rows)
-    .filter((row) => !hidden(row.band))
+    .flatMap((leaf) => leaf.rows.filter((row) => !hidden(row.band, leaf.owner)))
     .flatMap((row) => [row.key, ...under(row.task.id).map((part) => `${row.key}/${part.id}`)]);
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
@@ -211,6 +240,14 @@ export default function TaskList({
   const typed = (event: React.KeyboardEvent, task: Task, at: string) => {
     if (modKey(event) && event.key === "Enter") {
       event.preventDefault();
+      if (owned && ownerOf(task) === "agent") {
+        if (task.resolved?.drop) onSelect(task.id, task);
+        else if (onConfirm && task.status === "open" && task.resolved) {
+          walk(at, 1, task.id);
+          onConfirm(task);
+        }
+        return;
+      }
       if (onComplete && task.status === "open") {
         if (task.resolved?.drop) {
           onSelect(task.id, task);
@@ -246,6 +283,7 @@ export default function TaskList({
   };
 
   const line = (task: Task, at: string, nested = false): React.ReactNode => {
+    const agents = owned && ownerOf(task) === "agent";
     if (dense) {
       return (
         <div
@@ -313,7 +351,11 @@ export default function TaskList({
           }
           aria-keyshortcuts={
             [
-              (onComplete && task.status === "open") || onFold ? KEEP_SHORTCUT : "",
+              (agents
+                ? Boolean(onConfirm && task.status === "open" && task.resolved)
+                : Boolean(onComplete && task.status === "open")) || onFold
+                ? KEEP_SHORTCUT
+                : "",
               !nested && folds(task.id) ? "ArrowRight ArrowLeft" : "",
             ]
               .filter(Boolean)
@@ -326,7 +368,12 @@ export default function TaskList({
             selected === task.id ? "bg-active" : ""
           } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
         >
-          {onComplete && task.status === "open" ? (
+          {agents && task.status === "open" ? (
+            <span title={t("agentDoesIt")} className="mt-px text-center text-[13px] text-hue-teal">
+              <span aria-hidden="true">◇</span>
+              <span className="sr-only">{t("agentDoesIt")}</span>
+            </span>
+          ) : onComplete && task.status === "open" ? (
             <button
               type="button"
               aria-label={task.resolved?.drop ? saidWhen(task) : fill("completeIt", task.title)}
@@ -364,10 +411,11 @@ export default function TaskList({
               task={task}
               list={task.list ? named(task.list) : undefined}
               whole={nested || !task.part_of ? undefined : wholes?.[task.part_of]?.title}
+              companion={companionOf(task, wholes)}
               stands={standings?.[task.id]}
               signing={signing}
             />
-            {onConfirm && onKeepOpen && (
+            {onConfirm && onKeepOpen && (confirming || agents) && (
               <AgentWord
                 task={task}
                 signing={signing}
@@ -481,38 +529,45 @@ export default function TaskList({
         )}
 
         {!instead &&
-          sheets.map((leaf) => (
-            <section
-              key={leaf.band || "all"}
-              className="rounded-[10px] border border-hair bg-sheet px-2.5 py-2 shadow-lift"
-            >
-              {heads && leaf.band && (
-                <button
-                  type="button"
-                  aria-expanded={!closed(leaf.band)}
-                  onClick={() => setShut((was) => flip(was, leaf.band))}
-                  className="mb-1 flex w-full items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-left text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase hover:text-soft"
-                >
-                  <span aria-hidden="true" className="text-[9px]">
-                    {closed(leaf.band) ? "▸" : "▾"}
-                  </span>
-                  {leaf.band}
-                  {timed && leaf.band === t("underwayBand") && (
-                    <PaceTally paces={leaf.rows.map((row) => paces?.[row.task.id])} />
-                  )}
-                  <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
-                    {many.get(leaf.band)}
-                  </span>
-                </button>
+          sheets.map((leaf, at) => (
+            <div key={`${leaf.owner}:${leaf.band || "all"}`} className="flex flex-col gap-2">
+              {heading(at) && (
+                <OwnerHead
+                  owner={leaf.owner}
+                  count={new Set(ownedBy(leaf.owner).map((task) => task.id)).size}
+                  ready={ready(leaf.owner)}
+                  onConfirmAll={onConfirmAll}
+                />
               )}
+              <section className="rounded-[10px] border border-hair bg-sheet px-2.5 py-2 shadow-lift">
+                {heads && leaf.band && (
+                  <button
+                    type="button"
+                    aria-expanded={!closed(leaf.band, leaf.owner)}
+                    onClick={() => setShut((was) => flip(was, `${leaf.owner}:${leaf.band}`))}
+                    className="mb-1 flex w-full items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-left text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase hover:text-soft"
+                  >
+                    <span aria-hidden="true" className="text-[9px]">
+                      {closed(leaf.band, leaf.owner) ? "▸" : "▾"}
+                    </span>
+                    {leaf.band}
+                    {timed && leaf.band === t("underwayBand") && (
+                      <PaceTally paces={leaf.rows.map((row) => paces?.[row.task.id])} />
+                    )}
+                    <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
+                      {leaf.rows.length}
+                    </span>
+                  </button>
+                )}
 
-              {leaf.rows.map((row) => (
-                <div key={row.key}>
-                  {!hidden(row.band) && line(row.task, row.key)}
-                  {!hidden(row.band) && first.has(row.key) && ask?.(row.task.id)}
-                </div>
-              ))}
-            </section>
+                {leaf.rows.map((row) => (
+                  <div key={row.key}>
+                    {!hidden(row.band, leaf.owner) && line(row.task, row.key)}
+                    {!hidden(row.band, leaf.owner) && first.has(row.key) && ask?.(row.task.id)}
+                  </div>
+                ))}
+              </section>
+            </div>
           ))}
 
         {!instead && onReach && <Edge onReach={onReach} />}
@@ -590,16 +645,57 @@ function dated(task: Task, stands?: Standing): React.ReactNode[] {
   return bits;
 }
 
+function OwnerHead({
+  owner,
+  count,
+  ready,
+  onConfirmAll,
+}: {
+  owner: Owner;
+  count: number;
+  ready: Task[];
+  onConfirmAll?: (tasks: Task[]) => void;
+}) {
+  const first = useFirstMeeting(owner);
+  return (
+    <div data-owner={owner} className="px-2.5 pt-1">
+      <div className="flex items-baseline gap-2.5">
+        <h2 className="text-[10.5px] font-semibold tracking-[0.06em] text-soft uppercase">
+          {t(owner === "agent" ? "agentOwns" : "personOwns")}
+        </h2>
+        <span className="text-[11.5px] tabular-nums text-faint">{count}</span>
+        {onConfirmAll && ready.length > 1 && (
+          <button
+            type="button"
+            onClick={() => onConfirmAll(ready)}
+            className="ml-auto rounded-md px-1.5 py-px text-[11.5px] font-medium text-accent hover:bg-line"
+          >
+            <span aria-hidden="true">✓ </span>
+            {fill("confirmAllShown", String(ready.length))}
+          </button>
+        )}
+      </div>
+      {first && (
+        <p className="mt-0.5 text-[11.5px] text-faint">
+          {t(owner === "agent" ? "agentOwnsWhy" : "personOwnsWhy")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Meta({
   task,
   list,
   whole,
+  companion,
   stands,
   signing,
 }: {
   task: Task;
   list?: string;
   whole?: string;
+  companion?: Companion;
   stands?: Standing;
   signing: Signing;
 }) {
@@ -619,7 +715,13 @@ function Meta({
     );
   }
   if (list) bits.push(<span key="list">@{list}</span>);
-  if (whole) {
+  if (companion) {
+    bits.push(
+      <span key="companion" className="text-hue-teal">
+        ↳ {fill(companion.key, companion.title)}
+      </span>,
+    );
+  } else if (whole) {
     bits.push(
       <span key="whole" title={fill("partOf", whole)} className="text-faint">
         ⌂ {whole}

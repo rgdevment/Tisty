@@ -11,6 +11,7 @@ Tisty is one person's tasks and documents, on this machine.
 - Across sessions: `catch_up` first, `read` the task you were on, `tick` with `state` as you go, `note` what you decided or ruled out, then `say_done`.
 - Write for the person's eyes, new or edited: descriptions, notes and documents visual, readable and in order in Tisty's Markdown, never a wall of plain text.
 - File a task with its `source` when you have one: Tisty refuses a second one from it.
+- A task is yours or the person's, never both: what only they can do goes in their own task.
 - You never close or delete: `say_done` and `flag_doc` leave that to the person.
 - A refused call says why and what would work: do that, never resend it unchanged.
 

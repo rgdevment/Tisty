@@ -143,6 +143,8 @@ fn a_part_is_staged_by_what_it_says_and_what_it_did() {
         by: DeviceId("dev_agent".into()),
         entry: Ulid::generate(),
         via: None,
+        branch: None,
+        pr: None,
         drop: false,
     });
     assert_eq!(stage(&task, None), Stage::Waiting);

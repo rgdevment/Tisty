@@ -135,6 +135,7 @@ struct Standing {
     read_as: Option<Reading>,
     open_to_agents: bool,
     filed_by_agent: bool,
+    for_person: bool,
     closed: bool,
     described: bool,
     steps: HashMap<StepId, String>,
@@ -144,7 +145,7 @@ struct Standing {
 /// The same door `State::apply` keeps for an assistant's hand.
 fn lets(event: &Event, standing: &Standing) -> bool {
     let filed = standing.filed_by_agent;
-    let settles = filed || standing.open_to_agents;
+    let settles = (filed && !standing.for_person) || standing.open_to_agents;
     let widened = event.timestamp >= crate::state::ANY_TASK_FROM;
     let reaches = (!standing.closed || settles) && (widened || settles);
     match &event.op {
@@ -248,6 +249,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         match &event.op {
             Op::TaskAdd { d, .. } => {
                 standing.filed_by_agent = by_assistant;
+                standing.for_person = d.for_person;
                 standing.title = d.title.clone();
                 standing.date = d.date.clone();
                 standing.deadline = d.deadline.clone();

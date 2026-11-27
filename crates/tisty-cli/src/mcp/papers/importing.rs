@@ -359,7 +359,7 @@ pub(super) fn as_an_assistant(
     task: &Task,
     op: tisty_core::Op,
 ) -> Option<tisty_core::Op> {
-    if state.filed_by_agents(task) {
+    if state.agents_own(task) {
         return Some(op);
     }
     match op {
@@ -414,13 +414,13 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             "that page names no task here any more.".into(),
         ));
     };
-    let held_back: Vec<&str> = match state.filed_by_agents(task) {
+    let held_back: Vec<&str> = match state.agents_own(task) {
         true => Vec::new(),
         false => taken.ops.iter().flat_map(beyond_its_title).collect(),
     };
     // A copy that went out may carry ticks the person took back since; only its own page speaks for the agent.
     let ops_of_a_copy = |op: &tisty_core::Op| {
-        state.filed_by_agents(task) || !matches!(op, tisty_core::Op::StepDone { .. })
+        state.agents_own(task) || !matches!(op, tisty_core::Op::StepDone { .. })
     };
     let mut ops: Vec<tisty_core::Op> = taken
         .ops

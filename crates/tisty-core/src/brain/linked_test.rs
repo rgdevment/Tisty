@@ -303,6 +303,8 @@ fn each_task_and_document_tells_where_it_stands() {
         entry: Ulid::generate(),
         via: None,
         drop,
+        branch: None,
+        pr: None,
     };
     if let Some(one) = state.tasks.get_mut(&said) {
         one.resolved = Some(resolved(false));

@@ -128,6 +128,8 @@ impl State {
             entry: d.entry,
             via: d.via.clone().or_else(|| event.via.clone()),
             drop: d.drop,
+            branch: d.branch.clone(),
+            pr: d.pr.clone(),
         };
         let assistant = self.assistants.contains(&event.device);
         self.with_task(*id, |t| {

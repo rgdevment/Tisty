@@ -126,8 +126,7 @@ fn shown(said: &Value) -> &Value {
 fn proposes(talk: &mut Connection) -> String {
     let said = talk.call(
         "propose",
-        json!({
-            "title": "Move payments to v2",
+        json!({ "for": "agent", "title": "Move payments to v2",
             "steps": ["Sign", "Upload", "Resume a cut upload"],
             "list": "Work",
         }),

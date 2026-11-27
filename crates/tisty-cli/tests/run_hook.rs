@@ -101,12 +101,11 @@ impl Home {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(heard.as_bytes())
-            .unwrap();
+        match child.stdin.take().unwrap().write_all(heard.as_bytes()) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
+            Err(error) => panic!("writing the hook input failed: {error}"),
+        }
         child.wait_with_output().unwrap()
     }
 

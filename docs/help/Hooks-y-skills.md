@@ -27,6 +27,8 @@ Las dos valen solo en el equipo donde las enciendes: en otro equipo lo decides a
 
 - **Al empezar una sesión**, el agente recibe las tres últimas tareas abiertas en que escribió ese mismo agente en este equipo, la más nueva primero, con cuántos pasos lleva cada una y el siguiente, lo que se movió desde entonces y lo que apremia. Son unos 2.000 caracteres, y llegan aunque el agente no llame a Tisty.
 - **Al terminar un turno que editó archivos y no escribió nada en Tisty**, le devuelve el turno una vez: si eso era trabajo de una tarea, que lo deje en un solo `tick`. Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty, así que un turno fuera de una tarea cuesta como mucho un turno extra.
+- **Cuando un turno dejó todos los pasos de su tarea marcados** sin decirla hecha, le devuelve el turno una vez para que haga `say_done` con la prueba. Nunca con una tarea tuya.
+- **Después de un `git push`, un `gh pr create` o un `gh pr merge`**, le pregunta si terminó un paso o la tarea. En Claude Code la pregunta llega en el acto; en los demás agentes, al terminar el turno.
 - **Antes de dejar algo fuera**, si va a crear un archivo de texto fuera de un repo, o a proponer por su cuenta una tarjeta de tarea en la aplicación de Claude, le pregunta una vez si va en Tisty. Lo cuenta [Antes de dejar algo fuera](#antes-de-dejar-algo-fuera).
 
 Qué miran y qué queda está en [[Privacidad]].

@@ -15,6 +15,7 @@ pub struct Whole {
     pub closed: usize,
     /// Open but put out of sight: not shown, still let go when the whole is closed.
     pub away: usize,
+    pub working: bool,
 }
 
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
@@ -34,6 +35,7 @@ pub fn wholes(state: &State) -> BTreeMap<String, Whole> {
             open: 0,
             closed: 0,
             away: 0,
+            working: whole.is_open() && !whole.folded() && whole.resolved.is_none(),
         });
         match (part.is_open(), part.folded()) {
             (true, true) => counted.away += 1,

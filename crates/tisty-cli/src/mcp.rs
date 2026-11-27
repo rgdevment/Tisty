@@ -4,6 +4,7 @@ mod attaching;
 mod brain;
 mod catalogue;
 mod chores;
+mod companion;
 mod diary;
 mod dropped;
 mod each;
@@ -32,6 +33,7 @@ mod referencing;
 mod resources;
 mod resuming;
 mod reviewing;
+mod saying;
 mod spoken;
 mod task_notes;
 mod task_reading;
@@ -54,16 +56,17 @@ use asked::{Takes, only_what_it_takes, short_and_plain, text, what_it_takes, wit
 
 use attaching::attach;
 use catalogue::{instructions, tools};
-use chores::{describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, untick};
+use chores::{describe, note, plan, propose, remind, reschedule, untick};
 use gists::{A_GIST_IN_A_LINE, gist_of, gist_told, sum_up};
 use guide::language;
 use helping::help;
 use looking::{NEWEST_SHOWN, catch_up, gone, how_it_ended, read};
 use mending::{rename, reword_note, reword_step, unplan};
+use saying::{say_done, say_not_doing};
 use spoken::spoken;
 
 pub(crate) use catalogue::{is_tool, writes};
-pub(crate) use open_task::TURN_LEFT_UNWRITTEN;
+pub(crate) use open_task::{PUBLISHED_ASK, TURN_LEFT_UNWRITTEN, ready_to_say_done};
 pub(crate) use opening::opening;
 pub(crate) use outside::{CARD_LEFT_OUTSIDE, COMMAND_LEAVES_OUTSIDE, FILE_LEFT_OUTSIDE};
 
@@ -88,6 +91,8 @@ const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const TOOLS_STAY_FRESH: i64 = 3_600_000;
 const INBOX_TAG: &str = tisty_core::model::AGENT_TAG;
 const LISTED_AT_MOST: usize = 200;
+pub(crate) const ONE_OWNER: &str = "A task is yours or the person's, never both: what only they \
+    can do goes in their own task.";
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
     let mut tally = Tally::default();
@@ -599,7 +604,7 @@ fn when(at: jiff::Timestamp) -> String {
 const UNTICKED_NAMED: usize = 5;
 
 /// A mark beside an unticked checklist reads as work nobody did.
-fn unticked(task: &Task) -> Option<Refused> {
+fn unticked(task: &Task, own: bool) -> Option<Refused> {
     let left: Vec<&str> = task
         .steps
         .iter()
@@ -617,9 +622,20 @@ fn unticked(task: &Task) -> Option<Refused> {
     if left.len() > UNTICKED_NAMED {
         named.push(format!("and {} more", left.len() - UNTICKED_NAMED));
     }
+    let next = match own {
+        true => {
+            "A step only the person can do — trying it by hand, a real device, publishing, \
+             merging, deciding — is theirs: hand it over with `unplan` and `to_person`, then \
+             `say_done`."
+        }
+        false => {
+            "It is the person's task: a `tick` of yours on a step gives your word, and the steps \
+             you did not do stay theirs, so say what you did with `note` instead."
+        }
+    };
     Some(Refused::Tool(format!(
-        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did; if one no longer \
-         applies, say so with `note` and leave the task open — the person decides.",
+        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did. {next} One that no \
+         longer applies: say so with `note` and leave the task open — the person decides.",
         task.title,
         left.len(),
         named.join(", ")

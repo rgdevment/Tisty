@@ -27,6 +27,8 @@ Both count only on the computer where you turn them on: on another computer you 
 
 - **When a session starts**, the agent gets the last three open tasks that same agent wrote on this computer, newest first, with how many steps each has ticked and the next one, what moved since and what is pressing. It is about 2,000 characters, and it arrives even if the agent never calls Tisty.
 - **When a turn edited files and wrote nothing in Tisty**, it hands the turn back once: if that was work on a task, leave it in one `tick`. If the agent lets it pass, the hook stays quiet until it calls Tisty again, so a turn outside any task costs one extra turn at most.
+- **When a turn left every step of its task ticked** without saying it done, it hands the turn back once, for a `say_done` with the proof. Never on a task of yours.
+- **After a `git push`, a `gh pr create` or a `gh pr merge`**, it asks whether it finished a step or the task. In Claude Code the question comes at once; in the other agents, when the turn ends.
 - **Before it leaves something outside**, if it is about to create a text file outside a repository, or to propose a task card of its own in the Claude app, it asks it once whether that belongs in Tisty. [Before it leaves something outside](#before-it-leaves-something-outside) tells it.
 
 What they look at and what stays is in [[Privacy]].

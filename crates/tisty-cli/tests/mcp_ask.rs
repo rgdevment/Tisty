@@ -101,8 +101,7 @@ fn ask(said: &Value) -> Option<&Value> {
 fn proposes_work(talk: &mut Connection) -> String {
     let said = talk.call(
         "propose",
-        json!({
-            "title": "Ship the export",
+        json!({ "for": "agent", "title": "Ship the export",
             "steps": ["Write the parser", "Wire the menu"],
             "list": "Work",
         }),
@@ -221,7 +220,7 @@ fn a_note_filed_for_the_person_first_does_not_take_the_place_of_the_work() {
     let mut talk = served.connect();
     talk.call(
         "propose",
-        json!({ "title": "Call the bank back", "list": "Work" }),
+        json!({ "for": "agent", "title": "Call the bank back", "list": "Work" }),
     );
     let task = proposes_work(&mut talk);
     for name in ["Notes", "Drafts"] {

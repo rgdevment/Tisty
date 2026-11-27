@@ -174,7 +174,16 @@ describe("the card under a task an agent spoke about", () => {
 
 describe("the list of tasks", () => {
   const list = (props: { onConfirm?: () => void; onKeepOpen?: () => void }) =>
-    render(<TaskList tasks={[task({})]} lists={[]} title="Open" onSelect={() => {}} {...props} />);
+    render(
+      <TaskList
+        tasks={[task({})]}
+        lists={[]}
+        title="Open"
+        confirming
+        onSelect={() => {}}
+        {...props}
+      />,
+    );
 
   it("shows the card when both answers are wired", () => {
     list({ onConfirm: vi.fn(), onKeepOpen: vi.fn() });

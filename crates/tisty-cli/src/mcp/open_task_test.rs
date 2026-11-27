@@ -450,3 +450,21 @@ fn an_answer_with_nothing_structured_takes_no_question() {
     ));
     assert_eq!(answer["content"][0]["text"], json!("The rules."));
 }
+
+#[test]
+fn a_task_filed_for_the_person_is_never_asked_about() {
+    let mut task = task_with(&[("Write the parser", true), ("Wire the menu", false)]);
+    assert!(question(&task, &due(task.id)).is_some());
+
+    task.for_person = true;
+
+    assert_eq!(question(&task, &due(task.id)), None);
+}
+
+#[test]
+fn a_task_filed_for_the_person_with_nothing_ticked_is_not_asked_about_either() {
+    let mut task = task_with(&[("Try it by hand", false)]);
+    task.for_person = true;
+
+    assert_eq!(question(&task, &due(task.id)), None);
+}

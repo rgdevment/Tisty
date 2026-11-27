@@ -314,3 +314,26 @@ fn the_hand_of_codex_and_antigravity_is_their_own_id() {
     assert_eq!(Client::Codex.hand(&Heard::default()), "codex");
     assert_eq!(Client::Antigravity.hand(&Heard::default()), "antigravity");
 }
+
+#[test]
+fn only_claude_code_is_given_context_right_after_a_shell_command() {
+    let said = Client::ClaudeCode.after_shell("did you finish?").unwrap();
+    assert_eq!(
+        parsed(&said),
+        json!({
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "additionalContext": "did you finish?",
+            }
+        })
+    );
+    for silent in [
+        Client::Cursor,
+        Client::GeminiCli,
+        Client::Copilot,
+        Client::Codex,
+        Client::Antigravity,
+    ] {
+        assert_eq!(silent.after_shell("did you finish?"), None, "{silent:?}");
+    }
+}

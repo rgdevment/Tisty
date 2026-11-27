@@ -190,11 +190,14 @@ fn the_words_each_prompt_hands_the_agent() {
 fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let passport = served.call("propose", json!({ "title": "Renew the passport" }))["id"]
+    let passport = served.call(
+        "propose",
+        json!({ "for": "agent", "title": "Renew the passport" }),
+    )["id"]
         .as_str()
         .unwrap()
         .to_string();
-    let stamps = served.call("propose", json!({ "title": "Buy stamps" }))["id"]
+    let stamps = served.call("propose", json!({ "for": "agent", "title": "Buy stamps" }))["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -354,7 +357,7 @@ fn what_consolidating_reads_is_what_brain_answers() {
     );
     let whole = served.call(
         "propose",
-        json!({ "title": "Cook for ten", "parts": [{ "title": "Buy rice", "steps": ["Rice"] }] }),
+        json!({ "for": "agent", "title": "Cook for ten", "parts": [{ "title": "Buy rice", "steps": ["Rice"] }] }),
     )["id"]
         .as_str()
         .unwrap()

@@ -1,6 +1,7 @@
 import type { Task } from "../core";
 import type { Signing } from "../crediting";
 import { fill, t } from "../locales";
+import { proofOf } from "../owners";
 import { clientNamed } from "../who";
 
 interface Props {
@@ -27,41 +28,60 @@ export default function AgentWord({ task, signing, onConfirm, onKeepOpen }: Prop
   const drop = Boolean(task.resolved.drop);
   const seat =
     "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-px hover:bg-line";
+  const proof = proofOf(task);
+  const landed = [
+    task.resolved.branch && `⎇ ${task.resolved.branch}`,
+    task.resolved.pr && fill("saidPr", task.resolved.pr),
+  ].filter(Boolean);
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px]">
-      <span
-        className="mr-1 text-hue-teal"
-        title={signing === "mark" ? agentWords(task, "agent") : undefined}
-      >
-        {signing === "mark" && <span aria-hidden="true">◆ </span>}
-        {agentWords(task, signing)}
-      </span>
-      <button
-        type="button"
-        tabIndex={-1}
-        title={drop && task.repeat ? t("endRepeatWhy") : undefined}
-        onKeyDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          onConfirm(task);
-        }}
-        className={`${seat} font-medium text-accent`}
-      >
-        <span aria-hidden="true">{drop ? "⊘" : "✓"}</span> {confirmWord(task)}
-      </button>
-      <button
-        type="button"
-        tabIndex={-1}
-        title={fill("stillOpenIt", task.title)}
-        onKeyDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          onKeepOpen(task);
-        }}
-        className={`${seat} text-soft hover:text-ink`}
-      >
-        <span aria-hidden="true">↩</span> {t("stillOpen")}
-      </button>
+    <div className="mt-1 text-[11.5px]">
+      {(proof.length > 0 || landed.length > 0) && (
+        <div data-proof="" className="mb-1 border-l-2 border-hue-teal/40 pl-2 text-soft">
+          {proof.map((line) => (
+            <p key={line} className="truncate">
+              {line}
+            </p>
+          ))}
+          {landed.length > 0 && (
+            <p className="truncate font-mono text-[10.5px] text-faint">{landed.join(" · ")}</p>
+          )}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span
+          className="mr-1 text-hue-teal"
+          title={signing === "mark" ? agentWords(task, "agent") : undefined}
+        >
+          {signing === "mark" && <span aria-hidden="true">◆ </span>}
+          {agentWords(task, signing)}
+        </span>
+        <button
+          type="button"
+          tabIndex={-1}
+          title={drop && task.repeat ? t("endRepeatWhy") : undefined}
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfirm(task);
+          }}
+          className={`${seat} font-medium text-accent`}
+        >
+          <span aria-hidden="true">{drop ? "⊘" : "✓"}</span> {confirmWord(task)}
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          title={fill("stillOpenIt", task.title)}
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onKeepOpen(task);
+          }}
+          className={`${seat} text-soft hover:text-ink`}
+        >
+          <span aria-hidden="true">↩</span> {t("stillOpen")}
+        </button>
+      </div>
     </div>
   );
 }

@@ -48,7 +48,8 @@ fn a_whole_is_counted_and_named_for_the_rows_that_show_its_parts() {
             title: "move house".into(),
             open: 1,
             closed: 1,
-            away: 0
+            away: 0,
+            working: true
         }
     );
 }
@@ -162,4 +163,136 @@ fn a_whole_put_out_of_sight_takes_no_new_parts_however_they_come() {
 
     assert!(part_added(&state, whole, "pack").is_err());
     assert_eq!(hanging(&state, loose, Some(whole)), Err("wholeClosed"));
+}
+
+fn working_of(state: &State, whole: TaskId) -> bool {
+    wholes(state)[&whole.to_string()].working
+}
+
+fn whole_with_a_part() -> (State, TaskId, TaskId) {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "move house", None);
+    let part = written(&mut state, 2, "pack", Some(whole));
+    (state, whole, part)
+}
+
+fn said_by_an_agent(state: &mut State, id: TaskId, drop: bool) {
+    state.tasks.get_mut(&id).unwrap().resolved = Some(tisty_core::model::Resolved {
+        at: jiff::Timestamp::from_millisecond(10).unwrap(),
+        by: DeviceId("dev_agent".into()),
+        entry: ulid::Ulid::generate(),
+        via: None,
+        drop,
+        branch: None,
+        pr: None,
+    });
+}
+
+#[test]
+fn an_open_whole_in_sight_is_being_worked_on() {
+    let (state, whole, _) = whole_with_a_part();
+
+    assert!(working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_that_is_done_is_no_longer_being_worked_on() {
+    let (mut state, whole, _) = whole_with_a_part();
+    applied(
+        &mut state,
+        3,
+        vec![Op::TaskDone {
+            id: whole,
+            filled: false,
+        }],
+    );
+
+    assert!(!working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_that_was_dropped_is_no_longer_being_worked_on() {
+    let (mut state, whole, _) = whole_with_a_part();
+    applied(&mut state, 3, vec![Op::TaskDrop { id: whole }]);
+
+    assert!(!working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_put_out_of_sight_is_no_longer_being_worked_on() {
+    let (mut state, whole, _) = whole_with_a_part();
+    applied(&mut state, 3, vec![Op::TaskHide { id: whole }]);
+
+    assert!(!working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_shown_again_is_being_worked_on_again() {
+    let (mut state, whole, _) = whole_with_a_part();
+    applied(&mut state, 3, vec![Op::TaskHide { id: whole }]);
+    applied(&mut state, 4, vec![Op::TaskShow { id: whole }]);
+
+    assert!(working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_reopened_is_being_worked_on_again() {
+    let (mut state, whole, _) = whole_with_a_part();
+    applied(
+        &mut state,
+        3,
+        vec![Op::TaskDone {
+            id: whole,
+            filled: false,
+        }],
+    );
+    applied(&mut state, 4, vec![Op::TaskReopen { id: whole }]);
+
+    assert!(working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_an_agent_said_done_is_no_longer_being_worked_on() {
+    let (mut state, whole, _) = whole_with_a_part();
+    said_by_an_agent(&mut state, whole, false);
+
+    assert!(!working_of(&state, whole));
+}
+
+#[test]
+fn a_whole_an_agent_said_not_to_do_is_no_longer_being_worked_on() {
+    let (mut state, whole, _) = whole_with_a_part();
+    said_by_an_agent(&mut state, whole, true);
+
+    assert!(!working_of(&state, whole));
+}
+
+#[test]
+fn a_part_that_was_said_done_does_not_stop_its_whole_from_being_worked_on() {
+    let (mut state, whole, part) = whole_with_a_part();
+    said_by_an_agent(&mut state, part, false);
+
+    assert!(working_of(&state, whole));
+}
+
+#[test]
+fn working_is_judged_for_each_whole_on_its_own() {
+    let mut state = State::default();
+    let busy = written(&mut state, 1, "move house", None);
+    let still = written(&mut state, 2, "paint", None);
+    written(&mut state, 3, "pack", Some(busy));
+    written(&mut state, 4, "sand", Some(still));
+    applied(&mut state, 5, vec![Op::TaskHide { id: still }]);
+
+    assert!(working_of(&state, busy));
+    assert!(!working_of(&state, still));
+}
+
+#[test]
+fn working_travels_to_the_front_end_under_its_own_name() {
+    let (state, whole, _) = whole_with_a_part();
+
+    let told = serde_json::to_value(&wholes(&state)[&whole.to_string()]).unwrap();
+
+    assert_eq!(told["working"], true);
 }

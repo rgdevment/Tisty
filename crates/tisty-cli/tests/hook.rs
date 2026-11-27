@@ -129,7 +129,7 @@ fn a_session_starts_knowing_the_open_tasks_this_client_left() {
     for title in ["Ship the hooks", "Measure the hooks"] {
         agent.call(
             "propose",
-            json!({ "title": title, "list": "Personal", "steps": ["one", "two"] }),
+            json!({ "for": "agent", "title": title, "list": "Personal", "steps": ["one", "two"] }),
         );
     }
     let first = home.person().id_of("Ship the hooks");
@@ -137,7 +137,7 @@ fn a_session_starts_knowing_the_open_tasks_this_client_left() {
     let mut other = home.connect("codex");
     other.call(
         "propose",
-        json!({ "title": "Codex's own work", "steps": ["x"] }),
+        json!({ "for": "agent", "title": "Codex's own work", "steps": ["x"] }),
     );
 
     let said = started(&home);
@@ -160,13 +160,54 @@ fn a_session_starts_knowing_the_open_tasks_this_client_left() {
 }
 
 #[test]
+fn a_session_does_not_start_with_the_tasks_filed_for_the_person() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    agent.call(
+        "propose",
+        json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one"] }),
+    );
+    agent.call(
+        "propose",
+        json!({ "for": "person", "title": "Try the hooks by hand", "list": "Personal", "steps": ["open it"] }),
+    );
+
+    let said = started(&home);
+
+    assert!(said.contains("Ship the hooks"), "{said}");
+    assert!(!said.contains("Try the hooks by hand"), "{said}");
+}
+
+#[test]
+fn a_person_task_made_by_handing_steps_over_does_not_start_a_session_either() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    agent.call(
+        "propose",
+        json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one", "try it"] }),
+    );
+    let id = home.person().id_of("Ship the hooks").to_string();
+    agent.call(
+        "unplan",
+        json!({ "task": id, "step": "try it", "to_person": true }),
+    );
+
+    let said = started(&home);
+
+    assert!(said.contains("Ship the hooks"), "{said}");
+    assert!(!said.contains("your part"), "{said}");
+}
+
+#[test]
 fn the_hook_and_catch_up_say_the_same_of_the_task_left_open() {
     let home = Home::new();
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
         "propose",
-        json!({ "title": "Ship the hooks", "list": "Personal", "steps": ["one", "two"] }),
+        json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one", "two"] }),
     );
     let id = home.person().id_of("Ship the hooks").to_string();
     agent.call(
@@ -217,7 +258,7 @@ fn a_hidden_task_and_the_diary_never_reach_a_starting_session() {
     let mut agent = home.connect("claude-code");
     agent.call(
         "propose",
-        json!({ "title": "Secret errand", "list": "Personal", "steps": ["one"] }),
+        json!({ "for": "agent", "title": "Secret errand", "list": "Personal", "steps": ["one"] }),
     );
     let secret = home.person().id_of("Secret errand");
     agent.call("catch_up", json!({}));
@@ -371,4 +412,419 @@ fn garbage_before_a_call_is_silent_through_the_binary() {
         assert!(said.status.success(), "{raw:?}: {said:?}");
         assert!(said.stdout.is_empty(), "{raw:?}: {said:?}");
     }
+}
+
+const PUBLISHED: &str = "You just pushed or opened or merged a pull request";
+const EVERY_STEP: &str = "is ticked, but it is not said done";
+const EDITED: &str = "You edited files this turn and wrote nothing in Tisty";
+
+fn said(out: &Output) -> String {
+    assert!(out.status.success(), "{out:?}");
+    String::from_utf8_lossy(&out.stdout).to_string()
+}
+
+fn stopped(home: &Home, client: &str, session: &Value) -> String {
+    said(&home.hook(client, "stop", session))
+}
+
+fn in_session(session: &str) -> Value {
+    json!({ "session_id": session, "stop_hook_active": false })
+}
+
+fn a_tick_of(session: &str, task: &str) -> Value {
+    json!({ "session_id": session, "tool_name": "mcp__tisty__tick",
+            "tool_input": { "task": task, "step": "one" } })
+}
+
+fn an_agent_task(home: &Home, agent: &mut Connection, title: &str, steps: &[&str]) -> String {
+    agent.call(
+        "propose",
+        json!({ "for": "agent", "title": title, "list": "Personal", "steps": steps }),
+    );
+    home.person().id_of(title).to_string()
+}
+
+fn every_step_ticked(agent: &mut Connection, task: &str, steps: &[&str]) {
+    agent.call("tick", json!({ "task": task, "steps": steps }));
+}
+
+fn shell_push(client: &str, session: &str) -> Value {
+    match client {
+        "cursor" => json!({ "conversation_id": session, "command": "git push origin feat/x" }),
+        "copilot" => json!({ "sessionId": session, "toolName": "bash",
+                             "toolArgs": json!({ "command": "git push" }).to_string() }),
+        "antigravity" => json!({ "conversation_id": session,
+                                 "toolCall": { "name": "run_command",
+                                               "args": { "CommandLine": "git push" } } }),
+        _ => json!({ "session_id": session, "tool_name": "Bash",
+                     "tool_input": { "command": "git push" } }),
+    }
+}
+
+fn stop_of(client: &str, session: &str) -> Value {
+    match client {
+        "cursor" | "antigravity" => json!({ "conversation_id": session }),
+        "copilot" => json!({ "sessionId": session }),
+        _ => in_session(session),
+    }
+}
+
+#[test]
+fn claude_code_is_asked_what_it_finished_right_after_a_push_and_the_stop_does_not_ask_again() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+
+    let after = said(&home.hook("claude-code", "shell", &shell_push("claude-code", "s-push")));
+    let told: Value = serde_json::from_str(&after).unwrap();
+    assert_eq!(told["hookSpecificOutput"]["hookEventName"], "PostToolUse");
+    let context = told["hookSpecificOutput"]["additionalContext"]
+        .as_str()
+        .unwrap();
+    assert!(context.contains(PUBLISHED), "{context}");
+    assert!(context.contains("`say_done`"), "{context}");
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-push")), "");
+}
+
+#[test]
+fn claude_code_is_asked_after_a_pull_request_is_opened_or_merged_too() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    for (n, command) in ["gh pr create --fill", "gh -R a/b pr merge 3 --squash"]
+        .into_iter()
+        .enumerate()
+    {
+        let session = format!("s-pr-{n}");
+        let heard = json!({ "session_id": session, "tool_name": "Bash",
+                            "tool_input": { "command": command } });
+        let after = said(&home.hook("claude-code", "shell", &heard));
+        assert!(after.contains(PUBLISHED), "{command}: {after}");
+    }
+}
+
+#[test]
+fn a_shell_command_that_does_not_publish_says_nothing_and_leaves_the_stop_quiet() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    for command in ["git status", "gh pr view 3", "echo \"git push\"", "ls"] {
+        let heard = json!({ "session_id": "s-calm", "tool_name": "Bash",
+                            "tool_input": { "command": command } });
+        assert_eq!(
+            said(&home.hook("claude-code", "shell", &heard)),
+            "",
+            "{command}"
+        );
+    }
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-calm")), "");
+}
+
+#[test]
+fn a_push_inside_a_here_document_asks_nothing() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let heard = json!({ "session_id": "s-doc", "tool_name": "Bash",
+                        "tool_input": { "command": "cat <<EOF > plan.md\ngit push\nEOF" } });
+
+    assert_eq!(said(&home.hook("claude-code", "shell", &heard)), "");
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-doc")), "");
+}
+
+#[test]
+fn the_other_clients_say_nothing_at_the_shell_and_ask_once_at_the_stop() {
+    for client in ["codex", "cursor", "gemini-cli", "copilot", "antigravity"] {
+        let home = Home::new();
+        home.person().lets_the_agent_in();
+        let session = format!("s-{client}");
+
+        let after = said(&home.hook(client, "shell", &shell_push(client, &session)));
+        assert_eq!(after, "", "{client} at the shell");
+
+        let first = stopped(&home, client, &stop_of(client, &session));
+        assert!(first.contains(PUBLISHED), "{client} at the stop: {first}");
+        let second = stopped(&home, client, &stop_of(client, &session));
+        assert_eq!(second, "", "{client} asked twice");
+    }
+}
+
+#[test]
+fn the_stop_after_a_push_hands_the_question_back_in_each_clients_shape() {
+    let shape = |client: &str| -> Value {
+        let home = Home::new();
+        home.person().lets_the_agent_in();
+        let session = format!("s-{client}");
+        home.hook(client, "shell", &shell_push(client, &session));
+        serde_json::from_str(&stopped(&home, client, &stop_of(client, &session))).unwrap()
+    };
+    assert_eq!(shape("codex")["decision"], "block");
+    assert_eq!(shape("gemini-cli")["decision"], "block");
+    assert_eq!(shape("copilot")["decision"], "block");
+    assert_eq!(shape("antigravity")["decision"], "continue");
+    assert!(
+        shape("cursor")["followup_message"]
+            .as_str()
+            .unwrap()
+            .contains(PUBLISHED)
+    );
+}
+
+#[test]
+fn a_second_push_in_the_same_session_is_asked_about_again_at_the_stop() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let session = "s-twice";
+    home.hook("codex", "shell", &shell_push("codex", session));
+    assert!(stopped(&home, "codex", &in_session(session)).contains(PUBLISHED));
+    assert_eq!(stopped(&home, "codex", &in_session(session)), "");
+
+    home.hook("codex", "shell", &shell_push("codex", session));
+    assert!(stopped(&home, "codex", &in_session(session)).contains(PUBLISHED));
+}
+
+#[test]
+fn a_stop_that_is_already_a_continuation_asks_about_nothing() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    home.hook("codex", "shell", &shell_push("codex", "s-active"));
+
+    let active = json!({ "session_id": "s-active", "stop_hook_active": true });
+    assert_eq!(stopped(&home, "codex", &active), "");
+    assert_eq!(stopped(&home, "codex", &in_session("s-active")), "");
+}
+
+#[test]
+fn a_closed_door_asks_nothing_after_a_push() {
+    let home = Home::new();
+    for client in ["claude-code", "codex"] {
+        assert_eq!(
+            said(&home.hook(client, "shell", &shell_push(client, "s-closed"))),
+            ""
+        );
+        assert_eq!(stopped(&home, client, &in_session("s-closed")), "");
+    }
+}
+
+#[test]
+fn turn_hooks_off_asks_nothing_after_a_push_or_at_the_stop() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let config = home.home.path().join("config").join("config.toml");
+    let kept = std::fs::read_to_string(&config).unwrap();
+    std::fs::write(&config, format!("turn_hooks = false\n{kept}")).unwrap();
+
+    let after = said(&home.hook("claude-code", "shell", &shell_push("claude-code", "s-off2")));
+    assert_eq!(after, "");
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-off2")), "");
+}
+
+#[test]
+fn a_task_with_every_step_ticked_is_asked_to_be_said_done_once_at_the_stop() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one", "two"]);
+    every_step_ticked(&mut agent, &task, &["one", "two"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-ready", &task));
+
+    let asked = stopped(&home, "claude-code", &in_session("s-ready"));
+    let told: Value = serde_json::from_str(&asked).unwrap();
+    assert_eq!(told["decision"], "block");
+    let reason = told["reason"].as_str().unwrap();
+    assert!(reason.contains("Ship the hooks"), "{reason}");
+    assert!(reason.contains(EVERY_STEP), "{reason}");
+    assert!(reason.contains("`say_done`"), "{reason}");
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-ready")), "");
+}
+
+#[test]
+fn a_task_with_a_step_left_is_not_asked_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one", "two"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-left", &task));
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-left")), "");
+}
+
+#[test]
+fn a_task_without_steps_is_not_asked_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &[]);
+    home.hook("claude-code", "tool", &a_tick_of("s-bare", &task));
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-bare")), "");
+}
+
+#[test]
+fn a_task_already_said_done_is_not_asked_again() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    agent.call(
+        "say_done",
+        json!({ "task": task, "body": "built and proven", "branch": "feat/x" }),
+    );
+    home.hook("claude-code", "tool", &a_tick_of("s-said", &task));
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-said")), "");
+}
+
+#[test]
+fn a_task_for_the_person_is_never_asked_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    agent.call(
+        "propose",
+        json!({ "for": "person", "title": "Try it by hand", "list": "Personal",
+                "steps": ["one"] }),
+    );
+    let task = home.person().id_of("Try it by hand");
+    home.person().ticks(task, 1);
+    home.hook(
+        "claude-code",
+        "tool",
+        &a_tick_of("s-theirs", &task.to_string()),
+    );
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-theirs")), "");
+}
+
+#[test]
+fn a_task_the_person_wrote_is_never_asked_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let task = home.person().id_of("algo mio");
+    home.person().adds_step(task, "one");
+    home.person().ticks(task, 1);
+    home.hook(
+        "claude-code",
+        "tool",
+        &a_tick_of("s-persons", &task.to_string()),
+    );
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-persons")), "");
+}
+
+#[test]
+fn only_a_task_written_through_a_tisty_write_tool_is_asked_about() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+
+    let read = json!({ "session_id": "s-read", "tool_name": "mcp__tisty__read",
+                       "tool_input": { "task": task } });
+    home.hook("claude-code", "tool", &read);
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-read")), "");
+}
+
+#[test]
+fn a_continuation_stop_does_not_ask_to_say_done_and_a_later_turn_that_writes_still_does() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-cont", &task));
+
+    let active = json!({ "session_id": "s-cont", "stop_hook_active": true });
+    assert_eq!(stopped(&home, "claude-code", &active), "");
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-cont")), "");
+    home.hook("claude-code", "tool", &a_tick_of("s-cont", &task));
+    assert!(stopped(&home, "claude-code", &in_session("s-cont")).contains(EVERY_STEP));
+}
+
+#[test]
+fn turn_hooks_off_asks_nothing_about_a_task_ready_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    let config = home.home.path().join("config").join("config.toml");
+    let kept = std::fs::read_to_string(&config).unwrap();
+    std::fs::write(&config, format!("turn_hooks = false\n{kept}")).unwrap();
+    home.hook("claude-code", "tool", &a_tick_of("s-off3", &task));
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-off3")), "");
+}
+
+#[test]
+fn a_closed_door_asks_nothing_about_a_task_ready_to_be_said_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-door", &task));
+    home.person().shuts_the_agent_out();
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-door")), "");
+}
+
+#[test]
+fn the_hand_back_of_a_turn_that_wrote_nothing_wins_over_the_question_to_say_done() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one", "two"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-win", &task));
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-win")), "");
+
+    home.person().ticks(task.parse().unwrap(), 2);
+    let edit = json!({ "session_id": "s-win", "tool_name": "Write" });
+    home.hook("claude-code", "tool", &edit);
+
+    let handed: Value =
+        serde_json::from_str(&stopped(&home, "claude-code", &in_session("s-win"))).unwrap();
+    assert_eq!(handed["decision"], "block");
+    let reason = handed["reason"].as_str().unwrap();
+    assert!(reason.contains(EDITED), "{reason}");
+    assert!(!reason.contains(EVERY_STEP), "{reason}");
+}
+
+#[test]
+fn the_question_to_say_done_is_asked_only_in_a_turn_that_wrote_in_tisty() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one", "two"]);
+    every_step_ticked(&mut agent, &task, &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-turns", &task));
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-turns")), "");
+
+    home.person().ticks(task.parse().unwrap(), 2);
+    assert_eq!(
+        stopped(&home, "claude-code", &in_session("s-turns")),
+        "",
+        "a turn that wrote nothing in Tisty is not asked"
+    );
+
+    home.hook("claude-code", "tool", &a_tick_of("s-turns", &task));
+    let asked = stopped(&home, "claude-code", &in_session("s-turns"));
+    assert!(asked.contains(EVERY_STEP), "{asked}");
+}
+
+#[test]
+fn a_task_ticked_complete_by_the_person_in_a_turn_without_a_tisty_write_is_not_asked_about() {
+    let home = Home::new();
+    home.person().lets_the_agent_in();
+    let mut agent = home.connect("claude-code");
+    let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
+    home.hook("claude-code", "tool", &a_tick_of("s-quiet", &task));
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-quiet")), "");
+
+    home.person().ticks(task.parse().unwrap(), 1);
+
+    assert_eq!(stopped(&home, "claude-code", &in_session("s-quiet")), "");
 }

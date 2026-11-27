@@ -288,3 +288,72 @@ fn a_patch_handed_over_under_input_or_patch_still_names_the_file_it_adds() {
         );
     }
 }
+
+fn read(heard: Value) -> Call {
+    Call::read(heard.to_string().as_bytes())
+}
+
+#[test]
+fn the_task_is_read_from_the_arguments_of_the_call() {
+    let id = "01J00000000000000000000001";
+    for heard in [
+        json!({ "tool_input": { "task": id, "step": "a" } }),
+        json!({ "toolArgs": { "task": id } }),
+        json!({ "toolArgs": json!({ "task": id }).to_string() }),
+        json!({ "toolCall": { "args": { "task": id } } }),
+    ] {
+        assert_eq!(read(heard.clone()).task(), Some(id), "{heard}");
+    }
+}
+
+#[test]
+fn no_task_is_read_when_the_call_names_none_or_not_text() {
+    for heard in [
+        json!({}),
+        json!({ "tool_input": { "step": "a" } }),
+        json!({ "tool_input": { "task": 4 } }),
+        json!({ "tool_input": { "task": null } }),
+        json!({ "toolArgs": "not json" }),
+    ] {
+        assert_eq!(read(heard.clone()).task(), None, "{heard}");
+    }
+}
+
+#[test]
+fn the_command_is_read_from_the_arguments_of_the_call() {
+    for heard in [
+        json!({ "tool_input": { "command": "git push" } }),
+        json!({ "toolArgs": { "command": "git push" } }),
+        json!({ "toolArgs": json!({ "command": "git push" }).to_string() }),
+        json!({ "toolCall": { "args": { "CommandLine": "git push" } } }),
+    ] {
+        assert_eq!(read(heard.clone()).command(), Some("git push"), "{heard}");
+    }
+}
+
+#[test]
+fn cursor_hands_the_command_over_at_the_top_level() {
+    let call = read(json!({ "command": "gh pr create", "cwd": "/repo" }));
+    assert_eq!(call.command(), Some("gh pr create"));
+}
+
+#[test]
+fn a_command_inside_the_arguments_wins_over_the_one_at_the_top() {
+    let call = read(json!({
+        "command": "ls",
+        "tool_input": { "command": "git push" }
+    }));
+    assert_eq!(call.command(), Some("git push"));
+}
+
+#[test]
+fn no_command_is_read_when_there_is_none_or_it_is_not_text() {
+    for heard in [
+        json!({}),
+        json!({ "tool_input": { "command": 5 } }),
+        json!({ "tool_input": { "file_path": "a.md" } }),
+        json!({ "command": 5 }),
+    ] {
+        assert_eq!(read(heard.clone()).command(), None, "{heard}");
+    }
+}

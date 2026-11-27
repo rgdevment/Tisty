@@ -113,6 +113,17 @@ fn untongued(id: crate::model::DocId, before: &State) -> Option<Op> {
     })
 }
 
+fn resolved_again(id: crate::TaskId, was: &crate::model::Resolved) -> Op {
+    Op::TaskResolve {
+        id,
+        d: Resolve::new(was.entry)
+            .said_by(was.at, was.by.clone())
+            .through(was.via.clone())
+            .dropping(was.drop)
+            .landing(was.branch.clone(), was.pr.clone()),
+    }
+}
+
 fn undoing(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
@@ -191,25 +202,13 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             },
         }),
         Op::TaskResolve { id, .. } => match &before.tasks.get(id)?.resolved {
-            Some(was) => Some(Op::TaskResolve {
-                id: *id,
-                d: Resolve::new(was.entry)
-                    .said_by(was.at, was.by.clone())
-                    .through(was.via.clone())
-                    .dropping(was.drop),
-            }),
+            Some(was) => Some(resolved_again(*id, was)),
             None => Some(Op::TaskUnresolve { id: *id }),
         },
-        Op::TaskUnresolve { id } => {
-            let was = before.tasks.get(id)?.resolved.as_ref()?;
-            Some(Op::TaskResolve {
-                id: *id,
-                d: Resolve::new(was.entry)
-                    .said_by(was.at, was.by.clone())
-                    .through(was.via.clone())
-                    .dropping(was.drop),
-            })
-        }
+        Op::TaskUnresolve { id } => Some(resolved_again(
+            *id,
+            before.tasks.get(id)?.resolved.as_ref()?,
+        )),
         Op::TaskLogEdit { id, d } => Some(Op::TaskLogEdit {
             id: *id,
             d: LogEdit {

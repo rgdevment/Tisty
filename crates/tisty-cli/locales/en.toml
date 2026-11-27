@@ -3,6 +3,7 @@ store-newer-store = "This Tisty came from the Microsoft Store: if another Tisty 
 store-moved = "your data moved to a new place while the agent was connected; start the agent again"
 store-newer = "a newer Tisty updated your data (the machine {device} wrote it). Update this one so the two agree again — reading half of it would lose work"
 attached-from = "kept from {path}"
+companion-title = "{task}: your part"
 secret-warning = "Something here reads like a live credential rather than an example: {what}. It came in as written — remove it, change it, or delete this notice."
 secret-a-key = "a private key"
 retired = "The tisty command line was retired: open the Tisty window for your tasks and documents. Only what your agent uses is still here: `tisty mcp`, its door, and `tisty hook`, the hooks Tisty installs for it."

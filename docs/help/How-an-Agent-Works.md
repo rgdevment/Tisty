@@ -197,6 +197,18 @@ With the hooks, when a turn edited files and wrote nothing in Tisty, the turn go
 
 If the agent lets it pass, the hook stays quiet until it calls Tisty again: a turn outside a task costs one extra turn at most.
 
+### 11. What only you can do goes in your task
+
+A task is the agent's or yours, never both: mixed, it never ends. So `propose` asks for `for`, «agent» or «person». When a step of the agent's turns out to be yours, like trying it by hand, publishing or merging, it hands it to your task:
+
+```json
+> unplan {"task": "…", "step": "Try the payment on the phone", "to_person": true}
+{ "to_person": true, "companion_made": true,
+  "said": "Handed 1 step(s) from \"Confirmation webhook\" to the person, in a new task of theirs, \"Confirmation webhook: your part\", filed as its part: it never holds yours open. 2 left on \"Confirmation webhook\"; `say_done` it when they are done." }
+```
+
+Each task has one companion of yours, so your tasks stay few. Your part never holds the agent's open, and confirming the agent's leaves yours in place. When it is done, the agent says `say_done` with the branch or the pull request and how it checked it, without waiting for the merge, which is yours.
+
 At the end of the session, `brain` with `part_of` already shows «Confirmation webhook» **under way**, with 1 of 3 steps and the first line of its state.
 
 ## What you see
@@ -206,6 +218,8 @@ At the end of the session, `brain` with `part_of` already shows «Confirmation w
 - **In Linked from**, «Payments: decisions» now names the task.
 - **In the Brainsty network**, the new lines reach the base a few seconds later, and you see them the next time you open the network.
 - **Nothing closes without you.** When the agent says a task is done, it waits in **To confirm**.
+- **Two sections in each list.** **Yours to do** gathers yours, with its usual checkbox. **The agent does it** gathers the agent's: there you only confirm or keep it open, and the row shows the first lines of its proof, with the branch or pull request, so you need not open it. With two or more ready, **Confirm the N done** appears.
+- **Your part, linked.** Your companion task says **waits on «…»** while the agent works, and **your part of «…»** once it has finished.
 
 ## The tools that moved into `brain` and `read`
 

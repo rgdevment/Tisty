@@ -215,6 +215,8 @@ fn without_a_written_state_one_is_built_and_the_closing_note_is_pinned_once() {
         by: DeviceId(AGENT.into()),
         entry: closing.id,
         via: None,
+        branch: None,
+        pr: None,
         drop: false,
     });
     task.log = vec![closing];
@@ -277,6 +279,8 @@ fn a_note_replaces_only_an_agents_earlier_note_still_in_force() {
         by: DeviceId(AGENT.into()),
         entry: closing.id,
         via: None,
+        branch: None,
+        pr: None,
         drop: false,
     });
     task.log = vec![
@@ -324,6 +328,8 @@ fn a_state_is_refused_before_any_step_on_a_task_said_done_a_routine_or_past_its_
         by: DeviceId(AGENT.into()),
         entry: Ulid::generate(),
         via: None,
+        branch: None,
+        pr: None,
         drop: false,
     });
     assert!(refusal(writable(&paths, &held, &said, "Done.")).contains("already been said done"));

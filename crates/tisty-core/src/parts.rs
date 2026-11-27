@@ -78,8 +78,12 @@ impl State {
     }
 
     pub(crate) fn open_parts_dropped(&self, id: TaskId) -> Vec<Op> {
+        let agents = self
+            .tasks
+            .get(&id)
+            .is_some_and(|whole| self.agents_own(whole));
         self.parts_of(id)
-            .filter(|part| part.status == Status::Open)
+            .filter(|part| part.status == Status::Open && !(agents && part.for_person))
             .map(|part| Op::TaskDrop { id: part.id })
             .collect()
     }

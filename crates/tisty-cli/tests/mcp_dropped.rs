@@ -58,7 +58,7 @@ impl Served {
     fn files(&self, title: &str) -> String {
         let made = self.call(
             "propose",
-            json!({ "title": title, "list": "Personal", "again": true }),
+            json!({ "for": "agent", "title": title, "list": "Personal", "again": true }),
         );
         assert_eq!(made["structuredContent"]["proposed"], true, "{made}");
         made["structuredContent"]["id"]
@@ -251,7 +251,7 @@ fn a_hidden_dropped_task_is_named_nowhere() {
     let nobody_task = served.call("brain", json!({ "task": NOBODY }));
     let proposed = served.call(
         "propose",
-        json!({ "title": "secret zebra gift again", "list": "Personal" }),
+        json!({ "for": "agent", "title": "secret zebra gift again", "list": "Personal" }),
     );
 
     for said in [&read, &by_task, &by_query] {
@@ -303,7 +303,7 @@ fn a_title_alike_to_a_dropped_one_is_held_until_again_is_set() {
 
     let held = served.call(
         "propose",
-        json!({ "title": "Migrate billing database", "list": "Personal" }),
+        json!({ "for": "agent", "title": "Migrate billing database", "list": "Personal" }),
     );
 
     assert_eq!(card(&held)["proposed"], false, "{held}");
@@ -313,7 +313,7 @@ fn a_title_alike_to_a_dropped_one_is_held_until_again_is_set() {
 
     let filed = served.call(
         "propose",
-        json!({ "title": "Migrate billing database", "list": "Personal", "again": true }),
+        json!({ "for": "agent", "title": "Migrate billing database", "list": "Personal", "again": true }),
     );
 
     assert_eq!(card(&filed)["proposed"], true, "{filed}");
@@ -327,7 +327,7 @@ fn an_unrelated_title_is_filed_without_a_word_about_dropped_tasks() {
 
     let filed = served.call(
         "propose",
-        json!({ "title": "paint the garden fence", "list": "Personal" }),
+        json!({ "for": "agent", "title": "paint the garden fence", "list": "Personal" }),
     );
 
     assert_eq!(card(&filed)["proposed"], true, "{filed}");
@@ -342,8 +342,8 @@ fn the_batch_form_says_which_line_was_not_written() {
     let batch = served.call(
         "propose",
         json!({ "tasks": [
-            { "title": "Migrate billing database", "list": "Personal" },
-            { "title": "paint the garden fence", "list": "Personal" },
+            { "for": "agent", "title": "Migrate billing database", "list": "Personal" },
+            { "for": "agent", "title": "paint the garden fence", "list": "Personal" },
         ] }),
     );
 
@@ -377,7 +377,7 @@ fn a_shared_prefix_alone_does_not_hold_a_proposal() {
 
     let filed = served.call(
         "propose",
-        json!({ "title": "Tisty MCP: export", "list": "Personal" }),
+        json!({ "for": "agent", "title": "Tisty MCP: export", "list": "Personal" }),
     );
 
     assert_eq!(card(&filed)["proposed"], true, "{filed}");
@@ -419,7 +419,7 @@ fn proposing_a_part_of_a_dropped_task_says_it_was_dropped() {
 
     let said = served.call(
         "propose",
-        json!({ "title": "paint the garden fence", "part_of": id }),
+        json!({ "for": "agent", "title": "paint the garden fence", "part_of": id }),
     );
 
     assert_says_dropped(&said, "migrate the billing database");
@@ -456,7 +456,7 @@ fn hidden_and_unknown_ids_keep_the_plain_answer() {
         let attached = served.call("attach", json!({ "task": gone, "path": path }));
         let proposed = served.call(
             "propose",
-            json!({ "title": "something else", "part_of": gone }),
+            json!({ "for": "agent", "title": "something else", "part_of": gone }),
         );
         let moved = served.call("move", json!({ "task": other, "part_of": gone }));
         for said in [&attached, &proposed, &moved] {
@@ -514,7 +514,7 @@ fn brain_part_of_a_dropped_whole_gives_the_card_and_no_parts() {
     let whole = served.files("release plan");
     served.call(
         "propose",
-        json!({ "title": "write the changelog", "part_of": whole }),
+        json!({ "for": "agent", "title": "write the changelog", "part_of": whole }),
     );
     served.person().drops(person::task(&whole));
 
@@ -532,6 +532,7 @@ fn a_part_alike_to_a_dropped_task_is_refused_unless_the_whole_says_again() {
     let args = |again: bool| {
         let mut one = json!({
             "title": "quarterly cleanup",
+            "for": "agent",
             "list": "Personal",
             "parts": [{ "title": "Migrate billing database" }],
         });

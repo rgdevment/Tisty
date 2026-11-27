@@ -168,6 +168,10 @@ pub struct Resolved {
     pub via: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub drop: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pr: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -227,6 +231,8 @@ pub struct Task {
     /// tick its steps — what an assistant may do on a task it filed itself.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub open_to_agents: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub for_person: bool,
     /// The client the assistant that filed this task spoke through, from the event's `via`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_via: Option<String>,
@@ -316,6 +322,7 @@ impl Task {
             completed_at: None,
             read_as: None,
             open_to_agents: false,
+            for_person: false,
             created_via: None,
             stated_at: None,
             steps_moved_at: None,

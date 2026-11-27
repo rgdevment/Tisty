@@ -201,6 +201,25 @@ impl Client {
         .to_string()
     }
 
+    pub fn after_shell(self, context: &str) -> Option<String> {
+        match self {
+            Client::ClaudeCode => Some(
+                json!({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": context,
+                    }
+                })
+                .to_string(),
+            ),
+            Client::Cursor
+            | Client::GeminiCli
+            | Client::Copilot
+            | Client::Codex
+            | Client::Antigravity => None,
+        }
+    }
+
     pub fn handed_back(self, reason: &str) -> String {
         match self {
             Client::Cursor => json!({ "followup_message": reason }),

@@ -226,11 +226,11 @@ fn a_task_proposed_from_an_idea_takes_it_off_the_sheet_and_only_once() {
 
     let made = served.call(
         "propose",
-        json!({ "title": "Pedir presupuesto para el techo", "source": source }),
+        json!({ "for": "agent", "title": "Pedir presupuesto para el techo", "source": source }),
     );
     let again = served.call(
         "propose",
-        json!({ "title": "Presupuesto del techo", "source": source }),
+        json!({ "for": "agent", "title": "Presupuesto del techo", "source": source }),
     );
 
     assert!(!refused(&made), "{made}");
@@ -421,7 +421,7 @@ fn many_ideas_jotted_at_once_are_each_named_apart_and_proposed_one_by_one() {
     }
     let made = served.call(
         "propose",
-        json!({ "title": "La última idea", "source": format!("{sheet}#{}", ideas[16].heading) }),
+        json!({ "for": "agent", "title": "La última idea", "source": format!("{sheet}#{}", ideas[16].heading) }),
     );
     assert!(made["structuredContent"]["from_idea"].is_string(), "{made}");
     assert_eq!(
@@ -560,8 +560,10 @@ fn a_second_sheet_is_guarded_and_its_ideas_are_marked_like_the_first() {
 fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
     let served = Served::new();
     let sheet = served.sheet();
-    let task = served.call("propose", json!({ "title": "Arreglar la casa" }))["structuredContent"]
-        ["id"]
+    let task = served.call(
+        "propose",
+        json!({ "for": "agent", "title": "Arreglar la casa" }),
+    )["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -700,8 +702,7 @@ fn a_task_from_a_heading_no_idea_carries_says_the_idea_still_waits() {
 
     let made = served.call(
         "propose",
-        json!({
-            "title": "Pedir presupuesto para el techo",
+        json!({ "for": "agent", "title": "Pedir presupuesto para el techo",
             "source": format!("{sheet}#2026-09-03 18:06 · teal"),
         }),
     );
@@ -747,7 +748,7 @@ fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
 
     let made = served.call(
         "propose",
-        json!({ "title": "Contestar a la vecina", "source": "sereno#1" }),
+        json!({ "for": "agent", "title": "Contestar a la vecina", "source": "sereno#1" }),
     );
 
     assert!(!refused(&made), "{made}");
@@ -829,8 +830,7 @@ fn an_idea_turned_into_a_part_leaves_the_sheet_too() {
 
     let made = served.call(
         "propose",
-        json!({
-            "title": "Arreglar la casa",
+        json!({ "for": "agent", "title": "Arreglar la casa",
             "parts": [{ "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }]
         }),
     );
@@ -861,7 +861,7 @@ fn a_new_idea_never_takes_the_heading_of_one_already_made_a_task() {
         .unwrap();
     served.call(
         "propose",
-        json!({ "title": "Primera", "source": format!("{sheet}#{}", first.heading) }),
+        json!({ "for": "agent", "title": "Primera", "source": format!("{sheet}#{}", first.heading) }),
     );
 
     let many: String = (1..=12).map(|n| format!("- Otra {n}\n")).collect();
@@ -918,7 +918,7 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_made_a_task() {
     let sheet = served.sheet();
     served.call(
         "propose",
-        json!({ "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }),
+        json!({ "for": "agent", "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }),
     );
 
     let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
@@ -968,7 +968,7 @@ fn several_filings_say_which_one_the_person_put_out_of_sight() {
     let served = Served::new();
     let filed = served.call(
         "propose",
-        json!({ "title": "Regalo sorpresa", "source": "mail:7" }),
+        json!({ "for": "agent", "title": "Regalo sorpresa", "source": "mail:7" }),
     );
     let id = filed["structuredContent"]["id"]
         .as_str()
@@ -978,7 +978,7 @@ fn several_filings_say_which_one_the_person_put_out_of_sight() {
 
     let batch = served.call(
         "propose",
-        json!({ "tasks": [{ "title": "Otra vez", "source": "mail:7" }, { "title": "Nueva" }] }),
+        json!({ "tasks": [{ "for": "agent", "title": "Otra vez", "source": "mail:7" }, { "for": "agent", "title": "Nueva" }] }),
     );
 
     assert!(
