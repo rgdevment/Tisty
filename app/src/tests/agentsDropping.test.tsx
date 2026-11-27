@@ -304,11 +304,11 @@ describe("deleting a skill or rule of Agents", () => {
 });
 
 describe("deleting what no agent keeps", () => {
-  it("a document outside Agents asks as ever and never asks Agents", async () => {
+  it("a plain document outside Agents asks nothing and never asks Agents", async () => {
     const { hook } = await loaded();
     await act(() => hook.result.current.dropDoc(NOTE));
     expect(called("agents_reach")).toEqual([]);
-    expect(plain).toEqual([fill("dropDocSure", "Groceries")]);
+    expect(plain).toEqual([]);
     expect(called("doc_drop")).toEqual([]);
     await later();
     expect(called("doc_drop").map((one) => one.args)).toEqual([{ id: "N1" }]);

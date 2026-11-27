@@ -36,6 +36,21 @@ describe("where a menu is placed", () => {
     });
   });
 
+  it("goes above when whole and it fits there, rather than scrolling below", () => {
+    const placed = placement({ x: 100, y: 540, top: 520 }, CARD, VIEW, EDGE, false, true);
+
+    expect(placed.bottom).toBe(800 - (520 - 4));
+    expect(placed.tall).toBe(300);
+  });
+
+  it("still goes below when whole and it fits below", () => {
+    expect(placement({ x: 100, y: 100, top: 80 }, CARD, VIEW, EDGE, false, true)).toEqual({
+      x: 100,
+      top: 100,
+      tall: 300,
+    });
+  });
+
   it("never climbs over the ceiling", () => {
     const placed = placement({ x: 100, y: 780, top: 300 }, CARD, VIEW, 91);
 

@@ -16,13 +16,15 @@ interface Props {
 
 export default function Sure({ said, buttons, hurried, onAnswer }: Props) {
   const opened = useRef(performance.now());
+  const yes = useRef<HTMLButtonElement>(null);
   const answer = (yes: boolean) => {
     if (yes && hurried && performance.now() - opened.current < SETTLING_MS) return;
     onAnswer(yes);
   };
   // At the end of the body, so a question asked from inside another window is drawn above it.
   return createPortal(
-    <Modal title={t("sureTitle")} onClose={() => answer(false)}>
+    // Enter goes on, as the question asks; an Enter still held from the key that asked it goes nowhere.
+    <Modal title={t("sureTitle")} first={yes} onClose={() => answer(false)}>
       <p className="px-1 text-[13px] leading-relaxed whitespace-pre-line text-soft">{said}</p>
       <div className="mt-4 flex justify-end gap-2">
         <button
@@ -33,7 +35,11 @@ export default function Sure({ said, buttons, hurried, onAnswer }: Props) {
           {buttons?.no ?? t("cancel")}
         </button>
         <button
+          ref={yes}
           type="button"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.repeat) e.preventDefault();
+          }}
           onClick={() => answer(true)}
           className="rounded-md border border-line px-3 py-1 text-[12.5px] hover:border-ink"
         >

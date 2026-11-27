@@ -14,10 +14,15 @@ export const tabbedInside = (box: HTMLElement, backwards: boolean): HTMLElement 
 };
 
 // What sits over the window takes the focus in, keeps it inside and gives it back when it shuts.
-export const useHeldFocus = (box: RefObject<HTMLElement | null>) => {
+export const useHeldFocus = (
+  box: RefObject<HTMLElement | null>,
+  first?: RefObject<HTMLElement | null>,
+) => {
+  const opening = () => first?.current ?? box.current?.querySelector<HTMLElement>(REACHABLE);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the focus is taken once, when it opens
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
-    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus();
+    opening()?.focus();
     return () => came?.focus?.();
   }, [box]);
 
@@ -33,7 +38,7 @@ export const useHeldFocus = (box: RefObject<HTMLElement | null>) => {
     if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
     if (document.activeElement !== document.body) return;
     // WebKit gives a pressed button no focus, so taking it back must not roll the button from under the pointer.
-    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus({ preventScroll: true });
+    opening()?.focus({ preventScroll: true });
   };
 
   return { wrapped, held };

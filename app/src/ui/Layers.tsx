@@ -307,6 +307,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
           at={menu.at}
           choices={menu.choices}
           label={menu.label}
+          whole
           onClose={() => setMenu(null)}
         />
       )}

@@ -11,6 +11,7 @@ import AgentsAmiss, { useUnheeded } from "./AgentsAmiss";
 import Coming from "./Coming";
 import { findNow, useFindKey } from "./finding";
 import Knocking, { KnockDot } from "./Knocking";
+import type { Choice } from "./Menu";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
 import RailNotices from "./RailNotices";
@@ -48,7 +49,7 @@ interface Props {
   onIdeasMenu?: (at: { x: number; y: number }) => void;
   onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
-  onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
+  onDocMenu: (doc: Filed, at: { x: number; y: number }, first?: Choice[]) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
   acts?: LibraryActs;

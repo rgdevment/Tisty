@@ -232,7 +232,19 @@ export function usePapers({
     if (open && files.includes(open)) setChosen({ named: "docs" });
   };
 
-  const returnTo = (doc: Filed) => setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
+  // The focus goes on to the row after what goes, or the one before it at the end, so the keys keep their place.
+  const returnTo = (doc: Filed, going: readonly string[] = [doc.id]) => {
+    // Only the rows of its own tree: other panels name their parts with `data-row` too.
+    const tree =
+      document.querySelector(`[data-row="${doc.id}"]`)?.closest("[data-tree]") ?? document;
+    const rows = Array.from(tree.querySelectorAll<HTMLElement>("[data-row]"));
+    const at = rows.findIndex((row) => row.dataset.row === doc.id);
+    const stays = (row: HTMLElement | undefined) =>
+      row?.dataset.row && !going.includes(row.dataset.row) ? row.dataset.row : null;
+    const after =
+      at < 0 ? null : (rows.slice(at + 1).find(stays) ?? rows.slice(0, at).reverse().find(stays));
+    setReturning(after?.dataset.row ?? doc.pageOf ?? doc.folder ?? "unfiled");
+  };
 
   // What a document of Agents wrote into an agent's folder is asked about in the one question that deletes it.
   const reached = async (going: Going[]): Promise<Reach | null> => {
@@ -282,9 +294,11 @@ export function usePapers({
     const going = goingWith([doc], papers.docs);
     const asked = dropPickedAsked(going);
     if (await droppedFromAgents(going, asked)) return;
-    if (!(await sure(asked).catch(() => false))) return;
+    // One document going alone waits out its undo instead of a question; pages or languages with it still ask.
+    const alone = going.every((one) => !one.pages.length && one.tongues.length <= 1);
+    if (!alone && !(await sure(asked).catch(() => false))) return;
     leaving(goingDocs(going));
-    returnTo(doc);
+    returnTo(doc, goingIds(going));
     dropLater({
       hides: goingIds(going),
       said: fill("docGone", doc.title || t("untitledDoc")),
@@ -306,7 +320,7 @@ export function usePapers({
     if (await droppedFromAgents(going, asked)) return;
     if (!(await sure(asked))) return;
     leaving(goingDocs(going));
-    if (going[0]) returnTo(going[0].doc);
+    if (going[0]) returnTo(going[0].doc, goingIds(going));
     dropLater({
       hides: goingIds(going),
       said:

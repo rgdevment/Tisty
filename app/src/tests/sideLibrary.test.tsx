@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed, Papers } from "../core";
 import { dropLater, fireAll, undo } from "../dropLater";
 import { showAll } from "../hiding";
-import { fill, t } from "../locales";
+import { adopt, fill, t } from "../locales";
+import type { Choice } from "../ui/Menu";
 import SideLibrary, { type LibraryActs } from "../ui/SideLibrary";
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -31,6 +32,7 @@ const acts = (): LibraryActs => ({
   rename: vi.fn(),
   moveDocs: vi.fn(),
   awayDocs: vi.fn(),
+  pickedMenu: vi.fn(),
 });
 
 const draw = (given: LibraryActs | undefined, shown: Papers = papers) => {
@@ -103,13 +105,22 @@ describe("the New button of the library", () => {
 });
 
 describe("the bar of picked documents", () => {
-  it("shows nothing for no pick and for one", () => {
+  it("shows nothing for no pick, and shows from one", () => {
     draw(acts());
     expect(bar()).toBeNull();
 
     pick("Uno");
 
-    expect(bar()).toBeNull();
+    expect(screen.getByRole("toolbar", { name: fill("pickedMany", "1") })).toBeTruthy();
+  });
+
+  it("tells how to pick more in the title of its count", () => {
+    draw(acts());
+
+    pick("Uno");
+
+    const count = screen.getByText(fill("pickedMany", "1"), { selector: "span" });
+    expect(count.getAttribute("title")).toBe(fill("pickedHow", "Ctrl"));
   });
 
   it("appears with two picks and says how many", () => {
@@ -252,6 +263,83 @@ describe("what waits to be deleted", () => {
       dropLater({ hides: ["d2"], said: "gone", run: () => Promise.resolve() });
     });
 
+    expect(screen.getByRole("toolbar", { name: fill("pickedMany", "1") })).toBeTruthy();
+  });
+});
+
+describe("the menu of a row", () => {
+  const menuOn = (name: string) => fireEvent.contextMenu(row(name), { clientX: 4, clientY: 6 });
+
+  it("is one menu for all the picked when asked on one of them", () => {
+    const given = acts();
+    const hands = draw(given);
+    pick("Uno", "Tres");
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: fill("pickedIs", "Tres") }), {
+      clientX: 4,
+      clientY: 6,
+    });
+
+    expect(hands.onDocMenu).not.toHaveBeenCalled();
+    const [docs, at, letGo] = vi.mocked(given.pickedMenu).mock.calls[0];
+    expect(docs.map((one) => one.id)).toEqual(["d1", "d3"]);
+    expect(at).toEqual({ x: expect.any(Number), y: expect.any(Number) });
+    act(() => letGo());
     expect(bar()).toBeNull();
+  });
+
+  it("lets the pick go and opens its own menu, with picking first, on a row outside it", () => {
+    const given = acts();
+    const hands = draw(given);
+    pick("Uno", "Dos");
+
+    menuOn("Tres");
+
+    expect(given.pickedMenu).not.toHaveBeenCalled();
+    expect(bar()).toBeNull();
+    const [doc, , first] = vi.mocked(hands.onDocMenu).mock.calls[0];
+    expect(doc.id).toBe("d3");
+    expect(first?.map((one: Choice) => one.key)).toEqual(["pick"]);
+    expect(first?.[0].label).toBe(t("pickRow"));
+  });
+
+  it("picks the row from its first choice", () => {
+    const hands = draw(acts());
+
+    menuOn("Dos");
+    const [, , first] = vi.mocked(hands.onDocMenu).mock.calls[0];
+    act(() => first?.[0].onPick?.());
+
+    expect(screen.getByRole("toolbar", { name: fill("pickedMany", "1") })).toBeTruthy();
+    expect(screen.getByRole("button", { name: fill("pickedIs", "Dos") })).toBeTruthy();
+  });
+
+  it("offers no picking when the library has no actions", () => {
+    const hands = draw(undefined);
+
+    menuOn("Dos");
+
+    expect(vi.mocked(hands.onDocMenu).mock.calls[0][2]).toEqual([]);
+  });
+});
+
+describe("the words of picking", () => {
+  afterEach(() => adopt("en"));
+
+  it("exist in both languages", () => {
+    adopt("en");
+    expect([t("pickRow"), t("pickedHow"), t("pickedMany")]).toEqual([
+      "Select",
+      "{name}+click, Shift+click or Shift+↑↓ add more",
+      "{name} selected",
+    ]);
+
+    adopt("es");
+
+    expect([t("pickRow"), t("pickedHow"), t("pickedMany")]).toEqual([
+      "Elegir",
+      "{name}+clic, Shift+clic o Shift+↑↓ suman más",
+      "{name} elegidos",
+    ]);
   });
 });

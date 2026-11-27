@@ -9,6 +9,7 @@ import { layoutOf } from "./layout";
 import { type ListHands, listChoices } from "./listMenus";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
+import type { Choice } from "./ui/Menu";
 import type { Chosen } from "./views";
 import type { Mode, useWindow } from "./windowing";
 
@@ -170,13 +171,17 @@ export function deskOf(state: State, data: Snapshot) {
       choices: [{ ...hideChoice(BRAINSTORM), apart: false }],
     });
 
-  const docMenu = (doc: Filed, at: { x: number; y: number }) =>
+  const docMenu = (doc: Filed, at: { x: number; y: number }, first: Choice[] = []) => {
+    const own = docChoices(doc, hands, doc.file === board);
     setMenu({
       at,
       on: doc.id,
       label: t("docActions"),
-      choices: docChoices(doc, hands, doc.file === board),
+      choices: first.length
+        ? [...first, ...own.map((one, index) => (index ? one : { ...one, apart: true }))]
+        : own,
     });
+  };
 
   const listHands: ListHands = {
     edit: setEditingList,

@@ -14,6 +14,8 @@ import { HOOK_AGENTS } from "../userHooks";
 import type { Chosen, Lean } from "../views";
 import Glyph from "./Glyph";
 import LibraryGlance from "./LibraryGlance";
+import type { Choice } from "./Menu";
+import { onMac } from "./macKeys";
 import NewHookAsk from "./NewHookAsk";
 import { useFades } from "./room";
 import { Leaning } from "./SideTasks";
@@ -30,6 +32,8 @@ export interface LibraryActs {
   rename: (folder: Folded) => void;
   moveDocs: (docs: Filed[], at: { x: number; y: number }) => void;
   awayDocs: (docs: Filed[]) => void;
+  /** The menu of several rows picked together, opened on any of them. */
+  pickedMenu: (docs: Filed[], at: { x: number; y: number }, letGo: () => void) => void;
 }
 
 interface Props {
@@ -52,7 +56,8 @@ interface Props {
   onIdeasMenu?: (at: { x: number; y: number }) => void;
   onAgentsMenu?: (at: { x: number; y: number }) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
-  onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
+  /** `first` goes at the head of the document's own choices: the library's, such as picking it. */
+  onDocMenu: (doc: Filed, at: { x: number; y: number }, first?: Choice[]) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
   acts?: LibraryActs;
@@ -155,7 +160,9 @@ function Wide({
       .filter((one) => !going.has(one.id))
       .map((one) => (handed.length ? { ...one, folder: landing(one.folder ?? null) } : one)),
   };
-  const pickedDocs = seen.docs.filter((one) => picked.has(one.id));
+  const left = sifted(seen, asked);
+  // Only what is on screen stays picked: a row the filter hides is not deleted unseen.
+  const pickedDocs = left.docs.filter((one) => picked.has(one.id));
   const pick = (ids: string[]) => setPicked(new Set(ids));
   const dropped = (row: { id: string; kind: "doc" | "folder" }) => {
     if (!acts) return;
@@ -167,7 +174,18 @@ function Wide({
     pick([]);
     if (docs.length) acts.dropDocs(docs);
   };
-  const left = sifted(seen, asked);
+  // A menu asked on a picked row answers for all of them; one asked elsewhere lets them go.
+  const docMenu = (doc: Filed, at: { x: number; y: number }) => {
+    if (acts && picked.has(doc.id) && pickedDocs.length > 1)
+      return acts.pickedMenu(pickedDocs, at, () => pick([]));
+    if (picked.size) pick([]);
+    // Picking is offered where every reader looks, so Ctrl+click is not the only way to find it.
+    const picking: Choice[] =
+      acts && doc.file !== pinned?.file
+        ? [{ key: "pick", icon: "☐", label: t("pickRow"), onPick: () => pick([doc.id]) }]
+        : [];
+    onDocMenu(doc, at, picking);
+  };
   const nothing = Boolean(asked) && !left.docs.length && !left.folders.length;
   const close = () => {
     setSifting(false);
@@ -257,7 +275,7 @@ function Wide({
               onAgentsMenu={onAgentsMenu}
               onFolderMenu={onFolderMenu}
               onHereMenu={onHereMenu}
-              onDocMenu={onDocMenu}
+              onDocMenu={docMenu}
               picked={picked}
               onPicked={acts ? pick : undefined}
               onDelete={acts ? dropped : undefined}
@@ -282,7 +300,7 @@ function Wide({
             onClose={() => setHookAsked(false)}
           />
         )}
-        {acts && pickedDocs.length > 1 && (
+        {acts && pickedDocs.length > 0 && (
           <PickedBar
             many={pickedDocs.length}
             onMove={(at) => acts.moveDocs(pickedDocs, at)}
@@ -361,7 +379,9 @@ function PickedBar({
       aria-label={fill("pickedMany", String(many))}
       className="mx-4 mt-1 flex items-center gap-1.5 rounded-[10px] border border-hair bg-bg p-1.5 text-[11.5px] text-ink shadow-lift"
     >
-      <span className="px-1 text-faint">{fill("pickedMany", String(many))}</span>
+      <span className="px-1 text-faint" title={fill("pickedHow", onMac ? "⌘" : "Ctrl")}>
+        {fill("pickedMany", String(many))}
+      </span>
       <button
         type="button"
         className={act}

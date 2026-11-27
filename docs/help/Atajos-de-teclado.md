@@ -28,6 +28,10 @@ Toda la ventana funciona con el teclado.
 | `Ctrl`/`⌘` + `Shift` + `P` | Abrir la [paleta](#la-paleta) en sus acciones |
 | `Ctrl`/`⌘` + `K` (fuera de lo que escribes) | Ir al buscador de arriba de la barra lateral, desplegándola antes si está plegada |
 | `Ctrl`/`⌘` + `B` (fuera de lo que escribes) | Plegar la barra lateral a sus iconos, o desplegarla; arrastra su borde para cambiar el ancho. Cuando la columna de la derecha no cabe a su lado, la barra lateral se pliega sola a sus iconos; si la abres a mano, queda abierta hasta que cambias de vista o de tamaño de ventana |
+| `Ctrl`/`⌘` + clic · `Shift` + clic · `Shift` + `↑`/`↓` (en la Biblioteca) | Elegir varios documentos. Clic derecho sobre cualquiera de ellos, o la barra de abajo, los mueve, archiva o elimina todos; un clic normal o `Esc` los suelta |
+| `↑` `↓` · `Inicio` `Fin` (en la Biblioteca) | Pasar de fila en fila, o ir a la primera o a la última |
+| `Supr` (en la Biblioteca) | Eliminar la fila, o todas las elegidas. Un documento solo se va sin preguntar: **Deshacer** lo trae de vuelta durante 10 segundos, y también `Ctrl`/`⌘` + `Z` fuera de lo que escribes. Varios documentos, o uno con páginas o idiomas, preguntan antes |
+| `Enter` · `Esc` (en una pregunta) | Seguir · cancelar |
 | `Ctrl`/`⌘` + `S` (en la ventana de diagramas) | Guardar el diagrama en su documento |
 | `Enter` · `Tab` · `Supr` · `F2` (en un mapa mental) | Agregar una hermana, agregar una hija, borrar la idea, renombrarla |
 | `Supr` (en un esquema, un diagrama libre o un diagrama de clases) | Borrar lo elegido |

@@ -53,6 +53,7 @@ const FOLDERS = [
   folder("agsub", "Global", "ag"),
   folder("shut", "Cerrada"),
   folder("boxed", "Caja"),
+  folder("lib", "Libro"),
   { ...folder("shelf", "Estante", "boxed"), away: true, archived: true },
 ];
 const DOCS = [
@@ -63,6 +64,10 @@ const DOCS = [
   { ...doc("book", "Diario 2026", null), diary: true, away: true },
   { ...doc("d5", "Secreto", "shut"), locked: true },
   { ...doc("d6", "Guardado", "shelf"), away: true },
+  doc("d7", "Con paginas", "lib"),
+  { ...doc("d8", "Pagina uno", "lib"), pageOf: "d7" },
+  { ...doc("d9", "Notas", "lib"), tongue: ["d9", 0] as [string, number] },
+  { ...doc("d10", "Notes", "lib"), tongue: ["d9", 1] as [string, number] },
 ];
 
 const hands = () => ({
@@ -350,5 +355,119 @@ describe("the question before several picked documents go", () => {
 
     expect(said[0]?.startsWith(fill("dropManySure", "2"))).toBe(true);
     expect(sent("doc_drop")).toEqual([]);
+  });
+});
+
+describe("deleting one document", () => {
+  it("asks nothing for a plain one and leaves its undo waiting", async () => {
+    const asks = vi.fn(() => Promise.resolve(true));
+    asksSure(asks);
+    const { hook } = await loaded();
+    const going = renderHook(() => useGoing());
+
+    await act(() => hook.result.current.dropDoc(DOCS[2]));
+
+    expect(asks).not.toHaveBeenCalled();
+    expect(going.result.current).toHaveLength(1);
+    expect(sent("doc_drop")).toEqual([]);
+    await act(async () => fireAll());
+    expect(sent("doc_drop").map((one) => one.id)).toEqual(["d3"]);
+  });
+
+  it("still asks for one that holds pages", async () => {
+    const asks = vi.fn(() => Promise.resolve(false));
+    asksSure(asks);
+    const { hook } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[7]));
+
+    expect(asks).toHaveBeenCalledTimes(1);
+    expect(sent("doc_drop")).toEqual([]);
+  });
+
+  it("still asks for one that comes in other languages", async () => {
+    const asks = vi.fn(() => Promise.resolve(false));
+    asksSure(asks);
+    const { hook } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[9]));
+
+    expect(asks).toHaveBeenCalledTimes(1);
+  });
+
+  it("still asks when several are picked", async () => {
+    const asks = vi.fn(() => Promise.resolve(false));
+    asksSure(asks);
+    const { hook } = await loaded();
+
+    await act(() => hook.result.current.dropDocs([DOCS[0], DOCS[2]]));
+
+    expect(asks).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("where the focus goes after a delete", () => {
+  const drawn = (...ids: string[]) =>
+    ids.forEach((id) => {
+      const row = document.createElement("div");
+      row.dataset.row = id;
+      document.body.append(row);
+    });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("goes to the next row after a lone delete", async () => {
+    drawn("d1", "d2", "d3");
+    const { hook, given } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[0]));
+
+    expect(given.setReturning).toHaveBeenCalledWith("d2");
+  });
+
+  it("goes to the previous row when the deleted one is last", async () => {
+    drawn("d1", "d2", "d3");
+    const { hook, given } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[2]));
+
+    expect(given.setReturning).toHaveBeenCalledWith("d2");
+  });
+
+  it("stays inside its own tree when a stray row follows it", async () => {
+    const tree = document.createElement("div");
+    tree.setAttribute("data-tree", "");
+    document.body.append(tree);
+    for (const id of ["d1", "d2", "d3"]) {
+      const row = document.createElement("div");
+      row.dataset.row = id;
+      tree.append(row);
+    }
+    drawn("stray");
+    const { hook, given } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[2]));
+
+    expect(given.setReturning).toHaveBeenCalledWith("d2");
+  });
+
+  it("goes to the row after the run when several are picked", async () => {
+    asksSure(() => Promise.resolve(true));
+    drawn("d1", "d2", "d3");
+    const { hook, given } = await loaded();
+
+    await act(() => hook.result.current.dropDocs([DOCS[0], DOCS[1]]));
+
+    expect(given.setReturning).toHaveBeenCalledWith("d3");
+  });
+
+  it("falls back to the folder when the row is not drawn", async () => {
+    const { hook, given } = await loaded();
+
+    await act(() => hook.result.current.dropDoc(DOCS[1]));
+
+    expect(given.setReturning).toHaveBeenCalledWith("sub");
   });
 });

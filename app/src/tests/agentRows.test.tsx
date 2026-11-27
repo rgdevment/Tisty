@@ -228,4 +228,17 @@ describe("AGENTS in the sidebar", () => {
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Horario laboral");
     fireEvent.keyDown(skill, { key: "Enter" });
   });
+
+  it("goes to the first and the last row with Home and End from a skill row", async () => {
+    await opened();
+    const skill = skillRow();
+    const all = [...document.querySelectorAll<HTMLElement>("[data-row]")];
+    skill.focus();
+
+    fireEvent.keyDown(skill, { key: "End" });
+    expect(document.activeElement).toBe(all[all.length - 1]);
+
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Home" });
+    expect(document.activeElement).toBe(all[0]);
+  });
 });
