@@ -86,6 +86,7 @@ import { seatedChoices, useSeated } from "./seated";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { editorAsking } from "./sheetAsking";
 import { carried, firstInSight } from "./sighted";
+import { spelledAgain } from "./spelledAgain";
 import { movedBlock } from "./sticking";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
@@ -841,7 +842,9 @@ export default function Sheet(props: Readonly<Props>) {
             },
             learned: () => {
               back();
-              if (word) void learnedWord(word.said, tongue);
+              if (!word) return;
+              const sheet = page?.querySelector<HTMLElement>(".page");
+              void learnedWord(word.said, tongue).then((kept) => kept && spelledAgain(sheet));
             },
             cut: carried(() => {
               if (liveWriter(writer) === writer) held?.cut?.();
