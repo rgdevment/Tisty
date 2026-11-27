@@ -158,7 +158,7 @@ export const launched = async (type, url, launch = {}, native = false) => {
   const browser = await type.launch({ headless: true, ...launch });
   try {
     const page = await browser.newPage({ viewport: { width: 1000, height: 1400 } });
-    if (native) await page.addInitScript(() => localStorage.setItem("tisty.nativeTyping", "everywhere"));
+    await page.addInitScript((said) => localStorage.setItem("tisty.nativeTyping", said), native ? "everywhere" : "off");
     await opened(page, url);
     return { browser, page };
   } catch (error) {

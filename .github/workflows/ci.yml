@@ -213,7 +213,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.window == 'true'
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -229,8 +229,10 @@ jobs:
         working-directory: app
       - run: cargo build -q -p tisty-markdown --example placing
       - run: node app/scripts/engines.mjs
+      - run: node app/scripts/engines.mjs --native
       - run: node app/scripts/engines-pace.mjs
       - run: node app/scripts/engines-fuzz.mjs
+      - run: node app/scripts/engines-fuzz.mjs --native --seeds 8
       - run: node app/scripts/engines-paper.mjs
       - run: node app/scripts/engines-colons.mjs
 
@@ -239,7 +241,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.window == 'true'
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -253,6 +255,7 @@ jobs:
       - run: npm ci
       - run: cargo build -q -p tisty-markdown --example placing
       - run: node app/scripts/engines.mjs edge
+      - run: node app/scripts/engines.mjs edge --native
 
   guide:
     name: the Markdown guide draws
