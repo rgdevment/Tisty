@@ -878,6 +878,7 @@ impl Session {
         if self.state.shut(id) {
             return Err(Refusal::of("documentLocked"));
         }
+        crate::answers::placing::may_go(self, id)?;
         // Deleting has no undo, and the archive is meant to keep what it holds.
         if self.state.held_by_another(kept) {
             return Err(Refusal::of(match kept.page_of.is_some() {

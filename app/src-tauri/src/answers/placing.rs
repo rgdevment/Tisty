@@ -52,6 +52,26 @@ pub(crate) fn may_make(
     }
 }
 
+/// Only the sheet Ideas writes to stays: one archived by an older version, or a second one, may still go.
+pub(crate) fn may_go(session: &Session, doc: DocId) -> Answer<()> {
+    // Finding the sheet reads files, so a document that never said it was one, nor was last found, goes first.
+    let known = session.state.docs.get(&doc).is_some_and(|kept| {
+        kept.brainstorm || session.brainstorm.as_deref() == Some(kept.file.as_str())
+    });
+    if !known {
+        return Ok(());
+    }
+    let sheet = tisty_core::brainstorm::find(
+        &session.paths.docs(),
+        &session.state,
+        session.brainstorm.as_deref(),
+    );
+    match sheet.is_some_and(|(one, _)| one.id == doc) {
+        true => Place::Ideas.goes().map_err(refused),
+        false => Ok(()),
+    }
+}
+
 pub(crate) fn may_copy(session: &Session, doc: DocId) -> Answer<()> {
     let state = &session.state;
     let Some(kept) = state.docs.get(&doc) else {

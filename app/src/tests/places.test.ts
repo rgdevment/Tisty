@@ -39,6 +39,7 @@ const OPEN_RULES = {
   pages: true,
   moves: true,
   copies: true,
+  goes: true,
 };
 
 describe("which place a document or a folder is in", () => {
@@ -85,8 +86,8 @@ describe("the rules of each place", () => {
     const said: Ruling = {
       plain: OPEN_RULES,
       agents: { ...OPEN_RULES, makes: ["doc"], moves: false },
-      ideas: { makes: [], pages: false, moves: false, copies: false },
-      diary: { makes: [], pages: false, moves: false, copies: true },
+      ideas: { makes: [], pages: false, moves: false, copies: false, goes: false },
+      diary: { makes: [], pages: false, moves: false, copies: true, goes: true },
     } as Ruling;
     const asked: string[] = [];
     core.answer = (cmd) => {
@@ -99,6 +100,7 @@ describe("the rules of each place", () => {
 
     expect(asked).toEqual(["places_rules"]);
     expect(rulesOf("ideas").pages).toBe(false);
+    expect(rulesOf("ideas").goes).toBe(false);
     expect(rulesOf("diary").copies).toBe(true);
     expect(rulesOf("agents").makes).toEqual(["doc"]);
     expect(rulesOf("plain")).toEqual(OPEN_RULES);

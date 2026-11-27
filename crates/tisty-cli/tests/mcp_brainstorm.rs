@@ -716,7 +716,7 @@ fn a_task_from_a_heading_no_idea_carries_says_the_idea_still_waits() {
 }
 
 #[test]
-fn brainstorm_goes_in_no_folder_no_languages_and_is_put_away_only_by_the_person() {
+fn brainstorm_goes_in_no_folder_no_languages_and_is_never_archived() {
     let served = Served::new();
     let sheet = served.sheet();
     served.call("folder", json!({ "name": "Casa" }));

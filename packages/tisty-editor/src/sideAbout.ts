@@ -1,6 +1,6 @@
 import { glyph, type ReadWord, type Say } from "tisty-sheet";
 import { offered, type Paper } from "./paper";
-import type { About, Act, Book, Choosing, Pick, Tone, Tongue } from "./side";
+import type { About, Act, Book, Choosing, Measuring, Pick, Tone, Tongue } from "./side";
 import { listed, made, pressed, toggle, tooled } from "./sideParts";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
@@ -222,6 +222,18 @@ const choosing = (page: Document, { label, all, own, onPick }: Choosing) => {
   return [row, box];
 };
 
+const measured = (page: Document, { label, all, waiting, onPick }: Measuring) => {
+  const row = grouped(page, "side-leaves side-measures", label);
+  if (waiting) row.title = waiting;
+  for (const one of all) {
+    const pick = picked(page, "side-leaf", one, onPick);
+    pick.textContent = one.label;
+    pick.disabled = Boolean(waiting);
+    row.append(pick);
+  }
+  return row;
+};
+
 const papered = (page: Document, say: Say, panel: Of<"paper">) => {
   const row = made(page, "div", "side-paper");
   const leaves = made(page, "div", "side-leaves");
@@ -250,6 +262,7 @@ const papered = (page: Document, say: Say, panel: Of<"paper">) => {
     out.setAttribute("aria-busy", String(Boolean(panel.exporting)));
     row.append(out);
   }
+  if (panel.measure) row.append(measured(page, panel.measure));
   if (panel.design) row.append(...choosing(page, panel.design));
   return row;
 };

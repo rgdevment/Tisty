@@ -30,6 +30,7 @@ import { saidPlainly } from "./refusal";
 import { cut } from "./saving";
 import { sure } from "./sure";
 import { dropPickedAsked, filesGoing, type Going, goingWith } from "./tidying";
+import { usePinned } from "./usePinned";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -209,9 +210,14 @@ export function usePapers({
     if (open && docs.some((one) => one.file === open)) setChosen({ named: "docs" });
   };
 
-  // As its menu: a locked document, or one its archived folder holds, says why instead of going.
-  const stays = (doc: Filed): string | null =>
-    doc.locked ? t("lockedSaid") : doc.away && !doc.archived ? t("folderIsAway") : null;
+  const board = usePinned(papers)?.file ?? null;
+
+  // As its menu: a locked document, one its archived folder holds, or Ideas says why instead of going.
+  const stays = (doc: Filed): string | null => {
+    if (doc.locked) return t("lockedSaid");
+    if (doc.away && !doc.archived) return t("folderIsAway");
+    return doc.file === board ? t("ideasStay") : null;
+  };
 
   const goingIds = (going: Going[]) =>
     going.flatMap(({ doc, tongues, pages }) => [doc, ...tongues, ...pages].map((one) => one.id));
@@ -406,6 +412,7 @@ export function usePapers({
 
   return {
     papers,
+    board,
     lookPapers,
     papersChanged,
     newDoc,

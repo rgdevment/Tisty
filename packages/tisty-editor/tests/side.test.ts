@@ -149,6 +149,67 @@ describe("the panels beside a sheet", () => {
       expect(asked).toEqual(["tisty"]);
     });
 
+    describe("the width of the text", () => {
+      const widths = ["narrow", "normal", "wide", "full"].map((key) => ({
+        key,
+        label: `measure_${key}`,
+        on: key === "wide",
+      }));
+      const shown = (waiting?: string) => {
+        const side = host();
+        const asked: string[] = [];
+        sided(side, say, [
+          {
+            kind: "paper",
+            leaf: "a4",
+            onLeaf: () => undefined,
+            measure: { label: "Width", all: widths, waiting, onPick: (one) => asked.push(one) },
+          },
+        ]);
+        const row = side.querySelector<HTMLElement>(".side-leaves.side-measures");
+        return { side, asked, row, picks: Array.from(row?.querySelectorAll("button") ?? []) };
+      };
+
+      it("offers the four widths in order and shows the current one", () => {
+        const { row, picks } = shown();
+        expect(row?.getAttribute("aria-label")).toBe("Width");
+        expect(picks.map((one) => one.textContent)).toEqual([
+          "measure_narrow",
+          "measure_normal",
+          "measure_wide",
+          "measure_full",
+        ]);
+        expect(picks.map((one) => one.getAttribute("aria-pressed"))).toEqual([
+          "false",
+          "false",
+          "true",
+          "false",
+        ]);
+        expect(picks.some((one) => one.disabled)).toBe(false);
+      });
+
+      it("hands over the width picked, by its key", () => {
+        const { asked, picks } = shown();
+        picks[3].click();
+        picks[0].click();
+        expect(asked).toEqual(["full", "narrow"]);
+      });
+
+      it("holds the widths and says why while they wait", () => {
+        const { asked, row, picks } = shown("follows the paper");
+        expect(row?.title).toBe("follows the paper");
+        expect(picks.every((one) => one.disabled)).toBe(true);
+        picks[0].click();
+        expect(asked).toEqual([]);
+      });
+
+      it("leaves the row out where the width is not offered", () => {
+        const side = host();
+        sided(side, say, [{ kind: "paper", leaf: "a4", onLeaf: () => undefined }]);
+        expect(side.querySelector(".side-measures")).toBeNull();
+      });
+    });
+
     it("never locks the paper where sheets cannot be turned on", () => {
       const side = host();
       sided(side, say, [{ kind: "paper", leaf: "a4", onLeaf: () => undefined }]);

@@ -11,12 +11,15 @@ import { usePapers } from "../usePapers";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   refuses: false,
+  board: null as string | null,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown> = {}) => {
     ipc.calls.push({ cmd, args });
     if (cmd === "docs") return Promise.resolve({ folders: FOLDERS, docs: DOCS });
+    if (cmd === "brainstorm_of")
+      return Promise.resolve(ipc.board && { file: ipc.board, title: "Ideas", id: "d3" });
     if (cmd === "folder_drop" && ipc.refuses) return Promise.reject({ code: "noSuchFolder" });
     return Promise.resolve(null);
   },
@@ -95,6 +98,7 @@ const answering = (answer: FolderAnswer | null) =>
 beforeEach(() => {
   ipc.calls = [];
   ipc.refuses = false;
+  ipc.board = null;
   asked.length = 0;
   asksSure(null);
 });
@@ -267,6 +271,18 @@ describe("deleting what cannot go", () => {
     await act(async () => fireAll());
 
     expect(given.setError).toHaveBeenCalledWith(t("lockedSaid"));
+    expect(sent("doc_drop")).toEqual([]);
+  });
+
+  it("says the Ideas sheet stays, without asking or sending anything", async () => {
+    ipc.board = DOCS[2].file;
+    const { hook, given } = await loaded();
+    await waitFor(() => expect(hook.result.current.board).toBe(DOCS[2].file));
+
+    await act(() => hook.result.current.dropDoc(DOCS[2]));
+    await act(async () => fireAll());
+
+    expect(given.setError).toHaveBeenCalledWith(t("ideasStay"));
     expect(sent("doc_drop")).toEqual([]);
   });
 

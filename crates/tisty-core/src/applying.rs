@@ -508,7 +508,8 @@ impl State {
                 kept.agreed_by = Some(event.device.clone());
                 kept.agreed_knowing = d.knows_computers;
             }
-            kept.title = Some(d.title.clone());
+            // An older version kept a blank title as it was, which no row could show.
+            kept.title = Some(crate::text::title_said(&d.title));
             kept.bytes = d.bytes;
             if let Some(print) = &d.print {
                 // A note that reads the same body again is not a hand writing it.

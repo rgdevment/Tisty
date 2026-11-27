@@ -17,6 +17,36 @@ pub fn plainly(text: &str) -> String {
     .collect()
 }
 
+/// A title only of spaces and marks that draw nothing names nothing, so it reads as untitled.
+pub fn title_said(text: &str) -> String {
+    let said = plainly(text);
+    match said.chars().all(drawn_blank) {
+        true => String::new(),
+        false => said,
+    }
+}
+
+fn drawn_blank(c: char) -> bool {
+    c.is_whitespace()
+        || matches!(
+            c,
+            '\u{00ad}'
+                | '\u{034f}'
+                | '\u{200b}'..='\u{200d}'
+                | '\u{2060}'..='\u{2064}'
+                | '\u{206a}'..='\u{206f}'
+                | '\u{fe00}'..='\u{fe0f}'
+                | '\u{e0000}'..='\u{e007f}'
+                | '\u{feff}'
+                | '\u{180e}'
+                | '\u{115f}'
+                | '\u{1160}'
+                | '\u{3164}'
+                | '\u{ffa0}'
+                | '\u{2800}'
+        )
+}
+
 pub fn folded(text: &str) -> String {
     use unicode_normalization::UnicodeNormalization;
     text.to_lowercase()

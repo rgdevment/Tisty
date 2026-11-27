@@ -166,6 +166,7 @@ const KNOWN = [
   "ideasHoldNoPages",
   "ideasHoldOnlyIdeas",
   "ideasStayPut",
+  "ideasStay",
   "ideasAreOne",
   "diaryHoldsOnlyDays",
   "diaryStaysPut",

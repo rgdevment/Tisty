@@ -44,6 +44,7 @@ pub struct Rules {
     pub pages: bool,
     pub moves: bool,
     pub copies: bool,
+    pub goes: bool,
 }
 
 impl Place {
@@ -84,6 +85,14 @@ impl Place {
         }
     }
 
+    /// Whether a document of this place is archived or deleted: without Ideas, Tisty would start an empty sheet and leave every idea behind.
+    pub fn goes(self) -> Result<(), Ruled> {
+        match self {
+            Place::Ideas => Err(Ruled("ideasStay")),
+            Place::Plain | Place::Diary | Place::Agents => Ok(()),
+        }
+    }
+
     pub fn rules(self) -> Rules {
         Rules {
             makes: MAKINGS
@@ -93,6 +102,7 @@ impl Place {
             pages: self.takes_pages().is_ok(),
             moves: self.moves().is_ok(),
             copies: self.copies().is_ok(),
+            goes: self.goes().is_ok(),
         }
     }
 }

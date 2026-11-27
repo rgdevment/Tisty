@@ -1,5 +1,6 @@
 import type { Papers } from "./core";
 import { folded } from "./folding";
+import { t } from "./locales";
 
 export function sifted(papers: Papers, query: string): Papers {
   const asked = folded(query.trim());
@@ -21,7 +22,8 @@ export function sifted(papers: Papers, query: string): Papers {
 
   const docs = new Set<string>();
   for (const doc of papers.docs) {
-    if (!says(doc.title) && !(doc.folder && whole.has(doc.folder))) continue;
+    // An untitled document is found by the name its row shows.
+    if (!says(doc.title || t("untitledDoc")) && !(doc.folder && whole.has(doc.folder))) continue;
     docs.add(doc.id);
     if (doc.pageOf) docs.add(doc.pageOf);
   }

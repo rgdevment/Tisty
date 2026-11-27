@@ -94,8 +94,11 @@
 .side-title-row:has(+ .side-paper) {
   padding-bottom: 8px;
 }
-.side-paper:has(> .side-design) {
+.side-paper:has(> .side-design, > .side-measures) {
   flex-wrap: wrap;
+}
+.side-leaves.side-measures {
+  flex: 1 0 100%;
 }
 .side-design {
   flex: 1 0 100%;

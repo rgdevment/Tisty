@@ -11,6 +11,7 @@ export interface Rules {
   pages: boolean;
   moves: boolean;
   copies: boolean;
+  goes: boolean;
 }
 
 export type Ruling = Record<Place, Rules>;
@@ -20,6 +21,7 @@ const OPEN: Rules = {
   pages: true,
   moves: true,
   copies: true,
+  goes: true,
 };
 
 const told = new Set<() => void>();

@@ -7,7 +7,7 @@ use super::{Refused, doc_named};
 /// The core rules what Ideas, the diary and AGENTS take; here it is only worded for an assistant.
 pub(super) fn refused(state: &State, file: &str, ruled: Ruled) -> Refused {
     match ruled.0 {
-        "ideasStayPut" | "ideasAreOne" => super::ideas::sheet_stays_put(state, file),
+        "ideasStayPut" | "ideasAreOne" | "ideasStay" => super::ideas::sheet_stays_put(state, file),
         "ideasHoldNoPages" | "ideasHoldOnlyIdeas" => super::ideas::no_pages_on_a_sheet(state, file),
         _ => Refused::Tool(format!(
             "{} keeps only its own: the person's diary holds only its days, and AGENTS only the \

@@ -5400,3 +5400,33 @@ fn a_deleted_computer_folder_is_made_anew_with_a_fresh_id_and_its_own_computer()
         Some(DeviceId("dev_a".into()))
     );
 }
+
+#[test]
+fn a_blank_title_an_older_version_wrote_is_read_back_as_none() {
+    let mut state = State::default();
+    let here = folder(&mut state, "tisty", None);
+    let id = doc(&mut state, "a3f1-0001", Some(here));
+    for (at, said, want) in [(2, " ", ""), (3, "\u{3164}", ""), (4, "Acta", "Acta")] {
+        state.apply(&ev(
+            at,
+            "a",
+            Op::DocSaid {
+                id,
+                d: crate::event::Said {
+                    knows_computers: false,
+                    key: None,
+                    brainstorm: false,
+                    diary: false,
+                    lang: None,
+                    title: said.into(),
+                    bytes: None,
+                    tags: None,
+                    by: None,
+                    print: None,
+                    agreed: false,
+                },
+            },
+        ));
+        assert_eq!(state.docs[&id].title.as_deref(), Some(want), "{said:?}");
+    }
+}

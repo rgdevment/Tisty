@@ -4,6 +4,7 @@ import type { Filed, Folded, Papers } from "../core";
 import { docChoices, folderChoices, type Hands, hereChoices, stageFor } from "../docMenus";
 import { AGENTS, hide, isHidden, showAll } from "../hiding";
 import { t } from "../locales";
+import { placesRules, type Ruling } from "../places";
 import { asksSure } from "../sure";
 import type { Choice } from "../ui/Menu";
 
@@ -15,6 +16,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_read") return Promise.resolve({ body: "# Hola" });
     if (cmd === "doc_export") return Promise.resolve({ files: 2, missed: 0, left: 0 });
     if (cmd === "doc_copy") return Promise.resolve({ id: "d9" });
+    if (cmd === "places_rules") return Promise.resolve(ruling);
     if (cmd === "agents_state") return agentsAnswer.now();
     if (cmd === "agents_moving") return Promise.resolve(movingAnswer.now);
     if (cmd === "agents_turn" && agentsAnswer.refuses) return Promise.reject({ code: "x" });
@@ -25,6 +27,22 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve("C:/fuera"),
 }));
+
+const ruling = vi.hoisted(() => {
+  const open = {
+    makes: ["doc", "diagram", "folder", "import", "parcel"],
+    pages: true,
+    moves: true,
+    copies: true,
+    goes: true,
+  };
+  return {
+    plain: open,
+    agents: open,
+    diary: open,
+    ideas: { makes: [], pages: false, moves: false, copies: false, goes: false },
+  } as Ruling;
+});
 
 const movingAnswer = vi.hoisted(() => ({ now: null as unknown }));
 
@@ -596,24 +614,48 @@ describe("the menus of the folders and documents of the computers in Agents", ()
     expect(calls).toEqual([]);
   });
 
-  it("offers on a document of another computer only to move, copy as text or link, take out and pack", () => {
+  it("offers on a document of another computer only to move, copy as text or link and take out", () => {
     const h = inComputers();
     const choices = docChoices(theirRule, h);
-    const all = keys(choices);
-    expect(all.sort()).toEqual(["copyAs", "exportAs", "move"]);
+    expect(keys(choices)).toEqual(["move", "copyAs", "takeOut"]);
     const copies = pick(choices, "copyAs").into?.choices ?? [];
-    expect(keys(copies)).toEqual(["copy", "asPlain", "asLink"]);
-    expect(pick(copies, "copy").hint).toBe(t("notHereSaid"));
-    expect(keys(pick(choices, "exportAs").into?.choices ?? [])).toEqual(
-      expect.arrayContaining(["takeOut", "packIt"]),
-    );
-    expect(all).not.toContain("drop");
+    expect(keys(copies)).toEqual(["asPlain", "asLink"]);
+    expect(copies[0]?.apart).toBeFalsy();
+    expect(keys(choices)).not.toContain("drop");
   });
 
-  it("leaves a document of this computer with its whole menu", () => {
+  it("offers on a document of this computer to move, copy as text or link, take out, archive and delete", () => {
     const h = inComputers();
-    const mineAll = keys(docChoices(mineRule, h));
-    expect(mineAll).toEqual(expect.arrayContaining(["drop", "copyAs", "lock", "away", "newPage"]));
+    const choices = docChoices(mineRule, h);
+    expect(keys(choices)).toEqual(["move", "copyAs", "takeOut", "away", "drop"]);
+    const copies = pick(choices, "copyAs").into?.choices ?? [];
+    expect(keys(copies)).toEqual(["asPlain", "asLink"]);
+    expect(copies[0]?.apart).toBeFalsy();
+  });
+
+  it("keeps the lock on a locked document of this computer so it can be lifted", () => {
+    const h = inComputers();
+    const locked = { ...mineRule, locked: true } as Filed;
+    expect(keys(docChoices(locked, h))).toEqual([
+      "move",
+      "copyAs",
+      "takeOut",
+      "lock",
+      "away",
+      "drop",
+    ]);
+    expect(keys(docChoices(mineRule, h))).not.toContain("lock");
+  });
+
+  it("leaves the folders inside Agents with the menu they had", () => {
+    const h = inComputers();
+    expect(keys(folderChoices(mineClaude, h, "syncs", lit()))).toEqual([
+      "newDoc",
+      "agentsMore",
+      "agentsTurn",
+      "hide",
+      "drop",
+    ]);
   });
 
   it("offers no text width on an agent's file, which shows as its card", () => {
@@ -750,5 +792,27 @@ describe("the one shape of the menus", () => {
 
     expect(keysOf(docChoices(book, h))).toEqual(["copyAs", "exportAs", "away"]);
     expect(keysOf(docChoices(doc, h, true))).toEqual(["away", "hide", "drop"]);
+  });
+
+  it("keeps Ideas to archive and delete in the menu, with why they refuse, and refuses on pick", async () => {
+    await placesRules();
+    const h = hands();
+    const board = docChoices(doc, h, true);
+
+    for (const key of ["away", "drop"]) {
+      const one = pick(board, key);
+      expect(one.hint).toBe(t("ideasStay"));
+      one.onPick?.();
+    }
+    expect(h.failWith).toHaveBeenCalledTimes(2);
+    expect(h.failWith).toHaveBeenCalledWith(t("ideasStay"));
+    expect(h.dropDoc).not.toHaveBeenCalled();
+    expect(pick(board, "hide").hint).toBeUndefined();
+  });
+
+  it("lets an archived sheet that was Ideas once come back", () => {
+    const h = hands();
+    const back = pick(docChoices({ ...doc, archived: true, away: true } as Filed, h, true), "away");
+    expect(back.hint).toBeUndefined();
   });
 });

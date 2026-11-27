@@ -79,8 +79,9 @@ pub(super) fn brings_back_no_idea(
 pub(super) fn sheet_stays_put(state: &State, file: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Ideas, pinned at the top of the Library on its own: it goes in no folder and \
-         joins no other document's languages, and only the person puts it away, from the window, \
-         since every idea on it would go with it. Nothing was changed.",
+         joins no other document's languages, and it is never archived or deleted, since every \
+         idea on it would go with it and Tisty would start an empty sheet in its place. Nothing \
+         was changed.",
         doc_named(state, file)
     ))
 }
@@ -564,7 +565,7 @@ pub(super) fn whole_sheet_refused(state: &State, which: &str) -> Refused {
     Refused::Tool(format!(
         "{} is Ideas, where the person's ideas wait: marking it would let one click delete \
          them all. Mark the ideas that had their day instead, each as `{which}#` and its \
-         heading. Archiving or deleting the whole sheet is the person's, from the window.",
+         heading. The whole sheet is never archived or deleted.",
         doc_named(state, which)
     ))
 }

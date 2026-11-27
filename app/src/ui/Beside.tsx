@@ -12,6 +12,7 @@ import {
   type Panel,
 } from "tisty-editor/read";
 import { folderShown } from "../agentsSync";
+import { MEASURES, type Measure } from "../breadth";
 import type { Citing } from "../citing";
 import { asLink } from "../copying";
 import type { Filed, Folded } from "../core";
@@ -20,6 +21,7 @@ import { weigh } from "../format";
 import { brainstormIn } from "../front";
 import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
+import { MEASURE_WORDS } from "../measureMenu";
 import { tongueName } from "../tongues";
 import { designing } from "./designing";
 import LanguageReview from "./LanguageReview";
@@ -91,6 +93,9 @@ interface Props {
   onLandscape?: (turned: boolean) => void;
   design?: Design;
   onDesign?: (design: Design) => void;
+  measure?: Measure;
+  /** Set only where the text's width means something; on sheets it waits, since the paper sets it. */
+  onMeasure?: (measure: Measure) => void;
   making: boolean;
   onCopy: () => void;
   onTakeOut: () => void;
@@ -197,6 +202,7 @@ export default function Beside(props: Props) {
   const canSheets = props.onSheets !== undefined;
   const canTurn = props.onLandscape !== undefined;
   const canDesign = props.onDesign !== undefined;
+  const canMeasure = props.onMeasure !== undefined;
   const lastOwn = useRef<Design | null>(null);
   const ofPaper = useRef(props.paper);
   if (ofPaper.current !== props.paper) {
@@ -256,6 +262,18 @@ export default function Beside(props: Props) {
                 onTurn: (turned) => latest.current.onLandscape?.(turned),
               }
             : undefined,
+        measure: canMeasure
+          ? {
+              label: t("measure"),
+              all: MEASURES.map((one) => ({
+                key: one,
+                label: t(MEASURE_WORDS[one]),
+                on: one === props.measure,
+              })),
+              waiting: sheets ? t("measureNeedsNoSheets") : undefined,
+              onPick: (one) => latest.current.onMeasure?.(one as Measure),
+            }
+          : undefined,
         design: canDesign
           ? designing(props.design ?? "tisty", lastOwn.current, (one) =>
               latest.current.onDesign?.(one),
@@ -293,6 +311,8 @@ export default function Beside(props: Props) {
     props.landscape,
     canDesign,
     props.design,
+    canMeasure,
+    props.measure,
     props.making,
     heads,
     up?.id,
