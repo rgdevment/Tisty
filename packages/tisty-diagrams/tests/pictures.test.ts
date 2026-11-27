@@ -81,6 +81,52 @@ describe("the picture of a diagram the window draws", () => {
     expect(dark).toContain(PALETTES.dark.panel);
   });
 
+  it("keeps a node's own colours exactly as its style line gives them", () => {
+    const picture = pictureOf(
+      "flowchart TD\n  A[Uno]\n  style A fill:#dbeafe,stroke:#2563eb,color:#1e3a8a\n",
+    );
+    if (!picture) throw new Error("no picture");
+
+    const read = parsed(svgOf(picture, PALETTES.light, null, "Inter"));
+    const body = read.querySelector("g[transform] > path");
+    const words = [...read.querySelectorAll("text")].find((one) => one.textContent === "Uno");
+
+    expect(body?.getAttribute("fill")).toBe("#dbeafe");
+    expect(body?.getAttribute("stroke")).toBe("#2563eb");
+    expect(words?.getAttribute("fill")).toBe("#1e3a8a");
+  });
+
+  it.each(["fill", "stroke", "color"])(
+    "does not let a hostile %s in a style line add attributes or elements to the picture",
+    (key) => {
+      const hostile = [
+        'red" onmouseover="alert(1)',
+        'red"/><foreignObject><a href="https://evil.example">x</a></foreignObject><rect fill="x',
+        'red"/><script>alert(1)</script><rect fill="x',
+        "red' onload='alert(1)",
+      ];
+      const draw = (extra: string) => {
+        const picture = pictureOf(`flowchart TD\n  A[[Uno]] --> B[Dos]\n${extra}`);
+        if (!picture) throw new Error("no picture");
+        return parsed(svgOf(picture, PALETTES.light, null, "Inter"));
+      };
+      const tags = (read: Document) => [...read.querySelectorAll("*")].map((one) => one.tagName);
+      const plain = tags(draw(""));
+
+      for (const value of hostile) {
+        const read = draw(`  style A ${key}:${value}\n`);
+        const everything = [...read.querySelectorAll("*")];
+
+        expect(read.querySelector("parsererror"), value).toBeNull();
+        for (const one of everything)
+          for (const name of one.getAttributeNames())
+            expect(name.startsWith("on"), `${value} · ${one.tagName} ${name}`).toBe(false);
+        expect(read.querySelector("script, foreignObject, a"), value).toBeNull();
+        expect(tags(read), value).toEqual(plain);
+      }
+    },
+  );
+
   it("leaves to Mermaid the kinds the window does not draw, and what it cannot read", () => {
     expect(pictureOf("sequenceDiagram\n  A->>B: hola\n")).toBeNull();
     expect(

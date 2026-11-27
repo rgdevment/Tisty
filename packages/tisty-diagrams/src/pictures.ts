@@ -11,6 +11,7 @@ import { type Mind, type Shape as MindShape, readMind } from "./mindmap";
 import {
   boxed,
   cut,
+  escaped,
   fitted,
   type Look,
   type Palette,
@@ -257,7 +258,7 @@ const node = (
   const outline = outlineOf(shape, rect.wide, rect.tall);
   const line = look?.stroke ?? palette.line;
   const body = outline.body
-    ? `<path d="${outline.body}" fill="${look?.fill ?? palette.panel}" stroke="${line}" stroke-width="1"/>`
+    ? `<path d="${outline.body}" fill="${escaped(look?.fill ?? palette.panel)}" stroke="${escaped(line)}" stroke-width="1"/>`
     : "";
   const lines = outline.lines.map((d) => stroke(d, line, 1)).join("");
   return `<g transform="translate(${rect.x},${rect.y})">${body}${lines}</g>`;
