@@ -788,7 +788,7 @@ export default function Sharing({
   const lookOver = useCallback(() => {
     again.current = null;
     setStep({ at: "reading" });
-    shareLook(doc)
+    void shareLook(doc)
       .then((look) => {
         if (live.current) setStep({ at: "choosing", look });
       })
@@ -797,7 +797,7 @@ export default function Sharing({
 
   const lookLeaving = useCallback(
     (leftOut: string[]) => {
-      shareLook(doc, leftOut)
+      void shareLook(doc, leftOut)
         .then((look) => {
           if (live.current) setStep({ at: "choosing", look });
         })
@@ -833,7 +833,7 @@ export default function Sharing({
       return;
     }
     setStep({ at: "reading" });
-    sharingNow()
+    void sharingNow()
       .then((now) => {
         if (!live.current) return;
         site.current = now.site;

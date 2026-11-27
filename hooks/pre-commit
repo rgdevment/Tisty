@@ -90,6 +90,15 @@ else
   echo "!  biome is not installed (npm ci at the root), so it did not look at the window"
 fi
 
+if [ -d node_modules/typescript-api ]; then
+  if touched_any '^(app|packages/[^/]+)/(src/.*\.tsx?|tsconfig\.json)$|^scripts/promises\.mjs$|(^|/)package(-lock)?\.json$'; then
+    quietly "cd \"$staged\" && node \"$PWD/scripts/promises.mjs\" ." \
+      "a promise is left floating, which Sonar refuses: await it, end it with .catch, or void it"
+  fi
+else
+  echo "!  the workspace is not installed (npm ci at the root), so no one looked for floating promises"
+fi
+
 # The rules job refuses a lockfile the notices do not follow; written here, the fix is one `git add` away.
 if touched_any '(^|/)(Cargo\.lock|package-lock\.json)$'; then
   if [ -x node_modules/.bin/biome ]; then

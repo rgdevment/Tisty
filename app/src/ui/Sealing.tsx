@@ -134,7 +134,7 @@ export default function Sealing({
   }, [look, onChanged]);
 
   const phraseFor = (made: Promise<string>) => {
-    made
+    void made
       .then((said) =>
         identityShown().then((who) =>
           setPhrase({ words: said.split(" "), fingerprint: who.fingerprint ?? "" }),

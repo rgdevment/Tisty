@@ -162,7 +162,7 @@ export default function AgentsKeeper() {
     if (held.current !== root) return;
     held.current = null;
     // The files its last rules wrote are asked about first; AGENTS goes once nothing waits.
-    agentsRound()
+    void agentsRound()
       .then((round) => {
         const waits = round
           ? waitingOf({
