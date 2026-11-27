@@ -211,7 +211,7 @@ pub(crate) const TURN_LEFT_UNWRITTEN: &str = "You edited files this turn and wro
     work on a task, end your turn without writing anything.";
 
 pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
-    if !task.is_open() || task.folded() || task.resolved.is_some() {
+    if !task.is_open() || task.folded() || task.resolved.is_some() || task.for_person {
         return None;
     }
     let count = task.step_count();

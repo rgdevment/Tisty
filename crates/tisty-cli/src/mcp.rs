@@ -4,6 +4,7 @@ mod attaching;
 mod brain;
 mod catalogue;
 mod chores;
+mod companion;
 mod diary;
 mod dropped;
 mod each;

@@ -127,7 +127,8 @@ pub(super) fn parts_drafted(
                 )));
             }
         }
-        let mut part = drafted(state, one, &title, Some(whole.id))?;
+        let for_person = super::chores::whose(one)?.unwrap_or(whole.for_person);
+        let mut part = drafted(state, one, &title, Some(whole.id), for_person)?;
         place = order::after(&place);
         let its_own_list = text(one, "list").is_some();
         for op in &mut part.ops {

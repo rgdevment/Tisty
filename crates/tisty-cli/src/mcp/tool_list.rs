@@ -21,11 +21,12 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. An idea named as `source` leaves Ideas. Tisty tags it #agent.",
+            "description": "Propose a task, something to do; what is kept to read again is `write_doc`. Several from one thread go in `tasks`, each judged alone. Work of several tasks with one end goes in `parts`, not packed into steps. Every task says whose it is in `for`: never both, or it never ends. An idea named as `source` leaves Ideas. Tisty tags it #agent.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": { "type": "array", "items": { "type": "object" }, "description": "Several tasks, each shaped like a single one, at most 32; left out for one" },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
+                    "for": { "type": "string", "enum": ["agent", "person"], "description": "Whose it is, required: \"agent\" when you will do it and check it yourself; \"person\" when only they can (a manual test, a real device, publishing, merging, deciding). A part left without it is its whole's" },
                     "parts": { "type": "array", "items": { "type": "object" }, "description": "Its parts, each shaped like a single task with its own steps: one level, at most 32 here, more later with `part_of`" },
                     "part_of": { "type": "string", "description": "Id of an open task this one is a part of" },
                     "description": { "type": "string", "description": "What you read, in the Tisty language" },
@@ -117,13 +118,21 @@ pub(super) fn tools_without_hints() -> Value {
         {
             "name": "unplan",
             "title": "Take open steps off a task",
-            "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped. One ticked step among them and nothing changes.",
+            "description": "Take unticked steps off an open task. With `to` they are handed on, after that task's own steps, instead of dropped; with `to_person`, what only the person can do goes to their own task, then `say_done` yours. One ticked step among them and nothing changes.",
             "inputSchema": on_a_task(
                 {
                     let mut fields = steps_by_text("to take off");
                     fields["to"] = json!({
                         "type": "string",
                         "description": "Id of another open task, not said done, to hand them to"
+                    });
+                    fields["to_person"] = json!({
+                        "type": "boolean",
+                        "description": "Hand them to the person: to the task's one companion for them, made as its part the first time, which never holds yours open"
+                    });
+                    fields["title"] = json!({
+                        "type": "string",
+                        "description": "With `to_person`, the companion's title when it is made, in the person's language"
                     });
                     fields
                 },

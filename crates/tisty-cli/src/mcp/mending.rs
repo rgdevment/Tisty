@@ -9,6 +9,7 @@ use super::asked::text;
 use super::chores::{
     already_said_done, reaching, steps_asked, steps_fit, steps_named, still_in_sight,
 };
+use super::companion::{Companion, companion};
 use super::jsonrpc::told;
 use super::{Refused, hitch, moved, opened};
 
@@ -122,6 +123,14 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
 
 pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unplanning", "each step to take off")?;
+    let to_person = args.get("to_person").and_then(Value::as_bool) == Some(true);
+    if to_person && text(args, "to").is_some() {
+        return Err(Refused::Tool(
+            "`to` names a task and `to_person` hands the steps to the person's: send one of the \
+             two. Nothing was moved."
+                .into(),
+        ));
+    }
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
     if let Some(why) = already_said_done(task, "taking a step off") {
@@ -129,9 +138,22 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let chosen = open_steps(task, &wanted, "taken off")?;
     let ids: Vec<StepId> = chosen.iter().map(|(step, _)| *step).collect();
-    let to = match text(args, "to") {
-        Some(other) => Some(handed_to(&state, id, &other)?),
-        None => None,
+    let words: Vec<String> = chosen.iter().map(|(_, words)| words.clone()).collect();
+    let handing = match (text(args, "to"), to_person) {
+        (Some(other), _) => {
+            let (there, other) = handed_to(&state, id, &other)?;
+            Some(Companion::Held(there, other))
+        }
+        (None, true) => {
+            let lang = tisty_core::Config::load(&paths.config_file())
+                .ok()
+                .flatten()
+                .map_or_else(crate::i18n::Lang::default, |config| {
+                    crate::i18n::Lang::detect(config.locale.as_deref())
+                });
+            Some(companion(&state, task, text(args, "title"), &words, lang)?)
+        }
+        (None, false) => None,
     };
     let mut ops: Vec<Op> = ids
         .iter()
@@ -140,26 +162,39 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             d: StepRef { step: *step },
         })
         .collect();
-    if let Some((there, other)) = to {
-        let mut order = state.step_order_between(there, other.steps.last().map(|s| s.id), None);
-        for (_, words) in &chosen {
-            ops.push(Op::StepAdd {
-                id: there,
-                d: StepAdd {
-                    step: ulid::Ulid::generate(),
-                    text: words.clone(),
-                    order: order.clone(),
-                },
-            });
-            order = tisty_core::order::after(&order);
+    let (there, fresh_under) = match handing {
+        Some(Companion::Held(there, other)) => {
+            let mut order = state.step_order_between(there, other.steps.last().map(|s| s.id), None);
+            for words in &words {
+                ops.push(Op::StepAdd {
+                    id: there,
+                    d: StepAdd {
+                        step: ulid::Ulid::generate(),
+                        text: words.clone(),
+                        order: order.clone(),
+                    },
+                });
+                order = tisty_core::order::after(&order);
+            }
+            (Some((there, other.title.clone())), None)
         }
-    }
+        Some(Companion::Fresh(drafted, anchor)) => {
+            let there = (drafted.id, drafted.title.clone());
+            ops.extend(drafted.ops);
+            (Some(there), Some(anchor))
+        }
+        None => (None, None),
+    };
+    let target = there.as_ref().map(|(one, _)| *one);
     let written = store
         .append_batch_unless(ops, |events| {
             let held = State::replay(events);
             let gone = |one: TaskId| held.tasks.get(&one).is_none_or(unsteady);
             gone(id)
-                || to.is_some_and(|(there, _)| gone(there))
+                || (fresh_under.is_none() && target.is_some_and(gone))
+                || fresh_under.is_some_and(|anchor| {
+                    gone(anchor) || super::companion::held(&held, anchor).is_some()
+                })
                 || held.tasks.get(&id).is_some_and(|now| {
                     !ids.iter()
                         .all(|one| now.step(*one).is_some_and(|step| !step.done))
@@ -172,7 +207,7 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut page = super::worded::worded(paths, &mut store, id, |body, _| {
         Some(tisty_core::stages::unplanned(body, task, &ids))
     });
-    if let Some((there, _)) = to {
+    if let Some(there) = target.filter(|_| fresh_under.is_none()) {
         let also = super::worded::worded(paths, &mut store, there, |was, now| {
             Some(tisty_core::stages::ticked(now, was))
         });
@@ -181,30 +216,46 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
     }
     let left = task.steps.len() - ids.len();
-    let said = match to {
-        Some((_, other)) => format!(
-            "Moved {} step(s) from {:?} to the end of {:?}'s steps. {left} left on {:?}.{page}",
+    let said = match (&there, to_person, fresh_under) {
+        (Some((_, other)), true, Some(_)) => format!(
+            "Handed {} step(s) from {:?} to the person, in a new task of theirs, {other:?}, \
+             filed as its part: it never holds yours open. {left} left on {:?}; `say_done` it \
+             when they are done.{page}",
             ids.len(),
             task.title,
-            other.title,
             task.title
         ),
-        None => format!(
+        (Some((_, other)), true, None) => format!(
+            "Handed {} step(s) from {:?} to the person, at the end of {other:?}, their task. \
+             {left} left on {:?}; `say_done` it when they are done.{page}",
+            ids.len(),
+            task.title,
+            task.title
+        ),
+        (Some((_, other)), false, _) => format!(
+            "Moved {} step(s) from {:?} to the end of {other:?}'s steps. {left} left on {:?}.{page}",
+            ids.len(),
+            task.title,
+            task.title
+        ),
+        (None, _, _) => format!(
             "Took {} step(s) off {:?}. {left} left.{page}",
             ids.len(),
             task.title
         ),
     };
-    Ok(told(
-        said,
-        json!({
-            "id": id.to_string(),
-            "title": task.title,
-            "removed": ids.len(),
-            "left": left,
-            "to": to.map(|(there, _)| there.to_string()),
-        }),
-    ))
+    let mut kept = json!({
+        "id": id.to_string(),
+        "title": task.title,
+        "removed": ids.len(),
+        "left": left,
+        "to": target.map(|one| one.to_string()),
+    });
+    if to_person {
+        kept["to_person"] = json!(true);
+        kept["companion_made"] = json!(fresh_under.is_some());
+    }
+    Ok(told(said, kept))
 }
 
 fn handed_to<'a>(

@@ -175,10 +175,9 @@ pub(super) fn open_tasks_left<E: std::borrow::Borrow<Event>>(
         else {
             continue;
         };
-        let open = state
-            .tasks
-            .get(&task)
-            .is_some_and(|kept| kept.is_open() && !kept.folded() && kept.resolved.is_none());
+        let open = state.tasks.get(&task).is_some_and(|kept| {
+            kept.is_open() && !kept.folded() && kept.resolved.is_none() && !kept.for_person
+        });
         if open && found.iter().all(|(was, _)| *was != task) {
             found.push((task, one.timestamp));
         }

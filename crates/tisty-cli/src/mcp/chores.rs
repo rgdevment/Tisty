@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 use tisty_core::Paths;
 
 use tisty_core::capture::{Draft, Rejected};
-use tisty_core::event::{Body, LogAdd, Op, Resolve, StepAdd, StepRef, TaskPatch};
+use tisty_core::event::{Body, LogAdd, Op, StepAdd, StepRef, TaskPatch};
 use tisty_core::model::DateSpec;
 use tisty_core::model::{Tag, Task, TaskId};
 use tisty_core::{State, Store};
@@ -11,11 +11,11 @@ use ulid::Ulid;
 use super::asked::{
     Takes, day, in_order, moments, only_what_it_takes, ranked, short_and_plain, strings, text,
 };
-use super::jsonrpc::{speaking_through, told};
+use super::jsonrpc::told;
 use super::mistaken::not_a_task_id;
 use super::{
     INBOX_TAG, ONE_OWNER, Refused, already, gone, history, hitch, how_it_ended, moved, opened,
-    order, said, unticked, when,
+    order, said, when,
 };
 
 /// Eight tasks in one call instead of eight calls: what the door costs an agent is mostly the
@@ -182,6 +182,11 @@ pub(super) fn proposed(
     let Some(title) = text(args, "title") else {
         return Err(Refused::Tool("a task needs a `title`.".into()));
     };
+    let Some(for_person) = whose(args)? else {
+        return Err(Refused::Tool(format!(
+            "a task needs `for`. {WHOSE} Nothing was written."
+        )));
+    };
     steps_fit(&strings(args, "steps")?)?;
     let (state, mut store) = opened(paths)?;
 
@@ -265,7 +270,7 @@ pub(super) fn proposed(
     }
 
     let whole = super::wholes::whole_named(&state, args)?;
-    let mine = drafted(&state, args, &title, whole)?;
+    let mine = drafted(&state, args, &title, whole, for_person)?;
     let parts = super::wholes::parts_drafted(&state, taken, args, &mine, again)?;
     let (id, planned) = (mine.id, mine.planned);
     let parted: Vec<Value> = parts
@@ -395,6 +400,24 @@ pub(super) fn proposed(
     if parts_off > 0 {
         kept.insert("parts_from_ideas".into(), json!(parts_off));
     }
+    kept.insert(
+        "for".into(),
+        json!(if for_person { "person" } else { "agent" }),
+    );
+    if for_person {
+        return Ok(told(
+            format!(
+                "Proposed the task {title:?} {where_at} for the person, tagged #{INBOX_TAG}{}: it \
+                 waits among theirs, and a `tick` of yours on it only gives your word.{parts_said} \
+                 {ONE_OWNER} [{id}]",
+                match planned {
+                    0 => String::new(),
+                    n => format!(", with {n} step(s)"),
+                }
+            ),
+            Value::Object(kept),
+        ));
+    }
     Ok(told(
         match planned {
             0 => format!(
@@ -426,6 +449,23 @@ pub(super) struct Drafted {
     pub(super) source: Option<String>,
     pub(super) ops: Vec<Op>,
     pub(super) planned: usize,
+    pub(super) for_person: bool,
+}
+
+pub(super) const WHOSE: &str = "`for` says whose task it is: \"agent\" when you will do it and \
+    check it yourself, \"person\" when only they can — a manual test, a real device, publishing, \
+    merging, a decision. A task is yours or the person's, never both: what only they can do goes \
+    in their own task.";
+
+pub(super) fn whose(args: &Value) -> Result<Option<bool>, Refused> {
+    match args.get("for") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(one)) if one == "agent" => Ok(Some(false)),
+        Some(Value::String(one)) if one == "person" => Ok(Some(true)),
+        Some(other) => Err(Refused::Tool(format!(
+            "`for` is \"agent\" or \"person\", not {other}. {WHOSE} Nothing was written."
+        ))),
+    }
 }
 
 /// One task's events, written nowhere yet, so a whole and its parts land in one transaction.
@@ -434,6 +474,7 @@ pub(super) fn drafted(
     args: &Value,
     title: &str,
     part_of: Option<TaskId>,
+    for_person: bool,
 ) -> Result<Drafted, Refused> {
     steps_fit(&strings(args, "steps")?)?;
     let on = day(args, "date")?;
@@ -504,6 +545,7 @@ pub(super) fn drafted(
             && *born == id
         {
             d.part_of = part_of;
+            d.for_person = for_person;
         }
     }
     Ok(Drafted {
@@ -512,6 +554,7 @@ pub(super) fn drafted(
         source: text(args, "source"),
         ops,
         planned,
+        for_person,
     })
 }
 
@@ -584,10 +627,10 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = seen_task(&state, &said)?;
-    if !state.filed_by_agents(task) {
+    if !state.agents_own(task) {
         return Err(Refused::Tool(format!(
             "{:?} is the person's own, so its day is theirs to move: you can only move what an \
-             agent filed. Say what you have learnt with `note` and leave the day alone.",
+             agent filed for itself. Say what you have learnt with `note` and leave the day alone.",
             task.title
         )));
     }
@@ -772,7 +815,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "ticking", "each step you did")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = reaching(&state, &said)?;
-    if !state.filed_by_agents(task) {
+    if !state.agents_own(task) {
         return vouch(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "ticking") {
@@ -851,7 +894,7 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let its_own_ticks = |step: &tisty_core::model::Step| step.done && step.by_agent;
     let only_its_own_ticks = steps_named(task, &wanted, "unticked", its_own_ticks)
         .is_ok_and(|chosen| chosen.iter().all(|step| its_own_ticks(step)));
-    if !state.filed_by_agents(task) && !only_its_own_ticks {
+    if !state.agents_own(task) && !only_its_own_ticks {
         return unsay(store, id, task, &wanted);
     }
     if let Some(refusal) = already_said_done(task, "unticking") {
@@ -997,136 +1040,6 @@ pub(super) fn too_long_a_note(
              {elsewhere} and reword the note to one line saying where it is."
         ),
     }))
-}
-
-pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    spoken_for(paths, args, false)
-}
-
-pub(super) fn say_not_doing(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    spoken_for(paths, args, true)
-}
-
-fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused> {
-    let saying = if drop {
-        "saying a task will not be done"
-    } else {
-        "saying a task is done"
-    };
-    let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool(format!("{saying} needs the `task` id.")));
-    };
-    let Some(body) = text(args, "body") else {
-        return Err(Refused::Tool(format!(
-            "{saying} needs a `body`: {} Without it the person has only your word and nothing \
-             to check it against.",
-            if drop {
-                "why it should not be done, and what you found that says so."
-            } else {
-                "what you did and how you know it holds."
-            }
-        )));
-    };
-    let (state, mut store) = opened(paths)?;
-    let (id, task) = seen_task(&state, &said)?;
-    let me = store.device().clone();
-    if !task.is_open() {
-        return Err(history(task));
-    }
-    if let Some(already) = &task.resolved {
-        let who = match already.by == me && already.via == speaking_through() {
-            true => "you".to_string(),
-            false => already
-                .via
-                .as_deref()
-                .map(tisty_core::agent::client_named)
-                .unwrap_or_else(|| "an assistant".to_string()),
-        };
-        return Err(Refused::Tool(format!(
-            "{who} already said {:?} {} on {}, and the person has not looked yet. Saying \
-             it again would only stack another entry on the journal — add what is new with \
-             `note`.",
-            task.title,
-            if already.drop {
-                "would not be done"
-            } else {
-                "was done"
-            },
-            when(already.at)
-        )));
-    }
-    let open_parts = state
-        .parts_of(id)
-        .filter(|part| part.is_open() && !part.folded() && part.resolved.is_none())
-        .count();
-    if !drop && open_parts > 0 {
-        return Err(Refused::Tool(format!(
-            "{:?} still has {open_parts} part(s) open, and a whole is done only when its parts \
-             are. Say each of yours done as you finish it. What only the person can do goes to \
-             them with `unplan` and `to_person`, and their part never holds the whole; then \
-             `say_done`. Whether to let the rest go is the person's call: say what is left with \
-             `note`.",
-            task.title
-        )));
-    }
-    if drop && (task.repeat.is_some() || task.after.is_some()) {
-        return Err(Refused::Tool(format!(
-            "{:?} is a turn of something that repeats, and dropping it would end the repeat. \
-             Whether it goes on is the person's call: say why with `note`.",
-            task.title
-        )));
-    }
-    if !drop && let Some(refusal) = unticked(task) {
-        return Err(refusal);
-    }
-
-    let attended = state.filed_by_agents(task);
-    let zone = jiff::tz::TimeZone::system();
-    let entry = Ulid::generate();
-    // Judged again under the lock: the mark must not land beside a step the person just
-    // unticked, nor on top of one another agent just left.
-    let written = store
-        .append_batch_unless(
-            vec![
-                Op::TaskLog {
-                    id,
-                    d: LogAdd::new(entry, body).in_zone(zone.iana_name().map(str::to_string)),
-                },
-                Op::TaskResolve {
-                    id,
-                    d: Resolve::new(entry)
-                        .said_by(jiff::Timestamp::now(), me.clone())
-                        .dropping(drop)
-                        .as_word(!attended),
-                },
-            ],
-            |events| {
-                let held = State::replay(events);
-                held.tasks.get(&id).is_none_or(|now| {
-                    !still_in_sight(now)
-                        || held.filed_by_agents(now) != attended
-                        || now.resolved.is_some()
-                        || (!drop && now.steps.iter().any(|step| !step.done && !step.said))
-                })
-            },
-        )
-        .map_err(hitch)?;
-    if written.is_none() {
-        return Err(moved(task));
-    }
-
-    Ok(told(
-        format!(
-            "{} {:?}. It stays open until the person decides.",
-            if drop {
-                "Said it will not be done:"
-            } else {
-                "Said done:"
-            },
-            task.title
-        ),
-        json!({ "id": id.to_string(), "title": task.title, "open": true }),
-    ))
 }
 
 const DRAFTS_AT_MOST: usize = 32;

@@ -921,7 +921,11 @@ impl State {
 
     // A task opened before 1.31.2 keeps the ticks and closings its log already holds.
     pub(crate) fn settled_by_agents(&self, task: &Task) -> bool {
-        task.open_to_agents || self.filed_by_agents(task)
+        task.open_to_agents || self.agents_own(task)
+    }
+
+    pub fn agents_own(&self, task: &Task) -> bool {
+        self.filed_by_agents(task) && !task.for_person
     }
 
     pub fn filed_by_agents(&self, task: &Task) -> bool {
@@ -1271,6 +1275,7 @@ pub(crate) fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         repeat: d.repeat,
         after: d.after,
         source: d.source.clone(),
+        for_person: d.for_person,
         ..Task::new(id, d.title.clone(), d.order.clone())
     }
 }

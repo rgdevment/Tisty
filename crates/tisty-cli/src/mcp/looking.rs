@@ -580,7 +580,7 @@ pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_AT_A_GLANCE: usize = 40;
 const AT_A_GLANCE: usize = 30;
-const READ_FIELDS: [&str; 26] = [
+const READ_FIELDS: [&str; 27] = [
     "id",
     "title",
     "status",
@@ -595,6 +595,7 @@ const READ_FIELDS: [&str; 26] = [
     "list",
     "priority",
     "by_agent",
+    "for",
     "via",
     "said_done",
     "said_not_doing",
@@ -717,6 +718,14 @@ pub(super) fn brief(task: &Task, state: &State, today: jiff::civil::Date) -> Val
         .as_ref()
         .is_some_and(|who| state.assistants.contains(who));
     put("by_agent", json!(by_agent));
+    put(
+        "for",
+        json!(match (by_agent, state.agents_own(task)) {
+            (false, _) => None,
+            (true, true) => Some("agent"),
+            (true, false) => Some("person"),
+        }),
+    );
     put(
         "via",
         json!(
