@@ -5,6 +5,7 @@ use std::time::{Duration, SystemTime};
 use super::{FIRST_PRIVATE, KEPT, MISSED, private_kept_under, private_under};
 
 const KEY: &str = include_str!("folio_signed/hosts/key.pub");
+const OTHER_KEY: &str = include_str!("cloud/signed/key.pub");
 const HOSTS: &[u8] = include_bytes!("folio_signed/hosts/hosts.json");
 const SIGNED: &[u8] = include_bytes!("folio_signed/hosts/hosts.json.minisig");
 const OLDER: &[u8] = include_bytes!("folio_signed/hosts/older.json");
@@ -42,22 +43,25 @@ fn two_days_later(home: &Path) {
 fn with_nothing_signed_yet_the_private_host_is_the_first_one() {
     let home = tempfile::tempdir().unwrap();
     assert_eq!(
-        private_under(home.path(), &nothing, KEY.trim()),
+        private_under(home.path(), &nothing, &[KEY.trim()]),
         FIRST_PRIVATE
     );
-    assert_eq!(private_kept_under(home.path(), KEY.trim()), FIRST_PRIVATE);
+    assert_eq!(
+        private_kept_under(home.path(), &[KEY.trim()]),
+        FIRST_PRIVATE
+    );
 }
 
 #[test]
 fn a_host_folio_signed_is_taken_and_kept() {
     let home = tempfile::tempdir().unwrap();
     assert_eq!(
-        private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim()),
+        private_under(home.path(), &serving(HOSTS, SIGNED), &[KEY.trim()]),
         "tisty.dev"
     );
-    assert_eq!(private_kept_under(home.path(), KEY.trim()), "tisty.dev");
+    assert_eq!(private_kept_under(home.path(), &[KEY.trim()]), "tisty.dev");
     assert_eq!(
-        private_under(home.path(), &nothing, KEY.trim()),
+        private_under(home.path(), &nothing, &[KEY.trim()]),
         "tisty.dev"
     );
 }
@@ -70,12 +74,12 @@ fn a_copy_that_holds_is_asked_for_once_in_two_days() {
         asked.set(asked.get() + 1);
         serving(HOSTS, SIGNED)(url)
     };
-    private_under(home.path(), &counting, KEY.trim());
-    private_under(home.path(), &counting, KEY.trim());
+    private_under(home.path(), &counting, &[KEY.trim()]);
+    private_under(home.path(), &counting, &[KEY.trim()]);
     assert_eq!(asked.get(), 2, "the file and its signature, once");
     two_days_later(home.path());
     an_hour_later(home.path());
-    private_under(home.path(), &counting, KEY.trim());
+    private_under(home.path(), &counting, &[KEY.trim()]);
     assert_eq!(asked.get(), 4, "asked again once the two days are over");
 }
 
@@ -83,16 +87,16 @@ fn a_copy_that_holds_is_asked_for_once_in_two_days() {
 fn a_look_that_brought_nothing_tries_again_within_the_hour_not_in_two_days() {
     let home = tempfile::tempdir().unwrap();
     assert_eq!(
-        private_under(home.path(), &nothing, KEY.trim()),
+        private_under(home.path(), &nothing, &[KEY.trim()]),
         FIRST_PRIVATE
     );
     assert_eq!(
-        private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim()),
+        private_under(home.path(), &serving(HOSTS, SIGNED), &[KEY.trim()]),
         FIRST_PRIVATE
     );
     an_hour_later(home.path());
     assert_eq!(
-        private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim()),
+        private_under(home.path(), &serving(HOSTS, SIGNED), &[KEY.trim()]),
         "tisty.dev"
     );
 }
@@ -101,12 +105,16 @@ fn a_look_that_brought_nothing_tries_again_within_the_hour_not_in_two_days() {
 fn what_folio_did_not_sign_or_signed_as_another_file_is_refused() {
     let home = tempfile::tempdir().unwrap();
     assert_eq!(
-        private_under(home.path(), &serving(HOSTS, SIGNED_ELSEWHERE), KEY.trim()),
+        private_under(
+            home.path(),
+            &serving(HOSTS, SIGNED_ELSEWHERE),
+            &[KEY.trim()]
+        ),
         FIRST_PRIVATE
     );
     an_hour_later(home.path());
     assert_eq!(
-        private_under(home.path(), &serving(OLDER, SIGNED), KEY.trim()),
+        private_under(home.path(), &serving(OLDER, SIGNED), &[KEY.trim()]),
         FIRST_PRIVATE
     );
     assert!(!home.path().join(KEPT).exists());
@@ -116,7 +124,11 @@ fn what_folio_did_not_sign_or_signed_as_another_file_is_refused() {
 fn a_host_that_is_not_a_bare_domain_is_refused_even_signed() {
     let home = tempfile::tempdir().unwrap();
     assert_eq!(
-        private_under(home.path(), &serving(UNSHAPED, UNSHAPED_SIGNED), KEY.trim()),
+        private_under(
+            home.path(),
+            &serving(UNSHAPED, UNSHAPED_SIGNED),
+            &[KEY.trim()]
+        ),
         FIRST_PRIVATE
     );
 }
@@ -124,10 +136,10 @@ fn a_host_that_is_not_a_bare_domain_is_refused_even_signed() {
 #[test]
 fn an_older_serial_never_takes_back_a_newer_host() {
     let home = tempfile::tempdir().unwrap();
-    private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim());
+    private_under(home.path(), &serving(HOSTS, SIGNED), &[KEY.trim()]);
     two_days_later(home.path());
     assert_eq!(
-        private_under(home.path(), &serving(OLDER, OLDER_SIGNED), KEY.trim()),
+        private_under(home.path(), &serving(OLDER, OLDER_SIGNED), &[KEY.trim()]),
         "tisty.dev"
     );
 }
@@ -135,11 +147,31 @@ fn an_older_serial_never_takes_back_a_newer_host() {
 #[test]
 fn a_kept_copy_changed_on_disk_counts_for_nothing() {
     let home = tempfile::tempdir().unwrap();
-    private_under(home.path(), &serving(HOSTS, SIGNED), KEY.trim());
+    private_under(home.path(), &serving(HOSTS, SIGNED), &[KEY.trim()]);
     std::fs::write(
         home.path().join(KEPT),
         br#"{"serial":9,"private":"evil.example"}"#,
     )
     .unwrap();
-    assert_eq!(private_kept_under(home.path(), KEY.trim()), FIRST_PRIVATE);
+    assert_eq!(
+        private_kept_under(home.path(), &[KEY.trim()]),
+        FIRST_PRIVATE
+    );
+}
+
+#[test]
+fn a_host_folio_signed_is_taken_when_the_right_key_comes_second_and_not_without_it() {
+    let both = [OTHER_KEY.trim(), KEY.trim()];
+
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(
+        private_under(home.path(), &serving(HOSTS, SIGNED), &both),
+        "tisty.dev"
+    );
+
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(
+        private_under(home.path(), &serving(HOSTS, SIGNED), &[OTHER_KEY.trim()]),
+        FIRST_PRIVATE
+    );
 }

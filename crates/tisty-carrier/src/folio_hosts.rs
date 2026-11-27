@@ -27,18 +27,18 @@ fn read(said: &[u8]) -> Option<Hosts> {
         .filter(|hosts| a_domain(&hosts.private))
 }
 
-fn kept(home: &Path, key: &str) -> Option<Hosts> {
+fn kept(home: &Path, keys: &[&str]) -> Option<Hosts> {
     let (said_at, signature_at) = folio_branch::kept_at(home, KEPT);
-    read(&folio_branch::kept(&said_at, &signature_at, NAMED, key)?)
+    read(&folio_branch::kept(&said_at, &signature_at, NAMED, keys)?)
 }
 
 fn fetched(
     home: &Path,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
-    key: &str,
+    keys: &[&str],
     kept_serial: Option<u64>,
 ) -> Option<Hosts> {
-    let signed = folio_branch::brought(bring, HOSTS_URL, NAMED, key)?;
+    let signed = folio_branch::brought(bring, HOSTS_URL, NAMED, keys)?;
     let hosts = read(&signed.said)?;
     if kept_serial.is_some_and(|serial| hosts.serial < serial) {
         return None;
@@ -49,24 +49,24 @@ fn fetched(
 }
 
 pub fn private_kept(home: &Path) -> String {
-    private_kept_under(home, crate::folio_limits::KEY)
+    private_kept_under(home, &crate::folio_limits::KEYS)
 }
 
-fn private_kept_under(home: &Path, key: &str) -> String {
-    kept(home, key).map_or_else(|| FIRST_PRIVATE.to_owned(), |hosts| hosts.private)
+fn private_kept_under(home: &Path, keys: &[&str]) -> String {
+    kept(home, keys).map_or_else(|| FIRST_PRIVATE.to_owned(), |hosts| hosts.private)
 }
 
 pub fn private(home: &Path, bring: impl Fn(&str) -> Option<Vec<u8>>) -> String {
-    private_under(home, &bring, crate::folio_limits::KEY)
+    private_under(home, &bring, &crate::folio_limits::KEYS)
 }
 
 // A copy that holds is trusted for two days, while a look that brought nothing tries again within the hour.
-fn private_under(home: &Path, bring: &impl Fn(&str) -> Option<Vec<u8>>, key: &str) -> String {
-    let held = kept(home, key);
+fn private_under(home: &Path, bring: &impl Fn(&str) -> Option<Vec<u8>>, keys: &[&str]) -> String {
+    let held = kept(home, keys);
     let (said_at, _) = folio_branch::kept_at(home, KEPT);
     let settled = held.is_some() && folio_branch::fresh(&said_at, KEPT_FOR);
     let brought = (!settled && policy::ask_now(&home.join(MISSED), MISSED_EVERY))
-        .then(|| fetched(home, bring, key, held.as_ref().map(|hosts| hosts.serial)))
+        .then(|| fetched(home, bring, keys, held.as_ref().map(|hosts| hosts.serial)))
         .flatten();
     brought
         .or(held)

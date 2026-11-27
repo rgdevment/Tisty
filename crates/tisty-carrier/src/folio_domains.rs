@@ -61,7 +61,7 @@ pub fn checked(
     domain: &str,
     bring: impl Fn(&str) -> Option<Vec<u8>>,
 ) -> bool {
-    checked_under(home, root, domain, &bring, crate::folio_limits::KEY)
+    checked_under(home, root, domain, &bring, &crate::folio_limits::KEYS)
 }
 
 fn checked_under(
@@ -69,7 +69,7 @@ fn checked_under(
     root: &str,
     domain: &str,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
-    key: &str,
+    keys: &[&str],
 ) -> bool {
     if !a_domain(domain) {
         return false;
@@ -77,8 +77,8 @@ fn checked_under(
     let proof = proof_of(root, domain);
     let shard = shard_of(&proof);
     let holds = |held: Vec<String>| held.contains(&proof);
-    kept_proofs(home, shard, key).is_some_and(holds)
-        || fetched_proofs(home, shard, bring, key).is_some_and(holds)
+    kept_proofs(home, shard, keys).is_some_and(holds)
+        || fetched_proofs(home, shard, bring, keys).is_some_and(holds)
 }
 
 fn kept_at(home: &Path, shard: &str) -> (PathBuf, PathBuf) {
@@ -93,7 +93,7 @@ fn proofs(said: &[u8]) -> Option<Vec<String>> {
     serde_json::from_slice(said).ok()
 }
 
-fn kept_proofs(home: &Path, shard: &str, key: &str) -> Option<Vec<String>> {
+fn kept_proofs(home: &Path, shard: &str, keys: &[&str]) -> Option<Vec<String>> {
     let (said_at, signature_at) = kept_at(home, shard);
     if !folio_branch::fresh(&said_at, KEPT_FOR) {
         return None;
@@ -102,7 +102,7 @@ fn kept_proofs(home: &Path, shard: &str, key: &str) -> Option<Vec<String>> {
         &said_at,
         &signature_at,
         &named(shard),
-        key,
+        keys,
     )?)
 }
 
@@ -110,14 +110,14 @@ fn fetched_proofs(
     home: &Path,
     shard: &str,
     bring: &impl Fn(&str) -> Option<Vec<u8>>,
-    key: &str,
+    keys: &[&str],
 ) -> Option<Vec<String>> {
     let (said_at, signature_at) = kept_at(home, shard);
     let signed = folio_branch::brought(
         bring,
         &format!("{SHARDS_URL}{shard}.json"),
         &named(shard),
-        key,
+        keys,
     )?;
     let held = proofs(&signed.said)?;
     folio_branch::keep(&said_at, &signature_at, &signed);

@@ -198,7 +198,7 @@ fn an_older_file_leaves_what_is_kept_standing() {
 
 #[test]
 fn the_signature_folio_really_made_is_accepted_under_its_pinned_key() {
-    let limits = read_under(REAL, REAL_SIG, KEY).unwrap();
+    let limits = read_under(REAL, REAL_SIG, &[KEY]).unwrap();
 
     assert!(limits.serial >= 1);
     assert!(limits.files_at_most.is_some());
@@ -211,13 +211,28 @@ fn one_changed_byte_is_refused_before_any_field_is_believed() {
     let near_end = tampered.len() - 4;
     tampered[near_end] = b'9';
 
-    assert_eq!(read_under(&tampered, REAL_SIG, KEY), Err(Refused::Unsigned));
     assert_eq!(
-        read_under(REAL, "not a signature", KEY),
+        read_under(&tampered, REAL_SIG, &[KEY]),
         Err(Refused::Unsigned)
     );
     assert_eq!(
-        read_under(REAL, REAL_SIG, OTHER_KEY),
+        read_under(REAL, "not a signature", &[KEY]),
+        Err(Refused::Unsigned)
+    );
+    assert_eq!(
+        read_under(REAL, REAL_SIG, &[OTHER_KEY]),
+        Err(Refused::Unsigned)
+    );
+}
+
+#[test]
+fn the_signature_folio_made_is_accepted_when_the_spare_comes_first_and_the_main_key_after_it() {
+    let limits = read_under(REAL, REAL_SIG, &[OTHER_KEY.trim(), KEY]).unwrap();
+
+    assert!(limits.serial >= 1);
+    assert_eq!(super::KEYS[0], KEY);
+    assert_eq!(
+        read_under(REAL, REAL_SIG, &[OTHER_KEY.trim()]),
         Err(Refused::Unsigned)
     );
 }
@@ -225,7 +240,7 @@ fn one_changed_byte_is_refused_before_any_field_is_believed() {
 #[test]
 fn a_file_signed_under_another_name_cannot_stand_in_for_the_limits() {
     assert_eq!(
-        read_under(OTHER, OTHER_SIG, OTHER_KEY),
+        read_under(OTHER, OTHER_SIG, &[OTHER_KEY]),
         Err(Refused::Unsigned)
     );
 }
@@ -233,7 +248,7 @@ fn a_file_signed_under_another_name_cannot_stand_in_for_the_limits() {
 #[test]
 fn past_the_size_it_is_refused_without_looking_further() {
     assert_eq!(
-        read_under(&vec![b' '; READ_AT_MOST + 1], REAL_SIG, KEY),
+        read_under(&vec![b' '; READ_AT_MOST + 1], REAL_SIG, &[KEY]),
         Err(Refused::TooBig)
     );
 }
@@ -249,7 +264,7 @@ fn a_field_it_does_not_know_is_left_aside() {
 
 #[test]
 fn an_older_serial_never_replaces_a_newer_one() {
-    let real = read_under(REAL, REAL_SIG, KEY).unwrap().serial;
+    let real = read_under(REAL, REAL_SIG, &[KEY]).unwrap().serial;
     let home = seeded(real + 1);
 
     assert_eq!(
@@ -264,7 +279,7 @@ fn an_older_serial_never_replaces_a_newer_one() {
 
 #[test]
 fn the_same_or_a_newer_serial_is_kept() {
-    let real = read_under(REAL, REAL_SIG, KEY).unwrap().serial;
+    let real = read_under(REAL, REAL_SIG, &[KEY]).unwrap().serial;
 
     for before in [real - 1, real] {
         let home = seeded(before);
@@ -340,7 +355,7 @@ fn it_asks_at_most_once_an_hour_and_takes_what_is_signed() {
 
 #[test]
 fn what_is_kept_stands_when_nothing_arrives_or_the_signature_fails() {
-    let real = read_under(REAL, REAL_SIG, KEY).unwrap().serial;
+    let real = read_under(REAL, REAL_SIG, &[KEY]).unwrap().serial;
 
     let unreached = seeded(real);
     assert_eq!(heed(unreached.path(), |_| None), None);

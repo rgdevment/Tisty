@@ -1,11 +1,12 @@
 use super::{
     PAUSED_AT_MOST, Policy, READ_AT_MOST, Refused, accepted, applied, halted, kept, pause_here,
-    paused_here, read,
+    paused_here, read, signed, signed_as,
 };
 use crate::Remote;
 use crate::fakes::Fake;
 
 const KEY: &str = include_str!("signed/key.pub");
+const OTHER_KEY: &str = include_str!("../folio_signed/hosts/key.pub");
 const LOWERED: &[u8] = include_bytes!("signed/lowered.json");
 const LOWERED_SIG: &str = include_str!("signed/lowered.json.minisig");
 const RAISED: &[u8] = include_bytes!("signed/raised.json");
@@ -20,26 +21,26 @@ const UNREAD_SIG: &str = include_str!("signed/unread.json.minisig");
 #[test]
 fn a_signed_word_is_read_and_anything_else_is_refused_before_it_is_believed() {
     assert_eq!(
-        read(LOWERED, LOWERED_SIG, KEY).map(|one| one.units_a_day),
+        read(LOWERED, LOWERED_SIG, &[KEY]).map(|one| one.units_a_day),
         Ok(Some(1000))
     );
 
     let mut tampered = LOWERED.to_vec();
     let near_end = tampered.len() - 2;
     tampered[near_end] = b'9';
-    assert_eq!(read(&tampered, LOWERED_SIG, KEY), Err(Refused::Unsigned));
-    assert_eq!(read(LOWERED, RAISED_SIG, KEY), Err(Refused::Unsigned));
+    assert_eq!(read(&tampered, LOWERED_SIG, &[KEY]), Err(Refused::Unsigned));
+    assert_eq!(read(LOWERED, RAISED_SIG, &[KEY]), Err(Refused::Unsigned));
     assert_eq!(
-        read(LOWERED, "not a signature", KEY),
+        read(LOWERED, "not a signature", &[KEY]),
         Err(Refused::Unsigned)
     );
     assert_eq!(
-        read(LOWERED, LOWERED_SIG, "not a key"),
+        read(LOWERED, LOWERED_SIG, &["not a key"]),
         Err(Refused::Unsigned)
     );
-    assert_eq!(read(UNREAD, UNREAD_SIG, KEY), Err(Refused::Unreadable));
+    assert_eq!(read(UNREAD, UNREAD_SIG, &[KEY]), Err(Refused::Unreadable));
     assert_eq!(
-        read(&vec![b' '; READ_AT_MOST + 1], LOWERED_SIG, KEY),
+        read(&vec![b' '; READ_AT_MOST + 1], LOWERED_SIG, &[KEY]),
         Err(Refused::TooBig)
     );
 }
@@ -48,8 +49,8 @@ fn a_signed_word_is_read_and_anything_else_is_refused_before_it_is_believed() {
 fn a_word_lowers_every_limit_freely_but_lifts_one_no_further_than_twice() {
     let shipped = Fake::drive().limits();
 
-    let lowered = applied(shipped, read(LOWERED, LOWERED_SIG, KEY).ok().as_ref());
-    let raised = applied(shipped, read(RAISED, RAISED_SIG, KEY).ok().as_ref());
+    let lowered = applied(shipped, read(LOWERED, LOWERED_SIG, &[KEY]).ok().as_ref());
+    let raised = applied(shipped, read(RAISED, RAISED_SIG, &[KEY]).ok().as_ref());
     let silent = applied(shipped, None);
 
     assert_eq!((lowered.units_a_day, lowered.bytes_a_day), (1000, 2048));
@@ -62,18 +63,18 @@ fn a_word_lowers_every_limit_freely_but_lifts_one_no_further_than_twice() {
 fn the_newest_word_is_kept_for_good_and_an_older_one_is_a_replay() {
     let home = tempfile::tempdir().unwrap();
 
-    accepted(home.path(), LOWERED, LOWERED_SIG, KEY, "google").unwrap();
-    let replayed = accepted(home.path(), OLDER, OLDER_SIG, KEY, "google");
+    accepted(home.path(), LOWERED, LOWERED_SIG, &[KEY], "google").unwrap();
+    let replayed = accepted(home.path(), OLDER, OLDER_SIG, &[KEY], "google");
 
     assert_eq!(replayed, Err(Refused::Behind { kept: 5, said: 3 }));
     assert_eq!(kept(home.path()).map(|one| one.serial), Some(5));
-    accepted(home.path(), RAISED, RAISED_SIG, KEY, "google").unwrap();
+    accepted(home.path(), RAISED, RAISED_SIG, &[KEY], "google").unwrap();
     assert_eq!(kept(home.path()).map(|one| one.serial), Some(6));
 }
 
 #[test]
 fn a_pause_from_afar_holds_only_until_its_date_and_never_more_than_a_week_ahead() {
-    let paused = read(HALTED, HALTED_SIG, KEY).unwrap();
+    let paused = read(HALTED, HALTED_SIG, &[KEY]).unwrap();
     let until = paused.halted_until.unwrap();
 
     assert!(halted(Some(&paused), until - 60));
@@ -127,4 +128,58 @@ fn the_rest_of_the_word_speaks_to_google_alone_and_another_provider_hears_only_i
     let from_1_30: Policy = serde_json::from_str(r#"{"serial":3,"bytes_a_day":5}"#).unwrap();
     assert_eq!(from_1_30.for_provider("google").bytes_a_day, Some(5));
     assert_eq!(from_1_30.for_provider("onedrive").bytes_a_day, None);
+}
+
+#[test]
+fn a_word_signed_by_the_main_key_is_read_whichever_place_the_spare_takes_in_the_list() {
+    let other = OTHER_KEY.trim();
+
+    for keys in [[other, KEY], [KEY, other]] {
+        assert_eq!(
+            read(LOWERED, LOWERED_SIG, &keys).map(|one| one.units_a_day),
+            Ok(Some(1000))
+        );
+    }
+    assert_eq!(read(LOWERED, LOWERED_SIG, &[other]), Err(Refused::Unsigned));
+}
+
+#[test]
+fn a_key_that_is_not_a_key_or_still_pending_is_skipped_and_an_empty_list_verifies_nothing() {
+    let pending_key = "PENDING_SPARE".to_owned();
+
+    assert!(signed(LOWERED, LOWERED_SIG, &[&pending_key, KEY]));
+    assert!(signed(LOWERED, LOWERED_SIG, &["not a key", "", KEY]));
+    assert!(!signed(LOWERED, LOWERED_SIG, &[&pending_key]));
+    assert!(!signed(LOWERED, LOWERED_SIG, &[]));
+    assert_eq!(read(LOWERED, LOWERED_SIG, &[]), Err(Refused::Unsigned));
+}
+
+#[test]
+fn a_file_signed_under_another_name_is_refused_even_when_the_spare_is_the_one_that_verifies() {
+    let keys = [OTHER_KEY.trim(), KEY];
+
+    assert!(signed_as(LOWERED, LOWERED_SIG, &keys, "lowered.json"));
+    assert!(!signed_as(LOWERED, LOWERED_SIG, &keys, "raised.json"));
+    assert!(!signed_as(
+        LOWERED,
+        LOWERED_SIG,
+        &[OTHER_KEY.trim()],
+        "lowered.json"
+    ));
+}
+
+#[test]
+fn a_word_is_kept_when_the_spare_key_is_the_one_that_signed_it() {
+    let home = tempfile::tempdir().unwrap();
+
+    accepted(
+        home.path(),
+        LOWERED,
+        LOWERED_SIG,
+        &[OTHER_KEY.trim(), KEY],
+        "google",
+    )
+    .unwrap();
+
+    assert_eq!(kept(home.path()).map(|one| one.serial), Some(5));
 }
