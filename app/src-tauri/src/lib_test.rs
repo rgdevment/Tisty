@@ -1490,6 +1490,8 @@ fn what_an_agent_said_is_counted_apart_and_per_list() {
             entry: ulid::Ulid::generate(),
             via: None,
             drop: false,
+            branch: None,
+            pr: None,
         });
         if closed {
             task.status = tisty_core::model::Status::Done;

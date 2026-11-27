@@ -36,7 +36,7 @@ fn claude_code_runs_the_binary_itself_with_its_moment() {
     assert_eq!(start["command"], WINDOWS);
     assert_eq!(start["args"], json!(["hook", "claude-code", "start"]));
     let tools = now["hooks"]["PostToolUse"].as_array().unwrap();
-    assert_eq!(tools.len(), 2);
+    assert_eq!(tools.len(), 3);
     assert_eq!(tools[0]["matcher"], "Edit|Write|MultiEdit|NotebookEdit");
     assert_eq!(tools[1]["hooks"][0]["args"][2], "tool");
     assert_eq!(now["hooks"]["Stop"][0]["hooks"][0]["args"][2], "stop");
@@ -72,7 +72,7 @@ fn installing_twice_writes_tistys_hooks_once() {
     let told = read(&again);
 
     assert_eq!(told["hooks"]["SessionStart"].as_array().unwrap().len(), 1);
-    assert_eq!(told["hooks"]["PostToolUse"].as_array().unwrap().len(), 2);
+    assert_eq!(told["hooks"]["PostToolUse"].as_array().unwrap().len(), 3);
     assert!(!again.contains("/opt/one/"), "{again}");
 }
 
@@ -790,7 +790,7 @@ fn codex_reads_seconds_and_matches_the_tools_that_leave_something() {
         "'/opt/tisty' hook codex before"
     );
     let tools = now["hooks"]["PostToolUse"].as_array().unwrap();
-    assert_eq!(tools.len(), 2);
+    assert_eq!(tools.len(), 3);
     assert_eq!(tools[0]["matcher"], "^apply_patch$");
     assert_eq!(tools[1]["matcher"], "^mcp__tisty__");
     assert_eq!(tools[1]["hooks"][0]["timeout"], 5);
@@ -849,7 +849,7 @@ fn antigravity_matches_the_tools_that_leave_something_by_their_own_names() {
         "'/opt/tisty' hook antigravity before"
     );
     let tools = now["tisty"]["PostToolUse"].as_array().unwrap();
-    assert_eq!(tools.len(), 2);
+    assert_eq!(tools.len(), 3);
     assert_eq!(
         tools[0]["matcher"],
         "^(write_to_file|replace_file_content|multi_replace_file_content)$"
@@ -1055,4 +1055,295 @@ fn a_command_windows_of_the_persons_is_never_taken_out_nor_rewritten() {
     let fixed = repointed(Kind::Codex, was, &here, &named).unwrap();
     assert_eq!(fixed, was.replace("/old/tisty", "/opt/tisty"));
     assert!(fixed.contains("quiet.exe tisty.exe hook codex start"));
+}
+
+const SHELL_EVENTS: [(Kind, &str); 6] = [
+    (Kind::Claude, "PostToolUse"),
+    (Kind::Cursor, "afterShellExecution"),
+    (Kind::Gemini, "AfterTool"),
+    (Kind::Copilot, "postToolUse"),
+    (Kind::Codex, "PostToolUse"),
+    (Kind::Antigravity, "PostToolUse"),
+];
+
+fn shell_event(kind: Kind) -> &'static str {
+    SHELL_EVENTS.iter().find(|one| one.0 == kind).unwrap().1
+}
+
+fn is_shell(entry: &Value) -> bool {
+    entry.to_string().contains("shell")
+        && !entry.to_string().contains("beforeShellExecution")
+        && !entry.to_string().contains(" before")
+        && !entry.to_string().contains("\"before\"")
+}
+
+fn shell_entry(kind: Kind, value: &Value) -> Value {
+    value[root(kind)][shell_event(kind)]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| is_shell(one))
+        .unwrap_or_else(|| panic!("{kind:?} has no shell hook in {value}"))
+        .clone()
+}
+
+fn as_of_the_release_without_shell(kind: Kind, text: &str) -> String {
+    let mut now = read(text);
+    let event = shell_event(kind);
+    let entries = now[root(kind)][event].as_array_mut().unwrap();
+    entries.retain(|one| !is_shell(one));
+    if entries.is_empty() {
+        now[root(kind)].as_object_mut().unwrap().remove(event);
+    }
+    as_text(&now)
+}
+
+#[test]
+fn every_assistant_is_written_a_hook_after_its_shell_commands() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+
+        let now = read(&with(kind, "", &here).unwrap());
+        let entry = shell_entry(kind, &now);
+
+        assert!(entry.to_string().contains("/opt/tisty"), "{kind:?} {entry}");
+    }
+}
+
+#[test]
+fn claude_code_matches_the_shells_it_runs() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Claude, "", &here).unwrap());
+    let shell = shell_entry(Kind::Claude, &now);
+
+    assert_eq!(shell["matcher"], "^(Bash|PowerShell)$");
+    assert_eq!(
+        shell["hooks"][0]["args"],
+        json!(["hook", "claude-code", "shell"])
+    );
+    assert_eq!(shell["hooks"][0]["command"], "/opt/tisty");
+    assert_eq!(shell["hooks"][0]["timeout"], 5);
+    let post = now["hooks"]["PostToolUse"].as_array().unwrap();
+    assert_eq!(post.len(), 3);
+    assert_eq!(post[0]["matcher"], "Edit|Write|MultiEdit|NotebookEdit");
+    assert_eq!(
+        post[1]["matcher"],
+        "^(mcp__(tisty|plugin_tisty_tisty)__|MCP:)"
+    );
+    assert_eq!(post[2], shell);
+}
+
+#[test]
+fn cursor_runs_a_hook_after_each_shell_execution() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Cursor, "", &here).unwrap());
+    let after = now["hooks"]["afterShellExecution"].as_array().unwrap();
+
+    assert_eq!(after.len(), 1);
+    assert_eq!(after[0]["command"], "'/opt/tisty' hook cursor shell");
+    assert_eq!(after[0]["timeout"], 5);
+    assert!(after[0].get("matcher").is_none());
+    assert!(now["hooks"]["beforeShellExecution"].is_array());
+}
+
+#[test]
+fn gemini_matches_its_shell_tool_and_reads_milliseconds() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Gemini, "", &here).unwrap());
+    let after = now["hooks"]["AfterTool"].as_array().unwrap();
+    let shell = shell_entry(Kind::Gemini, &now);
+
+    assert_eq!(after.len(), 3);
+    assert_eq!(after[1]["matcher"], "^mcp_tisty_");
+    assert_eq!(after[2], shell);
+    assert_eq!(shell["matcher"], "^run_shell_command$");
+    assert_eq!(shell["hooks"][0]["timeout"], 5_000);
+    assert_eq!(
+        shell["hooks"][0]["command"],
+        "'/opt/tisty' hook gemini-cli shell"
+    );
+}
+
+#[test]
+fn copilot_matches_bash_powershell_and_shell_after_its_own_tools() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Copilot, "", &here).unwrap());
+    let post = now["hooks"]["postToolUse"].as_array().unwrap();
+
+    assert_eq!(post.len(), 3);
+    assert_eq!(
+        post[0]["matcher"],
+        "create|edit|apply_patch|str_replace_editor"
+    );
+    assert_eq!(post[1]["matcher"], "tisty-.*");
+    assert_eq!(post[2]["matcher"], "bash|powershell|shell");
+    assert_eq!(post[2]["timeoutSec"], 5);
+    assert_eq!(post[2]["exec"], "/opt/tisty");
+    assert_eq!(post[2]["args"], json!(["hook", "copilot", "shell"]));
+}
+
+#[test]
+fn copilot_runs_the_shell_hook_itself_with_its_moment_on_windows() {
+    let tmp = tempfile::tempdir().unwrap();
+    let windows = place(tmp.path(), Os::Windows, WINDOWS);
+
+    let now = read(&with(Kind::Copilot, "", &windows).unwrap());
+    let shell = &now["hooks"]["postToolUse"][2];
+
+    assert_eq!(shell["matcher"], "bash|powershell|shell");
+    assert_eq!(shell["exec"], WINDOWS);
+    assert_eq!(shell["args"], json!(["hook", "copilot", "shell"]));
+    assert!(shell.get("powershell").is_none() && shell.get("bash").is_none());
+}
+
+#[test]
+fn codex_matches_only_bash_for_its_shell() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Codex, "", &here).unwrap());
+    let tools = now["hooks"]["PostToolUse"].as_array().unwrap();
+
+    assert_eq!(tools.len(), 3);
+    assert_eq!(tools[0]["matcher"], "^apply_patch$");
+    assert_eq!(tools[1]["matcher"], "^mcp__tisty__");
+    assert_eq!(tools[2]["matcher"], "^Bash$");
+    assert_eq!(tools[2]["hooks"][0]["timeout"], 5);
+    assert_eq!(
+        tools[2]["hooks"][0]["command"],
+        "'/opt/tisty' hook codex shell"
+    );
+}
+
+#[test]
+fn antigravity_matches_run_command_for_its_shell() {
+    let (_tmp, here) = linux();
+
+    let now = read(&with(Kind::Antigravity, "", &here).unwrap());
+    let tools = now["tisty"]["PostToolUse"].as_array().unwrap();
+
+    assert_eq!(tools.len(), 3);
+    assert_eq!(tools[2]["matcher"], "^run_command$");
+    assert_eq!(
+        tools[2]["hooks"][0]["command"],
+        "'/opt/tisty' hook antigravity shell"
+    );
+}
+
+#[test]
+fn what_tisty_wrote_with_the_shell_hook_lacks_nothing() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let text = with(kind, "", &here).unwrap();
+
+        assert!(!lacks_before(kind, &text), "{kind:?}");
+    }
+}
+
+#[test]
+fn hooks_without_the_shell_moment_are_told_apart_from_complete_ones() {
+    for kind in ALL {
+        let (tmp, here) = linux();
+        let old = as_of_the_release_without_shell(kind, &with(kind, "", &here).unwrap());
+        written(kind, tmp.path(), &old);
+
+        let found = seen(kind, &here).unwrap();
+
+        assert!(lacks_before(kind, &old), "{kind:?}");
+        assert!(found.on && found.lacks_before && !found.apart, "{kind:?}");
+    }
+}
+
+#[test]
+fn hooks_without_the_hook_that_asks_first_still_lack_it() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let old = as_of_1_49(kind, &with(kind, "", &here).unwrap());
+
+        assert!(lacks_before(kind, &old), "{kind:?}");
+    }
+}
+
+#[test]
+fn hooks_lacking_both_moments_are_not_called_complete() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let no_shell = as_of_the_release_without_shell(kind, &with(kind, "", &here).unwrap());
+        let neither = as_of_1_49(kind, &no_shell);
+
+        assert!(lacks_before(kind, &neither), "{kind:?}");
+    }
+}
+
+#[test]
+fn turning_hooks_off_and_on_brings_the_shell_hook_back() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let full = with(kind, "", &here).unwrap();
+        let old = as_of_the_release_without_shell(kind, &full);
+
+        let off = without(kind, &old).unwrap();
+        let on = with(kind, &off, &here).unwrap();
+
+        assert!(!lacks_before(kind, &on), "{kind:?}");
+        assert_eq!(read(&on)[root(kind)], read(&full)[root(kind)], "{kind:?}");
+    }
+}
+
+#[test]
+fn installing_twice_writes_the_shell_hook_once() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let once = with(kind, "", &here).unwrap();
+
+        let twice = with(kind, &once, &here).unwrap();
+
+        assert_eq!(read(&twice), read(&once), "{kind:?}");
+    }
+}
+
+#[test]
+fn taking_hooks_out_takes_the_shell_hook_and_leaves_the_persons() {
+    for kind in ALL {
+        let (_tmp, here) = linux();
+        let mut mixed = read(&with(kind, "", &here).unwrap());
+        let event = shell_event(kind);
+        mixed[root(kind)][event]
+            .as_array_mut()
+            .unwrap()
+            .insert(0, person_entry(kind));
+
+        let now = without(kind, &as_text(&mixed)).unwrap();
+        let told = read(&now);
+
+        assert!(!hooked(kind, &now), "{kind:?}");
+        assert_eq!(
+            told[root(kind)][event],
+            json!([person_entry(kind)]),
+            "{kind:?}"
+        );
+        assert!(!now.contains("/opt/tisty"), "{kind:?} {now}");
+    }
+}
+
+#[test]
+fn fixing_the_program_repoints_the_shell_hook_too() {
+    for kind in ALL {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = place(tmp.path(), Os::Linux, "/opt/old/tisty");
+        let here = place(tmp.path(), Os::Linux, "/opt/new/tisty");
+        let was = with(kind, "", &old).unwrap();
+
+        let now = repointed(kind, &was, &here, &["/opt/old/tisty".to_string()]).unwrap();
+        let shell = shell_entry(kind, &read(&now));
+
+        assert!(
+            shell.to_string().contains("/opt/new/tisty"),
+            "{kind:?} {shell}"
+        );
+        assert!(!now.contains("/opt/old/"), "{kind:?} {now}");
+    }
 }
