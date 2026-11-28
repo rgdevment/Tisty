@@ -688,9 +688,9 @@ pub(super) fn by_parts(
                 }
                 false => {
                     "Ask for a part with `section`, with `from` and `to`, or with `chars`. To \
-                     change a passage, `edit_doc` takes the words to replace and the ones to put \
-                     there: reading it whole to send it back whole costs many times more, and \
-                     risks writing over what the person did meanwhile."
+                     change a passage, `doc_edit` (`mode: \"patch\"`) takes the words to replace \
+                     and the ones to put there: reading it whole to send it back whole costs many \
+                     times more, and risks writing over what the person did meanwhile."
                 }
             };
             Ok(told(
@@ -721,7 +721,8 @@ pub(super) fn by_parts(
                      stands{}.)",
                     match past {
                         true => "",
-                        false => ": change it with `edit_doc` by the words you see",
+                        false =>
+                            ": change it with `doc_edit` (`mode: \"patch\"`) by the words you see",
                     }
                 );
             }
@@ -730,15 +731,15 @@ pub(super) fn by_parts(
                 kept_of.insert("whole".into(), json!(false));
                 more += &match (past, kept_of.contains_key("brainstorm")) {
                     (true, _) => format!(
-                        "\n\n(More from line {next}: `read` with this `version` and `from` \
-                         {next}.)"
+                        "\n\n(More from line {next}: `workspace_read` with this `version` and \
+                         `from` {next}.)"
                     ),
                     (false, true) => format!(
-                        "\n\n(More ideas from line {next}: `read` with `chars`, `cursor` \
+                        "\n\n(More ideas from line {next}: `workspace_read` with `chars`, `cursor` \
                          {next} and this `print`.)"
                     ),
                     (false, false) => {
-                        format!("\n\n(More from line {next}: `read` with `from` {next}.)")
+                        format!("\n\n(More from line {next}: `workspace_read` with `from` {next}.)")
                     }
                 };
             }
@@ -868,7 +869,7 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
     Ok(told(
         format!(
             "Read in that order now, in {}: {}. What it said before is kept in its history \
-             on this machine: `restore_doc` puts it back.",
+             on this machine: `doc_edit` (`mode: \"restore\"`) puts it back.",
             doc_named(&state, &said),
             named_all(&state, &order)
         ),

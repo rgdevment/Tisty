@@ -1,0 +1,107 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Mutate one table in a doc or task page structurally (never raw Markdown). Inspect columns and types first via `workspace_read(view=\"table\")`. Rows match by 1-based index or first cell; columns by 1-based index or title.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Table write operation",
+        "enum": [
+          "set",
+          "add_row",
+          "remove_row",
+          "sort",
+          "set_type",
+          "rename_column",
+          "add_column",
+          "remove_column"
+        ],
+        "type": "string"
+      },
+      "column": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "For `set`/`sort`/`set_type`/`rename_column`/`remove_column`: 1-based index or header"
+      },
+      "doc": {
+        "description": "Document ID or task-page filename",
+        "type": "string"
+      },
+      "down": {
+        "description": "For `sort`: true sorts descending",
+        "type": "boolean"
+      },
+      "keep_compaction": {
+        "description": "Confirm keeping prior compaction on user request",
+        "type": "boolean"
+      },
+      "row": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "For `set`/`remove_row`: 1-based row number or first-cell text"
+      },
+      "table": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "1-based table index or heading above it (omit if single table)"
+      },
+      "title": {
+        "description": "For `rename_column`/`add_column`: column title",
+        "type": "string"
+      },
+      "type": {
+        "description": "For `set_type`/`add_column`: type syntax e.g. `number`, `money USD sum`, `date`, `check`",
+        "type": "string"
+      },
+      "value": {
+        "description": "For `set`: cell value (\"\" clears)",
+        "type": "string"
+      },
+      "values": {
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "description": "For `add_row`: map of column title to cell value",
+        "type": "object"
+      }
+    },
+    "required": [
+      "doc",
+      "action"
+    ],
+    "type": "object"
+  },
+  "name": "doc_edit_table",
+  "title": "Edit a document table by row/column"
+}

@@ -106,18 +106,79 @@ fn the_gate_lets_through_only_what_find_and_read_would_show() {
 
 #[test]
 fn each_tool_brain_took_over_names_its_way_and_no_other_does() {
-    for name in ["find", "docs", "outline_doc", "lists", "tags"] {
+    let expected = [
+        ("catch_up", "workspace_catch_up"),
+        ("brain", "workspace_search"),
+        ("find", "workspace_search"),
+        ("docs", "workspace_search"),
+        ("outline_doc", "workspace_read"),
+        ("lists", "workspace_search"),
+        ("tags", "workspace_search"),
+        ("read", "workspace_read"),
+        ("read_doc", "workspace_read"),
+        ("rules", "workspace_guide"),
+        ("language", "workspace_guide"),
+        ("help", "workspace_guide"),
+        ("propose", "task_create"),
+        ("describe", "task_update"),
+        ("rename", "task_update"),
+        ("reschedule", "task_update"),
+        ("remind", "task_update"),
+        ("move", "task_update"),
+        ("plan", "task_edit_steps"),
+        ("tick", "task_edit_steps"),
+        ("untick", "task_edit_steps"),
+        ("reword_step", "task_edit_steps"),
+        ("unplan", "task_edit_steps"),
+        ("note", "task_note"),
+        ("reword_note", "task_note"),
+        ("say_done", "task_resolve"),
+        ("say_not_doing", "task_resolve"),
+        ("write_doc", "doc_create"),
+        ("edit_doc", "doc_edit"),
+        ("append_doc", "doc_edit"),
+        ("restore_doc", "doc_edit"),
+        ("edit_table", "doc_edit_table"),
+        ("folder", "doc_organize"),
+        ("file_doc", "doc_organize"),
+        ("page_doc", "doc_organize"),
+        ("tongue_doc", "doc_organize"),
+        ("archive_doc", "doc_annotate"),
+        ("flag_doc", "doc_annotate"),
+        ("sum_up", "doc_annotate"),
+        ("attach", "file_transfer"),
+        ("import_doc", "file_transfer"),
+        ("export_doc", "file_transfer"),
+    ];
+    for (name, target) in expected {
         let Some(Refused::Tool(said)) = moved(name) else {
             panic!("{name} has no notice");
         };
         assert!(
-            said.starts_with(&format!("`{name}` moved into `brain`")),
+            said.starts_with(&format!("`{name}` moved into `{target}`")),
             "{said}"
         );
         assert!(said.ends_with("Nothing was done."), "{said}");
     }
-    assert!(moved("brain").is_none());
-    assert!(moved("read").is_none());
+    for current in [
+        "workspace_catch_up",
+        "workspace_search",
+        "workspace_read",
+        "workspace_guide",
+        "task_create",
+        "task_update",
+        "task_edit_steps",
+        "task_note",
+        "task_resolve",
+        "doc_create",
+        "doc_edit",
+        "doc_edit_table",
+        "doc_organize",
+        "doc_annotate",
+        "file_transfer",
+    ] {
+        assert!(moved(current).is_none(), "{current} should not be moved");
+    }
 }
 
 #[test]
@@ -125,7 +186,10 @@ fn read_doc_names_read_as_its_way() {
     let Some(Refused::Tool(said)) = moved("read_doc") else {
         panic!("read_doc has no notice");
     };
-    assert!(said.starts_with("`read_doc` moved into `read`: call `read` with the same `doc`"));
+    assert!(
+        said.starts_with("`read_doc` moved into `workspace_read`: call `workspace_read`"),
+        "{said}"
+    );
     assert!(said.ends_with("Nothing was done."), "{said}");
 }
 

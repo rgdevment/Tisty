@@ -9,12 +9,12 @@ use tisty_core::{Paths, State};
 use super::Refused;
 use super::asked::text;
 
-mod cards;
+pub(super) mod cards;
 pub(super) mod project;
 mod ranking;
 pub(super) mod search;
 mod tally;
-mod zones;
+pub(super) mod zones;
 
 const SIFTS: [&str; 8] = [
     "tag",
@@ -70,22 +70,134 @@ pub(super) fn brain(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 pub(super) fn moved(name: &str) -> Option<Refused> {
     let (into, way) = match name {
-        "find" => (
-            "brain",
-            "`brain` with the same `query` and fields, or with `doc` and `query` for the lines of one document",
+        "catch_up" => (
+            "workspace_catch_up",
+            "`workspace_catch_up` with the same `since`",
+        ),
+        "brain" | "find" => (
+            "workspace_search",
+            "`workspace_search` (for cards/links use `workspace_read` with `view: \"card\"` or `\"links\"`)",
         ),
         "docs" => (
-            "brain",
-            "`brain` with `folder` for a folder's documents, or with nothing for the lists, folders and tags",
+            "workspace_search",
+            "`workspace_search` with `folder` for folder docs, or `{}` for lists, folders and tags",
         ),
         "outline_doc" => (
-            "brain",
-            "`brain` with `doc`: its card holds the outline, the `print` and who points at it",
+            "workspace_read",
+            "`workspace_read` with `doc` and `view: \"card\"`",
         ),
-        "lists" | "tags" => ("brain", "`brain` with nothing, or `catch_up`"),
-        "read_doc" => (
-            "read",
-            "`read` with the same `doc` and fields: a section, lines, `chars` or `as`",
+        "lists" | "tags" => (
+            "workspace_search",
+            "`workspace_search` with `{}` or `mode: \"taxonomy\"`, or `workspace_catch_up`",
+        ),
+        "read" | "read_doc" => (
+            "workspace_read",
+            "`workspace_read` with `task` or `doc` and optional `view`",
+        ),
+        "rules" => (
+            "workspace_guide",
+            "`workspace_guide` with `kind: \"rules\"`",
+        ),
+        "language" => (
+            "workspace_guide",
+            "`workspace_guide` with `kind: \"markdown\"`",
+        ),
+        "help" => ("workspace_guide", "`workspace_guide` with `kind: \"help\"`"),
+        "propose" => ("task_create", "`task_create` with the same fields"),
+        "describe" => ("task_update", "`task_update` with `task` and `description`"),
+        "rename" => ("task_update", "`task_update` with `task` and `title`"),
+        "reschedule" => (
+            "task_update",
+            "`task_update` with `task`, `date`, or `deadline`",
+        ),
+        "remind" => (
+            "task_update",
+            "`task_update` with `task` and `add_reminders`",
+        ),
+        "move" => (
+            "task_update",
+            "`task_update` with `task`, `list`, or `part_of`",
+        ),
+        "plan" => (
+            "task_edit_steps",
+            "`task_edit_steps` with `action: \"add\"`",
+        ),
+        "tick" => (
+            "task_edit_steps",
+            "`task_edit_steps` with `action: \"tick\"` (or `\"set_state\"`)",
+        ),
+        "untick" => (
+            "task_edit_steps",
+            "`task_edit_steps` with `action: \"untick\"`",
+        ),
+        "reword_step" => (
+            "task_edit_steps",
+            "`task_edit_steps` with `action: \"reword\"`",
+        ),
+        "unplan" => (
+            "task_edit_steps",
+            "`task_edit_steps` with `action: \"remove\"`",
+        ),
+        "note" => ("task_note", "`task_note` with `action: \"add\"`"),
+        "reword_note" => ("task_note", "`task_note` with `action: \"reword\"`"),
+        "say_done" => ("task_resolve", "`task_resolve` with `outcome: \"done\"`"),
+        "say_not_doing" => (
+            "task_resolve",
+            "`task_resolve` with `outcome: \"not_doing\"`",
+        ),
+        "write_doc" => (
+            "doc_create",
+            "`doc_create` for a new doc, or `doc_edit` with `mode: \"rewrite\"` / `\"compact\"`",
+        ),
+        "edit_doc" => (
+            "doc_edit",
+            "`doc_edit` with `mode: \"patch\"` and `content`",
+        ),
+        "append_doc" => (
+            "doc_edit",
+            "`doc_edit` with `mode: \"append\"` (or `\"digest_task_notes\"` for task-page digest)",
+        ),
+        "restore_doc" => ("doc_edit", "`doc_edit` with `mode: \"restore\"`"),
+        "edit_table" => (
+            "doc_edit_table",
+            "`workspace_read` with `view: \"table\"` to read, or `doc_edit_table` with `action` to write",
+        ),
+        "folder" => (
+            "doc_organize",
+            "`doc_organize` with `action: \"create_folder\"`",
+        ),
+        "file_doc" => (
+            "doc_organize",
+            "`doc_organize` with `action: \"file\"` and `docs`",
+        ),
+        "page_doc" => (
+            "doc_organize",
+            "`doc_organize` with `action: \"add_page\"`, `\"remove_page\"`, or `\"reorder_pages\"`",
+        ),
+        "tongue_doc" => (
+            "doc_organize",
+            "`doc_organize` with `action: \"link_translation\"` or `\"unlink_translation\"`",
+        ),
+        "archive_doc" => (
+            "doc_annotate",
+            "`doc_annotate` with `action: \"archive\"` or `\"unarchive\"` and `docs`",
+        ),
+        "flag_doc" => (
+            "doc_annotate",
+            "`doc_annotate` with `action: \"flag\"` and `docs`",
+        ),
+        "sum_up" => (
+            "doc_annotate",
+            "`doc_annotate` with `action: \"summarize\"` and `docs`",
+        ),
+        "attach" => ("file_transfer", "`file_transfer` with `action: \"attach\"`"),
+        "import_doc" => (
+            "file_transfer",
+            "`file_transfer` with `action: \"import_doc\"`",
+        ),
+        "export_doc" => (
+            "file_transfer",
+            "`file_transfer` with `action: \"export_doc\"` and `path`",
         ),
         _ => return None,
     };

@@ -64,7 +64,7 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     };
     let (Some(step), Some(words)) = (text(args, "step"), text(args, "text")) else {
         return Err(Refused::Tool(
-            "rewording needs the `step` as `read` shows it and the new `text`.".into(),
+            "rewording needs the `step` as `workspace_read` shows it and the new `text`.".into(),
         ));
     };
     steps_fit(std::slice::from_ref(&words))?;
@@ -107,8 +107,8 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     });
     let unsaid = match task.step(step).is_some_and(|one| one.said) {
         true => {
-            " Your word that it was done went with the old words: `tick` it again if the new \
-                  ones are done too."
+            " Your word that it was done went with the old words: tick it again with \
+                  `task_edit_steps` if the new ones are done too."
         }
         false => "",
     };
@@ -219,15 +219,15 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let said = match (&there, to_person, fresh_under) {
         (Some((_, other)), true, Some(_)) => format!(
             "Handed {} step(s) from {:?} to the person, in a new task of theirs, {other:?}, \
-             filed as its part: it never holds yours open. {left} left on {:?}; `say_done` it \
-             when they are done.{page}",
+             filed as its part: it never holds yours open. {left} left on {:?}; call `task_resolve` \
+             (`outcome: \"done\"`) when they are done.{page}",
             ids.len(),
             task.title,
             task.title
         ),
         (Some((_, other)), true, None) => format!(
             "Handed {} step(s) from {:?} to the person, at the end of {other:?}, their task. \
-             {left} left on {:?}; `say_done` it when they are done.{page}",
+             {left} left on {:?}; call `task_resolve` (`outcome: \"done\"`) when they are done.{page}",
             ids.len(),
             task.title,
             task.title
@@ -281,8 +281,8 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
     };
     let (Some(entry), Some(body)) = (text(args, "note"), text(args, "body")) else {
         return Err(Refused::Tool(
-            "rewording a note needs the `note` id, as `read` shows it in the journal, and the \
-             new `body`. Taking a note out is the person's."
+            "rewording a note needs the `note` id, as `workspace_read` shows it in the journal, \
+             and the new `body`. Taking a note out is the person's."
                 .into(),
         ));
     };
@@ -293,7 +293,8 @@ pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused>
     }
     let Some(note) = task.journal().find(|one| one.id.to_string() == entry) else {
         return Err(Refused::Tool(format!(
-            "no note of {:?} has the id {entry}. `read` it with `journal` to see each note's id.",
+            "no note of {:?} has the id {entry}. `workspace_read` it with `notes: 0` to see each \
+             note's id.",
             task.title
         )));
     };
@@ -349,7 +350,7 @@ fn open_steps(
     if let Some(step) = chosen.iter().find(|step| step.done) {
         return Err(Refused::Tool(format!(
             "{:?} is ticked, and a closed step is not yours to change; nothing was {doing}. If \
-             you ticked it by mistake, `untick` it first.",
+             you ticked it by mistake, untick it first with `task_edit_steps` (`action: \"untick\"`).",
             step.text
         )));
     }

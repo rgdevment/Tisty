@@ -94,7 +94,7 @@ fn catch_up_names_brainstorm_and_how_many_ideas_wait_on_it() {
     let served = Served::new();
     let sheet = served.sheet();
 
-    let caught = served.call("catch_up", json!({}));
+    let caught = served.call("workspace_catch_up", json!({}));
 
     let glance = &caught["structuredContent"]["ideas"];
     assert_eq!(glance["doc"], json!(sheet), "{caught}");
@@ -113,8 +113,8 @@ fn ideas_sent_to_brainstorm_land_each_on_its_own_dated_note() {
     let sheet = served.sheet();
 
     let jotted = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "- Llamar al vet\n- Revisar la bici\n\nUna idea\nen dos líneas" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "- Llamar al vet\n- Revisar la bici\n\nUna idea\nen dos líneas" }),
     );
 
     assert!(!refused(&jotted), "{jotted}");
@@ -141,16 +141,16 @@ fn an_idea_past_the_window_s_limit_or_a_heading_writes_nothing() {
     let long = "una idea ".repeat(20);
 
     let too_long = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": format!("- corta\n- {long}") }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": format!("- corta\n- {long}") }),
     );
     let headed = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "> [!IDEA] 2026-11-12 10:00 · blue\n> idea" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "> [!IDEA] 2026-11-12 10:00 · blue\n> idea" }),
     );
     let placed = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "idea", "under": ROOF }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "idea", "under": ROOF }),
     );
 
     assert!(refused(&too_long), "{too_long}");
@@ -173,7 +173,7 @@ fn a_long_sheet_is_read_in_parts_and_never_as_its_outline_of_minutes() {
     }
     let sheet = served.person().writes_doc(&body);
 
-    let read = served.call("read", json!({ "doc": sheet }));
+    let read = served.call("workspace_read", json!({ "doc": sheet }));
 
     let kept = &read["structuredContent"];
     assert_eq!(kept["brainstorm"], json!(true), "{read}");
@@ -199,10 +199,11 @@ fn filing_an_idea_in_a_document_takes_it_off_the_sheet_as_the_window_does() {
         .writes_doc("# Casa\n\nArreglos pendientes.\n");
 
     let filed = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": house,
-            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
         }),
     );
 
@@ -225,11 +226,11 @@ fn a_task_proposed_from_an_idea_takes_it_off_the_sheet_and_only_once() {
     let source = format!("{sheet}#{ROOF}");
 
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Pedir presupuesto para el techo", "source": source }),
     );
     let again = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Presupuesto del techo", "source": source }),
     );
 
@@ -250,16 +251,17 @@ fn an_idea_is_marked_for_the_person_and_stays_on_the_sheet() {
     let sheet = served.sheet();
 
     let marked = served.call(
-        "flag_doc",
+        "doc_annotate",
         json!({
-            "doc": format!("{sheet}#{CONCERT}"),
+            "action": "flag",
+            "docs": [format!("{sheet}#{CONCERT}")],
             "reason": "obsolete",
             "body": "El concierto fue el 20 de julio.",
         }),
     );
     let twice = served.call(
-        "flag_doc",
-        json!({ "doc": format!("{sheet}#{CONCERT}"), "reason": "obsolete", "body": "otra vez" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [format!("{sheet}#{CONCERT}")], "reason": "obsolete", "body": "otra vez" }),
     );
 
     assert!(!refused(&marked), "{marked}");
@@ -269,7 +271,17 @@ fn an_idea_is_marked_for_the_person_and_stays_on_the_sheet() {
     assert_eq!(marks.len(), 1);
     assert_eq!(marks[0].idea.heading, CONCERT);
     assert_eq!(marks[0].mark.reason.as_deref(), Some("obsolete"));
-    assert!(refused(&twice), "{twice}");
+    assert!(!refused(&twice), "{twice}");
+    assert_eq!(
+        twice["structuredContent"]["flagged"],
+        json!(false),
+        "{twice}"
+    );
+    assert_eq!(
+        twice["structuredContent"]["skipped"],
+        json!([CONCERT]),
+        "{twice}"
+    );
     assert!(
         served
             .person()
@@ -279,7 +291,7 @@ fn an_idea_is_marked_for_the_person_and_stays_on_the_sheet() {
             .all(|one| one.flagged.is_none())
     );
 
-    let read = served.call("read", json!({ "doc": sheet }));
+    let read = served.call("workspace_read", json!({ "doc": sheet }));
     assert_eq!(
         read["structuredContent"]["marked"][0]["idea"],
         json!(CONCERT),
@@ -293,17 +305,18 @@ fn a_copy_of_an_idea_points_at_the_idea_that_stays() {
     let sheet = served.sheet();
 
     let marked = served.call(
-        "flag_doc",
+        "doc_annotate",
         json!({
-            "doc": [format!("{sheet}#{CONCERT}")],
+            "action": "flag",
+            "docs": [format!("{sheet}#{CONCERT}")],
             "reason": "duplicate_of",
             "instead": format!("{sheet}#{ROOF}"),
             "body": "Dice lo mismo.",
         }),
     );
     let pointless = served.call(
-        "flag_doc",
-        json!({ "doc": format!("{sheet}#{ROOF}"), "reason": "duplicate_of", "body": "sin destino" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [format!("{sheet}#{ROOF}")], "reason": "duplicate_of", "body": "sin destino" }),
     );
 
     assert!(!refused(&marked), "{marked}");
@@ -325,12 +338,12 @@ fn the_whole_sheet_is_never_marked_and_an_unknown_heading_marks_nothing() {
     let sheet = served.sheet();
 
     let whole = served.call(
-        "flag_doc",
-        json!({ "doc": sheet, "reason": "scratch", "body": "viejo" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [sheet], "reason": "scratch", "body": "viejo" }),
     );
     let unknown = served.call(
-        "flag_doc",
-        json!({ "doc": format!("{sheet}#2026-01-01 00:00 · blue"), "reason": "scratch", "body": "x" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [format!("{sheet}#2026-01-01 00:00 · blue")], "reason": "scratch", "body": "x" }),
     );
 
     assert!(refused(&whole), "{whole}");
@@ -353,25 +366,26 @@ fn a_write_that_would_take_an_idea_off_the_sheet_is_refused() {
     let sheet = served.sheet();
 
     let cut = served.call(
-        "edit_doc",
+        "doc_edit",
         json!({
             "doc": sheet,
+            "mode": "patch",
             "old": "> [!IDEA] 2026-06-14 08:12 · pink\n> Comprar entradas del concierto de julio\n\n",
-            "new": "",
+            "content": "",
         }),
     );
     let print = tisty_core::attach::printed(SHEET.as_bytes());
     let rewritten = served.call(
-        "write_doc",
-        json!({ "doc": sheet, "print": print, "body": SHEET.replace("> [!IDEA] 2026-11-12 09:40 · yellow\n> Probar pan con masa madre\n", "") }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "rewrite", "print": print, "content": SHEET.replace("> [!IDEA] 2026-11-12 09:40 · yellow\n> Probar pan con masa madre\n", "") }),
     );
     let reworded = served.call(
-        "edit_doc",
-        json!({ "doc": sheet, "old": "Probar pan con masa madre", "new": "Probar pan con masa madre el domingo" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "patch", "old": "Probar pan con masa madre", "content": "Probar pan con masa madre el domingo" }),
     );
 
     assert!(refused(&cut), "{cut}");
-    assert!(said(&cut).contains("flag_doc"), "{}", said(&cut));
+    assert!(said(&cut).contains("doc_annotate"), "{}", said(&cut));
     assert!(refused(&rewritten), "{rewritten}");
     assert!(!refused(&reworded), "{reworded}");
     assert_eq!(
@@ -386,8 +400,8 @@ fn a_write_that_leaves_an_idea_without_its_words_is_refused() {
     let sheet = served.sheet();
 
     let emptied = served.call(
-        "edit_doc",
-        json!({ "doc": sheet, "old": "> Comprar entradas del concierto de julio\n", "new": "" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "patch", "old": "> Comprar entradas del concierto de julio\n", "content": "" }),
     );
 
     assert!(refused(&emptied), "{emptied}");
@@ -405,7 +419,10 @@ fn many_ideas_jotted_at_once_are_each_named_apart_and_proposed_one_by_one() {
     let sheet = served.sheet();
     let many: String = (1..=14).map(|n| format!("- Idea número {n}\n")).collect();
 
-    let jotted = served.call("append_doc", json!({ "doc": sheet, "body": many }));
+    let jotted = served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": many }),
+    );
 
     assert!(!refused(&jotted), "{jotted}");
     let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
@@ -420,7 +437,7 @@ fn many_ideas_jotted_at_once_are_each_named_apart_and_proposed_one_by_one() {
         );
     }
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "La última idea", "source": format!("{sheet}#{}", ideas[16].heading) }),
     );
     assert!(made["structuredContent"]["from_idea"].is_string(), "{made}");
@@ -454,11 +471,12 @@ fn a_sheet_written_on_windows_still_keeps_every_idea() {
     let sheet = served.person().writes_doc(&SHEET.replace('\n', "\r\n"));
 
     let cut = served.call(
-        "edit_doc",
+        "doc_edit",
         json!({
             "doc": sheet,
+            "mode": "patch",
             "old": "> [!IDEA] 2026-06-14 08:12 · pink\n> Comprar entradas del concierto de julio\n\n",
-            "new": "",
+            "content": "",
         }),
     );
 
@@ -477,13 +495,19 @@ fn nothing_but_ideas_is_added_to_the_sheet_and_it_never_holds_a_page() {
         .writes_doc("# Casa\n\nArreglos pendientes.\n");
 
     let attached = served.call(
-        "attach",
-        json!({ "doc": sheet, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        json!({ "action": "attach", "doc": sheet, "path": loose.to_string_lossy() }),
     );
-    let hung = served.call("page_doc", json!({ "doc": other, "page_of": sheet }));
-    let hanging = served.call("page_doc", json!({ "doc": sheet, "page_of": other }));
+    let hung = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [other], "parent": sheet }),
+    );
+    let hanging = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [sheet], "parent": other }),
+    );
     let written = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Un anexo\n\nAlgo largo.\n", "page_of": sheet }),
     );
 
@@ -499,8 +523,8 @@ fn going_back_over_the_persons_new_ideas_is_refused() {
     let served = Served::new();
     let sheet = served.sheet();
     let reworded = served.call(
-        "edit_doc",
-        json!({ "doc": sheet, "old": "Probar pan con masa madre", "new": "Probar pan de masa madre" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "patch", "old": "Probar pan con masa madre", "content": "Probar pan de masa madre" }),
     );
     let now = served.body(&sheet);
     served.person().saves_doc(
@@ -508,7 +532,10 @@ fn going_back_over_the_persons_new_ideas_is_refused() {
         &format!("{now}\n> [!IDEA] 2026-11-12 11:00 · blue\n> Llamar al vet\n"),
     );
 
-    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "restore", "even_if_more": true }),
+    );
 
     assert!(!refused(&reworded), "{reworded}");
     assert!(refused(&back), "{back}");
@@ -521,8 +548,8 @@ fn an_idea_may_open_with_a_tag() {
     let sheet = served.sheet();
 
     let jotted = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "#casa pintar la reja" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "#casa pintar la reja" }),
     );
 
     assert!(!refused(&jotted), "{jotted}");
@@ -539,13 +566,14 @@ fn a_second_sheet_is_guarded_and_its_ideas_are_marked_like_the_first() {
     );
 
     let whole = served.call(
-        "flag_doc",
-        json!({ "doc": second, "reason": "scratch", "body": "viejo" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [second], "reason": "scratch", "body": "viejo" }),
     );
     let one = served.call(
-        "flag_doc",
+        "doc_annotate",
         json!({
-            "doc": format!("{second}#2026-11-10 10:00 · lime"),
+            "action": "flag",
+            "docs": [format!("{second}#2026-11-10 10:00 · lime")],
             "reason": "obsolete",
             "body": "Ya se pagó.",
         }),
@@ -561,7 +589,7 @@ fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
     let served = Served::new();
     let sheet = served.sheet();
     let task = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Arreglar la casa" }),
     )["structuredContent"]["id"]
         .as_str()
@@ -569,10 +597,11 @@ fn an_idea_quoted_on_a_tasks_page_leaves_the_sheet_too() {
         .to_string();
 
     let filed = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": task,
-            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto para arreglar el techo",
         }),
     );
 
@@ -595,10 +624,11 @@ fn a_dated_sticky_note_that_names_no_idea_is_added_as_it_is() {
         .writes_doc("# Casa\n\nArreglos pendientes.\n");
 
     let stuck = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": house,
-            "body": "> [!IDEA] 2026-11-20 · green\n> Pintar la reja antes del invierno",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-11-20 · green\n> Pintar la reja antes del invierno",
         }),
     );
 
@@ -623,9 +653,10 @@ fn an_idea_named_with_its_callout_marker_is_still_found() {
     let sheet = served.sheet();
 
     let marked = served.call(
-        "flag_doc",
+        "doc_annotate",
         json!({
-            "doc": format!("{sheet}#> [!IDEA] {CONCERT}"),
+            "action": "flag",
+            "docs": [format!("{sheet}#> [!IDEA] {CONCERT}")],
             "reason": "obsolete",
             "body": "El concierto ya pasó.",
         }),
@@ -644,17 +675,19 @@ fn a_filing_note_that_quotes_no_idea_says_the_sheet_still_holds_it() {
         .writes_doc("# Casa\n\nArreglos pendientes.\n");
 
     let reworded = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": house,
-            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto del techo",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto del techo",
         }),
     );
     let with_more = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": house,
-            "body": "> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar pan con masa madre\n\nEl sábado.",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-11-12 09:40 · yellow · right\n> Probar pan con masa madre\n\nEl sábado.",
         }),
     );
 
@@ -679,10 +712,11 @@ fn a_filing_note_split_over_other_lines_still_takes_its_idea_off() {
         .writes_doc("# Casa\n\nArreglos pendientes.\n");
 
     let filed = served.call(
-        "append_doc",
+        "doc_edit",
         json!({
             "doc": house,
-            "body": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto\n> para arreglar el techo",
+            "mode": "append",
+            "content": "> [!IDEA] 2026-09-03 18:05 · teal · right\n> Pedir presupuesto\n> para arreglar el techo",
         }),
     );
 
@@ -701,7 +735,7 @@ fn a_task_from_a_heading_no_idea_carries_says_the_idea_still_waits() {
     let sheet = served.sheet();
 
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Pedir presupuesto para el techo",
             "source": format!("{sheet}#2026-09-03 18:06 · teal"),
         }),
@@ -720,16 +754,25 @@ fn a_task_from_a_heading_no_idea_carries_says_the_idea_still_waits() {
 fn brainstorm_goes_in_no_folder_no_languages_and_is_never_archived() {
     let served = Served::new();
     let sheet = served.sheet();
-    served.call("folder", json!({ "name": "Casa" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Casa" }),
+    );
     let notes = served
         .person()
         .writes_doc("---\nlang: es\n---\n\n# Notas\n\nAlgo.\n");
 
-    let away = served.call("archive_doc", json!({ "doc": sheet }));
-    let filed = served.call("file_doc", json!({ "doc": sheet, "folder": "Casa" }));
+    let away = served.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [sheet] }),
+    );
+    let filed = served.call(
+        "doc_organize",
+        json!({ "action": "file", "docs": [sheet], "folder": "Casa" }),
+    );
     let joined = served.call(
-        "tongue_doc",
-        json!({ "doc": sheet, "of": notes, "lang": "en" }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [sheet], "parent": notes, "lang": "en" }),
     );
 
     for one in [&away, &filed, &joined] {
@@ -747,7 +790,7 @@ fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
     let sheet = served.sheet();
 
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Contestar a la vecina", "source": "sereno#1" }),
     );
 
@@ -763,13 +806,13 @@ fn a_source_with_a_hash_that_is_no_idea_files_as_ever() {
 fn an_empty_sheet_is_still_named_and_a_new_one_is_not_sent_to_a_folder() {
     let served = Served::new();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "---\nview: notes\nbrainstorm: on\n---\n\n# Lluvia de ideas\n" }),
     );
     assert!(!refused(&made), "{made}");
     assert!(!said(&made).contains("folder"), "{}", said(&made));
 
-    let caught = served.call("catch_up", json!({}));
+    let caught = served.call("workspace_catch_up", json!({}));
 
     let glance = &caught["structuredContent"]["ideas"];
     assert_eq!(glance["ideas"], json!(0), "{caught}");
@@ -780,7 +823,7 @@ fn an_empty_sheet_is_still_named_and_a_new_one_is_not_sent_to_a_folder() {
     );
 
     let second = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "---\nview: notes\nbrainstorm: on\n---\n\n# Otra lluvia\n" }),
     );
     assert!(refused(&second), "{second}");
@@ -795,8 +838,8 @@ fn a_document_is_never_turned_into_a_sheet_by_a_write() {
         .writes_doc("---\nview: notes\n---\n\n# Notas sueltas\n\nUna línea.\n");
 
     let turned = served.call(
-        "edit_doc",
-        json!({ "doc": doc, "old": "view: notes", "new": "view: notes\nbrainstorm: on" }),
+        "doc_edit",
+        json!({ "doc": doc, "mode": "patch", "old": "view: notes", "content": "view: notes\nbrainstorm: on" }),
     );
 
     assert!(refused(&turned), "{turned}");
@@ -809,13 +852,13 @@ fn a_marked_idea_keeps_its_words_until_the_person_takes_the_mark() {
     let served = Served::new();
     let sheet = served.sheet();
     served.call(
-        "flag_doc",
-        json!({ "doc": format!("{sheet}#{CONCERT}"), "reason": "obsolete", "body": "Ya pasó." }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [format!("{sheet}#{CONCERT}")], "reason": "obsolete", "body": "Ya pasó." }),
     );
 
     let reworded = served.call(
-        "edit_doc",
-        json!({ "doc": sheet, "old": "Comprar entradas del concierto de julio", "new": "Comprar entradas" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "patch", "old": "Comprar entradas del concierto de julio", "content": "Comprar entradas" }),
     );
 
     assert!(refused(&reworded), "{reworded}");
@@ -829,7 +872,7 @@ fn an_idea_turned_into_a_part_leaves_the_sheet_too() {
     let sheet = served.sheet();
 
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Arreglar la casa",
             "parts": [{ "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }]
         }),
@@ -854,18 +897,24 @@ fn an_idea_turned_into_a_part_leaves_the_sheet_too() {
 fn a_new_idea_never_takes_the_heading_of_one_already_made_a_task() {
     let served = Served::new();
     let sheet = served.sheet();
-    let jotted = served.call("append_doc", json!({ "doc": sheet, "body": "Primera" }));
+    let jotted = served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "Primera" }),
+    );
     assert!(!refused(&jotted), "{jotted}");
     let first = tisty_core::brainstorm::ideas_on(&served.body(&sheet))
         .pop()
         .unwrap();
     served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Primera", "source": format!("{sheet}#{}", first.heading) }),
     );
 
     let many: String = (1..=12).map(|n| format!("- Otra {n}\n")).collect();
-    served.call("append_doc", json!({ "doc": sheet, "body": many }));
+    served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": many }),
+    );
 
     let heads: Vec<String> = tisty_core::brainstorm::ideas_on(&served.body(&sheet))
         .into_iter()
@@ -880,8 +929,8 @@ fn a_line_that_introduces_a_list_is_no_idea() {
     let sheet = served.sheet();
 
     let jotted = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "Ideas para el finde:\n- Ir al cerro\n- Hacer pan\n\nOtra más:\n\n- Llamar a Ana" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "Ideas para el finde:\n- Ir al cerro\n- Hacer pan\n\nOtra más:\n\n- Llamar a Ana" }),
     );
 
     assert!(!refused(&jotted), "{jotted}");
@@ -898,10 +947,13 @@ fn a_long_sheet_is_read_one_whole_idea_at_a_time() {
         let many: String = (1..=50)
             .map(|n| format!("- Idea {round}-{n} con algunas palabras más para que pese algo\n"))
             .collect();
-        served.call("append_doc", json!({ "doc": sheet, "body": many }));
+        served.call(
+            "doc_edit",
+            json!({ "doc": sheet, "mode": "append", "content": many }),
+        );
     }
 
-    let read = served.call("read", json!({ "doc": sheet }));
+    let read = served.call("workspace_read", json!({ "doc": sheet }));
 
     let next = read["structuredContent"]["next"].as_u64().unwrap() as usize;
     let body = served.body(&sheet);
@@ -917,11 +969,14 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_made_a_task() {
     let served = Served::new();
     let sheet = served.sheet();
     served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Presupuesto del techo", "source": format!("{sheet}#{ROOF}") }),
     );
 
-    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "restore", "even_if_more": true }),
+    );
 
     assert!(refused(&back), "{back}");
     assert!(said(&back).contains("left for a task"), "{}", said(&back));
@@ -933,8 +988,8 @@ fn an_idea_named_with_its_marker_is_marked_all_the_same() {
     let sheet = served.sheet();
 
     let marked = served.call(
-        "flag_doc",
-        json!({ "doc": format!("{sheet}#[!IDEA] {CONCERT}"), "reason": "obsolete", "body": "Ya pasó." }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [format!("{sheet}#[!IDEA] {CONCERT}")], "reason": "obsolete", "body": "Ya pasó." }),
     );
 
     assert!(!refused(&marked), "{marked}");
@@ -947,8 +1002,8 @@ fn an_idea_that_ends_in_a_colon_is_still_an_idea() {
     let sheet = served.sheet();
 
     let jotted = served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "Nombres para el perro:\n\n- Revisar el auto:\n  frenos y aceite\n- Llamar al taller" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "Nombres para el perro:\n\n- Revisar el auto:\n  frenos y aceite\n- Llamar al taller" }),
     );
 
     assert!(!refused(&jotted), "{jotted}");
@@ -967,7 +1022,7 @@ fn an_idea_that_ends_in_a_colon_is_still_an_idea() {
 fn several_filings_say_which_one_the_person_put_out_of_sight() {
     let served = Served::new();
     let filed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Regalo sorpresa", "source": "mail:7" }),
     );
     let id = filed["structuredContent"]["id"]
@@ -977,7 +1032,7 @@ fn several_filings_say_which_one_the_person_put_out_of_sight() {
     served.person().hides(id.parse().unwrap());
 
     let batch = served.call(
-        "propose",
+        "task_create",
         json!({ "tasks": [{ "for": "agent", "title": "Otra vez", "source": "mail:7" }, { "for": "agent", "title": "Nueva" }] }),
     );
 
@@ -995,8 +1050,8 @@ fn ideas_keep_their_words_whatever_marks_they_came_with() {
     let sheet = served.sheet();
 
     served.call(
-        "append_doc",
-        json!({ "doc": sheet, "body": "1984. Releerlo este año\n\n- [x] Llamar al vet\n- > Un pensamiento" }),
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "append", "content": "1984. Releerlo este año\n\n- [x] Llamar al vet\n- > Un pensamiento" }),
     );
 
     let ideas = tisty_core::brainstorm::ideas_on(&served.body(&sheet));
@@ -1013,9 +1068,10 @@ fn an_idea_is_never_a_duplicate_of_itself_however_it_is_named() {
     let sheet = served.sheet();
 
     let marked = served.call(
-        "flag_doc",
+        "doc_annotate",
         json!({
-            "doc": format!("{sheet}#{CONCERT}"),
+            "action": "flag",
+            "docs": [format!("{sheet}#{CONCERT}")],
             "reason": "duplicate_of",
             "instead": format!("{sheet}#[!IDEA] {CONCERT}"),
             "body": "x"
@@ -1036,11 +1092,14 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_filed_in_a_document() {
     let sheet = served.sheet();
     let garden = served.person().writes_doc("# Jardín\n\nPlantas.\n");
     served.call(
-        "append_doc",
-        json!({ "doc": garden, "body": format!("> [!IDEA] {ROOF} · right\n> Pedir presupuesto para arreglar el techo") }),
+        "doc_edit",
+        json!({ "doc": garden, "mode": "append", "content": format!("> [!IDEA] {ROOF} · right\n> Pedir presupuesto para arreglar el techo") }),
     );
 
-    let back = served.call("restore_doc", json!({ "doc": sheet, "even_if_more": true }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "doc": sheet, "mode": "restore", "even_if_more": true }),
+    );
 
     assert!(refused(&back), "{back}");
     assert!(
@@ -1054,7 +1113,10 @@ fn going_back_on_the_sheet_never_brings_back_an_idea_filed_in_a_document() {
 fn rules_travel_once() {
     let served = Served::new();
 
-    let rules = served.call("rules", json!({ "topic": "tasks" }));
+    let rules = served.call(
+        "workspace_guide",
+        json!({ "kind": "rules", "topic": "tasks" }),
+    );
 
     assert!(rules.get("structuredContent").is_none(), "{rules}");
     assert!(said(&rules).contains("## Write it to be read"));

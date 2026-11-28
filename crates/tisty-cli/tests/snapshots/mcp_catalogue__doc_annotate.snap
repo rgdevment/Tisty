@@ -1,0 +1,75 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Manage non-content document status: `archive`/`unarchive` when user requests, `flag` obsolete/duplicate docs or ideas (`sheet#heading`) for user deletion (never delete directly), or `summarize` with an agent-only gist after reading.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Status/metadata operation",
+        "enum": [
+          "archive",
+          "unarchive",
+          "flag",
+          "summarize"
+        ],
+        "type": "string"
+      },
+      "body": {
+        "description": "For `flag`: explanation in the person's language",
+        "type": "string"
+      },
+      "docs": {
+        "description": "Document ID(s), or `sheet#heading` idea IDs for `flag`",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array"
+      },
+      "folder": {
+        "description": "For `archive`/`unarchive`: optionally file into this folder",
+        "type": "string"
+      },
+      "instead": {
+        "description": "Replacement doc/task ID (required for `duplicate_of`, `moved`, `superseded`)",
+        "type": "string"
+      },
+      "notes": {
+        "description": "For `summarize`: agent navigation/staleness notes (<=4,000 chars)",
+        "type": "string"
+      },
+      "reason": {
+        "description": "For `flag`: why it is flagged",
+        "enum": [
+          "duplicate_of",
+          "moved",
+          "superseded",
+          "wrong",
+          "obsolete",
+          "scratch"
+        ],
+        "type": "string"
+      },
+      "summary": {
+        "description": "For `summarize`: concise doc purpose (<=2,000 chars)",
+        "type": "string"
+      }
+    },
+    "required": [
+      "action",
+      "docs"
+    ],
+    "type": "object"
+  },
+  "name": "doc_annotate",
+  "title": "Archive, flag, or summarize documents"
+}

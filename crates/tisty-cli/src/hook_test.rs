@@ -67,7 +67,7 @@ fn a_turn_that_edited_without_writing_in_tisty_is_handed_back_once() {
 fn a_write_in_tisty_after_the_edits_lets_the_turn_end() {
     let home = home(LET_IN);
     edit(&home, 10);
-    let tick = json!({ "session_id": "s1", "tool_name": "mcp__tisty__tick" });
+    let tick = json!({ "session_id": "s1", "tool_name": "mcp__tisty__task_edit_steps" });
     assert_eq!(said(&home, "tool", tick, 15), None);
 
     assert_eq!(stop(&home, 20), None);
@@ -77,12 +77,13 @@ fn a_write_in_tisty_after_the_edits_lets_the_turn_end() {
 fn a_tool_of_tisty_in_a_plugin_counts_as_tisty() {
     let home = home(LET_IN);
     edit(&home, 10);
-    let read = json!({ "session_id": "s1", "tool_name": "mcp__plugin_tisty_tisty__read" });
+    let read =
+        json!({ "session_id": "s1", "tool_name": "mcp__plugin_tisty_tisty__workspace_read" });
     said(&home, "tool", read, 12);
     assert!(stop(&home, 20).is_some(), "a read is no write");
 
     edit(&home, 30);
-    let done = json!({ "session_id": "s1", "tool_name": "mcp__plugin_tisty_tisty__say_done" });
+    let done = json!({ "session_id": "s1", "tool_name": "mcp__plugin_tisty_tisty__task_resolve" });
     said(&home, "tool", done, 35);
     assert_eq!(stop(&home, 40), None);
 }
@@ -362,7 +363,8 @@ fn an_antigravity_session_that_edited_without_writing_in_tisty_is_kept_going_onc
 fn a_write_in_tisty_from_antigravity_lets_its_session_end() {
     let home = home(LET_IN);
     let edited = json!({ "conversationId": "c1", "toolCall": { "name": "write_to_file" } });
-    let tick = json!({ "conversationId": "c1", "toolCall": { "name": "mcp_tisty_tick" } });
+    let tick =
+        json!({ "conversationId": "c1", "toolCall": { "name": "mcp_tisty_task_edit_steps" } });
     said_by(&home, Client::Antigravity, "tool", edited, 10);
     said_by(&home, Client::Antigravity, "tool", tick, 15);
 

@@ -193,7 +193,9 @@ fn refused_by(
     let said = call(&home.paths, name, args.clone(), None);
     let wrote = ops(&home.paths) != log || bodies(&home.paths) != words;
     match said {
-        Err(Refused::Tool(_)) if !wrote => {}
+        Err(Refused::Tool(why)) if !wrote => {
+            assert!(!why.contains("moved into"), "{name} {args}: {why}");
+        }
         Err(Refused::Tool(why)) => panic!("{name} {args}: refused but wrote ({why})"),
         Err(_) => panic!("{name} {args}: refused as a protocol error"),
         Ok(said) => panic!("{name} {args} went through: {said}"),
@@ -205,15 +207,19 @@ fn file_doc_ideas_into_a_folder() {
     let home = home();
     refuses(
         &home,
-        "file_doc",
-        json!({ "doc": home.ideas, "folder": home.work }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.ideas], "folder": home.work }),
     );
 }
 
 #[test]
 fn file_doc_ideas_to_the_root() {
     let home = home();
-    refuses(&home, "file_doc", json!({ "doc": home.ideas }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.ideas] }),
+    );
 }
 
 #[test]
@@ -222,8 +228,8 @@ fn file_doc_diary_into_a_folder_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "file_doc",
-        json!({ "doc": home.diary, "folder": home.work }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary], "folder": home.work }),
     );
 }
 
@@ -231,7 +237,11 @@ fn file_doc_diary_into_a_folder_with_the_diary_open() {
 fn file_doc_diary_to_the_root_with_the_diary_open() {
     let home = home();
     open_diary(&home);
-    refuses(&home, "file_doc", json!({ "doc": home.diary }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary] }),
+    );
 }
 
 #[test]
@@ -239,22 +249,30 @@ fn file_doc_diary_into_a_folder_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "file_doc",
-        json!({ "doc": home.diary, "folder": home.work }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary], "folder": home.work }),
     );
 }
 
 #[test]
 fn file_doc_diary_to_the_root_with_the_diary_closed() {
     let home = home();
-    refuses(&home, "file_doc", json!({ "doc": home.diary }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary] }),
+    );
 }
 
 #[test]
 fn file_doc_diary_day_to_the_root_with_the_diary_open() {
     let home = home();
     open_diary(&home);
-    refuses(&home, "file_doc", json!({ "doc": home.day }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.day] }),
+    );
 }
 
 #[test]
@@ -262,8 +280,8 @@ fn file_doc_a_plain_doc_into_an_agents_folder() {
     let home = home();
     refuses(
         &home,
-        "file_doc",
-        json!({ "doc": home.plain, "folder": home.claude }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.plain], "folder": home.claude }),
     );
 }
 
@@ -272,8 +290,8 @@ fn file_doc_an_agents_doc_out_to_a_plain_folder() {
     let home = home();
     refuses(
         &home,
-        "file_doc",
-        json!({ "doc": home.rule, "folder": home.notes }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.rule], "folder": home.notes }),
     );
 }
 
@@ -282,15 +300,19 @@ fn page_doc_ideas_becomes_a_page() {
     let home = home();
     refuses(
         &home,
-        "page_doc",
-        json!({ "doc": home.ideas, "page_of": home.plain }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.ideas], "parent": home.plain }),
     );
 }
 
 #[test]
 fn page_doc_a_page_of_ideas_is_let_go() {
     let home = home();
-    refuses(&home, "page_doc", json!({ "doc": home.ideas_page }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "remove_page", "docs": [home.ideas_page] }),
+    );
 }
 
 #[test]
@@ -298,8 +320,8 @@ fn page_doc_a_doc_is_hung_under_ideas() {
     let home = home();
     refuses(
         &home,
-        "page_doc",
-        json!({ "doc": home.plain, "page_of": home.ideas }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.plain], "parent": home.ideas }),
     );
 }
 
@@ -309,8 +331,8 @@ fn page_doc_the_diary_becomes_a_page_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "page_doc",
-        json!({ "doc": home.diary, "page_of": home.plain }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.diary], "parent": home.plain }),
     );
 }
 
@@ -318,7 +340,11 @@ fn page_doc_the_diary_becomes_a_page_with_the_diary_open() {
 fn page_doc_a_diary_day_is_let_go_with_the_diary_open() {
     let home = home();
     open_diary(&home);
-    refuses(&home, "page_doc", json!({ "doc": home.day }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "remove_page", "docs": [home.day] }),
+    );
 }
 
 #[test]
@@ -327,15 +353,19 @@ fn page_doc_a_doc_is_hung_under_the_diary_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "page_doc",
-        json!({ "doc": home.plain, "page_of": home.diary }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
 #[test]
 fn page_doc_a_diary_day_is_let_go_with_the_diary_closed() {
     let home = home();
-    refuses(&home, "page_doc", json!({ "doc": home.day }));
+    refuses(
+        &home,
+        "doc_organize",
+        json!({ "action": "remove_page", "docs": [home.day] }),
+    );
 }
 
 #[test]
@@ -343,8 +373,8 @@ fn page_doc_a_doc_is_hung_under_the_diary_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "page_doc",
-        json!({ "doc": home.plain, "page_of": home.diary }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
@@ -353,7 +383,7 @@ fn write_doc_new_page_of_ideas() {
     let home = home();
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# New\n", "page_of": home.ideas }),
     );
 }
@@ -364,7 +394,7 @@ fn write_doc_new_page_of_the_diary_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# New\n", "page_of": home.diary }),
     );
 }
@@ -374,7 +404,7 @@ fn write_doc_new_page_of_the_diary_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# New\n", "page_of": home.diary }),
     );
 }
@@ -384,7 +414,7 @@ fn write_doc_translation_of_ideas() {
     let home = home();
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Ideas\n", "translation_of": home.ideas, "lang": "es" }),
     );
 }
@@ -395,7 +425,7 @@ fn write_doc_translation_of_the_diary_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# 2026\n", "translation_of": home.diary, "lang": "es" }),
     );
 }
@@ -405,7 +435,7 @@ fn write_doc_translation_of_the_diary_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# 2026\n", "translation_of": home.diary, "lang": "es" }),
     );
 }
@@ -415,7 +445,7 @@ fn write_doc_a_plain_doc_into_an_agents_folder() {
     let home = home();
     refuses(
         &home,
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Mine\n", "folder": home.claude }),
     );
 }
@@ -425,8 +455,8 @@ fn tongue_doc_ideas_joins_another_doc() {
     let home = home();
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.ideas, "of": home.plain, "lang": "en" }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.ideas], "parent": home.plain, "lang": "en" }),
     );
 }
 
@@ -435,8 +465,8 @@ fn tongue_doc_a_doc_joins_ideas() {
     let home = home();
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.plain, "of": home.ideas }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.plain], "parent": home.ideas }),
     );
 }
 
@@ -446,8 +476,8 @@ fn tongue_doc_the_diary_joins_another_doc_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.diary, "of": home.plain, "lang": "en" }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.diary], "parent": home.plain, "lang": "en" }),
     );
 }
 
@@ -457,8 +487,8 @@ fn tongue_doc_a_doc_joins_the_diary_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.plain, "of": home.diary }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
@@ -467,8 +497,8 @@ fn tongue_doc_the_diary_joins_another_doc_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.diary, "of": home.plain, "lang": "en" }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.diary], "parent": home.plain, "lang": "en" }),
     );
 }
 
@@ -477,8 +507,8 @@ fn tongue_doc_a_doc_joins_the_diary_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.plain, "of": home.diary }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
@@ -487,8 +517,8 @@ fn import_doc_as_a_page_of_ideas() {
     let home = home();
     refuses(
         &home,
-        "import_doc",
-        json!({ "path": home.picture, "page_of": home.ideas }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": home.picture, "page_of": home.ideas }),
     );
 }
 
@@ -498,8 +528,8 @@ fn import_doc_as_a_page_of_the_diary_with_the_diary_open() {
     open_diary(&home);
     refuses(
         &home,
-        "import_doc",
-        json!({ "path": home.picture, "page_of": home.diary }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": home.picture, "page_of": home.diary }),
     );
 }
 
@@ -508,8 +538,8 @@ fn import_doc_as_a_page_of_the_diary_with_the_diary_closed() {
     let home = home();
     refuses(
         &home,
-        "import_doc",
-        json!({ "path": home.picture, "page_of": home.diary }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": home.picture, "page_of": home.diary }),
     );
 }
 
@@ -518,8 +548,8 @@ fn import_doc_into_an_agents_folder() {
     let home = home();
     refuses(
         &home,
-        "import_doc",
-        json!({ "path": home.picture, "folder": home.claude }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": home.picture, "folder": home.claude }),
     );
 }
 
@@ -527,7 +557,11 @@ fn import_doc_into_an_agents_folder() {
 fn past_the_door_file_doc_diary_to_the_root() {
     let home = home();
     open_diary(&home);
-    refuses_past_the_door(&home, "file_doc", json!({ "doc": home.diary }));
+    refuses_past_the_door(
+        &home,
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary] }),
+    );
 }
 
 #[test]
@@ -536,8 +570,8 @@ fn past_the_door_file_doc_diary_into_a_folder() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "file_doc",
-        json!({ "doc": home.diary, "folder": home.work }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [home.diary], "folder": home.work }),
     );
 }
 
@@ -547,8 +581,8 @@ fn past_the_door_page_doc_diary_becomes_a_page() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "page_doc",
-        json!({ "doc": home.diary, "page_of": home.plain }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.diary], "parent": home.plain }),
     );
 }
 
@@ -556,7 +590,11 @@ fn past_the_door_page_doc_diary_becomes_a_page() {
 fn past_the_door_page_doc_a_diary_day_is_let_go() {
     let home = home();
     open_diary(&home);
-    refuses_past_the_door(&home, "page_doc", json!({ "doc": home.day }));
+    refuses_past_the_door(
+        &home,
+        "doc_organize",
+        json!({ "action": "remove_page", "docs": [home.day] }),
+    );
 }
 
 #[test]
@@ -565,8 +603,8 @@ fn past_the_door_page_doc_a_doc_is_hung_under_the_diary() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "page_doc",
-        json!({ "doc": home.plain, "page_of": home.diary }),
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
@@ -576,9 +614,8 @@ fn past_the_door_write_doc_new_page_of_the_diary() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "write_doc",
-        json!({ "body": "# New
-", "page_of": home.diary }),
+        "doc_create",
+        json!({ "body": "# New\n", "page_of": home.diary }),
     );
 }
 
@@ -588,9 +625,8 @@ fn past_the_door_write_doc_translation_of_the_diary() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "write_doc",
-        json!({ "body": "# 2026
-", "translation_of": home.diary, "lang": "es" }),
+        "doc_create",
+        json!({ "body": "# 2026\n", "translation_of": home.diary, "lang": "es" }),
     );
 }
 
@@ -600,8 +636,8 @@ fn past_the_door_tongue_doc_the_diary_joins_another_doc() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.diary, "of": home.plain, "lang": "en" }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.diary], "parent": home.plain, "lang": "en" }),
     );
 }
 
@@ -611,8 +647,8 @@ fn past_the_door_tongue_doc_a_doc_joins_the_diary() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "tongue_doc",
-        json!({ "doc": home.plain, "of": home.diary }),
+        "doc_organize",
+        json!({ "action": "link_translation", "docs": [home.plain], "parent": home.diary }),
     );
 }
 
@@ -622,7 +658,7 @@ fn past_the_door_import_doc_as_a_page_of_the_diary() {
     open_diary(&home);
     refuses_past_the_door(
         &home,
-        "import_doc",
-        json!({ "path": home.picture, "page_of": home.diary }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": home.picture, "page_of": home.diary }),
     );
 }

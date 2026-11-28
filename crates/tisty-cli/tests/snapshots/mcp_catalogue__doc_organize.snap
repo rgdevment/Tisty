@@ -1,0 +1,106 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Create/restyle folders (max 6 deep, <=64 total), move docs between folders, attach/detach/reorder subpages (1 level deep), or link/unlink document translations.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Library organization operation",
+        "enum": [
+          "create_folder",
+          "file",
+          "add_page",
+          "remove_page",
+          "reorder_pages",
+          "link_translation",
+          "unlink_translation"
+        ],
+        "type": "string"
+      },
+      "after": {
+        "description": "For `add_page`: place immediately after this sibling page ID",
+        "type": "string"
+      },
+      "before": {
+        "description": "For `add_page`: place immediately before this sibling page ID",
+        "type": "string"
+      },
+      "color": {
+        "description": "For `create_folder`: folder color",
+        "enum": [
+          "red",
+          "orange",
+          "amber",
+          "green",
+          "teal",
+          "blue",
+          "indigo",
+          "purple",
+          "pink",
+          "brown",
+          "gray"
+        ],
+        "type": "string"
+      },
+      "docs": {
+        "description": "Target document ID(s) (1 for link/unlink_translation or positioned add_page)",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array"
+      },
+      "folder": {
+        "description": "For `file`: destination folder (omit to unfile); for `create_folder`: parent folder",
+        "type": "string"
+      },
+      "icon": {
+        "description": "For `create_folder`: single emoji or icon name",
+        "type": "string"
+      },
+      "lang": {
+        "description": "For `link_translation`: BCP-47 tag of `docs[0]` if missing from frontmatter",
+        "type": "string"
+      },
+      "name": {
+        "description": "For `create_folder`: folder name (<=40 chars)",
+        "type": "string"
+      },
+      "order": {
+        "description": "For `reorder_pages`: >=2 page IDs of `parent` in new reading order",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "type": "array"
+      },
+      "parent": {
+        "description": "Parent doc ID (`add_page`, `reorder_pages`) or primary doc (`link_translation`)",
+        "type": "string"
+      },
+      "position": {
+        "description": "For `add_page`: place before/after existing page cards",
+        "enum": [
+          "first",
+          "last"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "action"
+    ],
+    "type": "object"
+  },
+  "name": "doc_organize",
+  "title": "Organize folders, pages, and translations"
+}

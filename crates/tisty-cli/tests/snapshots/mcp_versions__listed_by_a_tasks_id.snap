@@ -6,7 +6,7 @@ expression: "settled(&listed, &[(page.as_str(), \"[page]\")])"
   "doc": "[page]",
   "kept_days": 30,
   "kept_here": 1,
-  "said": "the page of \"Renovar el pasaporte\" [[page]] keeps 1 past version(s) on this machine, newest first. `read` with `version` reads one, and `restore_doc` with `version` goes back to it. Versions never leave the machine that kept them, and stay 30 days.",
+  "said": "the page of \"Renovar el pasaporte\" [[page]] keeps 1 past version(s) on this machine, newest first. `workspace_read` with `version` reads one, and `doc_edit` (`mode: \"restore\"`) with `version` goes back to it. Versions never leave the machine that kept them, and stay 30 days.",
   "title": "Renovar el pasaporte",
   "versions": [
     {

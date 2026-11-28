@@ -6,12 +6,12 @@ Esta página sigue una sesión real de un agente, paso a paso, con las llamadas 
 
 ## Lo que cambió con Brainsty
 
-- **Busca y navega con una sola herramienta, `brain`.** Encuentra tareas y documentos por sus palabras, con el archivo junto a lo demás; trae la ficha de un documento o una tarea con sus vecinos; y muestra un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar.
-- **Lee con una sola herramienta, `read`.** Una tarea o un documento, entero o por partes, solo lo resaltado, o una versión anterior; y si nada cambió desde su última lectura, solo eso.
-- **Deja la tarea al día en una llamada.** `tick` marca los pasos y escribe el estado de la tarea, una sección «Estado» de su página que se reemplaza entera cada vez. Al retomar, `read` le trae ese estado primero.
+- **Busca y navega con una sola herramienta, `workspace_search`.** Encuentra tareas y documentos por sus palabras, con el archivo junto a lo demás; lista carpetas y taxonomía; y muestra un proyecto entero agrupado en bloqueado, en curso, esperándote y sin empezar.
+- **Lee con una sola herramienta, `workspace_read`.** Una tarea o un documento, entero o por partes, su ficha y vecinos, una tabla, solo lo resaltado o una versión anterior; y si nada cambió desde su última lectura, solo eso.
+- **Deja la tarea al día en una llamada.** `task_edit_steps` (`action: "tick"`) marca los pasos y escribe el estado de la tarea, una sección «Estado» de su página que se reemplaza entera cada vez. Al retomar, `workspace_read` le trae ese estado primero.
 - **Tisty le pregunta si se olvida.** En sus respuestas, a cualquier agente; y con los hooks, al empezar, al terminar cada turno, después de un push o un merge, y antes de dejar algo fuera.
 - **Lo que nombra queda enlazado.** Una tarea o un documento nombrado por su id o por su título exacto entre comillas se vuelve un enlace al guardar, igual que si lo hubieras hecho tú.
-- **Sabe qué hacer cuando se lo dices con tus palabras.** Con las skills de Tisty encendidas, «Retoma donde quedamos» o «Deja esto listo para el próximo agente» le bastan: la skill `tisty` le dice que empiece por `catch_up` y que deje la tarea al día con `tick` y una nota. Lo cuenta [[Hooks y skills|Hooks-y-skills]].
+- **Sabe qué hacer cuando se lo dices con tus palabras.** Con las skills de Tisty encendidas, «Retoma donde quedamos» o «Deja esto listo para el próximo agente» le bastan: la skill `tisty` le dice que empiece por `workspace_catch_up` y que deje la tarea al día con `task_edit_steps` y `task_note`. Lo cuenta [[Hooks y skills|Hooks-y-skills]].
 
 ## Antes de empezar
 
@@ -41,7 +41,7 @@ Con los hooks, cada sesión empieza con las últimas tareas abiertas en que escr
 Pressing for the person: 1 today, 26 late."
 ```
 
-Sin hooks, o para ver todo, el agente llama a `catch_up`: las listas, las carpetas, las etiquetas más usadas, lo que apremia y `last`, la tarea en que estaba, con cuánto avanzó: su etapa, sus pasos y la primera línea de su estado. El inicio con hooks dice lo mismo con palabras. (La etapa y el estado, aquí y en el inicio con hooks de arriba, llegaron después de esta sesión, y van con la forma que les da el código.)
+Sin hooks, o para ver todo, el agente llama a `workspace_catch_up`: las listas, las carpetas, las etiquetas más usadas, lo que apremia y `last`, la tarea en que estaba, con cuánto avanzó: su etapa, sus pasos y la primera línea de su estado. El inicio con hooks dice lo mismo con palabras. (La etapa y el estado, aquí y en el inicio con hooks de arriba, llegaron después de esta sesión, y van con la forma que les da el código.)
 
 ```json
 { "last": { "title": "Reembolsos", "list": "Trabajo", "at": "2026-11-18 22:22",
@@ -50,12 +50,12 @@ Sin hooks, o para ver todo, el agente llama a `catch_up`: las listas, las carpet
   "counts": { "open": 54, "late": 26, "today": 1, "docs": 62 } }
 ```
 
-### 2. Busca con `brain`
+### 2. Busca con `workspace_search`
 
-`brain` con unas palabras busca en las tareas abiertas, en el archivo y en los documentos a la vez. Primero va lo que tiene las palabras en su título, y delante el título que dice justo esas palabras; después, lo que se movió hace menos. Cada cosa trae la línea que las dice: aquí la tarea calzó en uno de sus pasos.
+`workspace_search` con unas palabras busca en las tareas abiertas, en el archivo y en los documentos a la vez. Primero va lo que tiene las palabras en su título, y delante el título que dice justo esas palabras; después, lo que se movió hace menos. Cada cosa trae la línea que las dice: aquí la tarea calzó en uno de sus pasos.
 
 ```json
-> brain {"query": "webhook firma"}
+> workspace_search {"query": "webhook firma"}
 { "matches": [ { "title": "Webhook de confirmación", "list": "Trabajo", "status": "open", "part_of": "…", "in": "step", "line": "Verificar la firma" } ],
   "docs": [
     { "title": "Pasarela: notas de integración", "line": "El proveedor firma cada evento con HMAC. Las decisiones vigentes están en «Pagos: decisiones»." },
@@ -63,14 +63,14 @@ Sin hooks, o para ver todo, el agente llama a `catch_up`: las listas, las carpet
   "docsTotal": 4 }
 ```
 
-Si ninguna cosa tiene todas las palabras, trae lo que tiene más y lo dice (`every_word: false`), en vez de no traer nada. `brain` sin nada muestra tus listas, carpetas y etiquetas con sus cuentas.
+Si ninguna cosa tiene todas las palabras, trae lo que tiene más y lo dice (`every_word: false`), en vez de no traer nada. `workspace_search` sin nada muestra tus listas, carpetas y etiquetas con sus cuentas.
 
 ### 3. Mira el proyecto entero
 
-Con `part_of`, `brain` agrupa las partes abiertas de una tarea según cómo van. Una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada.
+Con `part_of`, `workspace_search` agrupa las partes abiertas de una tarea según cómo van. Una parte cuyo estado empieza con «Bloqueada:» cuenta como bloqueada.
 
 ```json
-> brain {"part_of": "…Pagos con la pasarela nueva…"}
+> workspace_search {"part_of": "…Pagos con la pasarela nueva…"}
 { "stages": { "blocked": 1, "under_way": 0, "waiting": 0, "not_started": 3 },
   "parts": [
     { "title": "Reembolsos", "stage": "blocked", "steps": [0, 2],
@@ -80,10 +80,10 @@ Con `part_of`, `brain` agrupa las partes abiertas de una tarea según cómo van.
 
 ### 4. Lee la tarea, y del documento solo lo que importa
 
-`read` trae una tarea con su estado primero. Una tarea que todavía no tiene uno llega con uno armado a partir de ella:
+`workspace_read` trae una tarea con su estado primero. Una tarea que todavía no tiene uno llega con uno armado a partir de ella:
 
 ```json
-> read {"task": "…Webhook de confirmación…"}
+> workspace_read {"task": "…Webhook de confirmación…"}
 { "state": { "built": true, "done": 0, "of": 3 },
   "steps": [ { "text": "Verificar la firma", "done": false }, { "text": "Reintentos", "done": false }, … ] }
 ```
@@ -91,7 +91,7 @@ Con `part_of`, `brain` agrupa las partes abiertas de una tarea según cómo van.
 La ficha de un documento dice qué tiene y dónde, sin leerlo: sus secciones con sus líneas, quién lo menciona y, en una sección de decisiones, las vigentes primero y la tachada al final, marcada como reemplazada.
 
 ```json
-> brain {"doc": "…Pagos: decisiones…"}
+> workspace_read {"doc": "…Pagos: decisiones…", "view": "card"}
 { "decisions": [
     { "line": 6, "said": "El webhook se reintenta tres veces, con espera creciente." },
     { "line": 7, "said": "La firma se verifica antes de leer el cuerpo." },
@@ -103,7 +103,7 @@ La ficha de un documento dice qué tiene y dónde, sin leerlo: sus secciones con
 La ficha de un documento o de una tarea trae también lo que Tisty cree que se parece, aparte, en `guessed`: nadie lo enlazó, así que el agente lee los dos antes de unir o fusionar nada.
 
 ```json
-> brain {"task": "…Pedir presupuesto del techo…"}
+> workspace_read {"task": "…Pedir presupuesto del techo…", "view": "card"}
 { "guessed": [ { "id": "…", "kind": "doc", "title": "Arreglos de la casa", "state": "open", "score": 0.42, "shared": ["presupuesto", "techo"], "method": "words" } ] }
 "Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (open) (shares presupuesto, techo)."
 ```
@@ -111,21 +111,21 @@ La ficha de un documento o de una tarea trae también lo que Tisty cree que se p
 En `shared`, una palabra sola la escribieron los dos. Una pareja `a≈b` es una palabra que cada lado escribió distinto, y `method` dice cuál de las tres pistas los unió: `words`, palabras en común; `typo`, un error de tipeo o un plural, como `impresora≈imrpesora` o `vacuna≈vacunas`, y `dictionary`, una traducción del diccionario español–inglés de Tisty, como `pagar≈pay`. La frase de abajo dice lo mismo con palabras: «shares», «spelled almost the same:» o «alike by translation:». Así el agente sabe que «Pagar la cuenta del agua» y «Pay the water bill» se parecen por el idioma, no porque alguien las haya unido, y las lee antes de decidir si son la misma tarea:
 
 ```json
-> brain {"task": "…Pagar la cuenta del agua…"}
+> workspace_read {"task": "…Pagar la cuenta del agua…", "view": "card"}
 { "guessed": [ { "id": "…", "kind": "task", "title": "Pay the water bill", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
 Los parecidos salen solo de la prosa: el código, el HTML, las rutas, las notas de avance de una tarea y los documentos de Agentes no cuentan. Lo cuenta [[Parecidos|Red-de-Brainsty#parecidos]].
 
-Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `marks`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `versions`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora; `restore_doc` con esa `version` vuelve a ella. Nunca vacía el historial ni lee las versiones de tu Diario. Lo cuentan [[Versiones anteriores|Documentos#versiones-anteriores]] y [[Herramientas MCP|Herramientas-MCP]].
+Con la línea de cada sección, el agente lee solo la que necesita, con la misma herramienta que lee una tarea: `workspace_read` con `doc` trae el documento entero, una sección (`section`), unas líneas (`from`, `to`) o un trozo a la vez (`chars`). Con `view: "marks"`, trae solo lo que el documento resalta o pone en negrita, agrupado por sección: en un documento de 24 KB, unos 2.300 bytes. Con `view: "versions"`, en vez del texto, lista sus versiones anteriores en este equipo, y `version` lee una, bajo un aviso de que no es lo que dice ahora; `doc_edit` (`mode: "restore"`) con esa `version` vuelve a ella. Nunca vacía el historial ni lee las versiones de tu Diario. Lo cuentan [[Versiones anteriores|Documentos#versiones-anteriores]] y [[Herramientas MCP|Herramientas-MCP]].
 
 **Releer cuesta casi nada.** Cada lectura trae un `print`. Si el agente vuelve a leer con ese `print` y nada cambió, Tisty le responde solo eso, con la hora de su lectura anterior. La respuesta tiene esta forma (este extracto no viene de la sesión de arriba, sino del código de Tisty):
 
 ```json
-> read {"task": "…", "print": "…"}
+> workspace_read {"task": "…", "print": "…"}
 { "id": "…", "status": "open", "unchanged": true, "print": "…" }
-"Nothing on \"Webhook de confirmación\" in Trabajo […] changed since you read it, 2026-11-18 22:22: what you hold still stands. Without `print`, `read` brings it whole again."
+"Nothing on \"Webhook de confirmación\" in Trabajo […] changed since you read it, 2026-11-18 22:22: what you hold still stands. Without `print`, `workspace_read` brings it whole again."
 ```
 
 Medido sobre una tienda de 5.000 tareas, releer una tarea así cuesta 336 bytes en vez de 4.360, y un documento entero 332 en vez de 9.321. Si algo cambió, un paso marcado o una línea nueva, trae todo de nuevo. Una sección siempre llega con su texto.
@@ -135,8 +135,8 @@ Medido sobre una tienda de 5.000 tareas, releer una tarea así cuesta 336 bytes 
 Al terminar un paso, el agente lo marca y escribe el estado de la tarea en la misma llamada: lo hecho, lo que falta, las decisiones vigentes y lo descartado.
 
 ```json
-> tick {"task": "…", "steps": ["Verificar la firma"],
-        "state": "**Hecho:** la firma HMAC se verifica antes de leer el cuerpo…\n**Falta:** los reintentos y el registro de cada evento.\n**Decisiones vigentes:** tres reintentos con espera creciente.\n**Descartado:** reintentar sin límite."}
+> task_edit_steps {"task": "…", "action": "tick", "steps": ["Verificar la firma"],
+                   "state": "**Hecho:** la firma HMAC se verifica antes de leer el cuerpo…\n**Falta:** los reintentos y el registro de cada evento.\n**Decisiones vigentes:** tres reintentos con espera creciente.\n**Descartado:** reintentar sin límite."}
 { "ticked": 1, "left": 2, "next": "Reintentos", "stated": true,
   "said": "Ticked 1 step(s) on \"Webhook de confirmación\". 2 still unticked; next: \"Reintentos\". Left its state on its page, under «Estado»." }
 ```
@@ -144,7 +144,7 @@ Al terminar un paso, el agente lo marca y escribe el estado de la tarea en la mi
 En la página de la tarea aparece la sección **Estado**, entre los pasos y las notas, con la fecha y el nombre del agente. La lees tú igual que él. Cada escritura la reemplaza entera, así que nunca crece.
 
 - Si escribiste una línea tuya bajo **Estado**, el agente tiene que conservarla: un estado que la deja fuera se rechaza y no marca nada.
-- Si después cambian los pasos o llegan notas, `read` avisa que el estado quedó viejo: «older than 3 later note(s)».
+- Si después cambian los pasos o llegan notas, `workspace_read` avisa que el estado quedó viejo: «older than 3 later note(s)».
 - El estado tiene lugar para unos 3.000 caracteres.
 
 ### 6. Anota solo lo que cambia algo
@@ -154,7 +154,7 @@ La bitácora queda para lo que cambia algo: una decisión, algo descartado o un 
 ### 7. Lo que nombra queda enlazado
 
 ```json
-> note {"task": "…", "body": "Los reintentos van en la cola de trabajos que ya existe, como dice «Pagos: decisiones». La conciliación espera a esta parte: 01M7RJAQKHGE785QFPK3NHK1CV"}
+> task_note {"task": "…", "action": "add", "body": "Los reintentos van en la cola de trabajos que ya existe, como dice «Pagos: decisiones». La conciliación espera a esta parte: 01M7RJAQKHGE785QFPK3NHK1CV"}
 { "references": { "linked": [
     { "said": "Pagos: decisiones", "doc": "…", "title": "Pagos: decisiones" },
     { "said": "01M7RJAQKHGE785QFPK3NHK1CV", "task": "…", "title": "Conciliación diaria" } ] } }
@@ -171,8 +171,8 @@ Un id de tarea solo en su párrafo, en un documento, se vuelve la tarjeta de esa
 ### 8. Una imagen sin palabras recibe una pregunta
 
 ```json
-> attach {"task": "…", "path": "…\\Pictures\\IMG_2041.jpg"}
-{ "ask": { "said": "What does \"rina-ce960510.jpg\" show? The words in a picture's brackets are all an agent or a screen reader knows of it, and a file's name says nothing: write it between the brackets with `reword_note`…" } }
+> file_transfer {"action": "attach", "task": "…", "path": "…\\Pictures\\IMG_2041.jpg"}
+{ "ask": { "said": "What does \"rina-ce960510.jpg\" show? The words in a picture's brackets are all an agent or a screen reader knows of it, and a file's name says nothing: write it between the brackets with `task_note` (`action: \"reword\"`)…" } }
 ```
 
 El nombre de un archivo no cuenta como descripción. Lo que el agente escribe entre los corchetes es lo único que otro agente, o un lector de pantalla, sabrá de esa imagen.
@@ -182,9 +182,9 @@ El nombre de un archivo no cuenta como descripción. Lo que el agente escribe en
 El agente siguió con otras cosas: anotó en un documento y creó dos carpetas, sin volver a la tarea. La tercera respuesta trae la pregunta:
 
 ```json
-> folder {"name": "Pruebas", "inside": "Trabajo"}
+> doc_organize {"action": "create_folder", "name": "Pruebas", "folder": "Trabajo"}
 { "ask": { "title": "Webhook de confirmación", "left": 2,
-  "said": "Is \"Webhook de confirmación\" up to date? You wrote 3 other things without writing on it, and 2 of 3 steps are still unticked, the next \"Reintentos\". Leave it in one `tick`…" } }
+  "said": "Is \"Webhook de confirmación\" up to date? You wrote 3 other things without writing on it, and 2 of 3 steps are still unticked, the next \"Reintentos\". Leave it in one `task_edit_steps`…" } }
 ```
 
 Pregunta una vez por tramo: a los diez minutos sin una palabra en la tarea, o a la tercera escritura en otra parte. Vuelve a preguntar solo después de que el agente escribe en esa tarea.
@@ -195,26 +195,26 @@ Con los hooks, cuando un turno editó archivos y no escribió nada en Tisty, el 
 
 ```json
 { "decision": "block",
-  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `tick`: the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If it was not work on a task, end your turn without writing anything." }
+  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `task_edit_steps` (`action: \"tick\"` or `\"set_state\"`): the steps you finished, if any, and `state` with what is done, what is left and the decisions in force. If it was not work on a task, end your turn without writing anything." }
 ```
 
 Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty: un turno fuera de una tarea cuesta como mucho un turno extra.
 
-También le devuelve el turno una vez cuando todos los pasos de su tarea están marcados y no la dijo hecha, para un `say_done` con la prueba; y después de un `git push`, un `gh pr create` o un `gh pr merge` le pregunta si eso terminó un paso o la tarea: en Claude Code en el acto, en los demás al terminar el turno.
+También le devuelve el turno una vez cuando todos los pasos de su tarea están marcados y no la dijo hecha, para un `task_resolve` (`outcome: "done"`) con la prueba; y después de un `git push`, un `gh pr create` o un `gh pr merge` le pregunta si eso terminó un paso o la tarea: en Claude Code en el acto, en los demás al terminar el turno.
 
 ### 11. Lo que solo puedes hacer tú va en tu tarea
 
-Una tarea es del agente o tuya, nunca de los dos: si se mezclan, no termina nunca. Por eso `propose` pide `for`, «agent» o «person». Cuando un paso del agente resulta tuyo, como probarlo a mano, publicar o mergear, lo pasa a tu tarea:
+Una tarea es del agente o tuya, nunca de los dos: si se mezclan, no termina nunca. Por eso `task_create` pide `for`, «agent» o «person». Cuando un paso del agente resulta tuyo, como probarlo a mano, publicar o mergear, lo pasa a tu tarea:
 
 ```json
-> unplan {"task": "…", "step": "Probar el pago en el teléfono", "to_person": true}
+> task_edit_steps {"task": "…", "action": "remove", "step": "Probar el pago en el teléfono", "to_person": true}
 { "to_person": true, "companion_made": true,
-  "said": "Handed 1 step(s) from \"Webhook de confirmación\" to the person, in a new task of theirs, \"Webhook de confirmación: lo que te toca\", filed as its part: it never holds yours open. 2 left on \"Webhook de confirmación\"; `say_done` it when they are done." }
+  "said": "Handed 1 step(s) from \"Webhook de confirmación\" to the person, in a new task of theirs, \"Webhook de confirmación: lo que te toca\", filed as its part: it never holds yours open. 2 left on \"Webhook de confirmación\"; call `task_resolve` (`outcome: \"done\"`) when they are done." }
 ```
 
-Cada tarea tiene una sola compañera tuya, así que tus tareas siguen siendo pocas. Tu parte nunca deja abierta la del agente, y al confirmar la del agente la tuya sigue ahí. Al terminar, el agente hace `say_done` con la rama o el PR y cómo lo comprobó, sin esperar el merge, que es tuyo.
+Cada tarea tiene una sola compañera tuya, así que tus tareas siguen siendo pocas. Tu parte nunca deja abierta la del agente, y al confirmar la del agente la tuya sigue ahí. Al terminar, el agente llama a `task_resolve` (`outcome: "done"`) con la rama o el PR y cómo lo comprobó, sin esperar el merge, que es tuyo.
 
-Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmación» **en curso**, con 1 de 3 pasos y la primera línea de su estado.
+Al final de la sesión, `workspace_search` con `part_of` ya muestra «Webhook de confirmación» **en curso**, con 1 de 3 pasos y la primera línea de su estado.
 
 ## Lo que ves tú
 
@@ -226,21 +226,13 @@ Al final de la sesión, `brain` con `part_of` ya muestra «Webhook de confirmaci
 - **Dos secciones en cada lista.** **Te toca** junta lo tuyo, con su casilla de siempre. **Lo hace el agente** junta lo suyo: ahí solo confirmas o lo dejas pendiente, y la fila muestra las primeras líneas de su prueba, con la rama o el PR, así que no hace falta abrirla. Con dos o más ya hechas aparece **Confirmar las N hechas**.
 - **Tu parte enlazada.** Tu tarea compañera dice **espera a «…»** mientras el agente trabaja, y **tu parte de «…»** cuando ya terminó.
 
-## Las herramientas que pasaron a `brain` y a `read`
+## Paso desde las 36 herramientas anteriores
 
-| Antes | Ahora |
-| :-- | :-- |
-| `find` | `brain` con `query`, o con los campos para filtrar (`list`, `tag`, `from`, `to`, `by_agent`, `said_done`, `part_of`, `scope`); `source` sigue sirviendo para ver si algo ya se anotó |
-| `docs` | `brain` con `folder`, o sin nada para ver las carpetas con sus cuentas |
-| `outline_doc` | `brain` con `doc`: la ficha, con el índice, el `print` para editar por sección y quién lo menciona |
-| `lists`, `tags` | `brain` sin nada |
-| `read_doc` | `read` con `doc`, con las mismas partes (`section`, líneas, `chars`, `as`) y además `marks`, `versions` y `version` |
-
-Un agente que todavía llama a una de ellas recibe dónde quedó («`find` moved into `brain`», «`read_doc` moved into `read`») y no pasa nada más. Cuando todas las filas de una lista comparten un campo, como la lista o la tarea de la que son partes, llega una sola vez, en `each`.
+Los 36 nombres anteriores de una sola función pasan a las 15 herramientas por dominio (`workspace_*`, `task_*`, `doc_*`, `file_transfer`). Un agente que todavía llama a un nombre anterior recibe la herramienta y parámetros exactos de reemplazo, y no pasa nada más. Cuando todas las filas de una lista comparten un campo, como la lista o la tarea de la que son partes, llega una sola vez, en `each`.
 
 ## Lo que conviene saber
 
-- **Agentes sin hooks.** Claude Desktop y DeepSeek Harness no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty. DeepSeek Harness sí lee las skills de Tisty, así que «Retoma donde quedamos» lo lleva igual a `catch_up`.
+- **Agentes sin hooks.** Claude Desktop y DeepSeek Harness no corren hooks: les llega solo la pregunta en las respuestas, y solo cuando llaman a Tisty. DeepSeek Harness sí lee las skills de Tisty, así que «Retoma donde quedamos» lo lleva igual a `workspace_catch_up`.
 - **Con el plugin de Tisty** en Claude Code, los hooks y las skills los trae el plugin: la fila de hooks dice **Los trae el plugin de Tisty** y Tisty no copia ahí sus skills. Mira [[Hooks y skills|Hooks-y-skills]].
 - **Trabajo que no edita archivos**, como planificar o investigar, no lo ve el hook del final del turno: ahí queda la pregunta en las respuestas.
 - **GitHub Copilot** puede gastar una solicitud premium en el turno que se le devuelve.

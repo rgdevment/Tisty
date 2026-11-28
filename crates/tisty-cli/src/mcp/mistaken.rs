@@ -2,9 +2,11 @@ use serde_json::Value;
 use tisty_core::model::{Kept, Task};
 use tisty_core::{State, TaskId};
 
-pub(super) const NAMES_A_DOCUMENT: [&str; 8] = [
+pub(super) const NAMES_A_DOCUMENT: [&str; 10] = [
     "doc",
+    "docs",
     "page_of",
+    "parent",
     "translation_of",
     "of",
     "after",
@@ -76,12 +78,14 @@ pub(super) fn not_a_task_id(state: &State, said: &str) -> String {
     }
     match named_document(state, said) {
         Some(kept) => format!(
-            "{said:?} is {}, not a task: `read` with `doc` reads it (its card from `brain` first when it is \
-             long), and `edit_doc` and `append_doc` write in it.",
+            "{said:?} is {}, not a task: `workspace_read` with `doc` reads it (`view: \"card\"` \
+             first when it is long), and `doc_edit` writes in it.",
             a_document(kept)
         ),
         None => {
-            format!("{said:?} is not a task id. Use the `id` that `brain` or `propose` gave you.")
+            format!(
+                "{said:?} is not a task id. Use the `id` that `workspace_search` or `task_create` gave you."
+            )
         }
     }
 }
@@ -98,9 +102,9 @@ pub(super) fn not_a_document(state: &State, which: &str) -> Option<String> {
             None => String::new(),
         };
         format!(
-            "{which:?} is the task {:?}, not a document: `read` shows it, `note` adds to its \
-             journal, and `append_doc` with its id adds to its page, or with `replace` folds the \
-             assistants' notes there into one digest.{page}",
+            "{which:?} is the task {:?}, not a document: `workspace_read` shows it, `task_note` \
+             adds to its journal, and `doc_edit` with its id adds to its page (`mode: \"append\"`) \
+             or folds assistant notes into one digest (`mode: \"digest_task_notes\"`).{page}",
             task.title
         )
     })
@@ -109,7 +113,7 @@ pub(super) fn not_a_document(state: &State, which: &str) -> Option<String> {
 pub(super) fn no_document_called(state: &State, which: &str) -> String {
     not_a_document(state, which).unwrap_or_else(|| {
         format!(
-            "no document here is called {which:?}. `brain` with a `query` finds one by its words."
+            "no document here is called {which:?}. `workspace_search` with a `query` finds one by its words."
         )
     })
 }
@@ -118,7 +122,7 @@ pub(super) fn no_document_by_that_id(state: &State, which: &str) -> String {
     not_a_document(state, which).unwrap_or_else(|| {
         format!(
             "no document here is called {which:?}. Ids are opaque, like q7ntmzbm-0001, and a title \
-             is not one — `brain` gives the id beside the title of every document it finds."
+             is not one — `workspace_search` gives the id beside the title of every document it finds."
         )
     })
 }

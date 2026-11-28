@@ -79,7 +79,7 @@ fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
     let served = Served::new();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "not yet" }),
     );
     assert_eq!(said["result"]["isError"], true);
@@ -105,7 +105,7 @@ fn a_hand_turned_away_leaves_its_knock_for_the_window() {
     .to_string();
     let asked = serde_json::json!({
         "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-        "params": { "name": "propose", "arguments": { "for": "agent", "title": "not yet" } },
+        "params": { "name": "task_create", "arguments": { "for": "agent", "title": "not yet" } },
     })
     .to_string();
     assert!(!knocked.exists());
@@ -128,7 +128,7 @@ fn a_hand_let_in_leaves_no_knock() {
     served.person().lets_the_agent_in();
 
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "welcome" }),
     );
 
@@ -147,12 +147,12 @@ fn letting_in_again_opens_a_door_the_old_history_took_with_it() {
     served.person().lets_the_agent_in();
     served.person().takes_the_places_history();
 
-    let shut = served.call("brain", serde_json::json!({}));
+    let shut = served.call("workspace_search", serde_json::json!({}));
     assert_eq!(shut["result"]["isError"], true, "{shut}");
 
     served.person().lets_the_agent_in();
 
-    let open = served.call("brain", serde_json::json!({}));
+    let open = served.call("workspace_search", serde_json::json!({}));
     assert_ne!(open["result"]["isError"], true, "{open}");
 }
 
@@ -161,7 +161,7 @@ fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "buy pink card stock" }),
     );
 
@@ -192,9 +192,9 @@ fn the_same_source_is_never_filed_twice() {
     served.person().lets_the_agent_in();
     let args = serde_json::json!({ "for": "agent", "title": "card stock", "source": "wa:msg-991" });
 
-    let first = served.call("propose", args.clone());
+    let first = served.call("task_create", args.clone());
     let again = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "same thing, read again", "source": "wa:msg-991" }),
     );
 
@@ -214,15 +214,15 @@ fn it_files_into_a_list_that_exists_and_nowhere_else() {
     served.person().adds_list("Work");
 
     let placed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "somewhere else", "list": "Work" }),
     );
     let made_up = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "nowhere", "list": "A List Nobody Made" }),
     );
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "card stock", "tags": ["school"] }),
     );
 
@@ -254,7 +254,7 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let english = served.call("language", serde_json::json!({}));
+    let english = served.call("workspace_guide", serde_json::json!({ "kind": "markdown" }));
     let text = english["result"]["content"][0]["text"]
         .as_str()
         .unwrap_or("");
@@ -268,14 +268,20 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     );
     assert!(text.contains("https://markdown.tisty.app/"));
 
-    let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
+    let pens = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "markdown", "topic": "pens" }),
+    );
     let pens = pens["result"]["content"][0]["text"].as_str().unwrap_or("");
     assert!(
         pens.starts_with("## ") && pens.contains("=={green}"),
         "{pens}"
     );
 
-    let whole = served.call("language", serde_json::json!({ "topic": "all" }));
+    let whole = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "markdown", "topic": "all" }),
+    );
     assert!(
         whole["result"]["content"][0]["text"]
             .as_str()
@@ -283,7 +289,10 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
             .starts_with("# ")
     );
 
-    let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
+    let spanish = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "markdown", "lang": "es" }),
+    );
     assert!(
         spanish["result"]["content"][0]["text"]
             .as_str()
@@ -304,7 +313,7 @@ fn it_can_read_which_tags_are_already_in_use_and_how_often() {
     served.person().captures("cambiar el aceite #auto #casa");
     served.person().captures("pagar el seguro #auto");
 
-    let said = served.call("brain", serde_json::json!({}));
+    let said = served.call("workspace_search", serde_json::json!({}));
     let told = said["result"]["structuredContent"]["tags"]
         .as_array()
         .unwrap()
@@ -339,7 +348,7 @@ fn it_can_read_which_lists_exist_without_being_able_to_make_one() {
     served.person().adds_list("Work");
     served.person().adds_list("Home");
 
-    let said = served.call("brain", serde_json::json!({}));
+    let said = served.call("workspace_search", serde_json::json!({}));
     let named = said["result"]["structuredContent"]["lists"]
         .as_array()
         .unwrap()
@@ -364,7 +373,7 @@ fn a_date_in_words_is_refused_with_the_shape_it_wanted() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "card stock", "deadline": "next monday" }),
     );
 
@@ -393,42 +402,21 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
     assert_eq!(
         names,
         [
-            "propose",
-            "remind",
-            "describe",
-            "plan",
-            "tick",
-            "untick",
-            "rename",
-            "reword_step",
-            "unplan",
-            "move",
-            "reword_note",
-            "note",
-            "attach",
-            "write_doc",
-            "append_doc",
-            "restore_doc",
-            "edit_doc",
-            "edit_table",
-            "import_doc",
-            "export_doc",
-            "archive_doc",
-            "flag_doc",
-            "file_doc",
-            "page_doc",
-            "tongue_doc",
-            "folder",
-            "catch_up",
-            "reschedule",
-            "say_done",
-            "say_not_doing",
-            "sum_up",
-            "read",
-            "brain",
-            "rules",
-            "language",
-            "help"
+            "workspace_catch_up",
+            "workspace_search",
+            "workspace_read",
+            "workspace_guide",
+            "task_create",
+            "task_update",
+            "task_edit_steps",
+            "task_note",
+            "task_resolve",
+            "doc_create",
+            "doc_edit",
+            "doc_edit_table",
+            "doc_organize",
+            "doc_annotate",
+            "file_transfer"
         ]
     );
     for barred in [
@@ -451,7 +439,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
 
 fn filed(served: &Served, title: &str) -> String {
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": title }),
     );
     said["result"]["structuredContent"]["id"]
@@ -474,8 +462,8 @@ fn what_it_says_is_done_stays_open_until_the_person_finishes_it() {
     let id = filed(&served, "pasar biome sobre el front");
 
     let said = served.call(
-        "say_done",
-        serde_json::json!({ "task": id, "body": "npm run lint: 0 errores" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": id, "body": "npm run lint: 0 errores" }),
     );
 
     assert_ne!(said["result"]["isError"], true, "{said}");
@@ -494,11 +482,11 @@ fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
     let id = filed(&served, "sacar la clave de la URL");
 
     served.call(
-        "say_done",
-        serde_json::json!({ "task": id, "body": "responde 401 sin sesión, va en el PR 212" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": id, "body": "responde 401 sin sesión, va en el PR 212" }),
     );
 
-    let read = served.call("read", serde_json::json!({ "task": id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": id }));
     let whole = read.to_string();
     assert!(whole.contains("responde 401 sin"), "{whole}");
     let spoke = read["result"]["structuredContent"]["said_done"]
@@ -517,14 +505,14 @@ fn it_says_a_task_the_person_wrote_is_done_only_as_a_word() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("llamar al taller");
-    let mine = served.call("brain", serde_json::json!({ "query": "taller" }));
+    let mine = served.call("workspace_search", serde_json::json!({ "query": "taller" }));
     let id = mine["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap();
 
     let said = served.call(
-        "say_done",
-        serde_json::json!({ "task": id, "body": "lo di por hecho" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": id, "body": "lo di por hecho" }),
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
@@ -548,8 +536,8 @@ fn what_another_agent_identity_filed_is_still_the_agents_to_finish() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "say_done",
-        serde_json::json!({ "task": id, "body": "lo dejo por hecho" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": id, "body": "lo dejo por hecho" }),
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
@@ -562,7 +550,10 @@ fn the_account_of_what_it_did_is_not_optional() {
     served.person().lets_the_agent_in();
     let id = filed(&served, "revisar el icono del MSIX");
 
-    let said = served.call("say_done", serde_json::json!({ "task": id }));
+    let said = served.call(
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": id }),
+    );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
@@ -570,7 +561,7 @@ fn the_account_of_what_it_did_is_not_optional() {
         why.contains("body"),
         "the refusal names what it wants: {why}"
     );
-    let read = served.call("read", serde_json::json!({ "task": id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": id }));
     assert!(
         !read.to_string().contains("said_done"),
         "a refusal that marked it anyway would be worse than none"
@@ -582,10 +573,10 @@ fn saying_it_twice_is_refused_so_the_journal_does_not_fill_up() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = filed(&served, "confirmar el envío a la Store");
-    let once = serde_json::json!({ "task": id, "body": "la Store lo aceptó el martes" });
+    let once = serde_json::json!({ "outcome": "done", "task": id, "body": "la Store lo aceptó el martes" });
 
-    served.call("say_done", once.clone());
-    let again = served.call("say_done", once);
+    served.call("task_resolve", once.clone());
+    let again = served.call("task_resolve", once);
 
     assert_eq!(again["result"]["isError"], true, "{again}");
     let why = again["result"]["content"][0]["text"].as_str().unwrap();
@@ -606,12 +597,15 @@ fn what_it_has_spoken_for_can_be_told_apart_from_what_it_has_not() {
     filed(&served, "corregir los dos IDOR");
 
     served.call(
-        "say_done",
-        serde_json::json!({ "task": spoken, "body": "0 errores" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": spoken, "body": "0 errores" }),
     );
 
-    let waiting = served.call("brain", serde_json::json!({ "said_done": true }));
-    let rest = served.call("brain", serde_json::json!({ "said_done": false }));
+    let waiting = served.call("workspace_search", serde_json::json!({ "said_done": true }));
+    let rest = served.call(
+        "workspace_search",
+        serde_json::json!({ "said_done": false }),
+    );
     assert_eq!(waiting["result"]["structuredContent"]["total"], 1);
     assert_eq!(
         waiting["result"]["structuredContent"]["matches"][0]["id"],
@@ -632,15 +626,18 @@ fn what_it_has_spoken_for_can_be_told_apart_from_what_it_has_not() {
 fn a_note_reaches_a_task_the_person_wrote() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     let said = served.call(
-        "note",
-        serde_json::json!({ "task": id, "body": "they mentioned this on slack" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": id, "body": "they mentioned this on slack" }),
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
@@ -655,7 +652,7 @@ fn what_it_attaches_says_where_it_came_from() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the slack thread" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
@@ -663,8 +660,8 @@ fn what_it_attaches_says_where_it_came_from() {
     let loose = served.home.path().join("evidence.txt");
     std::fs::write(&loose, "a photo of the card stock").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "task": id, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": id, "path": loose.to_string_lossy() }),
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
@@ -684,7 +681,7 @@ fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_th
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "el contrato" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -701,8 +698,8 @@ fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_th
     let loose = folder.join("mi contrato final.txt");
     std::fs::write(&loose, "lo firmado").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "task": &id, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": &id, "path": loose.to_string_lossy() }),
     );
     assert!(said["result"]["isError"].is_null(), "{said}");
 
@@ -712,7 +709,7 @@ fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_th
         "the person reads where their own file came from: {card}"
     );
 
-    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let back = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = back["result"]["structuredContent"]["journal"][0]["body"]
         .as_str()
         .unwrap_or_default();
@@ -734,8 +731,8 @@ fn a_file_kept_in_a_document_is_added_at_its_end() {
     let loose = served.home.path().join("plano.png");
     std::fs::write(&loose, b"\x89PNG\r\n\x1a\nthe drawing").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy(), "label": "el plano" }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": doc, "path": loose.to_string_lossy(), "label": "el plano" }),
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
@@ -757,7 +754,7 @@ fn a_task_takes_a_large_file_as_a_document_does() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "la charla" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -772,8 +769,8 @@ fn a_task_takes_a_large_file_as_a_document_does() {
     std::fs::write(&heavy, bytes).unwrap();
 
     let onto = served.call(
-        "attach",
-        serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": id, "path": heavy.to_string_lossy() }),
     );
     assert!(
         onto["result"]["isError"].is_null(),
@@ -781,8 +778,8 @@ fn a_task_takes_a_large_file_as_a_document_does() {
     );
 
     let into = served.call(
-        "attach",
-        serde_json::json!({ "doc": doc, "path": heavy.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": doc, "path": heavy.to_string_lossy() }),
     );
     assert!(
         into["result"]["isError"].is_null(),
@@ -796,7 +793,7 @@ fn a_file_goes_to_one_place_and_it_has_to_be_named() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "la charla" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -809,14 +806,14 @@ fn a_file_goes_to_one_place_and_it_has_to_be_named() {
     std::fs::write(&loose, "lo apuntado a mano").unwrap();
 
     let both = served.call(
-        "attach",
-        serde_json::json!({ "task": id, "doc": doc, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": id, "doc": doc, "path": loose.to_string_lossy() }),
     );
     assert_eq!(both["result"]["isError"], true, "{both}");
 
     let neither = served.call(
-        "attach",
-        serde_json::json!({ "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "path": loose.to_string_lossy() }),
     );
     assert_eq!(neither["result"]["isError"], true, "{neither}");
 
@@ -850,8 +847,8 @@ fn a_document_already_full_of_files_is_told_so_before_anything_is_copied() {
     let loose = served.home.path().join("una-mas.png");
     std::fs::write(&loose, b"\x89PNG\r\n\x1a\none more").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": doc, "path": loose.to_string_lossy() }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -879,8 +876,8 @@ fn a_document_with_no_room_left_refuses_before_the_copy() {
     let loose = served.home.path().join("plano.png");
     std::fs::write(&loose, b"\x89PNG\r\n\x1a\nthe drawing").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": doc, "path": loose.to_string_lossy() }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -903,21 +900,21 @@ fn a_folder_takes_an_icon_and_a_colour_and_can_be_told_a_new_one() {
     served.person().lets_the_agent_in();
 
     let made = served.call(
-        "folder",
-        serde_json::json!({ "name": "Condominio", "icon": "home", "color": "teal" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Condominio", "icon": "home", "color": "teal" }),
     );
     assert!(made["result"]["isError"].is_null(), "{made}");
 
     let again = served.call(
-        "folder",
-        serde_json::json!({ "name": "Condominio", "color": "indigo" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Condominio", "color": "indigo" }),
     );
     assert!(again["result"]["isError"].is_null(), "{again}");
     assert_eq!(again["result"]["structuredContent"]["made"], false);
 
     let wrong = served.call(
-        "folder",
-        serde_json::json!({ "name": "Salud", "color": "mauve" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Salud", "color": "mauve" }),
     );
     assert_eq!(wrong["result"]["isError"], true, "{wrong}");
     let why = wrong["result"]["content"][0]["text"].as_str().unwrap();
@@ -944,7 +941,7 @@ fn a_misspelt_argument_is_refused_instead_of_dropped() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pay the deposit", "due": "2026-09-01" }),
     );
 
@@ -965,13 +962,19 @@ fn what_the_person_wrote_is_not_reported_as_the_agents() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "what it filed" }),
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
     let mine = &found["result"]["structuredContent"]["matches"][0];
-    let theirs = served.call("brain", serde_json::json!({ "query": "what it filed" }));
+    let theirs = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "what it filed" }),
+    );
 
     assert_eq!(mine["by_agent"], false, "{mine}");
     assert_eq!(
@@ -1036,7 +1039,7 @@ fn a_note_comes_back_whole_even_when_it_carries_a_link() {
     served.person().lets_the_agent_in();
 
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "what the audit found" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -1045,9 +1048,12 @@ fn a_note_comes_back_whole_even_when_it_carries_a_link() {
         .to_string();
 
     let wrote = "START [anchor](https://example.com/x) MIDDLE_ONE MIDDLE_TWO END";
-    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+    served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": wrote }),
+    );
 
-    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let back = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let journal = &back["result"]["structuredContent"]["journal"];
     let kept = journal[0]["body"].as_str().unwrap_or_default();
 
@@ -1065,7 +1071,7 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     served.person().lets_the_agent_in();
 
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "a long note" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -1076,9 +1082,12 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     let wrote = "Starting at **2 GB / 90 DAYS_KEPT**. An old store sits in \
                  C:/Users/someone/OneDrive/Tisty and STAYS_SAID after it, \
                  the way `C:/Users/example/Tisty` shows.";
-    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+    served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": wrote }),
+    );
 
-    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let back = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = back["result"]["structuredContent"]["journal"][0]["body"]
         .as_str()
         .unwrap_or_default();
@@ -1105,7 +1114,7 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
     served.person().lets_the_agent_in();
 
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "a migrated note" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -1123,9 +1132,12 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
         "```",
     ]
     .join("\n");
-    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+    served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": wrote }),
+    );
 
-    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let back = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = back["result"]["structuredContent"]["journal"][0]["body"]
         .as_str()
         .unwrap_or_default();
@@ -1152,7 +1164,10 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
         assert!(!kept.contains(disk), "{disk} is the person's disk: {kept}");
     }
 
-    let found = served.call("brain", serde_json::json!({ "query": "SECOND_KEPT" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "SECOND_KEPT" }),
+    );
     let line = found["result"]["structuredContent"]["matches"][0]["line"]
         .as_str()
         .unwrap_or_default();
@@ -1173,7 +1188,10 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
         "read says when it hid a path: {back}"
     );
 
-    let fenced = served.call("brain", serde_json::json!({ "query": "origin main" }));
+    let fenced = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "origin main" }),
+    );
     let said = &fenced["result"]["structuredContent"];
     assert_eq!(
         said["matches"][0]["line"],
@@ -1192,7 +1210,7 @@ fn a_path_from_this_disk_is_still_elided() {
     served.person().lets_the_agent_in();
 
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "a task with a note" }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -1201,11 +1219,11 @@ fn a_path_from_this_disk_is_still_elided() {
         .to_string();
 
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "kept at C:/Users/someone/Downloads/x.csv" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "kept at C:/Users/someone/Downloads/x.csv" }),
     );
 
-    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let back = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let whole = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         !whole.contains("Users/someone"),
@@ -1219,7 +1237,7 @@ fn an_id_reaches_a_client_that_only_shows_the_text() {
     served.person().lets_the_agent_in();
 
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "card stock" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
@@ -1238,13 +1256,13 @@ fn turning_the_agent_off_takes_its_voice_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "while it could" }),
     );
 
     served.person().shuts_the_agent_out();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "after it could not" }),
     );
 
@@ -1262,15 +1280,15 @@ fn an_agent_may_only_take_files_from_where_a_download_lands() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "somewhere to put it" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
     for barred in ["config/config.toml", "data/store"] {
         let said = served.call(
-            "attach",
-            serde_json::json!({ "task": id, "path": served.home.path().join(barred) }),
+            "file_transfer",
+            serde_json::json!({ "action": "attach", "task": id, "path": served.home.path().join(barred) }),
         );
         assert_eq!(
             said["result"]["isError"], true,
@@ -1281,8 +1299,8 @@ fn an_agent_may_only_take_files_from_where_a_download_lands() {
     let allowed = std::env::temp_dir().join("tisty-test-evidence.txt");
     std::fs::write(&allowed, "a photo from the chat").unwrap();
     let said = served.call(
-        "attach",
-        serde_json::json!({ "task": id, "path": allowed.to_string_lossy() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": id, "path": allowed.to_string_lossy() }),
     );
     assert!(
         said["result"]["isError"].is_null(),
@@ -1297,7 +1315,7 @@ fn two_callers_racing_on_one_source_file_it_once() {
     served.person().lets_the_agent_in();
     let call = serde_json::json!({
         "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-        "params": { "name": "propose", "arguments": { "for": "agent", "title": "call the bank", "source": "wa:msg-991"
+        "params": { "name": "task_create", "arguments": { "for": "agent", "title": "call the bank", "source": "wa:msg-991"
         }},
     })
     .to_string();
@@ -1365,11 +1383,11 @@ fn a_title_that_would_outlive_its_worth_is_refused() {
     served.person().lets_the_agent_in();
 
     let huge = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "x".repeat(10_000) }),
     );
     let sneaky = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "innocent\u{1b}[2K\u{1b}[1ANOT WHAT IT SAYS" }),
     );
 
@@ -1394,10 +1412,13 @@ fn reading_one_task_gives_the_journal_that_searching_leaves_out() {
     person.adds_step(mine, "gather the screenshots");
     served.person().lets_the_agent_in();
 
-    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
     let hit = &found["result"]["structuredContent"]["matches"][0];
     let id = hit["id"].as_str().unwrap();
-    let whole = served.call("read", serde_json::json!({ "task": id }));
+    let whole = served.call("workspace_read", serde_json::json!({ "task": id }));
     let held = &whole["result"]["structuredContent"];
 
     assert!(
@@ -1422,7 +1443,7 @@ fn reading_a_task_that_is_not_there_says_where_to_look() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": "01M14RFT9ECC2B6E4CX4P59XPH" }),
     );
 
@@ -1431,7 +1452,7 @@ fn reading_a_task_that_is_not_there_says_where_to_look() {
         said["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("brain"),
+            .contains("workspace_search"),
         "the refusal points at the next move"
     );
 }
@@ -1443,13 +1464,13 @@ fn a_document_it_writes_can_be_read_back_and_creates_no_task() {
     let before = served.person().open();
 
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Cartulinas
 
 Rosa y palos de paleta." }),
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
-    let back = served.call("read", serde_json::json!({ "doc": name }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": name }));
 
     assert_eq!(made["result"]["structuredContent"]["title"], "Cartulinas");
     assert!(
@@ -1470,7 +1491,7 @@ fn a_refusal_names_the_document_by_its_title_and_keeps_the_id_in_brackets() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Cartulinas
 
 Rosa." }),
@@ -1478,8 +1499,8 @@ Rosa." }),
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
     let refused = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": name, "old": "azul", "new": "verde" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": name, "old": "azul", "content": "verde" }),
     );
     let said = refused["result"]["content"][0]["text"].as_str().unwrap();
 
@@ -1493,14 +1514,17 @@ fn a_write_rings_the_open_window_and_a_read_does_not() {
     served.person().lets_the_agent_in();
     let bell = served.home.path().join("cache").join("stirred");
 
-    served.call("brain", serde_json::json!({ "scope": "either" }));
+    served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     assert!(
         !bell.exists(),
         "reading writes nothing the window must catch up with"
     );
 
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Cartulinas
 
 Rosa." }),
@@ -1517,7 +1541,7 @@ fn markdown_from_elsewhere_is_written_in_the_tisty_language_and_the_change_is_to
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "---
 title: notes
 ---
@@ -1531,7 +1555,7 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("`language`"), "{text}");
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
-    let back = served.call("read", serde_json::json!({ "doc": doc }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     let body = back["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap();
@@ -1541,7 +1565,7 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
     );
 
     let noted = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "a claim[^1]
 
 [^1]: the source" }),
@@ -1558,7 +1582,7 @@ fn a_document_is_never_rewritten_by_an_agent_that_did_not_read_it() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Kept
 
 as written." }),
@@ -1577,7 +1601,7 @@ something else." }),
             "{tried} must not overwrite what is already written: {said}"
         );
     }
-    let back = served.call("read", serde_json::json!({ "doc": name }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": name }));
     assert!(
         back["result"]["content"][0]["text"]
             .as_str()
@@ -1591,27 +1615,27 @@ fn a_document_is_written_again_whole_by_whoever_read_it_last() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 lo primero." }),
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let read = served.call("read", serde_json::json!({ "doc": name }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let print = read["result"]["structuredContent"]["print"]
         .as_str()
         .expect("read hands back the print it read at");
 
     let again = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": name, "print": print, "body": "# Acta
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": name, "print": print, "content": "# Acta
 
 otra cosa entera." }),
     );
 
     assert!(again["result"]["isError"] != true, "{again}");
-    let back = served.call("read", serde_json::json!({ "doc": name }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let text = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("otra cosa entera"), "{text}");
     assert!(!text.contains("lo primero"), "{text}");
@@ -1634,17 +1658,20 @@ queda para abril.
 ",
         "lo hablado se repite. ".repeat(700)
     );
-    let made = served.call("write_doc", serde_json::json!({ "body": long }));
+    let made = served.call("doc_create", serde_json::json!({ "body": long }));
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let read = served.call("read", serde_json::json!({ "doc": name }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["whole"], serde_json::json!(false));
     assert!(kept["body"].is_null(), "the body stays behind: {kept}");
     assert_eq!(kept["outline"][1]["title"], serde_json::json!("El riego"));
     assert_eq!(kept["outline"][2]["title"], serde_json::json!("El porton"));
 
-    let part = served.call("read", serde_json::json!({ "doc": name, "section": 2 }));
+    let part = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": name, "section": 2 }),
+    );
     let held = part["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap();
@@ -1657,7 +1684,7 @@ fn a_short_document_still_arrives_whole_without_being_asked_twice() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 El riego queda para mayo.
@@ -1665,7 +1692,7 @@ El riego queda para mayo.
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let kept = served.call("read", serde_json::json!({ "doc": name }));
+    let kept = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let kept = &kept["result"]["structuredContent"];
     assert!(kept["whole"].is_null(), "nothing was held back: {kept}");
     assert!(
@@ -1682,7 +1709,7 @@ fn a_run_of_lines_is_handed_back_by_the_numbers_the_outline_gave() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 uno
@@ -1694,7 +1721,7 @@ cuatro
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
     let part = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "doc": name, "from": 4, "to": 5 }),
     );
     assert_eq!(
@@ -1716,7 +1743,7 @@ fn carrying_on_from_a_cursor_is_refused_once_the_document_has_moved_under_it() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 uno
@@ -1728,13 +1755,16 @@ cinco
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let first = served.call("read", serde_json::json!({ "doc": name, "chars": 12 }));
+    let first = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": name, "chars": 12 }),
+    );
     let kept = &first["result"]["structuredContent"];
     let next = kept["next"].as_u64().expect("there is more to read");
     let print = kept["print"].as_str().unwrap().to_string();
 
     let on = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "doc": name, "chars": 12, "cursor": next, "print": print }),
     );
     assert!(
@@ -1743,12 +1773,12 @@ cinco
     );
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": name, "body": "seis
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": name, "content": "seis
 " }),
     );
     let stale = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "doc": name, "chars": 12, "cursor": next, "print": "e3b0c442" }),
     );
     let said = stale["result"]["content"][0]["text"].as_str().unwrap();
@@ -1760,7 +1790,7 @@ fn what_is_in_a_document_is_told_without_the_document() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Acta
 
@@ -1776,7 +1806,10 @@ queda para mayo.
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let back = served.call("brain", serde_json::json!({ "doc": name }));
+    let back = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": name , "view": "card"}),
+    );
     let kept = &back["result"]["structuredContent"];
     assert!(kept["body"].is_null(), "the body never comes: {kept}");
     assert!(kept["print"].is_string(), "the print comes: {kept}");
@@ -1792,7 +1825,7 @@ fn writing_does_not_hand_the_body_back_to_whoever_just_sent_it() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 El riego queda para mayo.
@@ -1804,23 +1837,23 @@ El riego queda para mayo.
         .to_string();
     for back in [
         served.call(
-            "append_doc",
-            serde_json::json!({ "doc": &name, "body": "Y el porton, para abril.
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &name, "content": "Y el porton, para abril.
 " }),
         ),
         served.call(
-            "edit_doc",
-            serde_json::json!({ "doc": &name, "old": "mayo", "new": "junio" }),
+            "doc_edit",
+            serde_json::json!({ "mode": "patch", "doc": &name, "old": "mayo", "content": "junio" }),
         ),
         {
-            let print = served.call("read", serde_json::json!({ "doc": &name }))["result"]
+            let print = served.call("workspace_read", serde_json::json!({ "doc": &name }))["result"]
                 ["structuredContent"]["print"]
                 .as_str()
                 .unwrap()
                 .to_string();
             served.call(
-                "write_doc",
-                serde_json::json!({ "doc": &name, "print": print, "body": "# Acta
+                "doc_edit",
+                serde_json::json!({ "mode": "rewrite", "doc": &name, "print": print, "content": "# Acta
 
 otra cosa.
 " }),
@@ -1843,7 +1876,7 @@ fn nothing_is_written_over_when_what_it_said_cannot_be_kept() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 El riego queda para mayo.
@@ -1859,8 +1892,8 @@ El riego queda para mayo.
     std::fs::write(&history, "no soy una carpeta").expect("nowhere to keep what it said before");
 
     let edited = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &name, "old": "mayo", "new": "junio" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &name, "old": "mayo", "content": "junio" }),
     );
     assert_eq!(
         edited["result"]["isError"],
@@ -1873,14 +1906,14 @@ El riego queda para mayo.
     );
 
     let print =
-        served.call("read", serde_json::json!({ "doc": &name }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &name }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
             .to_string();
     let over = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &name, "print": print, "body": "# Acta
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &name, "print": print, "content": "# Acta
 
 otra cosa.
 " }),
@@ -1894,7 +1927,7 @@ fn a_section_is_replaced_without_the_document_ever_being_read() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Acta\n\n## El riego\n\nqueda para mayo.\n\n## El porton\n\npara abril.\n"
         }),
@@ -1904,19 +1937,22 @@ fn a_section_is_replaced_without_the_document_ever_being_read() {
         .unwrap()
         .to_string();
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &name }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &name , "view": "card"}),
+    );
     let print = seen["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     let done = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &name,
             "section": 1,
             "print": print,
-            "new": "## El riego\n\nqueda para junio.\n"
+            "content": "## El riego\n\nqueda para junio.\n"
         }),
     );
     assert!(done["result"]["isError"] != true, "{done}");
@@ -1931,27 +1967,29 @@ fn an_edit_by_place_is_refused_once_the_lines_have_moved() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta\n\nuno\ndos\ntres\n" }),
     );
     let name = made["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
-    let print = served.call("brain", serde_json::json!({ "doc": &name }))["result"]
-        ["structuredContent"]["print"]
+    let print = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &name , "view": "card"}),
+    )["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &name, "body": "cuatro\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &name, "content": "cuatro\n" }),
     );
 
     let late = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &name, "from": 4, "to": 4, "print": print, "new": "UNO\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &name, "from": 4, "to": 4, "print": print, "content": "UNO\n" }),
     );
     assert_eq!(late["result"]["isError"], serde_json::json!(true), "{late}");
     assert!(
@@ -1960,8 +1998,8 @@ fn an_edit_by_place_is_refused_once_the_lines_have_moved() {
     );
 
     let blind = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &name, "from": 4, "to": 4, "new": "UNO\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &name, "from": 4, "to": 4, "content": "UNO\n" }),
     );
     let said = blind["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("needs the `print`"), "{said}");
@@ -1972,7 +2010,7 @@ fn a_paragraph_goes_under_the_heading_it_names_and_before_the_next_one() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Acta\n\n## El riego\n\nqueda para mayo.\n\n## El porton\n\npara abril.\n"
         }),
@@ -1983,8 +2021,8 @@ fn a_paragraph_goes_under_the_heading_it_names_and_before_the_next_one() {
         .to_string();
 
     let done = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &name, "under": "El riego", "body": "Lo vio Ana." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &name, "under": "El riego", "content": "Lo vio Ana." }),
     );
     assert!(done["result"]["isError"] != true, "{done}");
     assert_eq!(
@@ -1998,7 +2036,7 @@ fn a_heading_that_is_not_there_is_refused_with_the_ones_that_are() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta\n\n## El riego\n\nqueda para mayo.\n" }),
     );
     let name = made["result"]["structuredContent"]["doc"]
@@ -2007,8 +2045,8 @@ fn a_heading_that_is_not_there_is_refused_with_the_ones_that_are() {
         .to_string();
 
     let lost = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &name, "under": "El porton", "body": "algo" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &name, "under": "El porton", "content": "algo" }),
     );
     let said = lost["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
@@ -2031,11 +2069,11 @@ fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
         person.dates(person.id_of("riego del patio"), "2026-09-20");
     }
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llamar al gasfiter", "date": "2026-09-21", "source": "x#1" }),
     );
 
-    let theirs = served.call("brain", serde_json::json!({ "by_agent": true }));
+    let theirs = served.call("workspace_search", serde_json::json!({ "by_agent": true }));
     let kept = &theirs["result"]["structuredContent"]["matches"];
     assert_eq!(kept.as_array().unwrap().len(), 1, "{theirs}");
     assert!(
@@ -2043,15 +2081,15 @@ fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
         "{kept}"
     );
 
-    let tagged = served.call("brain", serde_json::json!({ "tag": "casa" }));
+    let tagged = served.call("workspace_search", serde_json::json!({ "tag": "casa" }));
     assert_eq!(
         tagged["result"]["structuredContent"]["total"],
         serde_json::json!(1)
     );
 
     let days = served.call(
-        "brain",
-        serde_json::json!({ "from": "2026-09-21", "to": "2026-09-30" }),
+        "workspace_search",
+        serde_json::json!({ "date_from": "2026-09-21", "date_to": "2026-09-30" }),
     );
     let kept = &days["result"]["structuredContent"]["matches"];
     assert_eq!(kept.as_array().unwrap().len(), 1, "{days}");
@@ -2060,7 +2098,7 @@ fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
         "{kept}"
     );
 
-    let none = served.call("brain", serde_json::json!({}));
+    let none = served.call("workspace_search", serde_json::json!({}));
     assert!(
         none["result"]["structuredContent"]["lists"].is_array(),
         "asked nothing, it names the lists, folders and tags: {none}"
@@ -2072,7 +2110,7 @@ fn a_word_is_found_inside_one_document_by_the_line_it_sits_on() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Acta\n\nEl riego queda para mayo.\n\nY el porton, para abril.\n"
         }),
@@ -2083,8 +2121,8 @@ fn a_word_is_found_inside_one_document_by_the_line_it_sits_on() {
         .to_string();
 
     let hit = served.call(
-        "brain",
-        serde_json::json!({ "doc": &name, "query": "porton" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &name, "query": "porton" }),
     );
     let kept = &hit["result"]["structuredContent"];
     assert_eq!(kept["total"], serde_json::json!(1), "{kept}");
@@ -2092,8 +2130,8 @@ fn a_word_is_found_inside_one_document_by_the_line_it_sits_on() {
     assert!(kept["print"].is_string(), "the print comes with it: {kept}");
 
     let nothing = served.call(
-        "brain",
-        serde_json::json!({ "doc": &name, "query": "camion" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &name, "query": "camion" }),
     );
     assert_eq!(
         nothing["result"]["structuredContent"]["total"],
@@ -2107,7 +2145,7 @@ fn a_task_that_says_nothing_about_a_field_does_not_carry_it() {
     served.person().lets_the_agent_in();
     served.person().captures("riego del patio");
 
-    let back = served.call("brain", serde_json::json!({ "query": "riego" }));
+    let back = served.call("workspace_search", serde_json::json!({ "query": "riego" }));
     let one = &back["result"]["structuredContent"]["matches"][0];
     assert!(one["date"].is_null(), "no date was given: {one}");
     assert!(one["tags"].is_null(), "no tags were given: {one}");
@@ -2124,7 +2162,7 @@ fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "date": "2026-09-20",
             "source": "correo#1"
@@ -2136,7 +2174,7 @@ fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
         .to_string();
 
     let moved = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &id, "date": "2026-09-27" }),
     );
     assert!(moved["result"]["isError"] != true, "{moved}");
@@ -2145,7 +2183,7 @@ fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
         serde_json::json!("2026-09-27")
     );
 
-    let now = served.call("read", serde_json::json!({ "task": &id }));
+    let now = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert_eq!(
         now["result"]["structuredContent"]["date"],
         serde_json::json!("2026-09-27")
@@ -2161,14 +2199,14 @@ fn a_day_the_person_set_is_theirs_and_no_agent_moves_it() {
         let person = served.person();
         person.dates(person.id_of("riego del patio"), "2026-09-20");
     }
-    let mine = served.call("brain", serde_json::json!({ "query": "riego" }));
+    let mine = served.call("workspace_search", serde_json::json!({ "query": "riego" }));
     let id = mine["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     let tried = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &id, "date": "2026-12-01" }),
     );
     assert_eq!(
@@ -2177,7 +2215,7 @@ fn a_day_the_person_set_is_theirs_and_no_agent_moves_it() {
         "{tried}"
     );
 
-    let still = served.call("read", serde_json::json!({ "task": &id }));
+    let still = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert_eq!(
         still["result"]["structuredContent"]["date"],
         serde_json::json!("2026-09-20"),
@@ -2190,7 +2228,7 @@ fn a_day_is_taken_off_by_sending_nothing_in_its_place() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "deadline": "2026-09-20",
             "source": "correo#2"
@@ -2202,11 +2240,11 @@ fn a_day_is_taken_off_by_sending_nothing_in_its_place() {
         .to_string();
 
     let off = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &id, "deadline": serde_json::Value::Null }),
     );
     assert!(off["result"]["isError"] != true, "{off}");
-    let now = served.call("read", serde_json::json!({ "task": &id }));
+    let now = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         now["result"]["structuredContent"]["deadline"].is_null(),
         "{now}"
@@ -2218,7 +2256,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let first = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llevar el acta", "source": "sereno#1" }),
     );
     let id = first["result"]["structuredContent"]["id"]
@@ -2228,7 +2266,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
 
     for said in ["sereno: #1", "Sereno #1", "sereno:#1"] {
         let again = served.call(
-            "propose",
+            "task_create",
             serde_json::json!({ "for": "agent", "title": "llevar el acta otra vez", "source": said }),
         );
         let kept = &again["result"]["structuredContent"];
@@ -2240,14 +2278,17 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
         assert_eq!(kept["id"], serde_json::json!(&id), "{said}: {again}");
     }
 
-    let asked = served.call("brain", serde_json::json!({ "source": "SERENO: #1" }));
+    let asked = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "source", "source": "SERENO: #1" }),
+    );
     assert_eq!(
         asked["result"]["structuredContent"]["found"]["id"],
         serde_json::json!(&id)
     );
 
     let other = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "otra cosa", "source": "sereno#11" }),
     );
     assert_eq!(
@@ -2262,7 +2303,7 @@ fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llevar el acta",
             "date": "2026-09-20",
             "description": "lo que se hablo en la reunion",
@@ -2276,7 +2317,7 @@ fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
         .to_string();
 
     let some = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["title", "date"] }),
     );
     let kept = &some["result"]["structuredContent"];
@@ -2293,7 +2334,7 @@ fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
         "nor does it slip in through the words"
     );
 
-    let whole = served.call("read", serde_json::json!({ "task": &id }));
+    let whole = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         whole["result"]["structuredContent"]["steps"].is_array(),
         "asking for nothing still brings everything"
@@ -2308,7 +2349,7 @@ fn a_name_that_is_not_there_is_refused_with_the_names_that_are() {
     served.person().adds_list("Trabajo");
 
     let lost = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "algo", "list": "Bodega", "source": "x#9" }),
     );
     let said = lost["result"]["content"][0]["text"].as_str().unwrap();
@@ -2323,8 +2364,8 @@ fn a_passage_that_is_nearly_right_is_refused_with_the_line_it_is_nearly_on() {
     let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para marzo.");
 
     let missed = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "el riego queda para MARZO", "new": "otra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "el riego queda para MARZO", "content": "otra cosa" }),
     );
     let said = missed["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("line 3"), "it says where: {said}");
@@ -2341,8 +2382,8 @@ fn a_passage_that_fits_twice_is_refused_with_both_lines() {
     let doc = wrote_paper(&served, "# Acta\n\nregar\n\notra cosa\n\nregar");
 
     let twice = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "regar", "new": "regar el patio" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "regar", "content": "regar el patio" }),
     );
     let said = twice["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("lines 3, 7"), "{said}");
@@ -2362,8 +2403,8 @@ fn an_import_that_is_turned_away_leaves_nothing_of_it_on_disk() {
     .unwrap();
 
     let turned = served.call(
-        "import_doc",
-        serde_json::json!({
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc",
             "path": here.join("acta.md").to_string_lossy(),
             "folder": "una carpeta que no existe"
         }),
@@ -2400,18 +2441,21 @@ fn the_list_says_what_each_document_is_about_so_none_has_to_be_opened() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Acta del riego\n\n## Lo hablado\n\nEl riego queda para mayo. El riego \
                      del patio lo ve Ana.\n\n![la foto](x.png)\n"
         }),
     );
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# El porton\n\nEl porton se cambia en abril." }),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let all = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap();
@@ -2444,7 +2488,7 @@ fn the_list_puts_what_moved_last_first_and_not_what_was_made_last() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let first = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# El primero\n\nalgo." }),
     );
     let first = first["result"]["structuredContent"]["doc"]
@@ -2452,16 +2496,19 @@ fn the_list_puts_what_moved_last_first_and_not_what_was_made_last() {
         .unwrap()
         .to_string();
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# El segundo\n\notra cosa." }),
     );
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &first, "body": "y algo mas." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &first, "content": "y algo mas." }),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     assert_eq!(
         listed["result"]["structuredContent"]["docs"][0]["title"],
         serde_json::json!("El primero"),
@@ -2476,11 +2523,11 @@ fn one_call_says_where_things_stand_before_anything_is_asked_for() {
     served.person().adds_list("Casa");
     served.person().captures("riego del patio #casa");
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta\n\nlo que se hablo." }),
     );
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
 
     assert_eq!(kept["lists"][0], serde_json::json!("Casa"), "{kept}");
@@ -2512,7 +2559,7 @@ fn a_task_that_comes_back_every_month_reaches_the_agent_on_its_day() {
     person.repeats(id, "every month");
     person.captures("someday, a new logo");
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     let text = back["result"]["content"][0]["text"].as_str().unwrap();
 
@@ -2533,7 +2580,7 @@ fn a_task_that_comes_back_every_month_reaches_the_agent_on_its_day() {
     assert!(text.contains("`read` one"), "{text}");
 
     let cursor = kept["cursor"].as_str().unwrap();
-    let again = served.call("catch_up", serde_json::json!({ "since": cursor }));
+    let again = served.call("workspace_catch_up", serde_json::json!({ "since": cursor }));
     assert!(
         again["result"]["structuredContent"]
             .get("pressing")
@@ -2548,18 +2595,24 @@ fn coming_back_with_the_cursor_brings_only_what_moved() {
     served.person().lets_the_agent_in();
     served.person().captures("riego del patio");
 
-    let first = served.call("catch_up", serde_json::json!({}));
+    let first = served.call("workspace_catch_up", serde_json::json!({}));
     let cursor = first["result"]["structuredContent"]["cursor"]
         .as_str()
         .unwrap()
         .to_string();
 
-    let quiet = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    let quiet = served.call(
+        "workspace_catch_up",
+        serde_json::json!({ "since": &cursor }),
+    );
     let kept = &quiet["result"]["structuredContent"];
     assert!(kept["tasks"].is_null(), "nothing moved: {kept}");
 
     served.person().captures("cambiar el porton");
-    let now = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    let now = served.call(
+        "workspace_catch_up",
+        serde_json::json!({ "since": &cursor }),
+    );
     let moved = now["result"]["structuredContent"]["tasks"]
         .as_array()
         .expect("something moved");
@@ -2582,7 +2635,10 @@ fn a_cursor_that_is_not_one_is_refused_saying_where_it_comes_from() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let bad = served.call("catch_up", serde_json::json!({ "since": "el martes" }));
+    let bad = served.call(
+        "workspace_catch_up",
+        serde_json::json!({ "since": "el martes" }),
+    );
     let said = bad["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("cursor"), "{said}");
 }
@@ -2591,7 +2647,7 @@ fn a_cursor_that_is_not_one_is_refused_saying_where_it_comes_from() {
 fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_on() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let first = served.call("catch_up", serde_json::json!({}));
+    let first = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &first["result"]["structuredContent"];
     assert!(
         kept["last"].is_null(),
@@ -2601,22 +2657,22 @@ fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_
     assert!(kept["tasks"].is_null(), "{kept}");
 
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "the photo is ready" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "the photo is ready" }),
     );
     served.person().captures("cambiar el porton");
     served
         .person()
         .notes(person::task(&id), "the office opens at nine");
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
@@ -2659,14 +2715,14 @@ fn what_moved_and_the_tags_come_capped_with_how_many_more() {
     served.person().lets_the_agent_in();
     let recipes = served.person().writes_doc("# Recetas\n\nArroz.");
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     );
     for n in 0..45 {
         served.person().captures(&format!("chore {n} #tag{n}"));
     }
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
 
     assert_eq!(kept["tasks"].as_array().unwrap().len(), 20, "{kept}");
@@ -2680,7 +2736,7 @@ fn what_moved_and_the_tags_come_capped_with_how_many_more() {
     );
     assert_eq!(kept["tasks"][0]["title"], "chore 0", "{kept}");
 
-    let next = served.call("catch_up", serde_json::json!({}));
+    let next = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &next["result"]["structuredContent"];
     assert_eq!(kept["tasks"][0]["title"], "chore 20", "{kept}");
     assert_eq!(kept["tasks"].as_array().unwrap().len(), 20, "{kept}");
@@ -2689,7 +2745,7 @@ fn what_moved_and_the_tags_come_capped_with_how_many_more() {
         "what was only counted comes next: {kept}"
     );
 
-    let last = served.call("catch_up", serde_json::json!({}));
+    let last = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &last["result"]["structuredContent"];
     assert_eq!(kept["tasks"].as_array().unwrap().len(), 5, "{kept}");
     assert!(kept["tasks_more"].is_null(), "{kept}");
@@ -2700,15 +2756,15 @@ fn a_task_from_a_machine_that_synced_late_is_still_heard() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let phone = tempfile::tempdir().unwrap();
-    served.call("catch_up", serde_json::json!({}));
+    served.call("workspace_catch_up", serde_json::json!({}));
     served
         .person()
         .captures_on_a_machine_not_synced_yet("llamar al dentista", phone.path());
     served.person().captures("cambiar el porton");
-    served.call("catch_up", serde_json::json!({}));
+    served.call("workspace_catch_up", serde_json::json!({}));
 
     served.person().syncs_that_machine(phone.path());
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     assert_eq!(
         kept["tasks"][0]["title"], "llamar al dentista",
@@ -2727,12 +2783,12 @@ fn a_client_that_names_itself_another_way_is_still_the_same_hand() {
     };
     served.talk(&[
         &greeting("codex"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_create","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
 
     let back = served.talk(&[
         &greeting("codex-mcp-client"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"catch_up","arguments":{}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"workspace_catch_up","arguments":{}}}"#,
     ]);
     let kept = &back[1]["result"]["structuredContent"];
     assert_eq!(kept["last"]["title"], "pasar biome", "{kept}");
@@ -2746,10 +2802,10 @@ fn a_client_that_names_itself_another_way_is_still_the_same_hand() {
 fn a_session_that_only_read_still_hears_what_moved_and_hears_it_again_if_asked_at_once() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("catch_up", serde_json::json!({}));
+    served.call("workspace_catch_up", serde_json::json!({}));
     served.person().captures("cambiar el porton");
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     assert!(kept["since"].is_string(), "{kept}");
     assert_eq!(kept["tasks"][0]["title"], "cambiar el porton", "{kept}");
@@ -2759,7 +2815,7 @@ fn a_session_that_only_read_still_hears_what_moved_and_hears_it_again_if_asked_a
         "{kept}"
     );
 
-    let again = served.call("catch_up", serde_json::json!({}));
+    let again = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &again["result"]["structuredContent"];
     assert_eq!(
         kept["tasks"][0]["title"], "cambiar el porton",
@@ -2776,11 +2832,11 @@ fn each_client_picks_up_its_own_task_and_hears_the_other_by_name() {
             r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2025-06-18","capabilities":{{}},"clientInfo":{{"name":"{name}","version":"1"}}}}}}"#
         )
     };
-    let catching_up = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"catch_up","arguments":{}}}"#;
+    let catching_up = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"workspace_catch_up","arguments":{}}}"#;
     served.talk(&[&greeting("claude-code"), catching_up]);
     served.talk(&[
         &greeting("codex"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_create","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
 
     let back = served.talk(&[&greeting("claude-code"), catching_up]);
@@ -2805,7 +2861,7 @@ fn each_client_picks_up_its_own_task_and_hears_the_other_by_name() {
 fn asking_with_a_cursor_only_reads_and_a_cut_page_hands_the_cursor_for_the_rest() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let first = served.call("catch_up", serde_json::json!({}));
+    let first = served.call("workspace_catch_up", serde_json::json!({}));
     let old = first["result"]["structuredContent"]["cursor"]
         .as_str()
         .unwrap()
@@ -2814,12 +2870,12 @@ fn asking_with_a_cursor_only_reads_and_a_cut_page_hands_the_cursor_for_the_rest(
         served.person().captures(&format!("chore {n}"));
     }
 
-    let page = served.call("catch_up", serde_json::json!({ "since": &old }));
+    let page = served.call("workspace_catch_up", serde_json::json!({ "since": &old }));
     let kept = &page["result"]["structuredContent"];
     assert_eq!(kept["tasks"].as_array().unwrap().len(), 20, "{kept}");
     assert_eq!(kept["tasks_more"], 10, "{kept}");
     let rest = kept["cursor"].as_str().unwrap().to_string();
-    let next = served.call("catch_up", serde_json::json!({ "since": &rest }));
+    let next = served.call("workspace_catch_up", serde_json::json!({ "since": &rest }));
     let kept = &next["result"]["structuredContent"];
     assert_eq!(
         kept["tasks"].as_array().unwrap().len(),
@@ -2828,7 +2884,7 @@ fn asking_with_a_cursor_only_reads_and_a_cut_page_hands_the_cursor_for_the_rest(
     );
     assert_eq!(kept["tasks"][0]["title"], "chore 20", "{kept}");
 
-    let own = served.call("catch_up", serde_json::json!({}));
+    let own = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &own["result"]["structuredContent"];
     assert_eq!(
         kept["tasks"].as_array().unwrap().len(),
@@ -2842,22 +2898,22 @@ fn a_task_said_done_is_not_offered_to_pick_up_and_no_older_one_stands_in() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "old chore" }),
     );
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "renewed; the receipt is in the drawer" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "renewed; the receipt is in the drawer" }),
     );
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["last"].is_null(), "{kept}");
@@ -2873,7 +2929,7 @@ fn reading_a_task_by_a_field_it_does_not_have_names_the_ones_it_does() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -2881,7 +2937,7 @@ fn reading_a_task_by_a_field_it_does_not_have_names_the_ones_it_does() {
         .to_string();
 
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["page", "title"] }),
     );
     let said = read["result"]["content"][0]["text"].as_str().unwrap();
@@ -2895,7 +2951,7 @@ fn every_key_a_whole_read_hands_back_can_be_asked_for_alone() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport",
             "description": "Before the trip.",
             "deadline": "2026-12-20",
@@ -2909,15 +2965,15 @@ fn every_key_a_whole_read_hands_back_can_be_asked_for_alone() {
         .unwrap()
         .to_string();
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "Office opens at 9." }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "Office opens at 9." }),
     );
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "Forms listed." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "Forms listed." }),
     );
 
-    let whole = served.call("read", serde_json::json!({ "task": &id }));
+    let whole = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let keys: Vec<String> = whole["result"]["structuredContent"]
         .as_object()
         .unwrap()
@@ -2926,7 +2982,10 @@ fn every_key_a_whole_read_hands_back_can_be_asked_for_alone() {
         .collect();
     assert!(keys.len() > 10, "{whole}");
     for key in keys {
-        let one = served.call("read", serde_json::json!({ "task": &id, "fields": [&key] }));
+        let one = served.call(
+            "workspace_read",
+            serde_json::json!({ "task": &id, "fields": [&key] }),
+        );
         assert!(
             one["result"]["isError"].is_null(),
             "{key:?} comes in a whole read but is refused alone: {one}"
@@ -2939,7 +2998,7 @@ fn a_task_page_longer_than_one_read_comes_as_its_sections() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move payments to v2" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -2947,11 +3006,11 @@ fn a_task_page_longer_than_one_read_comes_as_its_sections() {
         .to_string();
     let long = "The webhook retries with the old signature. ".repeat(320);
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": long }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": long }),
     );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     let said = read["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(kept["document"]["whole"], false, "{kept}");
@@ -2970,14 +3029,17 @@ fn showing_a_table_from_a_task_id_says_it_is_a_task() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
-    let shown = served.call("edit_table", serde_json::json!({ "doc": &id }));
+    let shown = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &id , "view": "table"}),
+    );
     let said = shown["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         said.contains("is the task \"renew the passport\""),
@@ -2991,12 +3053,12 @@ fn many_folders_come_capped_with_how_many_more() {
     served.person().lets_the_agent_in();
     for n in 0..35 {
         served.call(
-            "folder",
-            serde_json::json!({ "name": format!("Folder {n:02}") }),
+            "doc_organize",
+            serde_json::json!({ "action": "create_folder", "name": format!("Folder {n:02}") }),
         );
     }
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     assert_eq!(kept["folders"].as_array().unwrap().len(), 30, "{kept}");
     assert_eq!(kept["folders_more"], 5, "{kept}");
@@ -3007,12 +3069,12 @@ fn a_document_someone_else_edited_is_signed_with_their_name_not_the_person_s() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let file = served.person().writes_doc("# Plan\n\nUno.");
-    served.call("catch_up", serde_json::json!({}));
+    served.call("workspace_catch_up", serde_json::json!({}));
     served
         .person()
         .takes_an_edit_signed_by(&file, "# Plan\n\nDos.", "Ana");
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     assert_eq!(kept["docs"][0]["doc"], file.as_str(), "{kept}");
     assert_eq!(kept["docs"][0]["by"], serde_json::json!(["Ana"]), "{kept}");
@@ -3023,19 +3085,19 @@ fn a_description_is_left_out_only_when_its_page_holds_it_line_for_line() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "plan",
-        serde_json::json!({ "task": &id, "steps": ["pay the fee"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &id, "steps": ["pay the fee"] }),
     );
     served.person().describes(person::task(&id), "pay");
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(
         kept["description"], "pay",
@@ -3043,11 +3105,11 @@ fn a_description_is_left_out_only_when_its_page_holds_it_line_for_line() {
     );
 
     served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "for the trip" }),
+        "task_update",
+        serde_json::json!({ "task": &id, "description": "for the trip" }),
     );
     let asked = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["description", "document"] }),
     );
     let kept = &asked["result"]["structuredContent"];
@@ -3063,18 +3125,18 @@ fn a_description_with_its_own_headings_is_found_on_its_page() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "## Context\n\nThe office moved." }),
+        "task_update",
+        serde_json::json!({ "task": &id, "description": "## Context\n\nThe office moved." }),
     );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     let said = read["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["description"].is_null(), "{kept}");
@@ -3086,14 +3148,17 @@ fn a_count_of_notes_below_zero_is_refused_saying_what_works() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
-    let read = served.call("read", serde_json::json!({ "task": &id, "notes": -1 }));
+    let read = served.call(
+        "workspace_read",
+        serde_json::json!({ "task": &id, "notes": -1 }),
+    );
     assert_eq!(read["result"]["isError"], true, "{read}");
     let said = read["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("0 for all"), "{said}");
@@ -3104,31 +3169,31 @@ fn reading_a_task_brings_its_page_in_the_text_and_its_latest_notes_with_who_wrot
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport", "description": "for the trip in March" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "plan",
-        serde_json::json!({ "task": &id, "steps": ["book the appointment"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &id, "steps": ["book the appointment"] }),
     );
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "Ruled out the express office: closed on Mondays." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "Ruled out the express office: closed on Mondays." }),
     );
     for n in 0..12 {
         served.call(
-            "note",
-            serde_json::json!({ "task": &id, "body": format!("tried door {n}") }),
+            "task_note",
+            serde_json::json!({ "action": "add", "task": &id, "body": format!("tried door {n}") }),
         );
     }
     served
         .person()
         .notes(person::task(&id), "my own word on it");
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     let said = read["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
@@ -3153,12 +3218,18 @@ fn reading_a_task_brings_its_page_in_the_text_and_its_latest_notes_with_who_wrot
         "{said}"
     );
 
-    let all = served.call("read", serde_json::json!({ "task": &id, "notes": 0 }));
+    let all = served.call(
+        "workspace_read",
+        serde_json::json!({ "task": &id, "notes": 0 }),
+    );
     let kept = &all["result"]["structuredContent"];
     assert_eq!(kept["journal"].as_array().unwrap().len(), 13, "{kept}");
     assert!(kept["earlier"].is_null(), "{kept}");
 
-    let two = served.call("read", serde_json::json!({ "task": &id, "notes": 2 }));
+    let two = served.call(
+        "workspace_read",
+        serde_json::json!({ "task": &id, "notes": 2 }),
+    );
     let kept = &two["result"]["structuredContent"];
     assert_eq!(kept["journal"].as_array().unwrap().len(), 2, "{kept}");
     assert_eq!(kept["earlier"], 11, "{kept}");
@@ -3171,7 +3242,7 @@ fn several_tasks_go_in_one_call_and_a_bad_one_does_not_take_the_rest() {
     served.person().adds_list("Casa");
 
     let back = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [
             { "for": "agent", "title": "llevar el acta", "date": "2026-09-20", "source": "correo#1" },
             { "for": "agent", "title": "sin lista que exista", "list": "Bodega", "source": "correo#2" },
@@ -3194,7 +3265,7 @@ fn several_tasks_go_in_one_call_and_a_bad_one_does_not_take_the_rest() {
         "and the good ones after it still landed"
     );
 
-    let listed = served.call("brain", serde_json::json!({ "by_agent": true }));
+    let listed = served.call("workspace_search", serde_json::json!({ "by_agent": true }));
     assert_eq!(
         listed["result"]["structuredContent"]["total"],
         serde_json::json!(2)
@@ -3207,7 +3278,7 @@ fn the_same_source_twice_in_one_batch_is_still_filed_once() {
     served.person().lets_the_agent_in();
 
     let back = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [
             { "for": "agent", "title": "llevar el acta", "source": "correo#9" },
             { "for": "agent", "title": "llevar el acta otra vez", "source": "correo: #9" }
@@ -3227,11 +3298,11 @@ fn audit_a_source_with_a_space_before_the_colon_is_still_the_same_source() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "llevar el acta", "source": "sereno#1" }),
     );
     let again = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "otra vez", "source": "sereno : #1" }),
     );
     assert_eq!(
@@ -3246,21 +3317,24 @@ fn audit_a_task_the_person_folded_away_stays_out_of_everything() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("lo de la clinica");
-    let told = served.call("brain", serde_json::json!({ "query": "clinica" }));
+    let told = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "clinica" }),
+    );
     let id = told["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
     hide(&served, &id);
 
-    let sifted = served.call("brain", serde_json::json!({ "by_agent": false }));
+    let sifted = served.call("workspace_search", serde_json::json!({ "by_agent": false }));
     let said = format!("{sifted}");
     assert!(
         !said.contains("clinica"),
         "sifting must not reach it: {said}"
     );
 
-    let told = served.call("catch_up", serde_json::json!({}));
+    let told = served.call("workspace_catch_up", serde_json::json!({}));
     assert!(!format!("{told}").contains("clinica"), "{told}");
 }
 
@@ -3272,16 +3346,18 @@ fn audit_a_locked_document_is_not_edited_by_naming_a_place_either() {
         &served,
         "# Acta\n\n## Uno\n\nlo primero.\n\n## Dos\n\nlo otro.",
     );
-    let print = served.call("brain", serde_json::json!({ "doc": &doc }))["result"]
-        ["structuredContent"]["print"]
+    let print = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    )["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
     lock(&served, &doc);
 
     let tried = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "section": 1, "print": print, "new": "## Uno\n\notra.\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "section": 1, "print": print, "content": "## Uno\n\notra.\n" }),
     );
     assert_eq!(
         tried["result"]["isError"],
@@ -3299,11 +3375,14 @@ fn audit_an_archived_document_is_not_added_under_a_heading_either() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\n## Uno\n\nlo primero.");
-    served.call("archive_doc", serde_json::json!({ "doc": &doc }));
+    served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc ]}),
+    );
 
     let tried = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "under": "Uno", "body": "algo mas" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "under": "Uno", "content": "algo mas" }),
     );
     assert_eq!(
         tried["result"]["isError"],
@@ -3325,7 +3404,7 @@ fn audit_reading_a_part_never_reaches_past_the_document() {
         serde_json::json!({ "doc": &doc, "section": 9000 }),
         serde_json::json!({ "doc": &doc, "chars": 1, "cursor": 9000 }),
     ] {
-        let back = served.call("read", args.clone());
+        let back = served.call("workspace_read", args.clone());
         assert!(
             back["result"].get("content").is_some(),
             "it answers rather than falling over on {args}: {back}"
@@ -3338,15 +3417,17 @@ fn audit_an_edit_by_place_cannot_empty_a_document_through_the_back_door() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nuno\ndos\ntres\n");
-    let print = served.call("brain", serde_json::json!({ "doc": &doc }))["result"]
-        ["structuredContent"]["print"]
+    let print = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    )["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     let tried = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 1, "print": print, "new": "" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 1, "print": print, "content": "" }),
     );
     assert_eq!(
         tried["result"]["isError"],
@@ -3364,7 +3445,7 @@ fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [
             { "for": "agent", "title": "llevar el acta", "source": "sereno#1" },
             { "for": "agent", "title": "pagar la cuota", "source": "sereno: #2" },
@@ -3372,7 +3453,10 @@ fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
         ]}),
     );
 
-    let out_of = served.call("brain", serde_json::json!({ "from_source": "sereno" }));
+    let out_of = served.call(
+        "workspace_search",
+        serde_json::json!({ "from_source": "sereno" }),
+    );
     let kept = &out_of["result"]["structuredContent"];
     assert_eq!(kept["total"], serde_json::json!(2), "{out_of}");
     assert!(
@@ -3385,7 +3469,7 @@ fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
     );
 
     let narrowed = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "from_source": "sereno", "query": "cuota" }),
     );
     assert_eq!(
@@ -3409,12 +3493,18 @@ fn audit_a_document_whose_text_has_not_arrived_is_listed_without_falling_over() 
     )
     .unwrap();
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     assert!(listed["result"].get("content").is_some(), "{listed}");
     let one = &listed["result"]["structuredContent"]["docs"][0];
     assert!(one["print"].is_null(), "nothing is claimed about it: {one}");
 
-    let asked = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let asked = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     assert_eq!(
         asked["result"]["isError"],
         serde_json::json!(true),
@@ -3438,7 +3528,10 @@ fn audit_what_a_document_says_is_data_and_never_a_heading_it_is_not() {
         "# Acta\n\n```text\n## Not a heading\n```\n\n## Real one\n\nlo dicho.",
     );
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     let outline = seen["result"]["structuredContent"]["outline"]
         .as_array()
         .unwrap();
@@ -3454,14 +3547,14 @@ fn audit_a_batch_is_bounded_and_says_so_rather_than_writing_part_of_it() {
     let many: Vec<serde_json::Value> = (0..40)
         .map(|n| serde_json::json!({ "title": format!("tarea {n}"), "source": format!("x#{n}") }))
         .collect();
-    let turned = served.call("propose", serde_json::json!({ "tasks": many }));
+    let turned = served.call("task_create", serde_json::json!({ "tasks": many }));
     assert_eq!(
         turned["result"]["isError"],
         serde_json::json!(true),
         "{turned}"
     );
 
-    let after = served.call("brain", serde_json::json!({ "by_agent": true }));
+    let after = served.call("workspace_search", serde_json::json!({ "by_agent": true }));
     assert_eq!(
         after["result"]["structuredContent"]["total"],
         serde_json::json!(0),
@@ -3479,16 +3572,19 @@ fn what_one_agent_worked_out_is_there_for_the_next_without_the_document() {
     );
 
     let kept = served.call(
-        "sum_up",
-        serde_json::json!({
-            "doc": &doc,
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize",
+            "docs": [&doc],
             "summary": "Lo acordado sobre el riego y el porton en el comite de marzo.",
             "notes": "El riego esta en la seccion 1, el porton en la 2."
         }),
     );
     assert!(kept["result"]["isError"] != true, "{kept}");
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     let gist = &seen["result"]["structuredContent"]["gist"];
     assert!(
         gist["summary"].as_str().unwrap().contains("el riego"),
@@ -3504,7 +3600,10 @@ fn what_one_agent_worked_out_is_there_for_the_next_without_the_document() {
         "it describes the text as it reads: {gist}"
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let one = &listed["result"]["structuredContent"]["docs"][0];
     assert!(
         one["gist"]["summary"].is_string(),
@@ -3519,17 +3618,20 @@ fn a_summary_of_a_document_that_moved_says_so_rather_than_lying() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para mayo.");
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "El riego queda para mayo." }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "El riego queda para mayo." }),
     );
 
     std::thread::sleep(std::time::Duration::from_millis(20));
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Y el porton, para abril." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Y el porton, para abril." }),
     );
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     let gist = &seen["result"]["structuredContent"]["gist"];
     assert_eq!(gist["stale"], serde_json::json!(true), "{seen}");
     assert!(
@@ -3544,8 +3646,8 @@ fn what_an_agent_remembers_travels_in_the_log_and_never_into_the_document() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "un secreto de trabajo" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "un secreto de trabajo" }),
     );
 
     let store = served.home.path().join("data/store");
@@ -3585,8 +3687,8 @@ fn an_export_never_carries_what_an_agent_noted_about_the_document() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     let kept = served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "un secreto de trabajo", "notes": "la seccion de abril" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "un secreto de trabajo", "notes": "la seccion de abril" }),
     );
     assert_eq!(kept["result"]["structuredContent"]["kept"], true, "{kept}");
     let out = tempfile::Builder::new()
@@ -3594,8 +3696,8 @@ fn an_export_never_carries_what_an_agent_noted_about_the_document() {
         .unwrap();
 
     let said = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &doc, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &doc, "path": out.path().to_str().unwrap() }),
     );
 
     assert_ne!(said["result"]["isError"], true, "{said}");
@@ -3622,7 +3724,10 @@ fn saying_nothing_about_a_document_is_refused_rather_than_kept() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
 
-    let empty = served.call("sum_up", serde_json::json!({ "doc": &doc }));
+    let empty = served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc ]}),
+    );
     assert_eq!(
         empty["result"]["isError"],
         serde_json::json!(true),
@@ -3630,14 +3735,14 @@ fn saying_nothing_about_a_document_is_refused_rather_than_kept() {
     );
 
     let long = served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "a".repeat(2_100) }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "a".repeat(2_100) }),
     );
     assert_eq!(long["result"]["isError"], serde_json::json!(true), "{long}");
 
     let lost = served.call(
-        "sum_up",
-        serde_json::json!({ "doc": "no-esta-0001", "summary": "algo" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": ["no-esta-0001"], "summary": "algo" }),
     );
     assert_eq!(lost["result"]["isError"], serde_json::json!(true), "{lost}");
 }
@@ -3647,14 +3752,14 @@ fn the_print_read_hands_back_is_the_print_of_the_very_text_it_handed_back() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 sin tocar." }),
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let read = served.call("read", serde_json::json!({ "doc": name }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let print = read["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
@@ -3665,8 +3770,8 @@ sin tocar." }),
         .to_string();
 
     let again = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": name, "print": print, "body": body }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": name, "print": print, "content": body }),
     );
 
     assert!(
@@ -3680,27 +3785,27 @@ fn a_document_that_moved_since_it_was_read_keeps_what_the_person_put_there() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta
 
 lo primero." }),
     );
     let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
 
-    let read = served.call("read", serde_json::json!({ "doc": name }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let print = read["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": name, "body": "lo que escribio la persona." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": name, "content": "lo que escribio la persona." }),
     );
 
     let again = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": name, "print": print, "body": "# Acta
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": name, "print": print, "content": "# Acta
 
 solo lo mio." }),
     );
@@ -3716,7 +3821,7 @@ solo lo mio." }),
         "and the print that goes with it, so no second read is needed: {why}"
     );
 
-    let back = served.call("read", serde_json::json!({ "doc": name }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": name }));
     let text = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("lo que escribio la persona"), "{text}");
     assert!(!text.contains("solo lo mio"), "{text}");
@@ -3729,7 +3834,10 @@ fn what_the_person_hid_is_out_of_reach_and_not_even_counted() {
         .person()
         .describes(served.person().id_of("algo mio"), "what I tell nobody");
     served.person().lets_the_agent_in();
-    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
@@ -3738,8 +3846,11 @@ fn what_the_person_hid_is_out_of_reach_and_not_even_counted() {
     served.person().tags(person::task(&id), "privado");
     hide(&served, &id);
 
-    let after = served.call("brain", serde_json::json!({ "query": "algo mio" }));
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let after = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
 
     assert_eq!(
         after["result"]["structuredContent"]["total"], 0,
@@ -3829,12 +3940,15 @@ fn what_it_reads_does_not_carry_the_shape_of_the_persons_disk() {
         .person()
         .attaches(served.person().id_of("algo mio"), &loose);
 
-    let found = served.call("brain", serde_json::json!({ "query": "algo mio" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "algo mio" }),
+    );
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
-    let read = served.call("read", serde_json::json!({ "task": id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": id }));
 
     let whole = read["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
@@ -3853,13 +3967,13 @@ fn a_document_that_is_not_there_says_so_and_a_task_id_is_not_one() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "a task, not a doc" }),
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
     for asked in ["no-such-doc-0001", id] {
-        let said = served.call("read", serde_json::json!({ "doc": asked }));
+        let said = served.call("workspace_read", serde_json::json!({ "doc": asked }));
         assert_eq!(said["result"]["isError"], true, "{asked}: {said}");
     }
 }
@@ -3872,8 +3986,8 @@ fn two_documents_with_the_same_body_are_two_documents() {
 
 words." });
 
-    let one = served.call("write_doc", body.clone());
-    let two = served.call("write_doc", body);
+    let one = served.call("doc_create", body.clone());
+    let two = served.call("doc_create", body);
 
     assert_ne!(
         one["result"]["structuredContent"]["doc"], two["result"]["structuredContent"]["doc"],
@@ -3890,7 +4004,7 @@ fn what_a_session_writes_says_which_client_spoke() {
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-code","version":"1"}}}"#,
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_create","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
@@ -3909,7 +4023,7 @@ fn what_a_session_writes_says_which_client_spoke() {
         "the event carries the client: {held}"
     );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert_eq!(
         read["result"]["structuredContent"]["via"], "Claude Code",
         "{read}"
@@ -3929,7 +4043,7 @@ fn a_second_client_is_told_which_hand_already_said_it_was_done() {
     };
     let said = served.talk(&[
         &greeting("claude-code"),
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_create","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
@@ -3937,7 +4051,7 @@ fn a_second_client_is_told_which_hand_already_said_it_was_done() {
         .to_string();
     let done = serde_json::json!({
         "jsonrpc": "2.0", "id": 3, "method": "tools/call",
-        "params": { "name": "say_done", "arguments": { "task": id, "body": "0 errores" } },
+        "params": { "name": "task_resolve", "arguments": { "outcome": "done", "task": id, "body": "0 errores" } },
     })
     .to_string();
     let first = served.talk(&[&greeting("claude-code"), &done]);
@@ -3963,14 +4077,14 @@ fn a_client_named_in_meta_is_kept_too() {
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"codex","version":"2"}}}}"#,
-        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_create","arguments":{ "for": "agent", "title":"pasar biome"}}}"#,
     ]);
     let id = said[1]["result"]["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert_eq!(
         read["result"]["structuredContent"]["via"], "Codex",
         "{read}"
@@ -4045,11 +4159,11 @@ fn a_folder_in_the_archive_takes_no_writing_of_any_kind() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Linio", "icon": "work" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Linio", "icon": "work" }),
     );
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Antifraude
 
 Lo de entonces.", "folder": "Linio" }),
@@ -4063,7 +4177,7 @@ Lo de entonces.", "folder": "Linio" }),
     let said = |call: serde_json::Value| call["result"]["content"][0]["text"].to_string();
 
     let anew = said(served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Otro
 
 Algo.", "folder": "Linio" }),
@@ -4071,29 +4185,32 @@ Algo.", "folder": "Linio" }),
     assert!(anew.contains("archive"), "nothing new goes in: {anew}");
 
     let styled = said(served.call(
-        "folder",
-        serde_json::json!({ "name": "Linio", "icon": "home" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Linio", "icon": "home" }),
     ));
     assert!(styled.contains("archive"), "nor is it restyled: {styled}");
 
     let nested = said(served.call(
-        "folder",
-        serde_json::json!({ "name": "BOB", "inside": "Linio" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "BOB", "folder": "Linio" }),
     ));
     assert!(nested.contains("archive"), "nor nested into: {nested}");
 
     let more = said(served.call(
-        "append_doc",
-        serde_json::json!({ "doc": doc, "body": "Una linea mas." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": doc, "content": "Una linea mas." }),
     ));
     assert!(more.contains("put away"), "nor written in: {more}");
 
-    let moved = said(served.call("file_doc", serde_json::json!({ "doc": doc })));
+    let moved = said(served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [doc ]}),
+    ));
     assert!(moved.contains("archive"), "nor moved out of it: {moved}");
 
     let back = said(served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": doc, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [doc ]}),
     ));
     assert!(
         back.contains("folder"),
@@ -4106,11 +4223,11 @@ fn what_a_shelved_folder_holds_still_reads_and_is_listed_as_put_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Linio", "icon": "work" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Linio", "icon": "work" }),
     );
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Antifraude
 
 Contratos de entonces.", "folder": "Linio" }),
@@ -4121,7 +4238,7 @@ Contratos de entonces.", "folder": "Linio" }),
         .to_string();
     served.shelve_folder("Linio");
 
-    let read = served.call("read", serde_json::json!({ "doc": doc }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     assert_eq!(
         read["result"]["structuredContent"]["archived"], true,
         "{read}"
@@ -4135,20 +4252,24 @@ Contratos de entonces.", "folder": "Linio" }),
     );
 
     assert_eq!(
-        served.call("brain", serde_json::json!({ "scope": "open" }))["result"]["structuredContent"]
-            ["total"],
+        served.call(
+            "workspace_search",
+            serde_json::json!({ "mode": "folder", "scope": "open" })
+        )["result"]["structuredContent"]["total"],
         0,
         "the open list stops naming it"
     );
     assert_eq!(
-        served.call("brain", serde_json::json!({ "scope": "archive" }))["result"]["structuredContent"]
-            ["total"],
+        served.call(
+            "workspace_search",
+            serde_json::json!({ "mode": "folder", "scope": "archive" })
+        )["result"]["structuredContent"]["total"],
         1,
         "and the archive names it"
     );
     assert_eq!(
         served.call(
-            "brain",
+            "workspace_search",
             serde_json::json!({ "query": "contratos", "scope": "open" })
         )["result"]["structuredContent"]["docsTotal"],
         0,
@@ -4161,15 +4282,18 @@ fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Condominio", "icon": "home" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Condominio", "icon": "home" }),
     );
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta de marzo\n\nSe habló del riego.", "folder": "condominio" }),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let held = &listed["result"]["structuredContent"];
 
     assert_eq!(held["total"], 1, "{listed}");
@@ -4187,7 +4311,7 @@ fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
          for: {listed}"
     );
 
-    let asked = served.call("brain", serde_json::json!({}));
+    let asked = served.call("workspace_search", serde_json::json!({}));
     let held = &asked["result"]["structuredContent"];
     assert_eq!(held["folders"][0]["folder"], "Condominio");
     assert_eq!(held["folders"][0]["docs"], 1);
@@ -4198,8 +4322,14 @@ fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let made = served.call("folder", serde_json::json!({ "name": "Trabajo" }));
-    let again = served.call("folder", serde_json::json!({ "name": "  trabajo  " }));
+    let made = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
+    );
+    let again = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "  trabajo  " }),
+    );
 
     assert_eq!(made["result"]["structuredContent"]["made"], true);
     assert_eq!(again["result"]["structuredContent"]["made"], false);
@@ -4208,7 +4338,7 @@ fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
         again["result"]["structuredContent"]["id"]
     );
     assert_eq!(
-        served.call("brain", serde_json::json!({}))["result"]["structuredContent"]["folders"]
+        served.call("workspace_search", serde_json::json!({}))["result"]["structuredContent"]["folders"]
             .as_array()
             .unwrap()
             .len(),
@@ -4221,10 +4351,13 @@ fn a_folder_is_refused_a_name_that_would_not_fit_the_rail_or_an_icon_that_does_n
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let long = served.call("folder", serde_json::json!({ "name": "a".repeat(41) }));
+    let long = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "a".repeat(41) }),
+    );
     let drawn = served.call(
-        "folder",
-        serde_json::json!({ "name": "Casa", "icon": "unicorn" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Casa", "icon": "unicorn" }),
     );
 
     assert_eq!(long["result"]["isError"], true, "{long}");
@@ -4242,9 +4375,12 @@ fn a_folder_is_refused_a_name_that_would_not_fit_the_rail_or_an_icon_that_does_n
 fn a_document_moves_into_a_folder_and_back_out_of_every_folder() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Casa" }),
+    );
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Riego\n\nla manguera." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4253,20 +4389,23 @@ fn a_document_moves_into_a_folder_and_back_out_of_every_folder() {
         .to_string();
 
     let filed = served.call(
-        "file_doc",
-        serde_json::json!({ "doc": doc, "folder": "Casa" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [doc], "folder": "Casa" }),
     );
     assert_eq!(filed["result"]["structuredContent"]["folder"], "Casa");
 
-    let out = served.call("file_doc", serde_json::json!({ "doc": doc }));
+    let out = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [doc ]}),
+    );
     assert!(
         out["result"]["structuredContent"]["folder"].is_null(),
         "{out}"
     );
 
     let missing = served.call(
-        "file_doc",
-        serde_json::json!({ "doc": doc, "folder": "no existe" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [doc], "folder": "no existe" }),
     );
     assert_eq!(missing["result"]["isError"], true, "{missing}");
 }
@@ -4276,7 +4415,7 @@ fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Multilogin B2B — Análisis del repositorio\n\nNotas de la revisión." }),
     );
 
@@ -4286,7 +4425,7 @@ fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
         "multilogin repositorio",
         "análisis multilogin",
     ] {
-        let said = served.call("brain", serde_json::json!({ "query": asked }));
+        let said = served.call("workspace_search", serde_json::json!({ "query": asked }));
         let docs = said["result"]["structuredContent"]["docs"]
             .as_array()
             .unwrap();
@@ -4294,7 +4433,7 @@ fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
         assert_eq!(docs.len(), 1, "{asked} no lo encuentra: {said}");
     }
     let most = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "multilogin dentista" }),
     );
     let held = &most["result"]["structuredContent"];
@@ -4304,7 +4443,10 @@ fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
         1,
         "sin todas las palabras, lo que tiene más: {most}"
     );
-    let nothing = served.call("brain", serde_json::json!({ "query": "dentista" }));
+    let nothing = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "dentista" }),
+    );
     assert!(
         nothing["result"]["structuredContent"]["docs"]
             .as_array()
@@ -4319,7 +4461,7 @@ fn a_document_put_away_still_reads_but_says_it_was_put_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4328,7 +4470,7 @@ fn a_document_put_away_still_reads_but_says_it_was_put_away() {
         .to_string();
     served.put_away(&doc);
 
-    let read = served.call("read", serde_json::json!({ "doc": doc }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     let held = &read["result"]["structuredContent"];
 
     assert_eq!(held["archived"], true, "{read}");
@@ -4341,14 +4483,19 @@ fn a_document_put_away_still_reads_but_says_it_was_put_away() {
         "reading it is fine, not saying so is not: {read}"
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "presupuesto" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "presupuesto" }),
+    );
     assert_eq!(
         found["result"]["structuredContent"]["docs"][0]["archived"], true,
         "{found}"
     );
     assert_eq!(
-        served.call("brain", serde_json::json!({ "scope": "open" }))["result"]["structuredContent"]
-            ["total"],
+        served.call(
+            "workspace_search",
+            serde_json::json!({ "mode": "folder", "scope": "open" })
+        )["result"]["structuredContent"]["total"],
         0
     );
 }
@@ -4358,18 +4505,18 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Riego\n\nla manguera del patio." }),
     );
     for n in 0..3 {
         served.call(
-            "propose",
+            "task_create",
             serde_json::json!({ "for": "agent", "title": format!("regar el patio {n}") }),
         );
     }
 
     let second = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "patio", "limit": 2, "after": 2 }),
     );
     let held = &second["result"]["structuredContent"];
@@ -4390,18 +4537,18 @@ fn find_shows_ten_tasks_unless_more_are_asked_for() {
     served.person().lets_the_agent_in();
     for n in 0..12 {
         served.call(
-            "propose",
+            "task_create",
             serde_json::json!({ "for": "agent", "title": format!("regar el patio {n}") }),
         );
     }
 
-    let found = served.call("brain", serde_json::json!({ "query": "patio" }));
+    let found = served.call("workspace_search", serde_json::json!({ "query": "patio" }));
     let held = &found["result"]["structuredContent"];
     assert_eq!(held["total"], 12, "{found}");
     assert_eq!(held["matches"].as_array().unwrap().len(), 10, "{found}");
 
     let all = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "patio", "limit": 12 }),
     );
     assert_eq!(
@@ -4421,7 +4568,10 @@ fn noted_far_into_a_long_line(served: &Served) -> String {
         "before ".repeat(40),
         " after".repeat(40)
     );
-    served.call("note", serde_json::json!({ "task": &id, "body": long }));
+    served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": long }),
+    );
     id
 }
 
@@ -4431,7 +4581,10 @@ fn the_line_find_quotes_is_cut_short_around_the_word_it_was_found_by() {
     served.person().lets_the_agent_in();
     noted_far_into_a_long_line(&served);
 
-    let found = served.call("brain", serde_json::json!({ "query": "idempotency" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "idempotency" }),
+    );
     let hit = &found["result"]["structuredContent"]["matches"][0];
     let line = hit["line"].as_str().unwrap_or_default();
 
@@ -4450,7 +4603,7 @@ fn find_asked_for_titles_alone_leaves_every_line_out() {
     wrote_paper(&served, "# Retries\n\nIdempotency keys are kept 90 days.");
 
     let found = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "idempotency", "lines": false }),
     );
     let held = &found["result"]["structuredContent"];
@@ -4472,7 +4625,7 @@ fn adding_to_a_document_keeps_every_byte_that_was_there() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Minuta del lunes\n\nSe habló del riego." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4481,8 +4634,8 @@ fn adding_to_a_document_keeps_every_byte_that_was_there() {
         .to_string();
 
     let added = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": doc, "body": "Se acordó llamar al gásfiter." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": doc, "content": "Se acordó llamar al gásfiter." }),
     );
 
     assert_eq!(
@@ -4490,7 +4643,7 @@ fn adding_to_a_document_keeps_every_byte_that_was_there() {
         serde_json::Value::Null,
         "{added}"
     );
-    let whole = served.call("read", serde_json::json!({ "doc": doc }));
+    let whole = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     let body = whole["result"]["structuredContent"]["body"]
         .as_str()
         .unwrap();
@@ -4510,7 +4663,7 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Viejo\n\nalgo." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4519,15 +4672,15 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
         .to_string();
 
     let missing = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": "no-such-doc-0001", "body": "hola" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": "no-such-doc-0001", "content": "hola" }),
     );
     assert_eq!(missing["result"]["isError"], true, "{missing}");
 
     served.put_away(&doc);
     let away = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": doc, "body": "hola" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": doc, "content": "hola" }),
     );
 
     assert_eq!(away["result"]["isError"], true, "{away}");
@@ -4538,7 +4691,7 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
             .contains("put away"),
         "{away}"
     );
-    let whole = served.call("read", serde_json::json!({ "doc": doc }));
+    let whole = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     assert!(
         !whole["result"]["structuredContent"]["body"]
             .as_str()
@@ -4552,15 +4705,18 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
 fn what_is_added_from_elsewhere_reaches_a_document_in_the_tisty_language() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    let made = served.call("write_doc", serde_json::json!({ "body": "# Acta\n\nuno." }));
+    let made = served.call(
+        "doc_create",
+        serde_json::json!({ "body": "# Acta\n\nuno." }),
+    );
     let doc = made["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
 
     let added = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": doc, "body": "dos <i>y</i> tres" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": doc, "content": "dos <i>y</i> tres" }),
     );
 
     assert_ne!(added["result"]["isError"], true, "{added}");
@@ -4568,7 +4724,7 @@ fn what_is_added_from_elsewhere_reaches_a_document_in_the_tisty_language() {
         added["result"]["structuredContent"]["turned"].is_array(),
         "{added}"
     );
-    let whole = served.call("read", serde_json::json!({ "doc": doc }));
+    let whole = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     assert!(
         whole["result"]["structuredContent"]["body"]
             .as_str()
@@ -4584,15 +4740,15 @@ fn a_name_that_is_not_here_hands_back_the_one_that_is() {
     served.person().lets_the_agent_in();
 
     for (asked, expected) in [
-        ("delete_doc", "`flag_doc`"),
-        ("erase_doc", "`flag_doc`"),
-        ("unarchive_doc", "`archive_doc`"),
-        ("complete_task", "`say_done`"),
-        ("close_task", "`say_done`"),
-        ("delete_task", "`note`"),
-        ("archived_tasks", "`scope`"),
-        ("completed_tasks", "`scope`"),
-        ("list_docs", "`brain`"),
+        ("delete_doc", "`doc_annotate`"),
+        ("erase_doc", "`doc_annotate`"),
+        ("unarchive_doc", "`doc_annotate`"),
+        ("complete_task", "`task_resolve`"),
+        ("close_task", "`task_resolve`"),
+        ("delete_task", "`task_note`"),
+        ("archived_tasks", "`workspace_search`"),
+        ("completed_tasks", "`workspace_search`"),
+        ("list_docs", "`workspace_search`"),
     ] {
         let said = served.call(asked, serde_json::json!({}));
         let text = said["error"]["message"].as_str().unwrap_or_default();
@@ -4625,12 +4781,12 @@ fn a_long_marked_document_read_as_its_outline_still_says_it_is_marked() {
     );
     let doc = wrote_paper(&served, &body);
     let marked = served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired in 0.1.0" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "the beta channel was retired in 0.1.0" }),
     );
     assert!(marked["result"]["isError"].is_null(), "{marked}");
 
-    let read = served.call("read", serde_json::json!({ "doc": &doc }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &doc }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["whole"], false, "{read}");
     assert!(
@@ -4648,13 +4804,13 @@ fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
 
     let marked = served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired in 0.1.0" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "the beta channel was retired in 0.1.0" }),
     );
     assert!(marked["result"]["isError"].is_null(), "{marked}");
     assert_eq!(marked["result"]["structuredContent"]["flagged"], true);
 
-    let read = served.call("read", serde_json::json!({ "doc": &doc }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &doc }));
     assert_eq!(
         read["result"]["structuredContent"]["flagged"]["said"],
         "the beta channel was retired in 0.1.0",
@@ -4671,7 +4827,10 @@ fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
         "marking it must not put it away: {read}"
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let here = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap()
@@ -4688,18 +4847,27 @@ fn a_document_already_marked_is_not_marked_again_until_the_person_looks() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
     served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "the beta channel was retired" }),
     );
 
     let again = served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "it is still of no use" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "it is still of no use" }),
     );
 
-    assert_eq!(again["result"]["isError"], true, "{again}");
+    assert_ne!(again["result"]["isError"], true, "{again}");
+    assert_eq!(
+        again["result"]["structuredContent"]["flagged"], false,
+        "{again}"
+    );
+    assert_eq!(
+        again["result"]["structuredContent"]["skipped"],
+        serde_json::json!([doc]),
+        "{again}"
+    );
     let text = again["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("already marked"), "{again}");
+    assert!(text.contains("Already marked"), "{again}");
 }
 
 #[test]
@@ -4708,7 +4876,10 @@ fn marking_needs_the_why_and_is_refused_on_what_the_archive_holds() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
 
-    let bare = served.call("flag_doc", serde_json::json!({ "doc": &doc }));
+    let bare = served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc ]}),
+    );
     assert_eq!(bare["result"]["isError"], true, "{bare}");
     assert!(
         bare["result"]["content"][0]["text"]
@@ -4718,10 +4889,13 @@ fn marking_needs_the_why_and_is_refused_on_what_the_archive_holds() {
         "{bare}"
     );
 
-    served.call("archive_doc", serde_json::json!({ "doc": &doc }));
+    served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc ]}),
+    );
     let away = served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "it has had its day" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "it has had its day" }),
     );
     assert_eq!(away["result"]["isError"], true, "{away}");
     assert!(
@@ -4734,7 +4908,7 @@ fn marking_needs_the_why_and_is_refused_on_what_the_archive_holds() {
 }
 
 fn wrote_paper(served: &Served, body: &str) -> String {
-    served.call("write_doc", serde_json::json!({ "body": body }))["result"]["structuredContent"]
+    served.call("doc_create", serde_json::json!({ "body": body }))["result"]["structuredContent"]
         ["doc"]
         .as_str()
         .unwrap()
@@ -4742,7 +4916,8 @@ fn wrote_paper(served: &Served, body: &str) -> String {
 }
 
 fn body_of(served: &Served, doc: &str) -> String {
-    served.call("read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]["body"]
+    served.call("workspace_read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]
+        ["body"]
         .as_str()
         .unwrap()
         .to_string()
@@ -4758,11 +4933,11 @@ fn a_passage_is_changed_where_it_is_named_and_nowhere_else() {
     );
 
     let made = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": doc,
             "old": "El riego queda para marzo.",
-            "new": "El riego queda para mayo.",
+            "content": "El riego queda para mayo.",
         }),
     );
 
@@ -4781,8 +4956,8 @@ fn a_passage_that_is_not_written_that_way_changes_nothing() {
     let was = body_of(&served, &doc);
 
     let missed = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "el riego queda para marzo", "new": "otra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "el riego queda para marzo", "content": "otra cosa" }),
     );
 
     assert_eq!(missed["result"]["isError"], true, "{missed}");
@@ -4790,7 +4965,7 @@ fn a_passage_that_is_not_written_that_way_changes_nothing() {
         missed["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("`read`"),
+            .contains("`workspace_read`"),
         "the refusal has to teach how to get the text right: {missed}"
     );
     assert_eq!(body_of(&served, &doc), was);
@@ -4804,8 +4979,8 @@ fn a_passage_that_fits_twice_is_refused_rather_than_guessed() {
     let was = body_of(&served, &doc);
 
     let twice = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "regar", "new": "regar el patio" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "regar", "content": "regar el patio" }),
     );
 
     assert_eq!(twice["result"]["isError"], true, "{twice}");
@@ -4819,8 +4994,8 @@ fn a_passage_can_be_taken_out_and_what_it_was_is_kept_on_disk() {
     let doc = wrote_paper(&served, "# Acta\n\nuno\n\ndos\n\ntres");
 
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "\n\ndos", "new": "" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "\n\ndos", "content": "" }),
     );
 
     assert_eq!(body_of(&served, &doc), "# Acta\n\nuno\n\ntres\n");
@@ -4838,8 +5013,8 @@ fn a_document_put_away_is_not_edited_either() {
     served.put_away(&doc);
 
     let away = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "algo", "new": "otra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "algo", "content": "otra cosa" }),
     );
 
     assert_eq!(away["result"]["isError"], true, "{away}");
@@ -4856,8 +5031,8 @@ fn a_passage_copied_with_the_carriage_returns_it_was_written_with_still_matches(
     std::fs::write(&at, "# Acta\r\n\r\nuno\r\n\r\ndos\r\n").unwrap();
 
     let made = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "uno\r\n\r\ndos", "new": "uno\r\n\r\ntres" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "uno\r\n\r\ndos", "content": "uno\r\n\r\ntres" }),
     );
 
     assert_eq!(made["result"]["isError"], serde_json::Value::Null, "{made}");
@@ -4876,8 +5051,8 @@ fn the_whole_body_is_not_a_passage_and_is_refused_as_a_rewrite() {
     let was = body_of(&served, &doc);
 
     let refused = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": was, "new": "# Otro\n\notra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": was, "content": "# Otro\n\notra cosa" }),
     );
 
     assert_eq!(refused["result"]["isError"], true, "{refused}");
@@ -4897,8 +5072,14 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
 
     let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
     let head = said[0]["result"]["instructions"].as_str().unwrap();
-    let rules = served.call("rules", serde_json::json!({ "topic": "all" }));
-    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
+    let rules = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "rules", "topic": "all" }),
+    );
+    let tidying = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "rules", "topic": "tidying" }),
+    );
     let taught = format!(
         "{head}\n{}\n{}",
         rules["result"]["content"][0]["text"].as_str().unwrap(),
@@ -4907,7 +5088,7 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let taught = taught.as_str();
 
     assert!(
-        head.chars().count() < 2000 && head.contains("`rules`"),
+        head.chars().count() < 2000 && head.contains("`workspace_guide`"),
         "some clients cut the instructions near two thousand characters, so they point at the rest: {head}"
     );
     assert!(
@@ -4953,9 +5134,12 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
 fn a_page_is_written_under_its_document_and_takes_its_folder() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Casa" }),
+    );
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Actas\n\nlas de este año.", "folder": "Casa" }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4964,7 +5148,7 @@ fn a_page_is_written_under_its_document_and_takes_its_folder() {
         .to_string();
 
     let page = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
     );
 
@@ -4977,7 +5161,7 @@ fn a_page_holds_no_pages_of_its_own() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -4985,7 +5169,7 @@ fn a_page_holds_no_pages_of_its_own() {
         .unwrap()
         .to_string();
     let page = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
     );
     let page = page["result"]["structuredContent"]["doc"]
@@ -4994,7 +5178,7 @@ fn a_page_holds_no_pages_of_its_own() {
         .to_string();
 
     let deeper = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Anexo\n\nel plano.", "page_of": page }),
     );
 
@@ -5006,7 +5190,7 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let one = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
     );
     let one = one["result"]["structuredContent"]["doc"]
@@ -5014,7 +5198,7 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
         .unwrap()
         .to_string();
     let two = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo\n\nlo que se dijo." }),
     );
     let two = two["result"]["structuredContent"]["doc"]
@@ -5023,18 +5207,21 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
         .to_string();
 
     let hung = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": two, "page_of": one }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [two], "parent": one }),
     );
     assert_eq!(hung["result"]["structuredContent"]["page_of"], one);
 
     let holding = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": one, "page_of": two }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [one], "parent": two }),
     );
     assert_eq!(holding["result"]["isError"], true, "{holding}");
 
-    let out = served.call("page_doc", serde_json::json!({ "doc": two }));
+    let out = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [two ]}),
+    );
     assert!(
         out["result"]["structuredContent"]["page_of"].is_null(),
         "{out}"
@@ -5045,9 +5232,12 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
 fn a_page_is_not_filed_into_a_folder_of_its_own() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Casa" }),
+    );
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -5055,7 +5245,7 @@ fn a_page_is_not_filed_into_a_folder_of_its_own() {
         .unwrap()
         .to_string();
     let page = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
     );
     let page = page["result"]["structuredContent"]["doc"]
@@ -5064,8 +5254,8 @@ fn a_page_is_not_filed_into_a_folder_of_its_own() {
         .to_string();
 
     let filed = served.call(
-        "file_doc",
-        serde_json::json!({ "doc": page, "folder": "Casa" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [page], "folder": "Casa" }),
     );
 
     assert_eq!(
@@ -5079,7 +5269,7 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
     );
     let doc = made["result"]["structuredContent"]["doc"]
@@ -5087,7 +5277,7 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
         .unwrap()
         .to_string();
     let loose = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Anexo\n\nlas cifras." }),
     );
     let loose = loose["result"]["structuredContent"]["doc"]
@@ -5097,12 +5287,12 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
     served.put_away(&doc);
 
     let written = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
     );
     let hung = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": loose, "page_of": doc }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [loose], "parent": doc }),
     );
 
     assert_eq!(written["result"]["isError"], true, "{written}");
@@ -5115,7 +5305,7 @@ fn an_appointment_can_be_filed_already_set_to_ring() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "kermes at school",
             "date": on(2),
             "remind": [soon(1, 20)],
@@ -5124,7 +5314,7 @@ fn an_appointment_can_be_filed_already_set_to_ring() {
     assert_eq!(said["result"]["isError"], serde_json::Value::Null, "{said}");
 
     let id = said["result"]["structuredContent"]["id"].as_str().unwrap();
-    let read = served.call("read", serde_json::json!({ "task": id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": id }));
     assert!(
         serde_json::to_string(&read).unwrap().contains(&soon(1, 20)),
         "{read}"
@@ -5137,7 +5327,7 @@ fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "remind": ["2026-09-10"] }),
     );
 
@@ -5172,7 +5362,7 @@ fn what_was_filed_without_a_reminder_can_be_given_one_later() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "date": on(2) }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -5181,14 +5371,14 @@ fn what_was_filed_without_a_reminder_can_be_given_one_later() {
         .to_string();
 
     let said = served.call(
-        "remind",
-        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+        "task_update",
+        serde_json::json!({ "task": id, "add_reminders": [soon(1, 20)] }),
     );
 
     assert_eq!(said["result"]["structuredContent"]["added"], true, "{said}");
     let again = served.call(
-        "remind",
-        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+        "task_update",
+        serde_json::json!({ "task": id, "add_reminders": [soon(1, 20)] }),
     );
     assert_eq!(
         again["result"]["structuredContent"]["added"], false,
@@ -5201,7 +5391,7 @@ fn an_hour_the_person_chose_is_never_taken_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist",
             "date": on(2),
             "remind": [soon(1, 20)],
@@ -5213,12 +5403,13 @@ fn an_hour_the_person_chose_is_never_taken_away() {
         .to_string();
 
     served.call(
-        "remind",
-        serde_json::json!({ "task": id, "at": [soon(2, 8)] }),
+        "task_update",
+        serde_json::json!({ "task": id, "add_reminders": [soon(2, 8)] }),
     );
 
     let read =
-        serde_json::to_string(&served.call("read", serde_json::json!({ "task": id }))).unwrap();
+        serde_json::to_string(&served.call("workspace_read", serde_json::json!({ "task": id })))
+            .unwrap();
     assert!(read.contains(&soon(1, 20)), "the first one stayed: {read}");
     assert!(read.contains(&soon(2, 8)), "and the second: {read}");
 }
@@ -5229,7 +5420,7 @@ fn a_moment_already_gone_is_turned_away_rather_than_promised() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "remind": [soon(-2, 20)] }),
     );
 
@@ -5249,7 +5440,7 @@ fn a_moment_that_is_not_even_a_word_is_turned_away_rather_than_dropped() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "remind": [20260910] }),
     );
 
@@ -5264,7 +5455,7 @@ fn the_same_instant_under_another_zone_name_rings_once() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "date": on(2), "remind": [soon(1, 20)] }),
     );
     let id = filed["result"]["structuredContent"]["id"]
@@ -5273,8 +5464,8 @@ fn the_same_instant_under_another_zone_name_rings_once() {
         .to_string();
 
     let again = served.call(
-        "remind",
-        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+        "task_update",
+        serde_json::json!({ "task": id, "add_reminders": [soon(1, 20)] }),
     );
 
     assert_eq!(
@@ -5290,7 +5481,7 @@ fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
     let many: Vec<String> = (1..40).map(|n| soon(n, 9)).collect();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "remind": many }),
     );
 
@@ -5302,7 +5493,7 @@ fn an_argument_of_the_wrong_shape_is_refused_instead_of_read_another_way() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Manual\n\n## Uno\n\nx" }),
     )["result"]["structuredContent"]["doc"]
         .as_str()
@@ -5310,8 +5501,8 @@ fn an_argument_of_the_wrong_shape_is_refused_instead_of_read_another_way() {
         .to_string();
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "section": "Uno", "new": "## Uno\n\ny" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "section": "Uno", "content": "## Uno\n\ny" }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
@@ -5328,17 +5519,17 @@ fn a_step_added_after_an_agent_said_a_task_was_done_is_refused() {
     served.person().lets_the_agent_in();
     let task = filed(&served, "water the plants");
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &task, "body": "watered them" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &task, "body": "watered them" }),
     );
 
     let said = served.call(
-        "plan",
-        serde_json::json!({ "task": &task, "steps": ["buy a can"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &task, "steps": ["buy a can"] }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
-    let read = served.call("read", serde_json::json!({ "task": &task }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &task }));
     assert!(
         !serde_json::to_string(&read).unwrap().contains("buy a can"),
         "no step may stand unticked under a mark saying it is done: {read}"
@@ -5351,14 +5542,14 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "paint the door", "date": on(8), "deadline": on(1) }),
     );
     assert_eq!(said["result"]["isError"], true, "{said}");
 
     let task = filed(&served, "paint the door");
     let moved = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &task, "date": on(8), "deadline": on(1) }),
     );
     assert_eq!(
@@ -5366,7 +5557,7 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
         "two days sent together are judged against each other: {moved}"
     );
     let one = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &task, "deadline": on(1) }),
     );
     assert_ne!(
@@ -5382,7 +5573,7 @@ fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [
             { "for": "agent", "title": "a good one", "source": "b#1" },
             { "for": "agent", "title": "a stray", "nonsense": "x", "source": "b#2" },
@@ -5410,7 +5601,7 @@ fn a_step_or_a_tag_that_is_not_text_is_refused_rather_than_dropped() {
         serde_json::json!({ "title": "pintar", "steps": ["lijar", 7] }),
         serde_json::json!({ "title": "pintar", "tags": ["casa", 7] }),
     ] {
-        let said = served.call("propose", args.clone());
+        let said = served.call("task_create", args.clone());
         assert_eq!(
             said["result"]["isError"].as_bool(),
             Some(true),
@@ -5426,22 +5617,22 @@ fn what_would_speak_over_a_mark_is_refused_and_a_bell_still_rings() {
     served.person().lets_the_agent_in();
     let task = filed(&served, "regar las plantas");
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &task, "body": "regadas" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &task, "body": "regadas" }),
     );
 
     for (name, args) in [
         (
-            "reschedule",
+            "task_update",
             serde_json::json!({ "task": &task, "date": "2026-12-01" }),
         ),
         (
-            "describe",
-            serde_json::json!({ "task": &task, "body": "otra cosa" }),
+            "task_update",
+            serde_json::json!({ "task": &task, "description": "otra cosa" }),
         ),
         (
-            "plan",
-            serde_json::json!({ "task": &task, "steps": ["uno mas"] }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "add", "task": &task, "steps": ["uno mas"] }),
         ),
     ] {
         let said = served.call(name, args);
@@ -5453,8 +5644,8 @@ fn what_would_speak_over_a_mark_is_refused_and_a_bell_still_rings() {
     }
 
     let rang = served.call(
-        "remind",
-        serde_json::json!({ "task": &task, "at": ["2026-12-01T09:00"] }),
+        "task_update",
+        serde_json::json!({ "task": &task, "add_reminders": ["2026-12-01T09:00"] }),
     );
     assert_ne!(
         rang["result"]["isError"].as_bool(),
@@ -5469,12 +5660,12 @@ fn moving_one_day_says_which_day_the_task_now_holds_and_not_only_what_was_sent()
     served.person().lets_the_agent_in();
     let task = filed(&served, "pintar la puerta");
     served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &task, "date": "2026-11-20" }),
     );
 
     let said = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &task, "deadline": "2026-11-25" }),
     );
 
@@ -5490,14 +5681,17 @@ fn a_document_named_by_a_number_is_refused_wherever_a_list_would_also_do() {
     let served = Served::new();
     served.person().lets_the_agent_in();
 
-    let said = served.call("page_doc", serde_json::json!({ "doc": 7 }));
+    let said = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [7 ]}),
+    );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert!(
         said["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("what came was a number"),
+            .contains("list of strings"),
         "a field that takes text or a list still says what shape it wanted: {said}"
     );
 }
@@ -5508,7 +5702,7 @@ fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "the dentist", "remind": "2026-09-10T20:00" }),
     );
 
@@ -5541,7 +5735,7 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar la cartulina", "description": A_STORY }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -5549,7 +5743,7 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
         .to_string();
     closed_by_the_person(&served, "comprar la cartulina");
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["status"], serde_json::json!("done"), "{read}");
     assert!(
@@ -5576,37 +5770,37 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
     std::fs::write(&loose, "la boleta de la librería").unwrap();
     for (tool, args) in [
         (
-            "note",
-            serde_json::json!({ "task": &id, "body": "faltó un pliego" }),
+            "task_note",
+            serde_json::json!({ "action": "add", "task": &id, "body": "faltó un pliego" }),
         ),
         (
-            "say_done",
-            serde_json::json!({ "task": &id, "body": "comprada" }),
+            "task_resolve",
+            serde_json::json!({ "outcome": "done", "task": &id, "body": "comprada" }),
         ),
         (
-            "reschedule",
+            "task_update",
             serde_json::json!({ "task": &id, "date": "2026-12-01" }),
         ),
         (
-            "remind",
-            serde_json::json!({ "task": &id, "at": ["2026-12-01T09:00"] }),
+            "task_update",
+            serde_json::json!({ "task": &id, "add_reminders": ["2026-12-01T09:00"] }),
         ),
         (
-            "attach",
-            serde_json::json!({ "task": &id, "path": loose.to_string_lossy() }),
+            "file_transfer",
+            serde_json::json!({ "action": "attach", "task": &id, "path": loose.to_string_lossy() }),
         ),
     ] {
         let tried = served.call(tool, args);
         assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
         let said = tried["result"]["content"][0]["text"].as_str().unwrap();
         assert!(said.contains("history"), "{tool}: {said}");
-        assert!(said.contains("propose a new task"), "{tool}: {said}");
+        assert!(said.contains("task_create"), "{tool}: {said}");
         assert!(
             said.contains(&id),
             "the refusal names the closed one: {said}"
         );
     }
-    let whole = served.call("read", serde_json::json!({ "task": &id }));
+    let whole = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         whole["result"]["structuredContent"]["journal"].is_null(),
         "nothing was written on it: {whole}"
@@ -5622,12 +5816,12 @@ fn what_was_closed_having_left_nothing_written_is_served_as_history() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let before =
-        served.call("catch_up", serde_json::json!({}))["result"]["structuredContent"]["cursor"]
+        served.call("workspace_catch_up", serde_json::json!({}))["result"]["structuredContent"]["cursor"]
             .as_str()
             .unwrap()
             .to_string();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -5636,14 +5830,14 @@ fn what_was_closed_having_left_nothing_written_is_served_as_history() {
     closed_by_the_person(&served, "comprar pan");
 
     let sought = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "pan", "scope": "either" }),
     );
     let hit = &sought["result"]["structuredContent"]["matches"][0];
     assert_eq!(hit["id"], serde_json::json!(id), "{sought}");
     assert!(hit["closed"].is_string(), "{sought}");
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["title"], serde_json::json!("comprar pan"), "{read}");
     assert!(
@@ -5653,15 +5847,21 @@ fn what_was_closed_having_left_nothing_written_is_served_as_history() {
         "a bare closed task is served, and told for what it is: {read}"
     );
 
-    let moved = served.call("catch_up", serde_json::json!({ "since": before }));
+    let moved = served.call("workspace_catch_up", serde_json::json!({ "since": before }));
     assert!(format!("{moved}").contains("comprar pan"), "{moved}");
 
-    let again = served.call("brain", serde_json::json!({ "source": "wa:msg-4410" }));
+    let again = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "source", "source": "wa:msg-4410" }),
+    );
     let found = &again["result"]["structuredContent"]["found"];
     assert_eq!(found["id"], serde_json::json!(id), "{again}");
     assert!(found["closed"].is_string(), "{again}");
 
-    let tried = served.call("note", serde_json::json!({ "task": &id, "body": "hoy no" }));
+    let tried = served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "hoy no" }),
+    );
     assert_eq!(tried["result"]["isError"], true, "{tried}");
     assert!(
         tried["result"]["content"][0]["text"]
@@ -5677,13 +5877,13 @@ fn a_closed_task_that_taught_something_is_still_found() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "exposición del colegio", "description": A_STORY }),
     );
     closed_by_the_person(&served, "exposición del colegio");
 
     let sought = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "cartulina", "scope": "archive" }),
     );
     let hit = &sought["result"]["structuredContent"]["matches"][0];
@@ -5705,7 +5905,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     let served = Served::new();
     served.person().lets_the_agent_in();
     let first = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -5713,7 +5913,10 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
         .to_string();
     closed_by_the_person(&served, "pedir la cartulina");
 
-    let asked = served.call("brain", serde_json::json!({ "source": "wa:msg-77" }));
+    let asked = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "source", "source": "wa:msg-77" }),
+    );
     let said = asked["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("closed"), "{said}");
     assert!(
@@ -5722,7 +5925,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     );
 
     let twice = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77" }),
     );
     let kept = &twice["result"]["structuredContent"];
@@ -5740,7 +5943,7 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     );
 
     let anew = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pedir la cartulina otra vez",
             "source": "wa:msg-77",
             "again": true,
@@ -5753,14 +5956,17 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     assert_ne!(second, first, "a new task, not the old one reopened");
 
     // The source now names the open one, and `again` on an open task is still a duplicate.
-    let now = served.call("brain", serde_json::json!({ "source": "wa:msg-77" }));
+    let now = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "source", "source": "wa:msg-77" }),
+    );
     assert_eq!(
         now["result"]["structuredContent"]["found"]["id"],
         serde_json::json!(second),
         "{now}"
     );
     let thrice = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pedir la cartulina", "source": "wa:msg-77", "again": true }),
     );
     assert_eq!(
@@ -5783,13 +5989,13 @@ fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
     served.person().lets_the_agent_in();
     let id = filed(&served, "renovar el certificado");
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "renovado, vence en 2027" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "renovado, vence en 2027" }),
     );
     closed_by_the_person(&served, "renovar el certificado");
     served.person().reopens(person::task(&id));
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["status"], serde_json::json!("open"), "{read}");
     assert!(kept["closed"].is_null(), "{read}");
@@ -5797,7 +6003,7 @@ fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
         kept["said_done"].is_string(),
         "the person's mistaken finish does not unsay the agent: {read}"
     );
-    let waiting = served.call("brain", serde_json::json!({ "said_done": true }));
+    let waiting = served.call("workspace_search", serde_json::json!({ "said_done": true }));
     assert!(format!("{waiting}").contains(&id), "{waiting}");
 }
 
@@ -5808,7 +6014,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -5817,7 +6023,10 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     closed_by_the_person(&served, "comprar pan");
     served.person().erases(served.person().id_of("comprar pan"));
 
-    let asked = served.call("brain", serde_json::json!({ "source": "wa:msg-4410" }));
+    let asked = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "source", "source": "wa:msg-4410" }),
+    );
     assert!(
         asked["result"]["content"][0]["text"]
             .as_str()
@@ -5831,7 +6040,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     );
 
     let again = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410" }),
     );
     let kept = &again["result"]["structuredContent"];
@@ -5842,7 +6051,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
         "nothing was filed"
     );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         read["result"]["content"][0]["text"]
             .as_str()
@@ -5852,7 +6061,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     );
 
     let wanted = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar pan", "source": "wa:msg-4410", "again": true }),
     );
     assert_eq!(
@@ -5874,14 +6083,14 @@ fn the_persons_reading_of_a_task_is_not_handed_to_the_agent() {
         .person()
         .reads_as_a_story(served.person().id_of("el certificado"));
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let whole = read.to_string();
     assert!(
         !whole.contains("read_as") && !whole.contains("\"reading\""),
         "{whole}"
     );
     let sought = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "certificado", "scope": "archive" }),
     );
     let whole = sought.to_string();
@@ -5914,34 +6123,36 @@ fn the_persons_task_is_written_on_like_a_document_and_its_ticks_wait_for_them() 
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("renew the certificate");
-    let id = served.call("brain", serde_json::json!({ "query": "certificate" }))["result"]
-        ["structuredContent"]["matches"][0]["id"]
+    let id = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "certificate" }),
+    )["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     let described = served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "the yearly one, at the registry" }),
+        "task_update",
+        serde_json::json!({ "task": &id, "description": "the yearly one, at the registry" }),
     );
     assert!(described["result"]["isError"].is_null(), "{described}");
     let planned = served.call(
-        "plan",
-        serde_json::json!({ "task": &id, "steps": ["pay the fee", "download the file"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &id, "steps": ["pay the fee", "download the file"] }),
     );
     assert_eq!(
         planned["result"]["structuredContent"]["added"], 2,
         "{planned}"
     );
     let renamed = served.call(
-        "rename",
+        "task_update",
         serde_json::json!({ "task": &id, "title": "renew the TLS certificate" }),
     );
     assert!(renamed["result"]["isError"].is_null(), "{renamed}");
 
     let ticked = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["PAY THE FEE", "download the file"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": ["PAY THE FEE", "download the file"] }),
     );
     assert_eq!(ticked["result"]["structuredContent"]["said"], 2, "{ticked}");
     assert_eq!(
@@ -5949,7 +6160,7 @@ fn the_persons_task_is_written_on_like_a_document_and_its_ticks_wait_for_them() 
         "{ticked}"
     );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     assert_eq!(kept["title"], "renew the TLS certificate", "{read}");
     assert_eq!(
@@ -5966,7 +6177,7 @@ fn the_persons_task_is_written_on_like_a_document_and_its_ticks_wait_for_them() 
     );
 
     let moved = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &id, "date": "2026-12-01" }),
     );
     assert_eq!(
@@ -5975,8 +6186,8 @@ fn the_persons_task_is_written_on_like_a_document_and_its_ticks_wait_for_them() 
     );
 
     let done = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "paid and downloaded" }),
     );
     assert_eq!(done["result"]["structuredContent"]["open"], true, "{done}");
     assert!(
@@ -5991,8 +6202,8 @@ fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
     served.person().lets_the_agent_in();
     let closed = filed(&served, "subir el timeout");
     served.call(
-        "plan",
-        serde_json::json!({ "task": &closed, "steps": ["subirlo"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &closed, "steps": ["subirlo"] }),
     );
     served
         .person()
@@ -6000,16 +6211,16 @@ fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
 
     for (tool, args) in [
         (
-            "describe",
-            serde_json::json!({ "task": &closed, "body": "x" }),
+            "task_update",
+            serde_json::json!({ "task": &closed, "description": "x" }),
         ),
         (
-            "plan",
-            serde_json::json!({ "task": &closed, "steps": ["y"] }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "add", "task": &closed, "steps": ["y"] }),
         ),
         (
-            "tick",
-            serde_json::json!({ "task": &closed, "step": "subirlo" }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "tick", "task": &closed, "step": "subirlo" }),
         ),
     ] {
         let said = served.call(tool, args);
@@ -6029,22 +6240,22 @@ fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
     served.person().shuts_the_agent_out();
     served.person().lets_the_agent_in();
     let described = served.call(
-        "describe",
-        serde_json::json!({ "task": &theirs, "body": "x" }),
+        "task_update",
+        serde_json::json!({ "task": &theirs, "description": "x" }),
     );
     assert!(described["result"]["isError"].is_null(), "{described}");
-    let read = served.call("read", serde_json::json!({ "task": &theirs }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &theirs }));
     assert_eq!(
         read["result"]["structuredContent"]["by_agent"], true,
         "filed by an agent, retired or not: {read}"
     );
     let planned = served.call(
-        "plan",
-        serde_json::json!({ "task": &theirs, "steps": ["y"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &theirs, "steps": ["y"] }),
     );
     assert!(planned["result"]["isError"].is_null(), "{planned}");
     let moved = served.call(
-        "reschedule",
+        "task_update",
         serde_json::json!({ "task": &theirs, "date": "2026-12-01" }),
     );
     assert!(
@@ -6060,16 +6271,19 @@ fn what_an_assistant_filed_it_fills_in_without_being_opened() {
     let id = filed(&served, "pasar biome sobre el front");
 
     let described = served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "lint del front" }),
+        "task_update",
+        serde_json::json!({ "task": &id, "description": "lint del front" }),
     );
     assert!(described["result"]["isError"].is_null(), "{described}");
     let planned = served.call(
-        "plan",
-        serde_json::json!({ "task": &id, "steps": ["lint"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &id, "steps": ["lint"] }),
     );
     assert!(planned["result"]["isError"].is_null(), "{planned}");
-    let ticked = served.call("tick", serde_json::json!({ "task": &id, "step": "lint" }));
+    let ticked = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "lint" }),
+    );
     assert_eq!(
         ticked["result"]["structuredContent"]["ticked"], 1,
         "{ticked}"
@@ -6081,7 +6295,7 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pasar biome sobre el front",
             "steps": ["lint", "format", "commit"]
         }),
@@ -6094,16 +6308,16 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
         said["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("with 3 step(s): `tick` each as you do it"),
+            .contains("with 3 step(s): tick each with `task_edit_steps` as you do it"),
         "{said}"
     );
 
     let wrong = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["lint", "push"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": ["lint", "push"] }),
     );
     assert_eq!(wrong["result"]["isError"], true, "{wrong}");
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         read["result"]["structuredContent"]["steps"]
             .as_array()
@@ -6114,12 +6328,15 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
     );
 
     let two = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["lint", "Format", "lint"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": ["lint", "Format", "lint"] }),
     );
     assert_eq!(two["result"]["structuredContent"]["ticked"], 2, "{two}");
     assert_eq!(two["result"]["structuredContent"]["left"], 1, "{two}");
-    let bare = served.call("tick", serde_json::json!({ "task": &id }));
+    let bare = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id }),
+    );
     assert_eq!(bare["result"]["isError"], true, "{bare}");
 }
 
@@ -6128,7 +6345,7 @@ fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "release",
             "steps": ["test", "test", "pagar la inscripcio\u{301}n"]
         }),
@@ -6138,30 +6355,39 @@ fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
         .unwrap()
         .to_string();
 
-    let first = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    let first = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "test" }),
+    );
     assert_eq!(first["result"]["structuredContent"]["ticked"], 1, "{first}");
-    let second = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    let second = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "test" }),
+    );
     assert_eq!(
         second["result"]["structuredContent"]["ticked"], 1,
         "{second}"
     );
-    let third = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    let third = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "test" }),
+    );
     assert_eq!(
         third["result"]["structuredContent"]["already"], 1,
         "{third}"
     );
 
     let composed = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["Pagar la inscripción"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": ["Pagar la inscripción"] }),
     );
     assert_eq!(
         composed["result"]["structuredContent"]["left"], 0,
         "{composed}"
     );
     let done = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "all three" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "all three" }),
     );
     assert!(done["result"]["isError"].is_null(), "{done}");
 }
@@ -6172,7 +6398,7 @@ fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_l
     served.person().lets_the_agent_in();
     let steps: Vec<String> = (1..=8).map(|n| format!("step number {n}")).collect();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "release", "steps": steps }),
     );
     let id = said["result"]["structuredContent"]["id"]
@@ -6181,21 +6407,21 @@ fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_l
         .to_string();
 
     let mixed = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": ["step number 1", 7] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": ["step number 1", 7] }),
     );
     assert_eq!(mixed["result"]["isError"], true, "{mixed}");
     let bare = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "steps": "step number 1" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "steps": "step number 1" }),
     );
     assert_eq!(bare["result"]["isError"], true, "{bare}");
     let long = served.call(
-        "tick",
-        serde_json::json!({ "task": &id, "step": "x".repeat(2_001) }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "x".repeat(2_001) }),
     );
     assert_eq!(long["result"]["isError"], true, "{long}");
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(
         read["result"]["structuredContent"]["steps"]
             .as_array()
@@ -6206,8 +6432,8 @@ fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_l
     );
 
     let early = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "done" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "done" }),
     );
     let text = early["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("8 step(s) unticked"), "{early}");
@@ -6220,7 +6446,7 @@ fn proposing_several_with_steps_says_what_to_do_with_them_once() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [
             { "for": "agent", "title": "one", "steps": ["a"] },
             { "for": "agent", "title": "two" },
@@ -6230,8 +6456,7 @@ fn proposing_several_with_steps_says_what_to_do_with_them_once() {
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains(
-            "2 of them carry steps: `tick` each as you do it, `say_done` when all are.
-"
+            "2 of them carry steps: tick each with `task_edit_steps` as you do it, `task_resolve` (`outcome: \"done\"`) when all are."
         ),
         "{text}"
     );
@@ -6250,7 +6475,7 @@ fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let planned = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "release", "steps": ["tag", "build"] }),
     );
     let planned = planned["result"]["structuredContent"]["id"]
@@ -6260,38 +6485,38 @@ fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
     let bare = filed(&served, "write the notes");
 
     let early = served.call(
-        "say_done",
-        serde_json::json!({ "task": &planned, "body": "tagged and built" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &planned, "body": "tagged and built" }),
     );
     assert_eq!(early["result"]["isError"], true, "{early}");
     let text = early["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        text.contains("2 step(s) unticked") && text.contains("`note`"),
+        text.contains("2 step(s) unticked") && text.contains("`task_note`"),
         "{early}"
     );
-    let read = served.call("read", serde_json::json!({ "task": &planned }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &planned }));
     assert!(
         read["result"]["structuredContent"]["said_done"].is_null(),
         "no mark landed: {read}"
     );
 
     served.call(
-        "tick",
-        serde_json::json!({ "task": &planned, "steps": ["tag", "build"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &planned, "steps": ["tag", "build"] }),
     );
     let done = served.call(
-        "say_done",
-        serde_json::json!({ "task": &planned, "body": "tagged and built" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &planned, "body": "tagged and built" }),
     );
     assert!(done["result"]["isError"].is_null(), "{done}");
-    let read = served.call("read", serde_json::json!({ "task": &planned }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &planned }));
     assert!(
         read["result"]["structuredContent"]["said_done"].is_string(),
         "{read}"
     );
     let done = served.call(
-        "say_done",
-        serde_json::json!({ "task": &bare, "body": "written" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &bare, "body": "written" }),
     );
     assert!(done["result"]["isError"].is_null(), "{done}");
 }
@@ -6360,15 +6585,18 @@ fn nothing_the_server_says_carries_a_gap_the_reader_can_see() {
 fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Personal" }));
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Proyectos", "inside": "Personal" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal" }),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Proyectos", "folder": "Personal" }),
     );
 
     let made = served.call(
-        "folder",
-        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal / Proyectos / LinkUnbound" }),
     );
 
     assert_eq!(made["result"]["structuredContent"]["made"], true);
@@ -6376,7 +6604,7 @@ fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
         made["result"]["structuredContent"]["folder"], "LinkUnbound",
         "a folder is named, not pathed: the rail would read the whole path as one name"
     );
-    let folders = served.call("brain", serde_json::json!({}));
+    let folders = served.call("workspace_search", serde_json::json!({}));
     let hit = folders["result"]["structuredContent"]["folders"]
         .as_array()
         .unwrap()
@@ -6389,18 +6617,21 @@ fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
 fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal" }),
+    );
 
     let said = served.call(
-        "folder",
-        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal / Proyectos / LinkUnbound" }),
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(why.contains("`inside`"), "{why}");
     assert_eq!(
-        served.call("brain", serde_json::json!({}))["result"]["structuredContent"]["folders"]
+        served.call("workspace_search", serde_json::json!({}))["result"]["structuredContent"]["folders"]
             .as_array()
             .unwrap()
             .len(),
@@ -6413,19 +6644,25 @@ fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
 fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Personal" }));
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Notas", "inside": "Personal" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal" }),
     );
-    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Notas", "inside": "Trabajo" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Notas", "folder": "Personal" }),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Notas", "folder": "Trabajo" }),
     );
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Minuta", "folder": "Trabajo / Notas" }),
     );
 
@@ -6440,29 +6677,38 @@ fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
 fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Actas" }));
     served.call(
-        "write_doc",
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Actas" }),
+    );
+    served.call(
+        "doc_create",
         serde_json::json!({ "body": "# Libro", "folder": "Actas" }),
     );
-    let book = served.call("write_doc", serde_json::json!({ "body": "# Suelto" }))["result"]
+    let book = served.call("doc_create", serde_json::json!({ "body": "# Suelto" }))["result"]
         ["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Marzo", "page_of": &book }),
     );
 
-    let within = served.call("brain", serde_json::json!({ "folder": "Actas" }));
+    let within = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": "Actas" }),
+    );
     let rows = within["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap();
     assert_eq!(rows.len(), 1, "{within}");
     assert_eq!(rows[0]["title"], "Libro");
 
-    let under = served.call("brain", serde_json::json!({ "doc": &book }));
+    let under = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     let pages = under["result"]["structuredContent"]["pages"]
         .as_array()
         .unwrap();
@@ -6474,20 +6720,23 @@ fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
 fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
-    let doc = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Proyectos" }),
+    );
+    let doc = served.call("doc_create", serde_json::json!({ "body": "# Viejo" }))["result"]
         ["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc ]}),
     );
 
     let said = served.call(
-        "file_doc",
-        serde_json::json!({ "doc": &doc, "folder": "Proyectos" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [&doc], "folder": "Proyectos" }),
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
@@ -6497,8 +6746,8 @@ fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
         "moving is not writing, and the answer has to say it is still put away: {told}"
     );
     let listed = served.call(
-        "brain",
-        serde_json::json!({ "folder": "Proyectos", "scope": "archive" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": "Proyectos", "scope": "archive" }),
     );
     assert_eq!(
         listed["result"]["structuredContent"]["docs"][0]["doc"], doc,
@@ -6510,16 +6759,19 @@ fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
 fn a_document_is_put_away_and_filed_in_one_call() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Historico" }));
-    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Historico" }),
+    );
+    let doc = served.call("doc_create", serde_json::json!({ "body": "# Cerrado" }))["result"]
         ["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
 
     let said = served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc], "folder": "Historico" }),
     );
 
     let told = said["result"]["content"][0]["text"].as_str().unwrap();
@@ -6529,8 +6781,8 @@ fn a_document_is_put_away_and_filed_in_one_call() {
         "the person looks for a title, not an id: {told}"
     );
     let listed = served.call(
-        "brain",
-        serde_json::json!({ "folder": "Historico", "scope": "archive" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": "Historico", "scope": "archive" }),
     );
     assert_eq!(listed["result"]["structuredContent"]["docs"][0]["doc"], doc);
 }
@@ -6539,24 +6791,30 @@ fn a_document_is_put_away_and_filed_in_one_call() {
 fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
-    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Personal" }),
+    );
     let doc = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Acta", "folder": "Trabajo" }),
     )["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc ]}),
     );
     served.shelve_folder("Trabajo");
 
     let out = served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&doc ]}),
     );
     assert_eq!(out["result"]["isError"], true, "{out}");
     let why = out["result"]["content"][0]["text"].as_str().unwrap();
@@ -6566,12 +6824,12 @@ fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
     );
 
     let moved = served.call(
-        "file_doc",
-        serde_json::json!({ "doc": &doc, "folder": "Personal" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [&doc], "folder": "Personal" }),
     );
     assert_eq!(moved["result"]["isError"], true, "{moved}");
 
-    let read = served.call("read", serde_json::json!({ "doc": &doc }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &doc }));
     assert_eq!(
         read["result"]["structuredContent"]["archived"], true,
         "and its own mark is still there, waiting for the folder: {read}"
@@ -6582,16 +6840,19 @@ fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
 fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Historico" }));
-    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Historico" }),
+    );
+    let doc = served.call("doc_create", serde_json::json!({ "body": "# Cerrado" }))["result"]
         ["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
 
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&doc], "folder": "Historico" }),
     );
 
     let mut batches = Vec::new();
@@ -6709,7 +6970,9 @@ fn an_agent_is_told_which_machine_wrote_ahead() {
     )
     .unwrap();
 
-    let said = served.call("brain", serde_json::json!({})).to_string();
+    let said = served
+        .call("workspace_search", serde_json::json!({}))
+        .to_string();
 
     assert!(said.contains("dev_f0ztyvwj"), "{said}");
     assert!(said.contains("newer Tisty"), "{said}");
@@ -6723,7 +6986,7 @@ fn a_step_past_the_limit_turns_the_whole_call_away() {
     let long = "x".repeat(101);
 
     let proposed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "ordenar el garaje", "steps": ["vaciar", long] }),
     );
     assert_eq!(proposed["result"]["isError"], true, "{proposed}");
@@ -6731,8 +6994,8 @@ fn a_step_past_the_limit_turns_the_whole_call_away() {
 
     let task = filed(&served, "pintar la puerta");
     let planned = served.call(
-        "plan",
-        serde_json::json!({ "task": &task, "steps": ["lijar", long] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "add", "task": &task, "steps": ["lijar", long] }),
     );
     assert_eq!(planned["result"]["isError"], true, "{planned}");
     assert!(
@@ -6748,13 +7011,10 @@ fn the_tools_tell_the_limit_on_a_step_before_anyone_hits_it() {
     let said = listed[0].to_string();
 
     assert_eq!(
-        said.matches(&format!(
-            "at most {} characters",
-            tisty_core::model::STEP_AT_MOST
-        ))
-        .count(),
-        3,
-        "propose, plan and reword_step all say it"
+        said.matches(&format!("<={} chars", tisty_core::model::STEP_AT_MOST))
+            .count(),
+        6,
+        "task_create and task_edit_steps both say it"
     );
 }
 
@@ -6767,7 +7027,7 @@ fn read_tells_a_part_an_agent_said_done_as_waiting_on_the_person() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "Ship the brain", "parts": [
             { "title": "Rank" },
             { "title": "Gates" },
@@ -6778,17 +7038,17 @@ fn read_tells_a_part_an_agent_said_done_as_waiting_on_the_person() {
     let whole = content(&made)["id"].as_str().unwrap().to_string();
     let part = |title: &str| served.person().id_of(title).to_string();
     served.call(
-        "say_done",
-        serde_json::json!({ "task": part("Gates"), "body": "Gates hold on both ends." }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": part("Gates"), "body": "Gates hold on both ends." }),
     );
     served.call(
-        "say_not_doing",
-        serde_json::json!({ "task": part("Tests"), "body": "The engine tests already cover it." }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "not_doing", "task": part("Tests"), "body": "The engine tests already cover it." }),
     );
     served.person().closes(served.person().id_of("Docs"));
 
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &whole, "fields": ["parts"] }),
     );
 
@@ -6833,7 +7093,7 @@ fn read_says_every_part_waits_once_when_all_of_them_do() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let made = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "Ship the cards", "parts": [
             { "title": "Draw" },
             { "title": "Gate" }
@@ -6843,13 +7103,13 @@ fn read_says_every_part_waits_once_when_all_of_them_do() {
     for title in ["Draw", "Gate"] {
         let id = served.person().id_of(title).to_string();
         served.call(
-            "say_done",
-            serde_json::json!({ "task": id, "body": "Done and tested." }),
+            "task_resolve",
+            serde_json::json!({ "outcome": "done", "task": id, "body": "Done and tested." }),
         );
     }
 
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &whole, "fields": ["parts"] }),
     );
 
@@ -6864,7 +7124,7 @@ fn a_whole_and_its_parts_are_written_in_one_call() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move house",
             "parts": [
                 { "title": "book the van", "steps": ["compare prices"] },
@@ -6878,7 +7138,7 @@ fn a_whole_and_its_parts_are_written_in_one_call() {
     assert_eq!(parts.len(), 3, "{said}");
 
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &whole, "fields": ["parts"] }),
     );
     let listed: Vec<&str> = content(&read)["parts"]
@@ -6889,10 +7149,13 @@ fn a_whole_and_its_parts_are_written_in_one_call() {
         .collect();
     assert_eq!(listed.len(), 3, "every part answers to its whole: {read}");
 
-    let found = served.call("brain", serde_json::json!({ "part_of": &whole }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "project", "part_of": &whole }),
+    );
     assert_eq!(content(&found)["total"], 3, "{found}");
     let one = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": parts[0]["id"], "fields": ["part_of"] }),
     );
     assert_eq!(content(&one)["part_of"], whole.as_str());
@@ -6914,7 +7177,7 @@ fn one_bad_part_and_nothing_at_all_is_written() {
         ),
     ] {
         let said = served.call(
-            "propose",
+            "task_create",
             serde_json::json!({ "for": "agent", "title": "move house", "parts": parts }),
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
@@ -6933,24 +7196,27 @@ fn a_part_goes_under_any_open_task() {
     let its_own = filed(&served, "plan the move");
 
     let under_persons = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pack", "part_of": persons }),
     );
     assert_ne!(under_persons["result"]["isError"], true, "{under_persons}");
     assert!(served.person().open().contains("pack"));
 
     let under_its_own = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "book the van", "part_of": &its_own }),
     );
     assert_ne!(under_its_own["result"]["isError"], true, "{under_its_own}");
-    let read = served.call("read", serde_json::json!({ "task": &its_own }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &its_own }));
     assert_eq!(
         content(&read)["parts"].as_array().map(Vec::len),
         Some(1),
         "reading the whole lists its parts: {read}"
     );
-    let found = served.call("brain", serde_json::json!({ "query": "plan the move" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "plan the move" }),
+    );
     assert!(
         found.to_string().contains("\"parts\":\"0/1\""),
         "a listing counts them instead: {found}"
@@ -6962,7 +7228,7 @@ fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move house", "parts": [{ "title": "book the van" }] }),
     );
     let whole = content(&said)["id"].as_str().unwrap().to_string();
@@ -6972,18 +7238,18 @@ fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
         .to_string();
 
     let early = served.call(
-        "say_done",
-        serde_json::json!({ "task": &whole, "body": "all moved" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &whole, "body": "all moved" }),
     );
     assert_eq!(early["result"]["isError"], true, "{early}");
 
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &part, "body": "booked for friday" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &part, "body": "booked for friday" }),
     );
     let after = served.call(
-        "say_done",
-        serde_json::json!({ "task": &whole, "body": "all moved" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &whole, "body": "all moved" }),
     );
     assert_ne!(after["result"]["isError"], true, "{after}");
 }
@@ -6993,7 +7259,7 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "read the thread", "source": "sereno#1" }),
     );
 
@@ -7006,7 +7272,7 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
         serde_json::json!([{ "title": "book the van", "source": "MOVE: #9" }]),
     ] {
         let said = served.call(
-            "propose",
+            "task_create",
             serde_json::json!({ "for": "agent", "title": "move house", "source": "move#9", "parts": parts }),
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
@@ -7019,7 +7285,7 @@ fn a_part_the_person_hid_does_not_hold_its_whole_back() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move house",
             "parts": [{ "title": "book the van" }, { "title": "pack" }]
         }),
@@ -7034,20 +7300,23 @@ fn a_part_the_person_hid_does_not_hold_its_whole_back() {
         .unwrap()
         .to_string();
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &booked, "body": "booked" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &booked, "body": "booked" }),
     );
     hide(&served, &packing);
 
-    let found = served.call("brain", serde_json::json!({ "query": "move house" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "move house" }),
+    );
     assert!(
         found.to_string().contains("\"parts\":\"0/1\""),
         "the count leaves out what the person hid, as reading does: {found}"
     );
 
     let after = served.call(
-        "say_done",
-        serde_json::json!({ "task": &whole, "body": "moved" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &whole, "body": "moved" }),
     );
     assert_ne!(after["result"]["isError"], true, "{after}");
 }
@@ -7057,7 +7326,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let first = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "spring clean",
             "source": "home#1",
             "parts": [{ "title": "windows", "source": "home#1.1" }]
@@ -7072,7 +7341,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
     served.person().closes(person::task(&whole));
 
     let again = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "spring clean",
             "source": "home#1",
             "again": true,
@@ -7088,7 +7357,8 @@ fn persons_task(served: &Served, title: &str) -> String {
 }
 
 fn read_back(served: &Served, id: &str) -> serde_json::Value {
-    served.call("read", serde_json::json!({ "task": id }))["result"]["structuredContent"].clone()
+    served.call("workspace_read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
+        .clone()
 }
 
 fn step_texts(read: &serde_json::Value) -> Vec<String> {
@@ -7107,7 +7377,7 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "migrar el lector", "steps": ["leer el formato", "escribir el nuevo", "sobra"] }),
     );
     let id = said["result"]["structuredContent"]["id"]
@@ -7115,8 +7385,8 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
         .unwrap()
         .to_string();
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "el formato es v15" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "el formato es v15" }),
     );
     let note = read_back(&served, &id)["journal"][0]["id"]
         .as_str()
@@ -7125,20 +7395,20 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
 
     for (tool, args) in [
         (
-            "rename",
+            "task_update",
             serde_json::json!({ "task": &id, "title": "migrar el lector v15" }),
         ),
         (
-            "reword_step",
-            serde_json::json!({ "task": &id, "step": "Leer el formato ", "text": "leer el formato v15" }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "reword", "task": &id, "step": "Leer el formato ", "text": "leer el formato v15" }),
         ),
         (
-            "unplan",
-            serde_json::json!({ "task": &id, "step": "sobra" }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "remove", "task": &id, "step": "sobra" }),
         ),
         (
-            "reword_note",
-            serde_json::json!({ "task": &id, "note": &note, "body": "el formato es v16" }),
+            "task_note",
+            serde_json::json!({ "action": "reword", "task": &id, "note": &note, "body": "el formato es v16" }),
         ),
     ] {
         let done = served.call(tool, args);
@@ -7171,16 +7441,16 @@ fn the_persons_task_is_mended_but_its_ticked_steps_and_its_notes_stay_whole() {
 
     for (tool, args) in [
         (
-            "reword_step",
-            serde_json::json!({ "task": &id, "step": "pay", "text": "paid twice" }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "reword", "task": &id, "step": "pay", "text": "paid twice" }),
         ),
         (
-            "unplan",
-            serde_json::json!({ "task": &id, "steps": ["keep the receipt", "pay"] }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "remove", "task": &id, "steps": ["keep the receipt", "pay"] }),
         ),
         (
-            "reword_note",
-            serde_json::json!({ "task": &id, "note": &note, "body": " " }),
+            "task_note",
+            serde_json::json!({ "action": "reword", "task": &id, "note": &note, "body": " " }),
         ),
     ] {
         let refused = served.call(tool, args);
@@ -7191,16 +7461,16 @@ fn the_persons_task_is_mended_but_its_ticked_steps_and_its_notes_stay_whole() {
 
     for (tool, args) in [
         (
-            "rename",
+            "task_update",
             serde_json::json!({ "task": &id, "title": "renamed" }),
         ),
         (
-            "reword_step",
-            serde_json::json!({ "task": &id, "step": "keep the receipt", "text": "keep the PDF" }),
+            "task_edit_steps",
+            serde_json::json!({ "action": "reword", "task": &id, "step": "keep the receipt", "text": "keep the PDF" }),
         ),
         (
-            "reword_note",
-            serde_json::json!({ "task": &id, "note": &note, "body": "asked for the yearly quote" }),
+            "task_note",
+            serde_json::json!({ "action": "reword", "task": &id, "note": &note, "body": "asked for the yearly quote" }),
         ),
     ] {
         let done = served.call(tool, args);
@@ -7212,8 +7482,8 @@ fn the_persons_task_is_mended_but_its_ticked_steps_and_its_notes_stay_whole() {
     assert_eq!(read["journal"][0]["body"], "asked for the yearly quote");
 
     let unplanned = served.call(
-        "unplan",
-        serde_json::json!({ "task": &id, "step": "keep the PDF" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "remove", "task": &id, "step": "keep the PDF" }),
     );
     assert!(unplanned["result"]["isError"].is_null(), "{unplanned}");
     assert_eq!(step_texts(&read_back(&served, &id)), ["pay"]);
@@ -7225,7 +7495,7 @@ fn a_part_and_its_whole_are_both_mended() {
     served.person().lets_the_agent_in();
     let whole = persons_task(&served, "move house");
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "pack the books", "part_of": &whole, "steps": ["buy boxes"] }),
     );
     let part = said["result"]["structuredContent"]["id"]
@@ -7234,17 +7504,17 @@ fn a_part_and_its_whole_are_both_mended() {
         .to_string();
 
     let renamed = served.call(
-        "rename",
+        "task_update",
         serde_json::json!({ "task": &part, "title": "pack the books and the records" }),
     );
     assert!(renamed["result"]["isError"].is_null(), "{renamed}");
     let reworded = served.call(
-        "reword_step",
-        serde_json::json!({ "task": &part, "step": "buy boxes", "text": "buy twenty boxes" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "reword", "task": &part, "step": "buy boxes", "text": "buy twenty boxes" }),
     );
     assert!(reworded["result"]["isError"].is_null(), "{reworded}");
     let whole_renamed = served.call(
-        "rename",
+        "task_update",
         serde_json::json!({ "task": &whole, "title": "move" }),
     );
     assert!(
@@ -7265,7 +7535,7 @@ fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
     served.person().lets_the_agent_in();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move house",
             "description": "the thread said <b>loud</b>",
             "parts": [{ "title": "book the van", "description": "a <u>cheap</u> one" }]
@@ -7276,7 +7546,7 @@ fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
     assert!(turned.contains("HTML that markdown can say"), "{turned}");
     let whole = content(&said)["id"].as_str().unwrap().to_string();
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &whole, "fields": ["description", "parts"] }),
     );
     assert_eq!(content(&read)["description"], "the thread said **loud**");
@@ -7285,18 +7555,18 @@ fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
         .unwrap()
         .to_string();
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &part, "fields": ["description"] }),
     );
     assert_eq!(content(&read)["description"], "a ++cheap++ one");
 
     let noted = served.call(
-        "note",
-        serde_json::json!({ "task": &whole, "body": "see [[Rina's record]], step [[#2]] and <b>this</b>" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &whole, "body": "see [[Rina's record]], step [[#2]] and <b>this</b>" }),
     );
     assert_ne!(noted["result"]["isError"], true, "{noted}");
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &whole, "fields": ["journal"] }),
     );
     assert_eq!(
@@ -7314,15 +7584,18 @@ fn on_the_persons_own_task_a_tick_and_a_done_are_only_words() {
     served.person().adds_step(task, "pay");
     let id = task.to_string();
 
-    let ticked = served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    let ticked = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "pay" }),
+    );
     assert_ne!(ticked["result"]["isError"], true, "{ticked}");
     assert_eq!(ticked["result"]["structuredContent"]["said"], 1, "{ticked}");
     let step = &served.person().state().tasks[&task].steps[0];
     assert!(step.said && !step.done, "the step waits for the person");
 
     let done = served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "paid at the registry, receipt 4471" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "paid at the registry, receipt 4471" }),
     );
     assert_ne!(done["result"]["isError"], true, "{done}");
     let after = &served.person().state().tasks[&task];
@@ -7340,9 +7613,12 @@ fn read_marks_a_step_an_agent_said_done_and_its_page_counts_the_journal() {
     served.person().adds_step(task, "pay");
     served.person().adds_step(task, "post the form");
     let id = task.to_string();
-    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "pay" }),
+    );
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let text = read["result"]["content"][0]["text"].as_str().unwrap();
     let lines: Vec<&str> = text.lines().collect();
     assert!(
@@ -7354,10 +7630,10 @@ fn read_marks_a_step_an_agent_said_done_and_its_page_counts_the_journal() {
     assert!(content(&read).get("journal_notes").is_none(), "{read}");
 
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "The registry wants the old passport too." }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "The registry wants the old passport too." }),
     );
-    let pageless = served.call("read", serde_json::json!({ "task": &id }));
+    let pageless = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert!(content(&pageless).get("document").is_none(), "{pageless}");
     assert_eq!(
         content(&pageless)["journal_notes"],
@@ -7366,10 +7642,10 @@ fn read_marks_a_step_an_agent_said_done_and_its_page_counts_the_journal() {
     );
 
     served.call(
-        "describe",
-        serde_json::json!({ "task": &id, "body": "The registry closes at noon." }),
+        "task_update",
+        serde_json::json!({ "task": &id, "description": "The registry closes at noon." }),
     );
-    let paged = served.call("read", serde_json::json!({ "task": &id }));
+    let paged = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let text = paged["result"]["content"][0]["text"].as_str().unwrap();
     let (page, after) = text
         .split_once("On its page, steps an agent said done:")
@@ -7396,7 +7672,7 @@ fn read_marks_a_step_an_agent_said_done_and_its_page_counts_the_journal() {
         filled: false,
     });
     assert!(served.person().state().tasks[&task].steps[0].said);
-    let closed = served.call("read", serde_json::json!({ "task": &id }));
+    let closed = served.call("workspace_read", serde_json::json!({ "task": &id }));
     assert_ne!(closed["result"]["isError"], true, "{closed}");
     let text = closed["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
@@ -7421,9 +7697,15 @@ fn a_word_on_a_step_of_the_persons_can_be_taken_back_by_the_assistant() {
     let task = served.person().captures("renew the certificate");
     served.person().adds_step(task, "pay");
     let id = task.to_string();
-    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "pay" }),
+    );
 
-    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+    let back = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": &id, "step": "pay" }),
+    );
 
     assert_ne!(back["result"]["isError"], true, "{back}");
     assert_eq!(back["result"]["structuredContent"]["unsaid"], 1, "{back}");
@@ -7438,15 +7720,24 @@ fn once_the_whole_task_is_said_done_its_steps_keep_the_word() {
     let task = served.person().captures("renew the certificate");
     served.person().adds_step(task, "pay");
     let id = task.to_string();
-    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
-    let again = served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "pay" }),
+    );
+    let again = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": &id, "step": "pay" }),
+    );
     assert_eq!(again["result"]["isError"], true, "{again}");
     served.call(
-        "say_done",
-        serde_json::json!({ "task": &id, "body": "paid at the registry" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": &id, "body": "paid at the registry" }),
     );
 
-    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+    let back = served.call(
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": &id, "step": "pay" }),
+    );
 
     assert_eq!(back["result"]["isError"], true, "{back}");
     assert!(served.person().state().tasks[&task].steps[0].said);
@@ -7458,7 +7749,7 @@ fn a_widget_that_holds_what_a_widget_cannot_is_refused_and_says_what() {
     served.person().lets_the_agent_in();
 
     let refused = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Agua\n\n```widget\n<script>x()</script>\n```\n" }),
     );
     let said = refused["result"]["content"][0]["text"].as_str().unwrap();
@@ -7467,7 +7758,7 @@ fn a_widget_that_holds_what_a_widget_cannot_is_refused_and_says_what() {
     assert_eq!(refused["result"]["isError"], true);
 
     let kept = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Agua\n\n```widget\n<div class=\"stat\"><b>6</b></div>\n```\n" }),
     );
     assert_eq!(kept["result"]["structuredContent"]["title"], "Agua");
@@ -7490,7 +7781,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
     }
     assert!(log > 250_000, "the log is about 256 KB: {log}");
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "move payments to v2", "steps": ["sign", "upload", "resume a cut upload"] }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -7498,25 +7789,25 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         .to_string();
     for n in 0..12 {
         served.call(
-            "note",
-            serde_json::json!({ "task": &id, "body": format!("try {n}: the webhook still fails on old signatures") }),
+            "task_note",
+            serde_json::json!({ "action": "add", "task": &id, "body": format!("try {n}: the webhook still fails on old signatures") }),
         );
     }
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "the cause was a missing index" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "the cause was a missing index" }),
     );
     for n in 0..30 {
         served.person().captures(&format!("chore {n} #home"));
     }
-    served.call("catch_up", serde_json::json!({}));
+    served.call("workspace_catch_up", serde_json::json!({}));
 
     let weight =
         |answer: serde_json::Value| serde_json::to_string(&answer["result"]).unwrap().len();
     let share = |bytes: usize| bytes as f64 * 100.0 / log as f64;
 
     let quiet = weight(served.call(
-        "catch_up",
+        "workspace_catch_up",
         serde_json::json!({ "since": "2999-01-01T00:00:00Z" }),
     ));
     assert!(
@@ -7525,15 +7816,24 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         share(quiet)
     );
 
-    let found = weight(served.call("brain", serde_json::json!({ "query": "missing index" })));
+    let found = weight(served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "missing index" }),
+    ));
     assert!(
         share(found) <= 3.0,
         "looking for what was solved costs {:.2}%",
         share(found)
     );
 
-    let outline = weight(served.call("brain", serde_json::json!({ "doc": docs[3] })));
-    let part = weight(served.call("read", serde_json::json!({ "doc": docs[3], "section": 4 })));
+    let outline = weight(served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": docs[3] , "view": "card"}),
+    ));
+    let part = weight(served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": docs[3], "section": 4 }),
+    ));
     assert!(
         share(outline + part) <= 12.0,
         "one subject, the outline and one section, costs {:.2}%",
@@ -7545,7 +7845,7 @@ fn what_an_agent_pays_against_a_256_kb_work_log_stays_within_what_the_readme_say
         share(outline + part)
     );
 
-    let opened = weight(served.call("read", serde_json::json!({ "task": &id })));
+    let opened = weight(served.call("workspace_read", serde_json::json!({ "task": &id })));
     assert!(
         share(quiet + opened) <= 3.0,
         "asking what moved and opening the task costs {:.2}%",
@@ -7558,7 +7858,7 @@ fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_u
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "renew the passport" }),
     )["result"]["structuredContent"]["id"]
         .as_str()
@@ -7566,7 +7866,7 @@ fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_u
         .to_string();
     served.person().hides(id.parse().unwrap());
 
-    let back = served.call("catch_up", serde_json::json!({}));
+    let back = served.call("workspace_catch_up", serde_json::json!({}));
     let kept = &back["result"]["structuredContent"];
     let said = back["result"]["content"][0]["text"].as_str().unwrap();
     assert!(kept["last"].is_null(), "{kept}");
@@ -7576,7 +7876,7 @@ fn a_task_the_person_put_out_of_sight_is_told_of_but_never_named_when_catching_u
 
 fn agents_task(served: &Served, title: &str) -> String {
     served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": title,
             "description": "Move the payments to the v2 API.",
             "steps": ["switch the client"],
@@ -7604,12 +7904,12 @@ fn a_task_page_past_a_pickup_s_worth_comes_as_sections_with_its_description_step
         let analysis =
             format!("Week {week}: the webhook retries with the old signature. ").repeat(30);
         served.call(
-            "append_doc",
-            serde_json::json!({ "doc": &id, "body": analysis }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &id, "content": analysis }),
         );
     }
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
     let said = text_of(&read);
     assert_eq!(kept["document"]["whole"], false, "{kept}");
@@ -7636,7 +7936,10 @@ fn a_task_page_past_a_pickup_s_worth_comes_as_sections_with_its_description_step
         .find(|one| one["title"] == "Assistant notes")
         .unwrap()["at"]
         .clone();
-    let section = served.call("read", serde_json::json!({ "doc": file, "section": notes }));
+    let section = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": file, "section": notes }),
+    );
     assert!(text_of(&section).contains("Week 1"), "{section}");
 }
 
@@ -7649,12 +7952,12 @@ fn notes_past_what_a_page_should_hold_ask_to_be_compacted() {
         let analysis =
             format!("Week {week}: the webhook retries with the old signature. ").repeat(35);
         served.call(
-            "append_doc",
-            serde_json::json!({ "doc": &id, "body": analysis }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &id, "content": analysis }),
         );
     }
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let said = text_of(&read);
     assert!(said.contains("compact them when you leave off"), "{said}");
     assert!(
@@ -7673,11 +7976,14 @@ fn the_journal_window_is_counted_in_characters_and_long_notes_are_cut() {
     let id = agents_task(&served, "move payments to v2");
     for n in 1..=5 {
         let note = format!("Day {n}: ").to_string() + &"retried the webhook. ".repeat(70);
-        served.call("note", serde_json::json!({ "task": &id, "body": note }));
+        served.call(
+            "task_note",
+            serde_json::json!({ "action": "add", "task": &id, "body": note }),
+        );
     }
 
     let read = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["journal"] }),
     );
     let kept = &read["result"]["structuredContent"];
@@ -7691,7 +7997,7 @@ fn the_journal_window_is_counted_in_characters_and_long_notes_are_cut() {
     assert!(text_of(&read).contains("`notes` with a count brings them whole"));
 
     let asked = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 5 }),
     );
     let journal = asked["result"]["structuredContent"]["journal"]
@@ -7709,14 +8015,14 @@ fn a_note_too_long_for_the_journal_is_refused_and_pointed_at_the_page() {
     let id = agents_task(&served, "move payments to v2");
 
     let long = served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "x".repeat(4_001) }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "x".repeat(4_001) }),
     );
 
     assert_eq!(long["result"]["isError"], true, "{long}");
     let said = text_of(&long);
     assert!(said.contains("at most 4000 characters"), "{said}");
-    assert!(said.contains("`append_doc`"), "{said}");
+    assert!(said.contains("`doc_edit`"), "{said}");
 }
 
 #[test]
@@ -7726,16 +8032,19 @@ fn a_marked_document_comes_after_the_live_ones_in_find_saying_how_it_was_marked(
     let old = wrote_paper(&served, "# Keys\n\nIdempotency keys are kept 30 days.");
     let new = wrote_paper(&served, "# Retries\n\nIdempotency keys are kept 90 days.");
     served.call(
-        "flag_doc",
-        serde_json::json!({
-            "doc": &old,
+        "doc_annotate",
+        serde_json::json!({ "action": "flag",
+            "docs": [&old],
             "reason": "duplicate_of",
             "instead": &new,
             "body": "Retries holds the current rule.",
         }),
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "idempotency" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "idempotency" }),
+    );
     let docs = found["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap()
@@ -7756,21 +8065,27 @@ fn the_list_and_the_outline_say_in_words_what_an_earlier_reader_left() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\n## El riego\n\nQueda para mayo.");
     served.call(
-        "sum_up",
-        serde_json::json!({
-            "doc": &doc,
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize",
+            "docs": [&doc],
             "summary": "Lo acordado sobre el riego.",
             "notes": "El riego esta en la seccion 1.",
         }),
     );
 
-    let listed = text_of(&served.call("brain", serde_json::json!({ "scope": "either" })));
+    let listed = text_of(&served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    ));
     assert!(
         listed.contains("An agent's summary: Lo acordado sobre el riego."),
         "{listed}"
     );
     assert!(!listed.contains("Its notes"), "{listed}");
-    let outline = text_of(&served.call("brain", serde_json::json!({ "doc": &doc })));
+    let outline = text_of(&served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    ));
     assert!(
         outline.contains("An agent's summary: Lo acordado"),
         "{outline}"
@@ -7782,10 +8097,13 @@ fn the_list_and_the_outline_say_in_words_what_an_earlier_reader_left() {
 
     std::thread::sleep(std::time::Duration::from_millis(20));
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Y el porton, para abril." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Y el porton, para abril." }),
     );
-    let listed = text_of(&served.call("brain", serde_json::json!({ "scope": "either" })));
+    let listed = text_of(&served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    ));
     assert!(
         listed.contains("stale: written against an older version"),
         "{listed}"
@@ -7798,23 +8116,29 @@ fn a_page_marked_old_is_no_sign_its_document_wants_compacting() {
     served.person().lets_the_agent_in();
     let book = wrote_paper(&served, "# Login\n\n## Tokens\n\nA.\n");
     let page = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Review 1\n\n## Tokens\n\nB.\n", "page_of": &book }),
     )["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
-    let before = served.call("brain", serde_json::json!({ "doc": &book }));
+    let before = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     assert!(
         before["result"]["structuredContent"]["repeated"].is_array(),
         "{before}"
     );
     served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &page, "reason": "obsolete", "body": "Folded into Login." }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&page], "reason": "obsolete", "body": "Folded into Login." }),
     );
 
-    let after = served.call("brain", serde_json::json!({ "doc": &book }));
+    let after = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     let kept = &after["result"]["structuredContent"];
     assert!(kept["repeated"].is_null(), "{kept}");
     assert!(kept["pages"][0]["loose"].is_null(), "{kept}");
@@ -7835,13 +8159,13 @@ fn a_task_the_agent_cannot_write_is_never_asked_to_have_its_notes_compacted() {
         let analysis =
             format!("Week {week}: the webhook retries with the old signature. ").repeat(35);
         served.call(
-            "append_doc",
-            serde_json::json!({ "doc": &id, "body": analysis }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &id, "content": analysis }),
         );
     }
     served.person().closes(id.parse().unwrap());
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": &id }));
     let said = text_of(&read);
     assert!(!said.contains("compact them"), "{said}");
     assert!(
@@ -7853,8 +8177,8 @@ fn a_task_the_agent_cannot_write_is_never_asked_to_have_its_notes_compacted() {
 fn digested_at_length(served: &Served) -> String {
     let id = agents_task(served, "move payments to v2");
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "Tried the old signature. ".repeat(180) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "Tried the old signature. ".repeat(180) }),
     );
     let digest = format!(
         "{}Ruled out: the old signature.",
@@ -7862,14 +8186,14 @@ fn digested_at_length(served: &Served) -> String {
     );
     assert!(digest.chars().count() > 5_000);
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": digest, "replace": true }),
+        "doc_edit",
+        serde_json::json!({ "mode": "digest_task_notes", "doc": &id, "content": digest }),
     );
     id
 }
 
 fn page_said(served: &Served, id: &str) -> serde_json::Value {
-    served.call("read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
+    served.call("workspace_read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
         ["document"]
         .clone()
 }
@@ -7889,8 +8213,8 @@ fn a_digest_comes_whole_at_pickup_and_a_long_note_after_it_is_cut() {
     );
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "Week 9: ".to_string() + &"analysis ".repeat(700) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "Week 9: ".to_string() + &"analysis ".repeat(700) }),
     );
     let page = page_said(&served, &id);
     assert!(
@@ -7910,7 +8234,10 @@ fn a_digest_put_back_is_no_longer_shown_as_one() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let id = digested_at_length(&served);
-    served.call("restore_doc", serde_json::json!({ "doc": &id }));
+    served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &id }),
+    );
 
     let page = page_said(&served, &id);
     assert!(page["digest"].is_null(), "{page}");
@@ -7925,7 +8252,10 @@ fn a_document_line_find_quotes_keeps_the_person_s_disk_out() {
         "# Contract\n\nSigned copy saved to C:/Users/someone/Desktop/Signed/contract.pdf today.",
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "signed copy" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "signed copy" }),
+    );
     let said = text_of(&found);
     assert!(said.contains("[path]"), "{said}");
     assert!(!said.contains("Desktop"), "{said}");
@@ -7950,7 +8280,10 @@ Signed copy saved to C:/Users/someone/Desktop/Signed/contract.pdf and then the t
         ),
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "idempotency" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "idempotency" }),
+    );
     let line = found["result"]["structuredContent"]["docs"][0]["line"]
         .as_str()
         .unwrap_or_default();
@@ -7976,9 +8309,15 @@ fn a_word_found_only_in_a_path_is_quoted_where_the_path_was() {
         "{}copied from C:/Users/someone/Desktop/invoices/march.pdf",
         "before ".repeat(40)
     );
-    served.call("note", serde_json::json!({ "task": &id, "body": noted }));
+    served.call(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": noted }),
+    );
 
-    let found = served.call("brain", serde_json::json!({ "query": "invoices" }));
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "invoices" }),
+    );
     let line = found["result"]["structuredContent"]["matches"][0]["line"]
         .as_str()
         .unwrap_or_default();
@@ -7993,10 +8332,10 @@ fn a_word_found_only_in_a_path_is_quoted_where_the_path_was() {
 
 fn page_file_of(served: &Served, id: &str) -> String {
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": id, "body": "Started on it." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": id, "content": "Started on it." }),
     );
-    served.call("read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
+    served.call("workspace_read", serde_json::json!({ "task": id }))["result"]["structuredContent"]
         ["document"]["file"]
         .as_str()
         .unwrap()
@@ -8012,18 +8351,18 @@ fn a_note_too_long_on_a_locked_page_is_sent_to_a_document_of_its_own() {
     served.person().locks_doc(&file);
 
     let long = served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "x".repeat(4_001) }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "x".repeat(4_001) }),
     );
 
     let said = text_of(&long);
-    assert!(said.contains("`write_doc`"), "{said}");
+    assert!(said.contains("`doc_create`"), "{said}");
     assert!(!said.contains("`append_doc`"), "{said}");
 }
 
 fn first_note_of(served: &Served, id: &str) -> String {
     served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": id, "fields": ["journal"], "notes": 0 }),
     )["result"]["structuredContent"]["journal"][0]["id"]
         .as_str()
@@ -8042,14 +8381,14 @@ fn a_note_rewritten_may_shrink_but_not_grow_past_the_note_limit() {
     let note = first_note_of(&served, &id);
 
     let shorter = served.call(
-        "reword_note",
-        serde_json::json!({ "task": &id, "note": &note, "body": "z".repeat(4_400) }),
+        "task_note",
+        serde_json::json!({ "action": "reword", "task": &id, "note": &note, "body": "z".repeat(4_400) }),
     );
     assert!(shorter["result"]["isError"].is_null(), "{shorter}");
 
     let longer = served.call(
-        "reword_note",
-        serde_json::json!({ "task": &id, "note": &note, "body": "z".repeat(4_450) }),
+        "task_note",
+        serde_json::json!({ "action": "reword", "task": &id, "note": &note, "body": "z".repeat(4_450) }),
     );
     assert_eq!(longer["result"]["isError"], true, "{longer}");
     let said = text_of(&longer);
@@ -8067,8 +8406,8 @@ fn a_page_that_cannot_be_written_keeps_a_short_note_in_the_history_and_refuses_a
     served.person().leaves_doc_unwritable(&file);
 
     let long = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "y".repeat(5_000) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "y".repeat(5_000) }),
     );
     assert_eq!(long["result"]["isError"], true, "{long}");
     assert!(
@@ -8077,8 +8416,8 @@ fn a_page_that_cannot_be_written_keeps_a_short_note_in_the_history_and_refuses_a
     );
 
     let short = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &id, "body": "Switched the client." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &id, "content": "Switched the client." }),
     );
     assert_eq!(
         short["result"]["structuredContent"]["in"], "history",
@@ -8095,12 +8434,12 @@ fn notes_asked_by_count_come_whole_up_to_the_note_limit_and_older_giants_are_cut
         .person()
         .notes(id.parse().unwrap(), &"z".repeat(20_000));
     served.call(
-        "note",
-        serde_json::json!({ "task": &id, "body": "w".repeat(3_500) }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": &id, "body": "w".repeat(3_500) }),
     );
 
     let asked = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 2 }),
     );
     let journal = asked["result"]["structuredContent"]["journal"]
@@ -8116,7 +8455,7 @@ fn notes_asked_by_count_come_whole_up_to_the_note_limit_and_older_giants_are_cut
     assert!(text_of(&asked).contains("`notes` 0 brings every note whole"));
 
     let every = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": &id, "fields": ["journal"], "notes": 0 }),
     );
     let first = every["result"]["structuredContent"]["journal"][0]["body"]
@@ -8136,12 +8475,12 @@ fn writing_in_a_put_away_document_says_who_brings_it_back_never_to_start_another
 
     for (tool, args) in [
         (
-            "edit_doc",
-            serde_json::json!({ "doc": &doc, "old": "Restart", "new": "Stop" }),
+            "doc_edit",
+            serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Restart", "content": "Stop" }),
         ),
         (
-            "append_doc",
-            serde_json::json!({ "doc": &doc, "body": "Then check the queue." }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &doc, "content": "Then check the queue." }),
         ),
     ] {
         let refused = served.call(tool, args);
@@ -8149,7 +8488,7 @@ fn writing_in_a_put_away_document_says_who_brings_it_back_never_to_start_another
         let said = text_of(&refused);
         assert!(said.contains("tell the person"), "{tool}: {said}");
         assert!(
-            said.contains("`archive_doc` and `archived` false"),
+            said.contains("`doc_annotate` (`action: \"unarchive\"`)"),
             "{tool}: {said}"
         );
         assert!(!said.contains("Write a new document"), "{tool}: {said}");
@@ -8162,21 +8501,27 @@ fn a_task_id_sent_to_a_document_tool_names_the_way_to_its_page() {
     served.person().lets_the_agent_in();
     let id = agents_task(&served, "move payments to v2");
 
-    let refused = served.call("brain", serde_json::json!({ "doc": &id }));
+    let refused = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &id , "view": "card"}),
+    );
 
     let said = text_of(&refused);
     assert!(said.contains("not a document"), "{said}");
-    assert!(said.contains("`append_doc` with its id"), "{said}");
-    assert!(said.contains("`replace`"), "{said}");
+    assert!(said.contains("`doc_edit` with its id"), "{said}");
+    assert!(said.contains("digest_task_notes"), "{said}");
 }
 
 #[test]
 fn a_document_held_away_by_its_folder_is_brought_back_by_the_person_only() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Linio" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Linio" }),
+    );
     let doc = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Antifraude\n\nLo de entonces.", "folder": "Linio" }),
     )["result"]["structuredContent"]["doc"]
         .as_str()
@@ -8185,8 +8530,8 @@ fn a_document_held_away_by_its_folder_is_brought_back_by_the_person_only() {
     served.shelve_folder("Linio");
 
     let refused = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Y algo más." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Y algo más." }),
     );
 
     let said = text_of(&refused);
@@ -8202,7 +8547,7 @@ fn says_who_brings_it_back(answer: &serde_json::Value, call: &str) {
     let said = text_of(answer);
     assert!(said.contains("tell the person"), "{call}: {said}");
     assert!(
-        said.contains("`archive_doc` and `archived` false"),
+        said.contains("`doc_annotate` (`action: \"unarchive\"`)"),
         "{call}: {said}"
     );
     for wrong in [
@@ -8221,7 +8566,7 @@ fn every_way_of_writing_into_a_put_away_document_says_who_brings_it_back() {
     let book = wrote_paper(&served, "# Runbook\n\nRestart the worker.");
     let page = |title: &str| {
         served.call(
-            "write_doc",
+            "doc_create",
             serde_json::json!({ "body": format!("# {title}\n\nA."), "page_of": &book }),
         )["result"]["structuredContent"]["doc"]
             .as_str()
@@ -8236,29 +8581,29 @@ fn every_way_of_writing_into_a_put_away_document_says_who_brings_it_back() {
 
     says_who_brings_it_back(
         &served.call(
-            "page_doc",
-            serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+            "doc_organize",
+            serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
         ),
         "order",
     );
     says_who_brings_it_back(
         &served.call(
-            "write_doc",
+            "doc_create",
             serde_json::json!({ "body": "# Three\n\nC.", "page_of": &book }),
         ),
         "write_doc page_of",
     );
     says_who_brings_it_back(
         &served.call(
-            "tongue_doc",
-            serde_json::json!({ "doc": &english, "of": &loose, "lang": "en" }),
+            "doc_organize",
+            serde_json::json!({ "action": "link_translation", "docs": [&english], "parent": &loose, "lang": "en" }),
         ),
         "tongue_doc",
     );
 
     let hung = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &english, "page_of": &loose }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&english], "parent": &loose }),
     );
     assert_eq!(hung["result"]["isError"], true, "{hung}");
     let said = text_of(&hung);
@@ -8289,7 +8634,7 @@ fn kept_here_before_notes_travelled(served: &Served, doc: &str, summary: &str, a
     let cache = tisty_core::cache::Cache::open(&served.home.path().join("cache"))
         .unwrap()
         .unwrap();
-    let print = served.call("read", serde_json::json!({ "doc": doc }))["result"]
+    let print = served.call("workspace_read", serde_json::json!({ "doc": doc }))["result"]
         ["structuredContent"]["print"]
         .as_str()
         .unwrap()
@@ -8309,10 +8654,11 @@ fn saying_the_same_about_a_document_again_writes_nothing_more() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
-    let said = serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" });
+    let said =
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "el acta de mayo" });
 
-    let first = served.call("sum_up", said.clone());
-    let again = served.call("sum_up", said);
+    let first = served.call("doc_annotate", said.clone());
+    let again = served.call("doc_annotate", said);
 
     assert_eq!(
         again["result"]["structuredContent"]["kept"], true,
@@ -8330,27 +8676,33 @@ fn a_note_on_a_document_is_not_news_of_the_document_moving() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
-    let first = served.call("catch_up", serde_json::json!({}));
+    let first = served.call("workspace_catch_up", serde_json::json!({}));
     let cursor = first["result"]["structuredContent"]["cursor"]
         .as_str()
         .unwrap()
         .to_string();
 
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "el acta de mayo" }),
     );
-    let quiet = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    let quiet = served.call(
+        "workspace_catch_up",
+        serde_json::json!({ "since": &cursor }),
+    );
     assert!(
         quiet["result"]["structuredContent"]["docs"].is_null(),
         "{quiet}"
     );
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Y algo mas." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Y algo mas." }),
     );
-    let moved = served.call("catch_up", serde_json::json!({ "since": &cursor }));
+    let moved = served.call(
+        "workspace_catch_up",
+        serde_json::json!({ "since": &cursor }),
+    );
     assert!(
         moved["result"]["structuredContent"]["docs"].is_array(),
         "{moved}"
@@ -8364,19 +8716,22 @@ fn a_different_note_on_the_same_text_corrects_the_last_and_rings_the_window() {
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     let bell = served.home.path().join("cache").join("stirred");
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "el acta de abril" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "el acta de abril" }),
     );
     std::fs::remove_file(&bell).unwrap();
 
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "el acta de mayo" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "el acta de mayo" }),
     );
 
     assert!(bell.exists(), "a note is a write the window and sync catch");
     assert_eq!(gists_in_the_log(&served).len(), 2);
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     assert_eq!(
         seen["result"]["structuredContent"]["gist"]["summary"], "el acta de mayo",
         "{seen}"
@@ -8390,7 +8745,10 @@ fn a_note_kept_here_before_notes_travelled_is_still_read_here_and_never_travels(
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     kept_here_before_notes_travelled(&served, &doc, "lo de antes", "2026-03-01T10:00:00Z");
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     let gist = &seen["result"]["structuredContent"]["gist"];
     assert_eq!(gist["summary"], "lo de antes", "{seen}");
     assert_eq!(gist["by_agent"], true, "{gist}");
@@ -8401,10 +8759,13 @@ fn a_note_kept_here_before_notes_travelled_is_still_read_here_and_never_travels(
     );
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Y algo mas." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Y algo mas." }),
     );
-    let moved = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let moved = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
     assert_eq!(
         moved["result"]["structuredContent"]["gist"]["stale"], true,
         "{moved}"
@@ -8417,12 +8778,15 @@ fn a_note_that_came_as_an_event_wins_over_one_kept_here() {
     served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &doc, "summary": "lo de ahora" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&doc], "summary": "lo de ahora" }),
     );
     kept_here_before_notes_travelled(&served, &doc, "lo de antes", "2030-01-01T10:00:00Z");
 
-    let seen = served.call("brain", serde_json::json!({ "doc": &doc }));
+    let seen = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc , "view": "card"}),
+    );
 
     assert_eq!(
         seen["result"]["structuredContent"]["gist"]["summary"], "lo de ahora",

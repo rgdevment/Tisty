@@ -79,7 +79,7 @@ impl Served {
     }
 
     fn written(&self, body: &str) -> String {
-        self.call("write_doc", json!({ "body": body }))["doc"]
+        self.call("doc_create", json!({ "body": body }))["doc"]
             .as_str()
             .unwrap()
             .to_string()
@@ -191,23 +191,26 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let passport = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Renew the passport" }),
     )["id"]
         .as_str()
         .unwrap()
         .to_string();
-    let stamps = served.call("propose", json!({ "for": "agent", "title": "Buy stamps" }))["id"]
+    let stamps = served.call(
+        "task_create",
+        json!({ "for": "agent", "title": "Buy stamps" }),
+    )["id"]
         .as_str()
         .unwrap()
         .to_string();
     served.call(
-        "note",
-        json!({ "task": passport, "body": "The photo is ready." }),
+        "task_note",
+        json!({ "action": "add", "task": passport, "body": "The photo is ready." }),
     );
 
     let said = served.prompted("pick_up", json!({}));
-    assert!(said.contains("`catch_up`"), "{said}");
+    assert!(said.contains("`workspace_catch_up`"), "{said}");
     assert!(
         said.contains(&format!("\"Renew the passport\" in the inbox [{passport}]")),
         "{said}"
@@ -229,8 +232,8 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
     assert!(said.contains("the open task we were on"), "{said}");
 
     served.call(
-        "note",
-        json!({ "task": stamps, "body": "Ten, at the corner shop." }),
+        "task_note",
+        json!({ "action": "add", "task": stamps, "body": "Ten, at the corner shop." }),
     );
     let said = served.prompted("pick_up", json!({}));
     assert!(
@@ -238,7 +241,10 @@ fn picking_up_names_the_open_task_the_agent_last_worked_on() {
         "working on it again makes it the one: {said}"
     );
 
-    served.call("say_done", json!({ "task": stamps, "body": "Bought ten." }));
+    served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": stamps, "body": "Bought ten." }),
+    );
 
     let said = served.prompted("pick_up", json!({}));
     assert!(
@@ -298,27 +304,32 @@ fn every_tool_and_field_consolidating_names_is_one_the_server_has() {
     for asked in [Value::Null, json!({ "subject": "Kitchen" })] {
         let said = served.prompted("consolidate", asked);
         for named in backticked(&said) {
+            if named == "{}" {
+                continue;
+            }
+            let key = named.split(':').next().unwrap_or(named).trim();
             assert!(
-                known.iter().any(|one| one == named) || CONSOLIDATE_READS.contains(&named),
+                known.iter().any(|one| one == key) || CONSOLIDATE_READS.contains(&key),
                 "`{named}` is neither a tool, an argument nor a field the prompt reads: {said}"
             );
         }
     }
 
     let paired = [
-        (
-            "brain",
-            &["folder", "list", "query", "doc", "part_of", "task"][..],
-        ),
-        ("flag_doc", &["instead"]),
-        ("write_doc", &["person_asked"]),
-        ("tick", &["state"]),
+        ("workspace_search", &["folder", "query", "part_of"][..]),
+        ("workspace_read", &["doc", "task"][..]),
+        ("doc_annotate", &["instead"]),
+        ("doc_edit", &["person_asked"]),
+        ("task_edit_steps", &["state"]),
     ];
     let said = served.prompted("consolidate", json!({ "subject": "Kitchen" }));
     for (tool, fields) in paired {
         let has = takes(tool);
         for field in fields {
-            assert!(said.contains(&format!("`{field}`")), "{field}: {said}");
+            assert!(
+                said.contains(&format!("`{field}`")) || said.contains(&format!("`{field}:")),
+                "{field}: {said}"
+            );
             assert!(
                 has.iter().any(|one| one == field),
                 "the prompt sends `{field}` with `{tool}`, which takes {has:?}"
@@ -331,45 +342,57 @@ fn every_tool_and_field_consolidating_names_is_one_the_server_has() {
 fn what_consolidating_reads_is_what_brain_answers() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", json!({ "name": "Kitchen" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Kitchen" }),
+    );
     let recipes = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Recipes\n\nRice. See [gone](tisty:doc/zzzzzzzz-9999).", "folder": "Kitchen" }),
     )["doc"]
         .as_str()
         .unwrap()
         .to_string();
     let scratch = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Scratch\n\nNothing.", "folder": "Kitchen" }),
     )["doc"]
         .as_str()
         .unwrap()
         .to_string();
-    served.call("sum_up", json!({ "doc": recipes, "summary": "Rice." }));
     served.call(
-        "append_doc",
-        json!({ "doc": recipes, "body": "Beans too." }),
+        "doc_annotate",
+        json!({ "action": "summarize", "docs": [recipes], "summary": "Rice." }),
     );
     served.call(
-        "flag_doc",
-        json!({ "doc": scratch, "reason": "scratch", "body": "Nobody needs it." }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": recipes, "content": "Beans too." }),
+    );
+    served.call(
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [scratch], "reason": "scratch", "body": "Nobody needs it." }),
     );
     let whole = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Cook for ten", "parts": [{ "title": "Buy rice", "steps": ["Rice"] }] }),
     )["id"]
         .as_str()
         .unwrap()
         .to_string();
     let task = served.person().id_of("Buy rice").to_string();
-    served.call("tick", json!({ "task": task, "state": "Half bought." }));
-    served.call("note", json!({ "task": task, "body": "Decided: beans." }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Half bought." }),
+    );
+    served.call(
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Decided: beans." }),
+    );
 
-    let listed = served.call("brain", json!({ "folder": "Kitchen" }));
-    let card = served.call("brain", json!({ "doc": recipes }));
-    let task_card = served.call("brain", json!({ "task": task }));
-    let project = served.call("brain", json!({ "part_of": whole }));
+    let listed = served.call("workspace_search", json!({ "folder": "Kitchen" }));
+    let card = served.call("workspace_read", json!({ "doc": recipes, "view": "card" }));
+    let task_card = served.call("workspace_read", json!({ "task": task, "view": "card" }));
+    let project = served.call("workspace_search", json!({ "part_of": whole }));
 
     let docs = listed["docs"].as_array().expect("docs");
     let row = |id: &str| docs.iter().find(|one| one["doc"] == id).expect(id).clone();
@@ -389,8 +412,11 @@ fn consolidating_proposes_first_and_never_deletes() {
 
     assert!(said.contains("Change nothing until I say which"), "{said}");
     assert!(said.contains("Never delete"), "{said}");
-    assert!(said.contains("`flag_doc`"), "{said}");
-    assert!(!said.contains("archive_doc"), "{said}");
+    assert!(
+        said.contains("`doc_annotate` (`action: \"flag\"`)"),
+        "{said}"
+    );
+    assert!(!said.contains("archive"), "{said}");
     assert!(
         !served.knocked(),
         "a prompt reads nothing before an agent is let in"
@@ -439,9 +465,12 @@ fn before_an_agent_is_let_in_nothing_is_listed_and_listing_does_not_knock() {
 fn every_document_not_put_away_is_listed_newest_first_with_where_it_sits() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", json!({ "name": "Kitchen" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Kitchen" }),
+    );
     let recipes = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Recipes\n\nRice.", "folder": "Kitchen" }),
     )["doc"]
         .as_str()
@@ -449,7 +478,10 @@ fn every_document_not_put_away_is_listed_newest_first_with_where_it_sits() {
         .to_string();
     let old = served.written("# Old plan\n\nGone.");
     let plan = served.written("# Release plan\n\nShip it.");
-    served.call("archive_doc", json!({ "doc": old }));
+    served.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [old] }),
+    );
 
     let said = served.ask("resources/list", json!({}));
 
@@ -473,7 +505,7 @@ fn a_long_list_goes_on_with_the_cursor_it_hands_back() {
         .map(|n| {
             (
                 "tools/call",
-                json!({ "name": "write_doc", "arguments": { "body": format!("# Note {n}\n\nOne.") } }),
+                json!({ "name": "doc_create", "arguments": { "body": format!("# Note {n}\n\nOne.") } }),
             )
         })
         .collect();
@@ -487,8 +519,8 @@ fn a_long_list_goes_on_with_the_cursor_it_hands_back() {
     let cursor = first["result"]["nextCursor"].as_str().expect("a cursor");
     served.written("# Written between pages\n\nNew.");
     served.call(
-        "append_doc",
-        json!({ "doc": oldest, "body": "Edited between pages." }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": oldest, "content": "Edited between pages." }),
     );
     let rest = served.ask("resources/list", json!({ "cursor": cursor }));
     let wrong = served.ask("resources/list", json!({ "cursor": "page two" }));

@@ -750,27 +750,26 @@ Cosas que puedes pedirle una vez conectado:
 
 ## Herramientas
 
-Lo que `tisty mcp` le ofrece a un agente, según sobre qué trabaja. Nunca
-cierra ni borra: `say_done` deja la tarea para que tú la confirmes, y
-`flag_doc` marca un documento para que tú lo borres, lo archives o lo
-conserves. Cada herramienta se describe en
+Lo que `tisty mcp` le ofrece a un agente, en 15 herramientas agrupadas por
+dominio. Nunca cierra ni borra: `task_resolve` deja la tarea para que tú la
+confirmes, y `doc_annotate` (`action: "flag"`) marca un documento para que tú
+lo borres, lo archives o lo conserves. Cada herramienta se describe en
 [Herramientas MCP](https://www.tisty.app/es/ayuda/herramientas-mcp/).
 
-- **Tareas** — crear una con pasos y fecha, planificar y marcar sus pasos,
-  decir cuándo suena, mover su día, decir que está lista: `propose`,
-  `describe`, `plan`, `tick`, `untick`, `reword_step`, `unplan`, `rename`,
-  `move`, `remind`, `reschedule`, `say_done`, `say_not_doing`, `read`
-- **La bitácora y los archivos de una tarea** — `note`, `reword_note`, `attach`
-- **Documentos** — escribir uno, agregarle, cambiar un pasaje o una tabla, leer
-  solo la parte que necesita: `write_doc`, `append_doc`, `edit_doc`,
-  `edit_table`, `read`, `sum_up`, `restore_doc`, `import_doc`,
-  `export_doc`, `archive_doc`, `flag_doc`
-- **Carpetas, páginas e idiomas** — `folder`, `file_doc`, `page_doc`,
-  `tongue_doc`
-- **Encontrar cosas** — lo abierto y lo archivado, la ficha de un documento,
-  las partes de un proyecto, las listas, carpetas y etiquetas: `brain`,
-  `catch_up`
-- **Cómo trabajar aquí** — `rules`, `language`, `help`
+- **Espacio y consulta** — ponerse al día con lo que cambió, buscar tareas y
+  documentos o ver fichas y carpetas, leer una tarea o un tramo de un
+  documento, y consultar reglas, sintaxis Markdown o ayuda:
+  `workspace_catch_up`, `workspace_search`, `workspace_read`, `workspace_guide`
+- **Tareas** — crear una o varias con pasos y dueño (`for`), actualizar sus
+  campos/fecha/lista/padre, gestionar y marcar pasos con estado, escribir en su
+  bitácora y darla por terminada o descartada: `task_create`, `task_update`,
+  `task_edit_steps`, `task_note`, `task_resolve`
+- **Documentos** — crear un documento, página o traducción, parchar/añadir/
+  reescribir/compactar/restaurar contenido, editar tablas Markdown, organizar
+  carpetas, páginas e idiomas, y archivar, resumir o marcar documentos:
+  `doc_create`, `doc_edit`, `doc_edit_table`, `doc_organize`, `doc_annotate`
+- **Archivos** — adjuntar un archivo local a una tarea o documento, o importar
+  y exportar un documento Markdown en disco: `file_transfer`
 
 Además de las herramientas, ofrece ocho pedidos listos que tu agente
 muestra como comandos (`pick_up`, `leave_off`, `plan_task`, `solved_before`,

@@ -174,35 +174,57 @@ fn a_place_the_tools_resolve_outside_agents_stays_open_even_named_like_one_insid
 
 #[test]
 fn the_folder_tool_is_judged_by_the_place_it_reads_from_its_name() {
-    let places = |args: Value| places_named("folder", &args).collect::<Vec<_>>();
-    let alone = |args: Value| named_alone("folder", &args);
+    let places = |args: Value| places_named("doc_organize", &args).collect::<Vec<_>>();
+    let alone = |args: Value| named_alone("doc_organize", &args);
     assert_eq!(
-        alone(json!({ "name": "Claude" })).as_deref(),
+        alone(json!({ "action": "create_folder", "name": "Claude" })).as_deref(),
         Some("Claude")
     );
     assert_eq!(
-        alone(json!({ "name": "Claude", "inside": " " })).as_deref(),
+        alone(json!({ "action": "create_folder", "name": "Claude", "folder": " " })).as_deref(),
         Some("Claude")
     );
-    assert_eq!(alone(json!({ "name": "Claude", "inside": "Notes" })), None);
-    assert_eq!(alone(json!({ "name": "Notes / Claude" })), None);
-    assert_eq!(places(json!({ "name": "AGENTS / Codex" })), vec!["AGENTS"]);
     assert_eq!(
-        places(json!({ "name": "Codex", "inside": " Notes" })),
+        alone(json!({ "action": "create_folder", "name": "Claude", "folder": "Notes" })),
+        None
+    );
+    assert_eq!(
+        alone(json!({ "action": "create_folder", "name": "Notes / Claude" })),
+        None
+    );
+    assert_eq!(
+        places(json!({ "action": "create_folder", "name": "AGENTS / Codex" })),
+        vec!["AGENTS"]
+    );
+    assert_eq!(
+        places(json!({ "action": "create_folder", "name": "Codex", "folder": " Notes" })),
         vec!["Notes"]
     );
-    assert!(places(json!({ "name": "", "inside": "" })).is_empty());
+    assert!(places(json!({ "action": "create_folder", "name": "", "folder": "" })).is_empty());
     assert_eq!(
-        places_named("file_doc", &json!({ "folder": "Notes", "name": "x" })).collect::<Vec<_>>(),
+        places_named(
+            "doc_organize",
+            &json!({ "action": "file", "folder": "Notes", "name": "x" })
+        )
+        .collect::<Vec<_>>(),
         vec!["Notes"]
     );
-    assert_eq!(named_alone("file_doc", &json!({ "name": "AGENTS" })), None);
+    assert_eq!(
+        named_alone(
+            "doc_organize",
+            &json!({ "action": "file", "name": "AGENTS" })
+        ),
+        None
+    );
     assert!(makes_agents(
-        "folder",
-        &json!({ "name": "Work / AGEN\tTS" })
+        "doc_organize",
+        &json!({ "action": "create_folder", "name": "Work / AGEN\tTS" })
     ));
-    assert!(!makes_agents("folder", &json!({ "name": "Agent" })));
-    assert!(!makes_agents("write_doc", &json!({ "name": "AGENTS" })));
+    assert!(!makes_agents(
+        "doc_organize",
+        &json!({ "action": "create_folder", "name": "Agent" })
+    ));
+    assert!(!makes_agents("doc_create", &json!({ "name": "AGENTS" })));
 }
 
 struct Home {
@@ -296,23 +318,38 @@ fn a_tool_past_the_door_still_leaves_an_agents_document_alone() {
     let at_first = ops(&home.paths);
 
     for (name, args) in [
-        ("archive_doc", json!({ "doc": home.rule, "archived": true })),
-        ("file_doc", json!({ "doc": home.rule, "folder": "Notes" })),
         (
-            "flag_doc",
-            json!({ "doc": home.rule, "reason": "obsolete", "body": "viejo" }),
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [home.rule] }),
         ),
         (
-            "page_doc",
-            json!({ "doc": home.rule, "page_of": home.other }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [home.rule], "folder": "Notes" }),
         ),
         (
-            "page_doc",
-            json!({ "doc": home.other, "page_of": home.rule }),
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [home.rule], "reason": "obsolete", "body": "viejo" }),
         ),
-        ("tongue_doc", json!({ "doc": home.rule, "of": home.other })),
-        ("tongue_doc", json!({ "doc": home.other, "of": home.rule })),
-        ("attach", json!({ "doc": home.rule, "path": home.picture })),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [home.rule], "parent": home.other }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [home.other], "parent": home.rule }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "link_translation", "docs": [home.rule], "parent": home.other }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "link_translation", "docs": [home.other], "parent": home.rule }),
+        ),
+        (
+            "file_transfer",
+            json!({ "action": "attach", "doc": home.rule, "path": home.picture }),
+        ),
     ] {
         let said = super::super::answered(&home.paths, name, args.clone(), None);
         match said {

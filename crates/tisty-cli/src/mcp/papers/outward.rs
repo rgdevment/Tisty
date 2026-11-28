@@ -44,7 +44,8 @@ pub(super) fn carried(
     if turned.chars().count() > AT_MOST {
         return Err(Refused::Tool(format!(
             "in standard Markdown this document is past the {AT_MOST} characters a conversation \
-             carries well. `export_doc` writes it out as files instead."
+             carries well. `file_transfer` (`action: \"export_doc\"`) writes it out as files \
+             instead."
         )));
     }
     let mut lost = lost(body, pages);
@@ -108,8 +109,9 @@ impl Lost {
         if !self.files.is_empty() {
             said.push(format!(
                 "{} attached file(s) are named by their place in Tisty and do not travel with the \
-                 text, listed in `left_out.files`: `export_doc` writes the document out with them \
-                 into a folder, and from there the other place's own tool can upload each.",
+                 text, listed in `left_out.files`: `file_transfer` (`action: \"export_doc\"`) \
+                 writes the document out with them into a folder, and from there the other \
+                 place's own tool can upload each.",
                 self.files.len()
             ));
         }

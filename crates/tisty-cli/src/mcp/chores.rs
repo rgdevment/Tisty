@@ -162,7 +162,7 @@ pub(super) fn propose(
             match stepped {
                 0 => String::new(),
                 n => format!(
-                    "\n{n} of them carry steps: `tick` each as you do it, `say_done` when all are."
+                    "\n{n} of them carry steps: tick each with `task_edit_steps` as you do it, `task_resolve` (`outcome: \"done\"`) when all are."
                 ),
             },
             match written {
@@ -382,7 +382,9 @@ pub(super) fn proposed(
     }
     let mut parts_said = match parted.len() {
         0 => String::new(),
-        n => format!(" It holds {n} part(s), each a task of its own: `read` it to see them."),
+        n => format!(
+            " It holds {n} part(s), each a task of its own: `workspace_read` it to see them."
+        ),
     };
     if landed.is_none() && whole.is_none() {
         parts_said.push_str(&super::placing::loose_task(&state, &title));
@@ -426,7 +428,8 @@ pub(super) fn proposed(
             ),
             n => format!(
                 "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
-                 `tick` each as you do it, `say_done` when all are.{parts_said} {ONE_OWNER} [{id}]"
+                 tick each with `task_edit_steps` as you do it, `task_resolve` (`outcome: \"done\"`) \
+                 when all are.{parts_said} {ONE_OWNER} [{id}]"
             ),
         },
         Value::Object(kept),
@@ -630,7 +633,7 @@ pub(super) fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> 
     if !state.agents_own(task) {
         return Err(Refused::Tool(format!(
             "{:?} is the person's own, so its day is theirs to move: you can only move what an \
-             agent filed for itself. Say what you have learnt with `note` and leave the day alone.",
+             agent filed for itself. Say what you have learnt with `task_note` and leave the day alone.",
             task.title
         )));
     }
@@ -868,9 +871,9 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         said.push_str(&format!("{} ticked already. ", already.len()));
     }
     said.push_str(&match &next {
-        None => "None left: `say_done` once the work is done and proven, with the branch, the \
-                 commit and how you verified it. Publishing and merging are the person's: do not \
-                 wait for them."
+        None => "None left: call `task_resolve` (`outcome: \"done\"`) once the work is done and \
+                 proven, with the branch, the commit and how you verified it. Publishing and \
+                 merging are the person's: do not wait for them."
             .to_string(),
         Some(next) => format!("{left} still unticked; next: {next:?}."),
     });
@@ -1025,8 +1028,8 @@ pub(super) fn too_long_a_note(
     let owner = tisty_core::task_docs::owner(state, task.id);
     let locked = tisty_core::task_docs::of(state, owner).is_some_and(|page| state.shut(page.id));
     let elsewhere = match !locked {
-        true => "on the task's page with `append_doc` and the task's id",
-        false => "in a document of its own with `write_doc`",
+        true => "on the task's page with `doc_edit` (`mode: \"append\"`) and the task's id",
+        false => "in a document of its own with `doc_create`",
     };
     Some(Refused::Tool(match rewording {
         false => format!(
@@ -1050,7 +1053,7 @@ pub(super) fn one_of_many(
     taken: Option<&Takes>,
     one: &Value,
 ) -> Result<Value, Refused> {
-    only_what_it_takes("propose", taken, one)?;
+    only_what_it_takes("task_create", taken, one)?;
     short_and_plain(one)?;
     if one.get("tasks").is_some() {
         return Err(Refused::Tool(
@@ -1169,8 +1172,8 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
     Ok(told(
         format!(
             "Said {} step(s) of {:?} are done. It is the person's own task, so they stay unticked \
-             until the person takes your word; `say_done` when the whole of it is done. {left} \
-             step(s) not spoken for.",
+             until the person takes your word; call `task_resolve` (`outcome: \"done\"`) when the \
+             whole of it is done. {left} step(s) not spoken for.",
             fresh.len(),
             task.title
         ),
@@ -1283,7 +1286,7 @@ fn could_be(task: &Task, doing: &str, fits: impl Fn(&tisty_core::model::Step) ->
             format!("These could be {doing}: {}.", all.join(", "))
         }
         many => format!(
-            "These could be {doing}: {}, and {} more that `read` shows.",
+            "These could be {doing}: {}, and {} more that `workspace_read` shows.",
             all[..STEPS_NAMED_AT_MOST].join(", "),
             many - STEPS_NAMED_AT_MOST
         ),

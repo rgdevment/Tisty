@@ -39,7 +39,7 @@ impl Served {
 
     fn filed(&self, title: &str) -> String {
         let made = self.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Personal" }),
         );
         made["structuredContent"]["id"]
@@ -91,7 +91,7 @@ impl Served {
     }
 
     fn read(&self, doc: &str) -> Value {
-        self.call("read", json!({ "doc": doc }))["structuredContent"].clone()
+        self.call("workspace_read", json!({ "doc": doc }))["structuredContent"].clone()
     }
 }
 
@@ -126,18 +126,21 @@ fn a_hidden_task_named_in_a_document_reads_like_one_never_there_by_every_way_in(
     );
 
     for (name, args) in [
-        ("read", json!({ "doc": doc, "from": 3, "to": 3 })),
-        ("read", json!({ "doc": doc, "section": 0 })),
-        ("brain", json!({ "doc": doc })),
-        ("brain", json!({ "doc": doc, "query": "antes" })),
-        ("brain", json!({ "query": "antes" })),
+        ("workspace_read", json!({ "doc": doc, "from": 3, "to": 3 })),
+        ("workspace_read", json!({ "doc": doc, "section": 0 })),
+        ("workspace_read", json!({ "doc": doc, "view": "card" })),
         (
-            "export_doc",
-            json!({ "doc": doc, "into": into.to_string_lossy() }),
+            "workspace_search",
+            json!({ "mode": "in_doc", "doc": doc, "query": "antes" }),
+        ),
+        ("workspace_search", json!({ "query": "antes" })),
+        (
+            "file_transfer",
+            json!({ "action": "export_doc", "doc": doc, "path": into.to_string_lossy() }),
         ),
         (
-            "edit_doc",
-            json!({ "doc": doc, "old": "nada así", "new": "x" }),
+            "doc_edit",
+            json!({ "mode": "patch", "doc": doc, "old": "nada así", "content": "x" }),
         ),
     ] {
         untold(&served.call(name, args));
@@ -175,9 +178,12 @@ fn a_task_s_own_words_naming_a_hidden_one_wear_the_mask_too() {
     );
 
     for (name, args) in [
-        ("read", json!({ "task": served.shown })),
-        ("brain", json!({ "query": "despues" })),
-        ("brain", json!({ "task": served.shown })),
+        ("workspace_read", json!({ "task": served.shown })),
+        ("workspace_search", json!({ "query": "despues" })),
+        (
+            "workspace_read",
+            json!({ "task": served.shown, "view": "card" }),
+        ),
     ] {
         let said = served.call(name, args.clone());
         assert_ne!(said["isError"], true, "{name} {args}: {said}");
@@ -194,11 +200,11 @@ fn a_description_read_masked_is_described_back_with_the_person_s_words() {
     );
     served.person().describes(person::task(&served.shown), &was);
 
-    let read = served.call("read", json!({ "task": served.shown }));
+    let read = served.call("workspace_read", json!({ "task": served.shown }));
     let shown = read["structuredContent"]["description"].as_str().unwrap();
     let described = served.call(
-        "describe",
-        json!({ "task": served.shown, "body": format!("{shown} Hoy.") }),
+        "task_update",
+        json!({ "task": served.shown, "description": format!("{shown} Hoy.") }),
     );
 
     assert_ne!(described["isError"], true, "{described}");
@@ -220,8 +226,8 @@ fn what_was_read_masked_is_written_back_byte_for_byte() {
     let read = served.read(&doc);
     let shown = read["body"].as_str().unwrap().to_string();
     let rewritten = served.call(
-        "write_doc",
-        json!({ "doc": doc, "print": read["print"], "body": shown }),
+        "doc_edit",
+        json!({ "mode": "rewrite", "doc": doc, "print": read["print"], "content": shown }),
     );
     assert_ne!(rewritten["isError"], true, "{rewritten}");
     untold(&rewritten);
@@ -233,8 +239,8 @@ fn what_was_read_masked_is_written_back_byte_for_byte() {
 
     let line = format!("Ver ![{MASK}](tisty:task/{}) antes.", served.hidden);
     let edited = served.call(
-        "edit_doc",
-        json!({ "doc": doc, "old": line, "new": format!("{line} Hoy.") }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": doc, "old": line, "content": format!("{line} Hoy.") }),
     );
     assert_ne!(edited["isError"], true, "{edited}");
     untold(&edited);
@@ -248,8 +254,8 @@ fn what_was_read_masked_is_written_back_byte_for_byte() {
     );
 
     let added = served.call(
-        "append_doc",
-        json!({ "doc": doc, "body": format!("Otra vez [{MASK}](tisty:task/{}).", served.hidden) }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": doc, "content": format!("Otra vez [{MASK}](tisty:task/{}).", served.hidden) }),
     );
     assert_ne!(added["isError"], true, "{added}");
     assert!(
@@ -268,11 +274,11 @@ fn a_version_read_back_wears_the_same_mask() {
     let served = Served::new();
     let doc = served.person().writes_doc(&served.naming(&served.hidden));
     let edited = served.call(
-        "edit_doc",
-        json!({ "doc": doc, "old": "antes.", "new": "luego." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": doc, "old": "antes.", "content": "luego." }),
     );
     assert_ne!(edited["isError"], true, "{edited}");
-    let versions = served.call("read", json!({ "doc": doc, "versions": true }));
+    let versions = served.call("workspace_read", json!({ "doc": doc, "view": "versions" }));
     untold(&versions);
     let first = versions["structuredContent"]["versions"]
         .as_array()
@@ -283,7 +289,7 @@ fn a_version_read_back_wears_the_same_mask() {
         .unwrap()
         .to_string();
 
-    let old = served.call("read", json!({ "doc": doc, "version": first }));
+    let old = served.call("workspace_read", json!({ "doc": doc, "version": first }));
 
     assert_ne!(old["isError"], true, "{old}");
     untold(&old);

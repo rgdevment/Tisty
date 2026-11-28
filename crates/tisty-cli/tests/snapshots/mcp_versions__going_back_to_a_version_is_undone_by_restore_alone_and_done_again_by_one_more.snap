@@ -9,7 +9,7 @@ expression: "settled(&said[\"structuredContent\"], &[])"
   "lines": 3,
   "pages_kept_back": [],
   "print": "[print]",
-  "said": "Wrote \"Acta\" again, whole. What it said before is kept in its history on this machine: `restore_doc` puts it back. That went back to version [version 1], over everything written since: what it wrote over is kept in turn, so `restore_doc` without `version` puts it back.",
+  "said": "Wrote \"Acta\" again, whole. What it said before is kept in its history on this machine: `doc_edit` (`mode: \"restore\"`) puts it back. That went back to version [version 1], over everything written since: what it wrote over is kept in turn, so `doc_edit` (`mode: \"restore\"`) without `version` puts it back.",
   "title": "Acta",
   "went_back_to": {
     "by": "Claude Code",

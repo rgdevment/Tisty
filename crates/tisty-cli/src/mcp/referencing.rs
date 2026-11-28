@@ -418,13 +418,13 @@ pub(super) fn link_all(paths: &Paths, tool: &str, args: &mut Value, field: &str)
     heard
 }
 
-const JOURNAL: [&str; 4] = ["note", "reword_note", "say_done", "say_not_doing"];
+const JOURNAL: [&str; 2] = ["task_note", "task_resolve"];
 
 // Links lengthen the words, and a note or a state the agent sized to fit must not be refused for them.
 fn room_for(tool: &str) -> Option<usize> {
     match tool {
         _ if JOURNAL.contains(&tool) => Some(super::chores::NOTE_AT_MOST),
-        "tick" => Some(tisty_core::task_state::STATE_AT_MOST),
+        "task_edit_steps" => Some(tisty_core::task_state::STATE_AT_MOST),
         _ => None,
     }
 }

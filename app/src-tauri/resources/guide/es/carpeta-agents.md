@@ -321,13 +321,13 @@ En la red de Brainsty, que cuenta la página **Brainsty: todo unido** de esta gu
 
 Tu agente **lee** tus documentos de Agentes, como cualquier otro, sincronice o no: le pides «¿qué reglas mías lees?» y te responde con sus títulos. Pero **no los escribe por su cuenta**: cuando cambia uno, su cambio queda aparte, como una propuesta, y solo llega a tus agentes si lo apruebas. Sincronizando, una regla de Agentes llega a todos tus agentes, en cada equipo donde Agentes sincroniza y la aplicaste, y nadie más que tú debería decidir qué dice. Un documento de la carpeta de otro de tus equipos lo lee como datos, no como una regla suya para este equipo, y no puede proponer sobre él; en los documentos de este equipo propone como siempre.
 
-Cualquier otra herramienta que nombre esos documentos o la carpeta `AGENTS` se rechaza: no puede moverlos, archivarlos ni marcarlos, proponer sobre una memoria, ni mover, renombrar o archivar Agentes. Tampoco puede agregar ni cambiar una línea `agent:` en ningún documento, de ninguna carpeta, ni con `edit_doc`, ni crear un documento nuevo con esa línea. Si lo intenta, Tisty se lo rechaza sin tocar nada y le dice cómo proponer el cambio o que te cuente qué cambiaría.
+Cualquier otra herramienta que nombre esos documentos o la carpeta `AGENTS` se rechaza: no puede moverlos, archivarlos ni marcarlos, proponer sobre una memoria, ni mover, renombrar o archivar Agentes. Tampoco puede agregar ni cambiar una línea `agent:` en ningún documento, de ninguna carpeta, ni con `doc_edit`, ni crear un documento nuevo con esa línea. Si lo intenta, Tisty se lo rechaza sin tocar nada y le dice cómo proponer el cambio o que te cuente qué cambiaría.
 
 ## Una propuesta de tu agente
 
 **Un ejemplo.** Le pides a tu agente «agrega a mis reglas que corra los tests antes de cada commit».
 
-1. El agente corrige **Cómo trabajo** con `edit_doc`, como cualquier documento. Tisty guarda su cambio aparte, byte a byte, y le responde que quedó propuesto: el documento y `~/.claude/CLAUDE.md` siguen como estaban. Su guía le pide decírtelo así, «te lo propuse», y no darlo por hecho.
+1. El agente corrige **Cómo trabajo** con `doc_edit`, como cualquier documento. Tisty guarda su cambio aparte, byte a byte, y le responde que quedó propuesto: el documento y `~/.claude/CLAUDE.md` siguen como estaban. Su guía le pide decírtelo así, «te lo propuse», y no darlo por hecho.
 2. Abre **Cómo trabajo**. Si Tisty estaba abierto, la propuesta aparece sola en uno o dos segundos, aunque la ventana no esté al frente.
 3. La ficha suma la etiqueta **Propuesta** y un recuadro morado: «Un agente (Claude Code) propone un cambio», y las líneas comparadas, en rojo con `−` lo **Aprobado** y en verde con `+` lo **Propuesto**.
 4. **Aprobar el cambio** pregunta «¿Apruebas este cambio? Se escribe en el documento, y llega a los archivos de tus agentes en cada equipo donde Agentes sincroniza y lo aplicaste.». Con tu sí, el documento pasa a decir lo propuesto y Tisty lo escribe en `CLAUDE.md`, con su respaldo antes. **Descartar** la quita y el documento queda como lo aprobaste.

@@ -94,28 +94,28 @@ impl Served {
             Some(up) => serde_json::json!({ "body": body, "page_of": up, "anyway": true }),
             None => serde_json::json!({ "body": body, "anyway": true }),
         };
-        self.call("write_doc", args)["result"]["structuredContent"]["doc"]
+        self.call("doc_create", args)["result"]["structuredContent"]["doc"]
             .as_str()
             .unwrap()
             .to_string()
     }
 
     fn body_of(&self, doc: &str) -> String {
-        self.call("read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]["body"]
+        self.call("workspace_read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]["body"]
             .as_str()
             .unwrap_or_default()
             .to_string()
     }
 
     fn print_of(&self, doc: &str) -> String {
-        self.call("read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]["print"]
+        self.call("workspace_read", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]["print"]
             .as_str()
             .unwrap_or_default()
             .to_string()
     }
 
     fn pages_read(&self, doc: &str) -> Vec<String> {
-        let said = self.call("read", serde_json::json!({ "doc": doc }));
+        let said = self.call("workspace_read", serde_json::json!({ "doc": doc }));
         said["result"]["structuredContent"]["pages"]
             .as_array()
             .unwrap()
@@ -196,11 +196,11 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
     assert_eq!(served.pages_read(&book), vec![one.clone(), two.clone()]);
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": book,
             "old": format!("![Marzo](tisty:doc/{one})\n\n![Abril](tisty:doc/{two})"),
-            "new": format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})"),
+            "content": format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})"),
         }),
     );
 
@@ -216,8 +216,8 @@ fn cut_loose(served: &Served, book: &str, page: &str) {
         .expect("the page is named in the text")
         .to_string();
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": book, "old": format!("\n{line}\n"), "new": "" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": book, "old": format!("\n{line}\n"), "content": "" }),
     );
 }
 
@@ -237,8 +237,8 @@ lo suyo.",
     );
 
     let said = served.refused(
-        "page_doc",
-        serde_json::json!({ "doc": hers, "page_of": book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [hers], "parent": book }),
     );
     assert!(said.contains("someone else's writing"), "{said}");
     assert!(!served.body_of(&book).contains(&hers));
@@ -252,8 +252,8 @@ fn hanging_a_document_as_a_page_writes_the_line_that_names_it_at_the_end() {
     let loose = served.wrote("# Suelto\n\nun documento aparte.", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": loose, "page_of": book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [loose], "parent": book }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
@@ -271,8 +271,8 @@ fn hanging_a_document_as_a_page_writes_the_line_that_names_it_at_the_end() {
     );
 
     let again = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": loose, "page_of": book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [loose], "parent": book }),
     );
     assert!(
         again["result"]["isError"].as_bool() != Some(true),
@@ -294,8 +294,8 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
     let loose = served.wrote("# Enero\n\nun documento aparte.", None);
 
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": loose, "page_of": book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [loose], "parent": book }),
     );
     assert_eq!(
         served.pages_read(&book),
@@ -305,8 +305,8 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
     let old = format!("![Marzo](tisty:doc/{one})\n\n");
     let new = format!("![Enero](tisty:doc/{loose})\n\n{old}");
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": book, "old": old, "new": new }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": book, "old": old, "content": new }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
@@ -322,8 +322,8 @@ fn pages_hung_together_are_named_in_one_write_and_ordered_afterwards() {
     let b = served.wrote("# Suelto B\n\ncontenido.", None);
 
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": [&a, &b], "page_of": book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&a, &b], "parent": book }),
     );
 
     assert_eq!(
@@ -340,8 +340,8 @@ fn pages_hung_together_are_named_in_one_write_and_ordered_afterwards() {
     }
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&b, &a] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&b, &a] }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
@@ -364,8 +364,8 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
     let old = format!("![Marzo](tisty:doc/{one})\n\n![Abril](tisty:doc/{two})");
     let new = format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})");
     let said = there.call(
-        "edit_doc",
-        serde_json::json!({ "doc": book, "old": old, "new": new }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": book, "old": old, "content": new }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert_eq!(there.pages_read(&book), vec![two.clone(), one.clone()]);
@@ -400,8 +400,8 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
 
     // The next write on this machine settles the order back to what its own text says.
     let said = here.call(
-        "append_doc",
-        serde_json::json!({ "doc": book, "body": "Fin." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": book, "content": "Fin." }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert_eq!(
@@ -484,12 +484,12 @@ fn a_locked_document_turns_away_every_way_an_assistant_has_of_writing() {
 
     for (name, args) in [
         (
-            "append_doc",
-            serde_json::json!({ "doc": &book, "body": "y algo mas" }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": &book, "content": "y algo mas" }),
         ),
         (
-            "edit_doc",
-            serde_json::json!({ "doc": &book, "old": "lo que dije", "new": "otra cosa" }),
+            "doc_edit",
+            serde_json::json!({ "mode": "patch", "doc": &book, "old": "lo que dije", "content": "otra cosa" }),
         ),
     ] {
         let why = served.refused(name, args);
@@ -507,18 +507,21 @@ fn a_locked_book_gains_no_page_and_keeps_the_ones_it_has() {
     served.bolt(&book);
 
     let why = served.refused(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Clase dos", "page_of": &book }),
     );
     assert!(why.contains("locked"), "{why}");
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&loose], "parent": &book }),
     );
     assert!(why.contains("locked"), "{why}");
 
-    let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
+    let why = served.refused(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [&page ]}),
+    );
     assert!(why.contains("locked"), "{why}");
     assert_eq!(served.pages_read(&book), vec![page]);
 }
@@ -531,13 +534,13 @@ fn a_page_of_a_locked_book_is_shut_as_tightly_as_the_book() {
     served.bolt(&book);
 
     let why = served.refused(
-        "append_doc",
-        serde_json::json!({ "doc": &page, "body": "y algo mas" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &page, "content": "y algo mas" }),
     );
 
     assert!(why.contains("locked"), "{why}");
     assert!(
-        served.call("read", serde_json::json!({ "doc": &page }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &page }))["result"]["structuredContent"]
             ["locked"]
             .as_bool()
             .unwrap(),
@@ -551,15 +554,15 @@ fn rewriting_a_document_leaves_none_of_its_pages_with_nothing_pointing_at_it() {
     let book = served.wrote("# Curso\n\nlo que hay", None);
     let page = served.wrote("# Clase uno", Some(&book));
     let print =
-        served.call("read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
             .to_string();
 
     let said = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": "# Curso\n\notra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": "# Curso\n\notra cosa" }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -577,15 +580,17 @@ fn an_edit_that_takes_out_the_line_naming_a_page_says_which_page_it_left_loose()
     let served = Served::new();
     let book = served.wrote("# Curso\n\n## Notas\n\nlo que hay", None);
     let page = served.wrote("# Clase uno", Some(&book));
-    let print = served.call("brain", serde_json::json!({ "doc": &book }))["result"]
-        ["structuredContent"]["print"]
+    let print = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    )["result"]["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &book, "section": 1, "new": "## Notas\n\notra cosa\n", "print": print }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &book, "section": 1, "content": "## Notas\n\notra cosa\n", "print": print }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -614,11 +619,11 @@ fn an_edit_that_moves_the_line_naming_a_page_leaves_nothing_loose() {
     let card = format!("![Clase uno](tisty:doc/{page})");
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": format!("uno\n\ndos\n\n{card}"),
-            "new": format!("uno\n\n{card}\n\ndos"),
+            "content": format!("uno\n\n{card}\n\ndos"),
         }),
     );
 
@@ -644,8 +649,8 @@ fn a_page_is_moved_before_another_in_one_call_and_the_reading_order_follows() {
     let three = served.wrote("# Clase tres", Some(&book));
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &three, "page_of": &book, "before": &one }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&three], "parent": &book, "before": &one }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -672,8 +677,8 @@ fn a_page_hung_and_placed_in_one_call_is_named_where_it_was_asked_for() {
     let loose = served.wrote("# Clase suelta", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book, "before": &one }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&loose], "parent": &book, "before": &one }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -693,7 +698,7 @@ fn a_page_whose_line_carries_words_of_their_own_is_not_moved_over_them() {
     let one = served.wrote("# Clase uno", Some(&book));
     let two = served.wrote("# Clase dos", Some(&book));
     let print =
-        served.call("read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
@@ -702,13 +707,13 @@ fn a_page_whose_line_carries_words_of_their_own_is_not_moved_over_them() {
         "# Curso\n\n![Clase uno](tisty:doc/{one})\n\nLa puerta se ve en ![Clase dos](tisty:doc/{two}) y ahi se explica.\n"
     );
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &two, "page_of": &book, "before": &one }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&two], "parent": &book, "before": &one }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -725,7 +730,7 @@ fn shaped(served: &Served, body: &str) -> (String, Vec<String>) {
         .map(|n| served.wrote(&format!("# Cap {n}\n\nx."), Some(&book)))
         .collect();
     let print =
-        served.call("read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
@@ -735,8 +740,8 @@ fn shaped(served: &Served, body: &str) -> (String, Vec<String>) {
         .replace("{1}", &pages[1])
         .replace("{2}", &pages[2]);
     let said = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": mine }),
     );
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     (book, pages)
@@ -751,8 +756,8 @@ fn a_line_naming_two_pages_is_not_pulled_apart_to_move_one_of_them() {
     );
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &pages[1], "page_of": &book, "after": &pages[2] }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&pages[1]], "parent": &book, "after": &pages[2] }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -772,8 +777,8 @@ fn a_page_named_inside_a_table_is_not_a_place_to_write_beside() {
     );
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &pages[1], "page_of": &book, "after": &pages[0] }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&pages[1]], "parent": &book, "after": &pages[0] }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -794,8 +799,8 @@ fn a_page_named_the_other_ways_markdown_allows_is_moved_and_not_copied() {
         let (book, pages) = shaped(&served, body);
 
         let said = served.call(
-            "page_doc",
-            serde_json::json!({ "doc": &pages[0], "page_of": &book, "after": &pages[2] }),
+            "doc_organize",
+            serde_json::json!({ "action": "add_page", "docs": [&pages[0]], "parent": &book, "after": &pages[2] }),
         );
 
         assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -822,8 +827,8 @@ fn a_page_named_on_the_first_line_is_not_written_above() {
     );
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &pages[1], "page_of": &book, "before": &pages[0] }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&pages[1]], "parent": &book, "before": &pages[0] }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -844,8 +849,8 @@ fn a_page_moved_after_another_lands_on_the_far_side_of_it() {
     let three = served.wrote("# Tres", Some(&book));
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &one, "page_of": &book, "after": &three }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book, "after": &three }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -860,8 +865,8 @@ fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
         .map(|n| {
             let one = served.wrote(&format!("# Cap {n}\n\nx."), None);
             served.call(
-                "page_doc",
-                serde_json::json!({ "doc": &one, "page_of": &book }),
+                "doc_organize",
+                serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book }),
             );
             cut_loose(&served, &book, &one);
             one
@@ -874,8 +879,8 @@ fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
 
     for one in &loose {
         let said = served.call(
-            "page_doc",
-            serde_json::json!({ "doc": one, "page_of": &book, "at": "last" }),
+            "doc_organize",
+            serde_json::json!({ "action": "add_page", "docs": [one], "parent": &book, "position": "last" }),
         );
         assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     }
@@ -904,8 +909,8 @@ fn a_page_sent_first_goes_before_every_page_the_document_names() {
     let three = served.wrote("# Tres", Some(&book));
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &three, "page_of": &book, "at": "first" }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&three], "parent": &book, "position": "first" }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -920,10 +925,10 @@ fn a_place_that_is_neither_first_nor_last_is_refused_and_so_are_two_at_once() {
     let two = served.wrote("# Dos", Some(&book));
 
     for args in [
-        serde_json::json!({ "doc": &two, "page_of": &book, "at": "middle" }),
-        serde_json::json!({ "doc": &two, "page_of": &book, "at": "last", "after": &one }),
+        serde_json::json!({ "action": "add_page", "docs": [&two], "parent": &book, "position": "middle" }),
+        serde_json::json!({ "action": "add_page", "docs": [&two], "parent": &book, "position": "last", "after": &one }),
     ] {
-        let said = served.call("page_doc", args.clone());
+        let said = served.call("doc_organize", args.clone());
         assert_eq!(
             said["result"]["isError"].as_bool(),
             Some(true),
@@ -942,7 +947,7 @@ fn pages_are_read_in_the_order_asked_for_and_the_words_between_them_do_not_move(
         .map(|one| served.wrote(&format!("# {one}"), Some(&book)))
         .collect();
     let print =
-        served.call("read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
@@ -952,13 +957,13 @@ fn pages_are_read_in_the_order_asked_for_and_the_words_between_them_do_not_move(
         all[0], all[1], all[2]
     );
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&all[2], &all[1], &all[0]] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&all[2], &all[1], &all[0]] }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -990,8 +995,8 @@ fn ordering_some_of_the_pages_leaves_the_rest_where_they_were() {
         .collect();
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&all[2], &all[0]] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&all[2], &all[0]] }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1012,12 +1017,12 @@ fn an_order_that_names_nothing_to_move_between_is_refused() {
     cut_loose(&served, &book, &loose);
 
     for args in [
-        serde_json::json!({ "page_of": &book, "order": [&one] }),
-        serde_json::json!({ "page_of": &book, "order": [&one, &one] }),
-        serde_json::json!({ "order": [&one, &two] }),
-        serde_json::json!({ "page_of": &book, "order": [&loose, &one] }),
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one] }),
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one, &one] }),
+        serde_json::json!({ "action": "reorder_pages", "order": [&one, &two] }),
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&loose, &one] }),
     ] {
-        let said = served.call("page_doc", args.clone());
+        let said = served.call("doc_organize", args.clone());
         assert_eq!(
             said["result"]["isError"].as_bool(),
             Some(true),
@@ -1038,8 +1043,8 @@ fn a_document_that_ends_in_a_closed_fence_is_written_in_like_any_other() {
     let page = served.wrote("# Cap\n\nx.", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1057,16 +1062,16 @@ fn an_edit_that_names_a_page_a_second_time_says_the_later_one_leads_nowhere() {
     let book = served.wrote("# Actas\n\nde este anio.", None);
     let page = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": "de este anio.",
-            "new": format!("de este anio.\n\n![Enero](tisty:doc/{page})"),
+            "content": format!("de este anio.\n\n![Enero](tisty:doc/{page})"),
         }),
     );
 
@@ -1088,11 +1093,11 @@ fn an_order_takes_nothing_that_puts_one_page_somewhere() {
     let two = served.wrote("# Dos", Some(&book));
 
     for args in [
-        serde_json::json!({ "doc": &one, "page_of": &book, "order": [&two, &one] }),
-        serde_json::json!({ "page_of": &book, "order": [&two, &one], "after": &one }),
-        serde_json::json!({ "page_of": &book, "order": [] }),
+        serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book, "order": [&two, &one] }),
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one], "after": &one }),
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [] }),
     ] {
-        let said = served.call("page_doc", args.clone());
+        let said = served.call("doc_organize", args.clone());
         assert_eq!(
             said["result"]["isError"].as_bool(),
             Some(true),
@@ -1109,8 +1114,8 @@ fn an_order_left_out_of_a_call_leaves_the_hanging_to_it() {
     let page = served.wrote("# Q\n\nq.", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book, "order": serde_json::Value::Null }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book, "order": serde_json::Value::Null }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1129,8 +1134,8 @@ fn a_page_named_beside_nothing_is_refused_with_an_empty_name() {
     let one = served.wrote("# Uno", Some(&book));
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &one, "page_of": &book, "before": "" }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book, "before": "" }),
     );
 
     assert_eq!(
@@ -1148,12 +1153,12 @@ fn placing_a_page_beside_one_that_is_not_a_page_of_the_same_document_is_refused(
     let one = served.wrote("# Clase uno", Some(&book));
 
     for args in [
-        serde_json::json!({ "doc": &one, "page_of": &book, "after": &other }),
-        serde_json::json!({ "doc": &one, "page_of": &book, "after": &one }),
-        serde_json::json!({ "doc": &one, "after": &one }),
-        serde_json::json!({ "doc": [&one, &book], "page_of": &book, "after": &one }),
+        serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book, "after": &other }),
+        serde_json::json!({ "action": "add_page", "docs": [&one], "parent": &book, "after": &one }),
+        serde_json::json!({ "action": "add_page", "docs": [&one], "after": &one }),
+        serde_json::json!({ "action": "add_page", "docs": [&one, &book], "parent": &book, "after": &one }),
     ] {
-        let said = served.call("page_doc", args.clone());
+        let said = served.call("doc_organize", args.clone());
         assert_eq!(
             said["result"]["isError"].as_bool(),
             Some(true),
@@ -1169,7 +1174,7 @@ fn a_body_that_names_its_pages_itself_is_written_exactly_as_it_was_sent() {
     let book = served.wrote("# Curso", None);
     let page = served.wrote("# Clase uno", Some(&book));
     let print =
-        served.call("read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
             ["print"]
             .as_str()
             .unwrap()
@@ -1177,8 +1182,8 @@ fn a_body_that_names_its_pages_itself_is_written_exactly_as_it_was_sent() {
     let mine = format!("# Curso\n\n![Clase uno](tisty:doc/{page})\n\nal final");
 
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
 
     assert_eq!(served.body_of(&book).trim_end(), mine);
@@ -1190,20 +1195,29 @@ fn a_document_put_away_by_an_agent_comes_back_the_same_way() {
     let book = served.wrote("# Curso\n\nlo que hay", None);
     let page = served.wrote("# Clase uno", Some(&book));
 
-    let said = served.call("archive_doc", serde_json::json!({ "doc": &book }));
+    let said = served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
+    );
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "open" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "open" }),
+    );
     let open = serde_json::to_string(&listed).unwrap();
     assert!(!open.contains(&book), "it is still listed as open: {open}");
     assert!(!open.contains(&page), "its page stayed out: {open}");
 
     let back = served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&book ]}),
     );
     assert_ne!(back["result"]["isError"].as_bool(), Some(true), "{back}");
-    let listed = served.call("brain", serde_json::json!({ "scope": "open" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "open" }),
+    );
     assert!(serde_json::to_string(&listed).unwrap().contains(&book));
     let body = served.body_of(&book);
     assert!(body.starts_with("# Curso"), "{body}");
@@ -1218,10 +1232,16 @@ fn a_page_is_put_away_on_its_own_and_the_book_stays_open() {
     let page = served.wrote("# Clase uno", Some(&book));
     let other = served.wrote("# Clase dos", Some(&book));
 
-    let said = served.call("archive_doc", serde_json::json!({ "doc": &page }));
+    let said = served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&page ]}),
+    );
     assert!(said["result"]["isError"].is_null(), "{said}");
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "open" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "open" }),
+    );
     let here: Vec<String> = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap()
@@ -1251,8 +1271,8 @@ fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
     );
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1306,12 +1326,12 @@ Una nota[^1] y [un enlace](https://example.com).
 ",
     );
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
-    let opened = served.call("read", serde_json::json!({ "doc": doc }));
+    let opened = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     assert_ne!(
         opened["result"]["isError"].as_bool(),
         Some(true),
@@ -1348,8 +1368,8 @@ Una nota[^1] y [un enlace](https://example.com).
     }
 
     let again = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": doc, "print": print, "body": read }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": doc, "print": print, "content": read }),
     );
     assert_ne!(again["result"]["isError"].as_bool(), Some(true), "{again}");
     assert_eq!(
@@ -1359,7 +1379,7 @@ Una nota[^1] y [un enlace](https://example.com).
     );
 
     let copy = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": read, "anyway": true }),
     );
     assert_ne!(copy["result"]["isError"].as_bool(), Some(true), "{copy}");
@@ -1380,15 +1400,15 @@ fn an_edit_that_takes_a_fence_away_and_leaves_html_bare_is_refused() {
     let doc = served.wrote("# Fichas\n\n```\n<div>x</div>\n```\n", None);
 
     let why = served.refused(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "```\n<div>", "new": "texto\n<div>" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "```\n<div>", "content": "texto\n<div>" }),
     );
     assert!(why.contains("HTML"), "{why}");
 
     let print = served.print_of(&doc);
     let why = served.refused(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 3, "to": 3, "new": "texto", "print": print }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 3, "to": 3, "content": "texto", "print": print }),
     );
     assert!(why.contains("HTML"), "{why}");
     let kept = served.body_of(&doc);
@@ -1403,8 +1423,8 @@ fn a_fence_added_under_a_heading_that_leaves_html_bare_below_it_is_refused() {
         None,
     );
     let why = served.refused(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "under": "A", "body": "```" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "under": "A", "content": "```" }),
     );
     assert!(why.contains("HTML"), "{why}");
 }
@@ -1414,8 +1434,8 @@ fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
     let served = Served::new();
     let (_dir, at) = on_disk("nota.md", "---\ntitle: Plan\n---\n\nlo dicho\n");
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
@@ -1424,8 +1444,8 @@ fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
 
     let (_dir, at) = on_disk("otra.md", "---\ntitle: Plan\n---");
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap(), "title": "Acta" }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap(), "title": "Acta" }),
     );
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
@@ -1438,8 +1458,8 @@ fn a_title_asked_for_takes_the_place_of_the_files_own_heading() {
     let (_dir, at) = on_disk("viejo.md", "\n# Viejo\n\nlo dicho\n");
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap(), "title": "Nuevo" }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap(), "title": "Nuevo" }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1454,8 +1474,8 @@ fn a_file_with_no_title_of_its_own_is_named_after_itself() {
     let (_dir, at) = on_disk("Notas de la reunion.md", "lo que se dijo\n");
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1472,8 +1492,8 @@ fn nothing_that_is_not_markdown_comes_in_this_way() {
     let (_dir, at) = on_disk("clave.txt", "no soy markdown");
 
     let why = served.refused(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert!(why.contains("not markdown"), "{why}");
@@ -1488,8 +1508,8 @@ fn a_file_outside_the_places_an_assistant_may_reach_stays_where_it_is() {
     std::fs::write(&at, "# Mio").unwrap();
 
     let why = served.refused(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert!(why.contains("may take files from"), "{why}");
@@ -1530,8 +1550,8 @@ fn a_book_goes_out_numbered_the_way_it_is_read_here() {
         .tempdir_in(std::env::temp_dir())
         .unwrap();
     let said = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &book, "path": out.path().to_str().unwrap() }),
     );
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
 
@@ -1569,8 +1589,8 @@ fn a_document_goes_out_to_a_folder_and_nothing_here_changes() {
         .unwrap();
 
     let said = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &book, "path": out.path().to_str().unwrap() }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1603,8 +1623,8 @@ fn a_key_renamed_as_markdown_comes_in_under_a_warning() {
     );
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1636,8 +1656,8 @@ FOO_TOKEN=\"REDACTADO\"
     );
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1650,8 +1670,8 @@ fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
     let (_dir, at) = on_disk("enorme.md", &"a".repeat(600 * 1024));
 
     let why = served.refused(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert!(why.contains("past the 512000 a file may be"), "{why}");
@@ -1663,8 +1683,8 @@ fn control_characters_do_not_walk_in_through_a_file() {
     let (_dir, at) = on_disk("escapes.md", "# Uno\n\nantes \u{1b}[31m rojo\n");
 
     let why = served.refused(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert!(why.contains("control characters"), "{why}");
@@ -1674,7 +1694,7 @@ fn control_characters_do_not_walk_in_through_a_file() {
 fn the_print_a_write_hands_back_is_the_one_the_document_reads_at() {
     let served = Served::new();
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Sin salto\n\nsin newline final" }),
     );
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1683,7 +1703,7 @@ fn the_print_a_write_hands_back_is_the_one_the_document_reads_at() {
         .unwrap()
         .to_string();
 
-    let back = served.call("read", serde_json::json!({ "doc": doc }));
+    let back = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     assert_eq!(
         back["result"]["structuredContent"]["print"].as_str(),
         Some(told.as_str()),
@@ -1691,8 +1711,8 @@ fn the_print_a_write_hands_back_is_the_one_the_document_reads_at() {
     );
 
     let again = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": doc, "print": told, "body": "# Sin salto\n\notra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": doc, "print": told, "content": "# Sin salto\n\notra cosa" }),
     );
     assert_ne!(again["result"]["isError"].as_bool(), Some(true), "{again}");
 }
@@ -1703,12 +1723,15 @@ fn archived_takes_true_or_false_and_says_so_when_it_is_neither() {
     let doc = served.wrote("# Actas", None);
 
     let why = served.refused(
-        "archive_doc",
-        serde_json::json!({ "doc": &doc, "archived": "false" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "false", "docs": [&doc ]}),
     );
 
-    assert!(why.contains("true or false"), "{why}");
-    let listed = served.call("brain", serde_json::json!({ "scope": "open" }));
+    assert!(why.contains("archive, unarchive"), "{why}");
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "open" }),
+    );
     assert!(
         serde_json::to_string(&listed).unwrap().contains(&doc),
         "it must not have been put away on a word it did not understand"
@@ -1742,8 +1765,8 @@ fn a_picture_beside_the_file_comes_in_with_it() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1784,7 +1807,10 @@ fn a_document_read_as_markdown_comes_in_standard_words_and_says_what_stays_behin
     );
     assert!(!other.is_empty());
 
-    let said = served.call("read", serde_json::json!({ "doc": doc, "as": "markdown" }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown" }),
+    );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     let told = &said["result"]["structuredContent"];
@@ -1814,14 +1840,17 @@ fn a_picture_read_as_markdown_is_named_and_the_way_to_carry_it_is_said() {
     let at = dir.path().join("Plan.md");
     std::fs::write(&at, "# Plan\n\n![shot](Plan/shot.png)\n").unwrap();
     let doc = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     )["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
         .to_string();
 
-    let said = served.call("read", serde_json::json!({ "doc": doc, "as": "markdown" }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown" }),
+    );
 
     let files = &said["result"]["structuredContent"]["left_out"]["files"];
     assert_eq!(files.as_array().map(Vec::len), Some(1), "{said}");
@@ -1834,7 +1863,7 @@ fn a_picture_read_as_markdown_is_named_and_the_way_to_carry_it_is_said() {
     );
     let words = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        words.contains("`export_doc` writes the document out"),
+        words.contains("`file_transfer` (`action: \"export_doc\"`) writes the document out"),
         "{words}"
     );
 }
@@ -1849,7 +1878,10 @@ Just words.",
         None,
     );
 
-    let said = served.call("read", serde_json::json!({ "doc": doc, "as": "markdown" }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown" }),
+    );
 
     let told = &said["result"]["structuredContent"];
     assert!(
@@ -1872,7 +1904,10 @@ fn a_picture_shown_inside_code_is_not_taken_for_one_that_stays_behind() {
         None,
     );
 
-    let said = served.call("read", serde_json::json!({ "doc": doc, "as": "markdown" }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown" }),
+    );
 
     let told = &said["result"]["structuredContent"];
     assert!(told.get("left_out").is_none(), "{told}");
@@ -1888,11 +1923,14 @@ what we meant to do",
         None,
     );
     served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &doc, "body": "it has had its day" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&doc], "body": "it has had its day" }),
     );
 
-    let said = served.call("read", serde_json::json!({ "doc": doc, "as": "markdown" }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown" }),
+    );
 
     let words = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(words.contains("has had its day"), "{words}");
@@ -1908,19 +1946,22 @@ fn reading_as_another_shape_takes_the_whole_document_and_only_shapes_it_knows() 
     let doc = served.wrote("# Short\n\nwords", None);
 
     let part = served.refused(
-        "read",
-        serde_json::json!({ "doc": doc, "as": "markdown", "section": 0 }),
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": "markdown", "section": 0 }),
     );
     assert!(part.contains("takes no `section`"), "{part}");
-    for odd in [
-        serde_json::json!("html"),
-        serde_json::json!(""),
-        serde_json::json!(["markdown"]),
-    ] {
-        // A value that is not text is turned away before the tool reads it, in the door's own words.
-        let said = served.refused("read", serde_json::json!({ "doc": doc, "as": odd }));
-        assert!(said.contains("`as` takes"), "{said}");
+    for odd in [serde_json::json!("html"), serde_json::json!("pdf")] {
+        let said = served.refused(
+            "workspace_read",
+            serde_json::json!({ "doc": doc, "view": odd }),
+        );
+        assert!(said.contains("`view` must be"), "{said}");
     }
+    let bad = served.refused(
+        "workspace_read",
+        serde_json::json!({ "doc": doc, "view": ["markdown"] }),
+    );
+    assert!(bad.contains("text"), "{bad}");
 }
 
 #[test]
@@ -1931,8 +1972,8 @@ fn a_page_that_leaves_for_another_document_says_the_old_line_is_still_there() {
     let page = served.wrote("# Capitulo", Some(&one));
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &two }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &two }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -1959,14 +2000,14 @@ fn a_document_taken_out_twice_to_the_same_place_says_what_is_already_there() {
     let into = dir.path().to_str().unwrap();
 
     let first = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &doc, "into": into }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &doc, "path": into }),
     );
     assert_ne!(first["result"]["isError"].as_bool(), Some(true), "{first}");
 
     let why = served.refused(
-        "export_doc",
-        serde_json::json!({ "doc": &doc, "into": into }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &doc, "path": into }),
     );
     assert!(
         why.contains("is already there, and an export writes a new one"),
@@ -1982,7 +2023,7 @@ fn reading_a_document_says_which_of_its_pages_no_line_names() {
     let loose = served.wrote("# Dos", Some(&book));
     cut_loose(&served, &book, &loose);
 
-    let said = served.call("read", serde_json::json!({ "doc": &book }));
+    let said = served.call("workspace_read", serde_json::json!({ "doc": &book }));
 
     assert_eq!(
         said["result"]["structuredContent"]["pages_loose"],
@@ -2013,8 +2054,8 @@ fn a_file_the_document_does_not_keep_beside_it_is_left_where_it_is() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -2050,8 +2091,8 @@ fn a_file_outside_the_folder_reads_the_same_whether_it_is_there_or_not() {
         std::fs::create_dir_all(at.parent().unwrap()).unwrap();
         std::fs::write(&at, format!("# Notes\n\n![one](../elsewhere/{named})\n")).unwrap();
         let out = served.call(
-            "import_doc",
-            serde_json::json!({ "path": at.to_str().unwrap(), "anyway": true }),
+            "file_transfer",
+            serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap(), "anyway": true }),
         );
         out["result"]["content"][0]["text"]
             .as_str()
@@ -2095,8 +2136,8 @@ fn a_key_beside_a_document_comes_in_as_a_copy_tisty_keeps() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -2117,8 +2158,8 @@ fn a_file_that_is_not_there_leaves_words_and_not_a_broken_link() {
     std::fs::write(&at, "# Suelto\n\n![foto](assets/no-esta.png)\n").unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -2138,8 +2179,8 @@ fn another_markdown_file_comes_in_and_is_named_as_one_to_import_too() {
     std::fs::write(&at, "# Padre\n\nVer [Otra](Sub/Otra.md).\n").unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let named = said["result"]["structuredContent"]["names_markdown"].to_string();
@@ -2170,8 +2211,8 @@ fn a_path_on_this_machine_is_never_left_in_the_text() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -2203,8 +2244,8 @@ fn a_link_shown_as_an_example_inside_code_is_not_followed() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_eq!(
@@ -2235,8 +2276,8 @@ fn a_label_with_brackets_of_its_own_keeps_every_character() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -2260,8 +2301,8 @@ fn nothing_is_copied_in_when_the_document_itself_is_turned_away() {
     std::fs::write(&at, body).unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -2304,8 +2345,8 @@ fn a_drawing_a_page_and_a_data_file_come_in_like_any_other() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_eq!(
@@ -2336,8 +2377,8 @@ fn a_target_with_spaces_nobody_encoded_is_still_the_target() {
     .unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     assert_eq!(
@@ -2364,8 +2405,8 @@ fn an_exported_book_reads_as_a_book_outside_tisty() {
         .unwrap();
 
     let said = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &book, "path": out.path().to_str().unwrap() }),
     );
 
     assert_eq!(
@@ -2424,7 +2465,7 @@ fn a_token_an_assistant_sends_comes_in_under_a_warning_the_person_will_see() {
     let served = Served::new();
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Despliegue\n\nEl token es GITHUB_TOKEN=ghp_16C7e42F292c6912E7710c838347Ae178B4a\n"
         }),
@@ -2446,7 +2487,7 @@ fn a_document_that_only_names_its_variables_gets_no_warning() {
     let served = Served::new();
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({
             "body": "# Que instalar\n\n```bash\nFOO_URL=\"https://ejemplo.cl/x\"\nFOO_CLIENT_KEY=\"REDACTADO\"\n```\n"
         }),
@@ -2463,7 +2504,7 @@ fn many_secrets_get_one_warning_at_the_top_and_leave_the_body_alone() {
     let served = Served::new();
     let sent = "# Despliegue\n\nDB_PASSWORD=Tr0ub4dor3xK\n\nY mas abajo:\n\nDB_PASSWORD=Tr0ub4dor3xK\nSMTP_PASSWORD=h4nsel4ndGretel\n";
 
-    let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+    let said = served.call("doc_create", serde_json::json!({ "body": sent }));
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
@@ -2487,7 +2528,7 @@ fn many_secrets_get_one_warning_at_the_top_and_leave_the_body_alone() {
 const A_SECRET: &str = "GITHUB_TOKEN=ghp_16C7e42F292c6912E7710c838347Ae178B4a";
 
 fn written(served: &Served, body: &str) -> String {
-    let said = served.call("write_doc", serde_json::json!({ "body": body }));
+    let said = served.call("doc_create", serde_json::json!({ "body": body }));
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     served.body_of(doc)
 }
@@ -2552,7 +2593,7 @@ fn a_table_at_the_top_is_still_a_table() {
 fn writing_the_same_body_again_does_not_stack_warnings() {
     let served = Served::new();
     let sent = format!("# Despliegue\n\n{A_SECRET}\n");
-    let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+    let said = served.call("doc_create", serde_json::json!({ "body": sent }));
     let doc = said["result"]["structuredContent"]["doc"]
         .as_str()
         .unwrap()
@@ -2564,8 +2605,8 @@ fn writing_the_same_body_again_does_not_stack_warnings() {
     for round in 0..3 {
         let print = tisty_core::attach::printed(body.as_bytes());
         let again = served.call(
-            "write_doc",
-            serde_json::json!({ "doc": doc, "print": print, "body": body.clone() }),
+            "doc_edit",
+            serde_json::json!({ "mode": "rewrite", "doc": doc, "print": print, "content": body.clone() }),
         );
         assert!(
             again["result"]["isError"] != serde_json::json!(true),
@@ -2585,7 +2626,7 @@ fn writing_the_same_body_again_does_not_stack_warnings() {
 fn adding_to_a_document_again_does_not_stack_warnings() {
     let served = Served::new();
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Notas\n\nnada por aqui\n" }),
     );
     let doc = said["result"]["structuredContent"]["doc"]
@@ -2595,8 +2636,8 @@ fn adding_to_a_document_again_does_not_stack_warnings() {
 
     for _ in 0..3 {
         served.call(
-            "append_doc",
-            serde_json::json!({ "doc": doc, "body": format!("\n{A_SECRET}\n") }),
+            "doc_edit",
+            serde_json::json!({ "mode": "append", "doc": doc, "content": format!("\n{A_SECRET}\n") }),
         );
     }
 
@@ -2612,7 +2653,7 @@ fn adding_to_a_document_again_does_not_stack_warnings() {
 fn a_warning_never_lands_inside_a_fence() {
     let served = Served::new();
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Abierto\n\n```sh\necho hola\n" }),
     );
     let doc = said["result"]["structuredContent"]["doc"]
@@ -2621,8 +2662,8 @@ fn a_warning_never_lands_inside_a_fence() {
         .to_string();
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": doc, "body": format!("{A_SECRET}\n") }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": doc, "content": format!("{A_SECRET}\n") }),
     );
 
     let body = served.body_of(&doc);
@@ -2644,7 +2685,7 @@ fn the_warning_never_becomes_the_title() {
         format!("> Una cita\n>\n> {A_SECRET}\n"),
         format!("\u{feff}# Con marca de orden\n\n{A_SECRET}\n"),
     ] {
-        let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+        let said = served.call("doc_create", serde_json::json!({ "body": sent }));
         let title = said["result"]["structuredContent"]["title"]
             .as_str()
             .unwrap_or_default()
@@ -2666,8 +2707,8 @@ fn a_markdown_file_written_on_windows_comes_in() {
     std::fs::write(&at, "# Notas de Windows\r\n\r\nUna linea cualquiera.\r\n").unwrap();
 
     let said = served.call(
-        "import_doc",
-        serde_json::json!({ "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "import_doc", "path": at.to_str().unwrap() }),
     );
 
     let doc = said["result"]["structuredContent"]["doc"]
@@ -2687,14 +2728,14 @@ fn a_body_the_editor_could_not_keep_is_never_written_by_the_warning() {
         format!("```math\nx = 1\n```\n\n{A_SECRET}\n"),
         format!("- una lista\n- con puntos\n\n{A_SECRET}\n"),
     ] {
-        let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+        let said = served.call("doc_create", serde_json::json!({ "body": sent }));
         let doc = said["result"]["structuredContent"]["doc"]
             .as_str()
             .unwrap_or_else(|| panic!("no entro: {said} para {sent:?}"));
         let body = served.body_of(doc);
 
         let again = served.call(
-            "write_doc",
+            "doc_create",
             serde_json::json!({ "body": body.clone(), "anyway": true }),
         );
         assert!(
@@ -2721,40 +2762,40 @@ fn an_edit_that_reaches_either_end_leaves_no_copy_of_the_document_behind() {
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "under": "S", "body": "Z" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "under": "S", "content": "Z" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "append_doc under the last heading");
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "section": 0, "print": served.print_of(&doc), "new": "## S2" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "section": 0, "print": served.print_of(&doc), "content": "## S2" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "edit_doc over the last section");
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 3, "to": 5, "print": served.print_of(&doc), "new": "y" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 3, "to": 5, "print": served.print_of(&doc), "content": "y" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "edit_doc to the last line");
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 3, "print": served.print_of(&doc), "new": "y" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 3, "print": served.print_of(&doc), "content": "y" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "edit_doc with no `to` at all");
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 1, "to": 2, "print": served.print_of(&doc), "new": "Otro" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 1, "to": 2, "print": served.print_of(&doc), "content": "Otro" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     let now = served.body_of(&doc);
@@ -2770,8 +2811,8 @@ fn an_edit_that_reaches_either_end_leaves_no_copy_of_the_document_behind() {
 
     let doc = served.wrote(whole, None);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "from": 3, "to": 4, "print": served.print_of(&doc), "new": "y" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "from": 3, "to": 4, "print": served.print_of(&doc), "content": "y" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "edit_doc that touches neither end");
@@ -2784,12 +2825,15 @@ fn what_a_write_replaced_can_be_put_back_and_putting_it_back_undoes_itself() {
     let print = served.print_of(&doc);
 
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Lo que se dijo.", "new": "Otra cosa.", "print": print }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Lo que se dijo.", "content": "Otra cosa.", "print": print }),
     );
     assert!(served.body_of(&doc).contains("Otra cosa"));
 
-    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    let said = served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc }),
+    );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert!(
         served.body_of(&doc).contains("Lo que se dijo"),
@@ -2797,7 +2841,10 @@ fn what_a_write_replaced_can_be_put_back_and_putting_it_back_undoes_itself() {
         served.body_of(&doc)
     );
 
-    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    let said = served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc }),
+    );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert!(
         served.body_of(&doc).contains("Otra cosa"),
@@ -2811,7 +2858,10 @@ fn a_document_nothing_has_been_written_over_has_nothing_to_go_back_to() {
     let served = Served::new();
     let doc = served.wrote("# Acta\n\nLo que se dijo.", None);
 
-    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    let said = served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc }),
+    );
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
 }
 
@@ -2821,8 +2871,8 @@ fn every_write_says_how_much_the_document_grew_by() {
     let doc = served.wrote("# Acta\n\nUno.", None);
 
     let said = served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Dos." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Dos." }),
     );
     let grew = said["result"]["structuredContent"]["grew"]
         .as_i64()
@@ -2831,8 +2881,8 @@ fn every_write_says_how_much_the_document_grew_by() {
 
     let print = served.print_of(&doc);
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Dos.", "new": "X", "print": print }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Dos.", "content": "X", "print": print }),
     );
     assert_eq!(
         said["result"]["structuredContent"]["grew"].as_i64(),
@@ -2848,8 +2898,8 @@ fn an_edit_can_hand_back_what_it_reads_like_now_instead_of_being_read_again() {
     let print = served.print_of(&doc);
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Tres.", "new": "Trece.", "print": print, "echo": true }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Tres.", "content": "Trece.", "print": print, "echo": true }),
     );
     let around = &said["result"]["structuredContent"]["around"];
     assert!(
@@ -2867,8 +2917,8 @@ fn an_edit_can_hand_back_what_it_reads_like_now_instead_of_being_read_again() {
     assert!(around["from"].as_u64().unwrap() >= 1, "{said}");
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Cuatro.", "new": "Catorce.", "print": served.print_of(&doc) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Cuatro.", "content": "Catorce.", "print": served.print_of(&doc) }),
     );
     assert!(
         said["result"]["structuredContent"]["around"].is_null(),
@@ -2885,7 +2935,10 @@ fn putting_a_document_away_says_what_is_left_pointing_at_it() {
         None,
     );
 
-    let said = served.call("archive_doc", serde_json::json!({ "doc": &cited }));
+    let said = served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&cited ]}),
+    );
     let told = said["result"]["structuredContent"]["pointed_at"]
         .as_array()
         .unwrap();
@@ -2904,7 +2957,7 @@ fn a_run_of_lines_is_held_to_the_same_budget_as_every_other_way_of_reading() {
     let doc = served.wrote(&format!("# Largo\n\n{long}"), None);
 
     let said = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "doc": &doc, "from": 1, "to": 900 }),
     );
     let kept = &said["result"]["structuredContent"];
@@ -2927,15 +2980,18 @@ fn going_back_is_refused_when_it_would_undo_more_than_the_write_that_was_kept() 
     let doc = served.wrote("# Acta\n\nUno.", None);
 
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Uno.", "new": "Dos.", "print": served.print_of(&doc) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Uno.", "content": "Dos.", "print": served.print_of(&doc) }),
     );
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Acuerdo importante." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Acuerdo importante." }),
     );
 
-    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    let said = served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc }),
+    );
     assert_eq!(
         said["result"]["isError"].as_bool(),
         Some(true),
@@ -2959,7 +3015,10 @@ fn a_section_is_held_to_the_same_budget_as_a_run_of_lines() {
         .join("\n\n");
     let doc = served.wrote(&format!("# Largo\n\n{long}"), None);
 
-    let said = served.call("read", serde_json::json!({ "doc": &doc, "section": 0 }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &doc, "section": 0 }),
+    );
     let kept = &said["result"]["structuredContent"];
     assert!(
         kept["next"].as_u64().is_some(),
@@ -2974,10 +3033,10 @@ fn indented_code_is_not_mistaken_for_a_paragraph_somebody_wrapped() {
     let doc = served.wrote("# Codigo\n\nLo de abajo.", None);
 
     let said = served.call(
-        "append_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "append",
             "doc": &doc,
-            "body": "    let one = something_with_a_fairly_long_name(argument, another);\n    let two = something_with_a_fairly_long_name(argument, another);\n    let three = something_with_long_name(argument, another_one_here);",
+            "content": "    let one = something_with_a_fairly_long_name(argument, another);\n    let two = something_with_a_fairly_long_name(argument, another);\n    let three = something_with_long_name(argument, another_one_here);",
         }),
     );
     let told = said["result"]["content"][0]["text"]
@@ -2995,18 +3054,18 @@ fn going_back_over_more_than_one_write_is_asked_for_and_is_itself_undone() {
     let doc = served.wrote("# Acta\n\nUno.", None);
 
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &doc, "old": "Uno.", "new": "Dos.", "print": served.print_of(&doc) }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &doc, "old": "Uno.", "content": "Dos.", "print": served.print_of(&doc) }),
     );
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "Acuerdo importante." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "Acuerdo importante." }),
     );
     let stood = served.body_of(&doc);
 
     let said = served.call(
-        "restore_doc",
-        serde_json::json!({ "doc": &doc, "even_if_more": true }),
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc, "even_if_more": true }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert_eq!(
@@ -3019,7 +3078,10 @@ fn going_back_over_more_than_one_write_is_asked_for_and_is_itself_undone() {
     assert!(!now.contains("Acuerdo importante"), "{now:?}");
 
     // What it wrote over is kept in turn, so the same call again undoes the whole thing.
-    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    let said = served.call(
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &doc }),
+    );
     assert!(
         said["result"]["isError"].as_bool() != Some(true),
         "going back over more than one write left something that could be put back: {said}"
@@ -3040,12 +3102,15 @@ fn a_body_written_over_can_be_put_back_whether_or_not_it_ended_in_a_newline() {
         let doc = served.wrote(body, None);
 
         let said = served.call(
-            "write_doc",
-            serde_json::json!({ "doc": &doc, "body": "# Acta\n\nDos.", "print": served.print_of(&doc) }),
+            "doc_edit",
+            serde_json::json!({ "mode": "rewrite", "doc": &doc, "content": "# Acta\n\nDos.", "print": served.print_of(&doc) }),
         );
         assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
-        let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+        let said = served.call(
+            "doc_edit",
+            serde_json::json!({ "mode": "restore", "doc": &doc }),
+        );
         assert!(
             said["result"]["isError"].as_bool() != Some(true),
             "nothing was written in between, so this is one step back: {said}"
@@ -3070,8 +3135,10 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         None,
     );
     let inside = |query: &str| {
-        served.call("brain", serde_json::json!({ "doc": &doc, "query": query }))["result"]
-            ["structuredContent"]
+        served.call(
+            "workspace_search",
+            serde_json::json!({ "mode": "in_doc", "doc": &doc, "query": query }),
+        )["result"]["structuredContent"]
             .clone()
     };
 
@@ -3097,8 +3164,8 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
 
     let listed = served.wrote("# Lista\n\n- uno\n- dos\n- tres\n\nfin\n", None);
     let around = served.call(
-        "brain",
-        serde_json::json!({ "doc": &listed, "query": "dos" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &listed, "query": "dos" }),
     )["result"]["structuredContent"]["lines"][0]["around"]
         .clone();
     assert_eq!(
@@ -3107,8 +3174,8 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     );
     let reach = |lines: u64| {
         served.call(
-            "brain",
-            serde_json::json!({ "doc": &listed, "query": "dos", "around": lines }),
+            "workspace_search",
+            serde_json::json!({ "mode": "in_doc", "doc": &listed, "query": "dos", "around": lines }),
         )["result"]["structuredContent"]["lines"][0]["around"]
             .clone()
     };
@@ -3124,8 +3191,8 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         None,
     );
     let near = served.call(
-        "brain",
-        serde_json::json!({ "doc": &close, "query": "riego", "around": 2 }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &close, "query": "riego", "around": 2 }),
     )["result"]["structuredContent"]["lines"]
         .clone();
     assert_eq!(
@@ -3142,8 +3209,8 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         .collect();
     let heavy = served.wrote(&format!("# Patio\n\n{long}"), None);
     let kept = served.call(
-        "brain",
-        serde_json::json!({ "doc": &heavy, "query": "riego", "around": 2, "limit": 100 }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &heavy, "query": "riego", "around": 2, "limit": 100 }),
     )["result"]["structuredContent"]["lines"]
         .as_array()
         .unwrap()
@@ -3191,8 +3258,8 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         None,
     );
     let kept = served.call(
-        "brain",
-        serde_json::json!({ "doc": &bare, "query": "riego" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &bare, "query": "riego" }),
     )["result"]["structuredContent"]
         .clone();
     assert_eq!(kept["total"], 1);
@@ -3201,16 +3268,16 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         "no heading, so no section to sit in: {kept}"
     );
     let told = served.call(
-        "brain",
-        serde_json::json!({ "doc": &bare, "query": "riego" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &bare, "query": "riego" }),
     )["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
         .to_string();
     assert!(told.contains("line 3 — una linea"), "{told}");
     let told = served.call(
-        "brain",
-        serde_json::json!({ "doc": &doc, "query": "porton" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "in_doc", "doc": &doc, "query": "porton" }),
     )["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
@@ -3232,11 +3299,14 @@ fn the_outline_of_a_book_names_each_page_with_what_it_holds() {
     let second = served.wrote("# Acta del 10\n\ncuatro cinco\n", Some(&book));
     let third = served.wrote("seis siete ocho\n", Some(&book));
     served.call(
-        "sum_up",
-        serde_json::json!({ "doc": &second, "summary": "the tenth, in short", "notes": "not for the list" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [&second], "summary": "the tenth, in short", "notes": "not for the list" }),
     );
 
-    let said = served.call("brain", serde_json::json!({ "doc": &book }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     let kept = &said["result"]["structuredContent"];
     let pages = kept["pages"].as_array().expect("a row per page");
     assert_eq!(pages.len(), 3);
@@ -3287,7 +3357,10 @@ fn the_outline_of_a_book_names_each_page_with_what_it_holds() {
     assert_eq!(enero["to"], 5, "the blank line before Febrero is nobody's");
     assert_eq!(enero["chars"], "## Enero\n\nlo de enero\n".chars().count());
 
-    let said = served.call("brain", serde_json::json!({ "doc": &first }));
+    let said = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &first , "view": "card"}),
+    );
     assert_eq!(
         said["result"]["structuredContent"]["page_of"], book,
         "a page's outline says whose page it is"
@@ -3304,7 +3377,7 @@ fn a_long_document_read_whole_comes_back_as_an_outline_that_weighs_each_part() {
     let body = format!("# Largo\n\n## Uno\n\n{long}\n\n## Dos\n\nfin\n");
     let doc = served.wrote(&body, None);
 
-    let said = served.call("read", serde_json::json!({ "doc": &doc }));
+    let said = served.call("workspace_read", serde_json::json!({ "doc": &doc }));
     let kept = &said["result"]["structuredContent"];
     assert_eq!(kept["whole"], false);
     let uno = &kept["outline"][1];
@@ -3326,13 +3399,13 @@ fn a_page_the_archive_holds_is_sent_back_to_its_document_and_not_to_a_folder() {
     let book = served.wrote("# Actas\n\nlas de este año.", None);
     let page = served.wrote("# Marzo", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
 
     let why = served.refused(
-        "archive_doc",
-        serde_json::json!({ "doc": &page, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&page ]}),
     );
 
     assert!(
@@ -3350,8 +3423,8 @@ fn what_a_document_takes_to_the_archive_is_what_it_brings_back() {
     let two = served.wrote("# Abril", Some(&book));
 
     let went = served.said(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
     assert!(
         went.contains("Its pages went with it") && went.contains(&one) && went.contains(&two),
@@ -3359,8 +3432,8 @@ fn what_a_document_takes_to_the_archive_is_what_it_brings_back() {
     );
 
     let back = served.said(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&book ]}),
     );
     assert!(
         back.contains("Its pages came back with it"),
@@ -3368,8 +3441,8 @@ fn what_a_document_takes_to_the_archive_is_what_it_brings_back() {
     );
 
     let again = served.said(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&book ]}),
     );
     assert!(
         again.contains("already out of the archive") && !again.contains("pages"),
@@ -3383,11 +3456,14 @@ fn a_page_in_the_archive_is_not_pulled_out_of_the_document_that_holds_it() {
     let book = served.wrote("# Actas", None);
     let page = served.wrote("# Marzo", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
 
-    let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
+    let why = served.refused(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [&page ]}),
+    );
 
     assert!(
         why.contains("in the archive"),
@@ -3405,15 +3481,18 @@ fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
     served.wrote("# Abril", Some(&book));
     let old = served.wrote("# Enero", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &old, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&old ]}),
     );
     served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &one, "body": "it has had its day" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [&one], "body": "it has had its day" }),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let row = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap()
@@ -3424,7 +3503,7 @@ fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
     assert_eq!(row["pages_archived"], 1, "three pages is not three to read");
     assert_eq!(row["pages_flagged"], 1);
 
-    let read = served.call("read", serde_json::json!({ "doc": &book }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &book }));
     assert_eq!(
         read["result"]["structuredContent"]["pages_archived"],
         serde_json::json!([old]),
@@ -3435,7 +3514,10 @@ fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
         serde_json::json!([one])
     );
 
-    let outline = served.call("brain", serde_json::json!({ "doc": &book }));
+    let outline = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     let said = outline["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         said.contains("1 of them put away on their own")
@@ -3454,8 +3536,8 @@ fn what_a_document_is_called_is_what_the_person_is_told() {
     let book = served.wrote("# Actas de enero\n\nlo que se dijo.", None);
 
     let said = served.said(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
 
     assert!(
@@ -3474,17 +3556,17 @@ fn a_page_the_document_covers_is_not_woken_behind_its_back() {
     let book = served.wrote("# Actas", None);
     let page = served.wrote("# Marzo", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &page, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&page ]}),
     );
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
 
     let why = served.refused(
-        "archive_doc",
-        serde_json::json!({ "doc": &page, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&page ]}),
     );
     assert!(
         why.contains("document that holds it"),
@@ -3492,10 +3574,10 @@ fn a_page_the_document_covers_is_not_woken_behind_its_back() {
     );
 
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": false }),
+        "doc_annotate",
+        serde_json::json!({ "action": "unarchive", "docs": [&book ]}),
     );
-    let read = served.call("read", serde_json::json!({ "doc": &page }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &page }));
     assert_eq!(
         read["result"]["structuredContent"]["archived"], true,
         "the page was apart before, and it stays apart: {read}"
@@ -3508,19 +3590,22 @@ fn a_page_put_away_on_its_own_can_still_become_a_document_of_its_own() {
     let book = served.wrote("# Actas", None);
     let page = served.wrote("# Marzo", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &page, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&page ]}),
     );
 
-    let said = served.said("page_doc", serde_json::json!({ "doc": &page }));
+    let said = served.said(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [&page ]}),
+    );
 
     assert!(said.contains("document of its own"), "{said}");
-    let read = served.call("read", serde_json::json!({ "doc": &page }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": &page }));
     assert_eq!(
         read["result"]["structuredContent"]["archived"], true,
         "reorganising is not taking it out of the archive: {read}"
     );
-    let up = served.call("read", serde_json::json!({ "doc": &book }));
+    let up = served.call("workspace_read", serde_json::json!({ "doc": &book }));
     assert!(
         up["result"]["structuredContent"]["pages"].is_null(),
         "and the book no longer holds it: {up}"
@@ -3534,15 +3619,18 @@ fn a_listing_says_which_pages_answer_for_themselves_and_which_are_only_covered()
     let apart = served.wrote("# Marzo", Some(&book));
     served.wrote("# Abril", Some(&book));
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &apart, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&apart ]}),
     );
     served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "doc": &book }));
+    let listed = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    );
     let rows = listed["result"]["structuredContent"]["pages"]
         .as_array()
         .unwrap();
@@ -3569,12 +3657,12 @@ fn asking_for_the_pages_of_nothing_is_not_asking_for_everything() {
     let served = Served::new();
     served.wrote("# Suelto", None);
 
-    let why = served.refused("brain", serde_json::json!({ "page_of": "" }));
+    let why = served.refused("workspace_search", serde_json::json!({ "page_of": "" }));
     assert!(why.contains("`page_of`"), "{why}");
 
     let all = served.call(
-        "brain",
-        serde_json::json!({ "folder": serde_json::Value::Null }),
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": serde_json::Value::Null }),
     );
     assert!(
         all["result"]["isError"].as_bool() != Some(true),
@@ -3591,8 +3679,8 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
         .collect();
 
     let said = served.said(
-        "page_doc",
-        serde_json::json!({ "doc": loose.clone(), "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": loose.clone(), "parent": &book }),
     );
 
     assert!(said.contains("are now pages of"), "{said}");
@@ -3602,9 +3690,12 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
         "all three, in the order asked"
     );
 
-    let out = served.said("page_doc", serde_json::json!({ "doc": loose.clone() }));
+    let out = served.said(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": loose.clone() }),
+    );
     assert!(out.contains("documents of their own"), "{out}");
-    let up = served.call("read", serde_json::json!({ "doc": &book }));
+    let up = served.call("workspace_read", serde_json::json!({ "doc": &book }));
     assert!(up["result"]["structuredContent"]["pages"].is_null(), "{up}");
 }
 
@@ -3612,18 +3703,21 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
 fn a_list_that_one_name_spoils_moves_nobody() {
     let served = Served::new();
     served.person().lets_the_agent_in();
-    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Proyectos" }),
+    );
     let one = served.wrote("# Uno", None);
     let two = served.wrote("# Dos", None);
 
     let why = served.refused(
-        "file_doc",
-        serde_json::json!({ "doc": [&one, "no-existe", &two], "folder": "Proyectos" }),
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [&one, "no-existe", &two], "folder": "Proyectos" }),
     );
 
     assert!(why.contains("no-existe"), "{why}");
     for which in [&one, &two] {
-        let read = served.call("read", serde_json::json!({ "doc": which }));
+        let read = served.call("workspace_read", serde_json::json!({ "doc": which }));
         assert!(
             read["result"]["structuredContent"]["folder"].is_null(),
             "one intention is one move or none: {read}"
@@ -3640,13 +3734,19 @@ fn what_points_at_a_document_is_there_to_be_asked_before_putting_it_away() {
         None,
     );
 
-    let said = served.said("brain", serde_json::json!({ "doc": &one }));
+    let said = served.said(
+        "workspace_read",
+        serde_json::json!({ "doc": &one , "view": "card"}),
+    );
 
     assert!(
         said.contains("Pointing at it") && said.contains(&two),
         "asking before archiving is the only moment it helps: {said}"
     );
-    let told = served.call("brain", serde_json::json!({ "doc": &one }));
+    let told = served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &one , "view": "card"}),
+    );
     assert_eq!(
         told["result"]["structuredContent"]["mentioned_by"][0]["id"],
         serde_json::json!(two)
@@ -3665,11 +3765,14 @@ fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
         .map(|n| served.wrote(&format!("# Capitulo {n}"), Some(&book)))
         .collect();
 
-    served.said("page_doc", serde_json::json!({ "doc": pages.clone() }));
+    served.said(
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": pages.clone() }),
+    );
 
     let listed = served.call(
-        "brain",
-        serde_json::json!({ "scope": "either", "limit": 10 }),
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either", "limit": 10 }),
     );
     let loose: Vec<String> = listed["result"]["structuredContent"]["docs"]
         .as_array()
@@ -3686,7 +3789,7 @@ fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
     let apart: Vec<String> = pages
         .iter()
         .map(|which| {
-            served.call("read", serde_json::json!({ "doc": which }))["result"]["structuredContent"]
+            served.call("workspace_read", serde_json::json!({ "doc": which }))["result"]["structuredContent"]
                 ["page_of"]
                 .as_str()
                 .unwrap_or_default()
@@ -3700,8 +3803,8 @@ fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
     );
 
     let again = served.said(
-        "page_doc",
-        serde_json::json!({ "doc": pages.clone(), "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": pages.clone(), "parent": &book }),
     );
     assert!(again.contains("in that order"), "{again}");
     assert_eq!(
@@ -3732,8 +3835,8 @@ fn verify_item2_a_closed_fence_of_four_backticks_still_refuses_the_line() {
     let page = served.wrote("# Cap\n\nx.", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let body = served.body_of(&book);
@@ -3759,15 +3862,15 @@ fn verify_item1_at_first_really_is_first_in_the_reading_order() {
     let mine =
         format!("# Libro\n\nintro\n\n![Uno](tisty:doc/{a}) y mas\n\n![Dos](tisty:doc/{b})\n");
     let set = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
     assert_ne!(set["result"]["isError"].as_bool(), Some(true), "{set}");
     assert_eq!(served.pages_read(&book), vec![a.clone(), b.clone()]);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &c, "page_of": &book, "at": "first" }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&c], "parent": &book, "position": "first" }),
     );
 
     println!("SAID: {}", told_of(&said));
@@ -3787,16 +3890,16 @@ fn verify_item4_a_mention_in_prose_is_not_a_second_naming() {
     let book = served.wrote("# Actas\n\nde este anio.", None);
     let page = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": "de este anio.",
-            "new": format!("de este anio. El id de esa pagina es {page}, por si acaso."),
+            "content": format!("de este anio. El id de esa pagina es {page}, por si acaso."),
         }),
     );
 
@@ -3816,16 +3919,16 @@ fn verify_item4_a_card_shown_inside_a_fence_is_not_a_second_naming() {
     let book = served.wrote("# Actas\n\nde este anio.", None);
     let page = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": "de este anio.",
-            "new": format!("de este anio.\n\n```md\n![Enero](tisty:doc/{page})\n```"),
+            "content": format!("de este anio.\n\n```md\n![Enero](tisty:doc/{page})\n```"),
         }),
     );
 
@@ -3844,16 +3947,16 @@ fn verify_item4_two_namings_on_one_line_are_warned_about() {
     let book = served.wrote("# Actas\n\nde este anio.", None);
     let page = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": format!("![Enero](tisty:doc/{page})"),
-            "new": format!("![Enero](tisty:doc/{page}) ![Enero](tisty:doc/{page})"),
+            "content": format!("![Enero](tisty:doc/{page}) ![Enero](tisty:doc/{page})"),
         }),
     );
 
@@ -3873,15 +3976,15 @@ fn verify_item4_append_doc_warns_about_a_second_naming_too() {
     let book = served.wrote("# Actas\n\nde este anio.", None);
     let page = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let said = served.call(
-        "append_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "append",
             "doc": &book,
-            "body": format!("![Enero](tisty:doc/{page})"),
+            "content": format!("![Enero](tisty:doc/{page})"),
         }),
     );
 
@@ -3905,8 +4008,8 @@ fn a_lock_on_a_page_is_dropped_and_its_book_is_what_says_where_it_is_read() {
     served.bolt(&one);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
     );
 
     assert_ne!(
@@ -3918,8 +4021,8 @@ fn a_lock_on_a_page_is_dropped_and_its_book_is_what_says_where_it_is_read() {
 
     served.bolt(&book);
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&one, &two] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one, &two] }),
     );
     assert_eq!(
         said["result"]["isError"].as_bool(),
@@ -3941,8 +4044,8 @@ fn verify_item3_hanging_keeps_a_crlf_document_whole() {
     assert!(served.body_of(&book).contains("\r\n"), "set up with crlf");
 
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&loose], "parent": &book }),
     );
 
     let body = served.body_of(&book);
@@ -3964,17 +4067,17 @@ fn verify_item3_hanging_leaves_the_step_back_where_it_was() {
     let book = served.wrote("# Actas\n\nlo que dije", None);
     let loose = served.wrote("# Enero\n\nx.", None);
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &book, "old": "lo que dije", "new": "otra cosa" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &book, "old": "lo que dije", "content": "otra cosa" }),
     );
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&loose], "parent": &book }),
     );
 
     let said = served.call(
-        "restore_doc",
-        serde_json::json!({ "doc": &book, "even_if_more": true }),
+        "doc_edit",
+        serde_json::json!({ "mode": "restore", "doc": &book, "even_if_more": true }),
     );
 
     println!("SAID: {}", told_of(&said));
@@ -3999,14 +4102,14 @@ fn verify_item1_at_last_really_is_last_in_the_reading_order() {
     let mine =
         format!("# Libro\n\nintro\n\n![Uno](tisty:doc/{a})\n\n![Dos](tisty:doc/{b}) y mas\n");
     let set = served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
     assert_ne!(set["result"]["isError"].as_bool(), Some(true), "{set}");
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &c, "page_of": &book, "at": "last" }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&c], "parent": &book, "position": "last" }),
     );
 
     println!("SAID: {}", told_of(&said));
@@ -4029,11 +4132,11 @@ fn verify_item2_a_closed_fence_does_not_strand_the_pages_of_a_rewrite() {
     let print = served.print_of(&book);
 
     let said = served.call(
-        "write_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite",
             "doc": &book,
             "print": print,
-            "body": "# Manual\n\nmira:\n\n````md\n```sh\n````\n",
+            "content": "# Manual\n\nmira:\n\n````md\n```sh\n````\n",
         }),
     );
 
@@ -4053,8 +4156,8 @@ fn the_same_page_named_twice_in_one_call_is_hung_once_and_written_once() {
     let page = served.wrote("# Uno\n\nx.", None);
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": [&page, &page], "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page, &page], "parent": &book }),
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -4080,8 +4183,8 @@ fn a_book_ending_in_an_open_fence_says_nothing_when_nothing_was_owed() {
     .unwrap();
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let told = told_of(&said);
@@ -4099,8 +4202,8 @@ fn an_order_naming_something_that_is_not_a_document_says_what_an_id_looks_like()
     served.wrote("# Dos", Some(&book));
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&one, "Dos"] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one, "Dos"] }),
     );
 
     assert!(why.contains("no document here is called"), "{why}");
@@ -4118,8 +4221,8 @@ fn an_order_for_a_book_that_is_not_a_document_is_turned_away_the_same_way() {
     let two = served.wrote("# Dos", Some(&book));
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": "Libro", "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": "Libro", "order": [&two, &one] }),
     );
 
     assert!(why.contains("no document here is called"), "{why}");
@@ -4131,16 +4234,19 @@ fn an_order_for_a_book_put_away_says_it_is_not_written_in_any_more() {
     let book = served.wrote("# Libro\n\nintro", None);
     let one = served.wrote("# Uno", Some(&book));
     let two = served.wrote("# Dos", Some(&book));
-    served.call("archive_doc", serde_json::json!({ "doc": &book }));
+    served.call(
+        "doc_annotate",
+        serde_json::json!({ "action": "archive", "docs": [&book ]}),
+    );
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
     );
 
     assert!(why.contains("put away"), "{why}");
     assert!(
-        why.contains("`archive_doc`"),
+        why.contains("`doc_annotate` (`action: \"unarchive\"`)"),
         "a refusal says what to send instead: {why}"
     );
 }
@@ -4154,8 +4260,8 @@ fn an_order_naming_a_document_that_is_no_page_of_it_says_it_has_no_place_there()
     let apart = served.wrote("# Aparte", None);
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&apart, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&apart, &one] }),
     );
 
     assert!(why.contains("no place in its order"), "{why}");
@@ -4176,13 +4282,13 @@ fn an_order_over_a_line_that_says_more_than_a_name_moves_nothing_and_says_which_
         "# Libro\n\nintro\n\n![Uno](tisty:doc/{one}) y algo mas\n\n![Dos](tisty:doc/{two})\n"
     );
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
     );
 
     assert!(why.contains("says other things besides"), "{why}");
@@ -4199,13 +4305,13 @@ fn an_order_that_would_take_the_title_from_another_page_is_refused() {
     let print = served.print_of(&book);
     let mine = format!("![Uno](tisty:doc/{one})\n\n![Dos](tisty:doc/{two})\n");
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": &mine }),
     );
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
     );
 
     assert!(why.contains("would be renamed"), "{why}");
@@ -4221,8 +4327,8 @@ fn a_book_that_says_nothing_yet_keeps_the_page_and_says_no_line_was_written() {
     std::fs::write(&at, "\n\n").unwrap();
 
     let said = served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &page, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&page], "parent": &book }),
     );
 
     let told = told_of(&said);
@@ -4243,16 +4349,16 @@ fn two_pages_named_twice_over_are_said_in_the_plural() {
     let one = served.wrote("# Enero", None);
     let two = served.wrote("# Febrero", None);
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": [&one, &two], "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&one, &two], "parent": &book }),
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": &book,
             "old": "de este anio.",
-            "new": format!(
+            "content": format!(
                 "de este anio.\n\n![Enero](tisty:doc/{one})\n\n![Febrero](tisty:doc/{two})"
             ),
         }),
@@ -4274,15 +4380,15 @@ fn a_book_whose_pages_hang_from_nothing_reachable_is_said_plainly() {
     let two = served.wrote("# Dos", Some(&book));
     let print = served.print_of(&book);
     served.call(
-        "write_doc",
-        serde_json::json!({ "doc": &book, "print": print, "body": "# Libro\n\nintro\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "rewrite", "doc": &book, "print": print, "content": "# Libro\n\nintro\n" }),
     );
     let at = served.data().join("docs").join(format!("{book}.md"));
     std::fs::write(&at, "# Libro\n\nintro\n").unwrap();
 
     let why = served.refused(
-        "page_doc",
-        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+        "doc_organize",
+        serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one] }),
     );
 
     assert!(
@@ -4315,7 +4421,7 @@ abierta
     let was = served.body_of(&book);
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Anexo
 
 z.", "page_of": &book }),
@@ -4337,19 +4443,19 @@ fn every_refusal_the_order_of_pages_hands_back_says_what_to_send_instead() {
 
     for (args, remedy) in [
         (
-            serde_json::json!({ "page_of": &book, "order": [&one, &one] }),
+            serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one, &one] }),
             "Send it once",
         ),
         (
-            serde_json::json!({ "page_of": &book, "order": [&two, &one], "after": &one }),
+            serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one], "after": &one }),
             "Send them apart",
         ),
         (
-            serde_json::json!({ "page_of": &book, "order": [&one] }),
+            serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one] }),
             "Two or more, or nothing to do",
         ),
     ] {
-        let why = served.refused("page_doc", args);
+        let why = served.refused("doc_organize", args);
         assert!(why.contains(remedy), "no remedy in: {why}");
     }
 }
@@ -4363,17 +4469,20 @@ fn a_page_taken_out_and_hung_again_is_read_where_the_text_still_names_it() {
     let three = served.wrote("# Tres", Some(&book));
     for page in [&one, &two, &three] {
         served.call(
-            "page_doc",
-            serde_json::json!({ "doc": page, "page_of": &book }),
+            "doc_organize",
+            serde_json::json!({ "action": "add_page", "docs": [page], "parent": &book }),
         );
     }
     let was = served.pages_read(&book);
     assert_eq!(was, vec![one.clone(), two.clone(), three.clone()]);
 
-    served.call("page_doc", serde_json::json!({ "doc": &two }));
     served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &two, "page_of": &book }),
+        "doc_organize",
+        serde_json::json!({ "action": "remove_page", "docs": [&two ]}),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "add_page", "docs": [&two], "parent": &book }),
     );
 
     let body = served.body_of(&book);
@@ -4397,8 +4506,8 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
     let two = served.wrote("# Dos", Some(&book));
     for page in [&one, &two] {
         served.call(
-            "page_doc",
-            serde_json::json!({ "doc": page, "page_of": &book }),
+            "doc_organize",
+            serde_json::json!({ "action": "add_page", "docs": [page], "parent": &book }),
         );
     }
     assert_eq!(served.pages_read(&book), vec![one.clone(), two.clone()]);
@@ -4419,7 +4528,10 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
         "the text says so, and nothing has settled the log yet"
     );
 
-    let told = told_of(&served.call("brain", serde_json::json!({ "doc": &book })));
+    let told = told_of(&served.call(
+        "workspace_read",
+        serde_json::json!({ "doc": &book , "view": "card"}),
+    ));
     assert!(
         told.find(&two).unwrap() < told.find(&one).unwrap(),
         "and the outline says the same: {told}"
@@ -4428,7 +4540,7 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
 
 fn filed_with_steps(served: &Served) -> String {
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "migrate the reader",
             "steps": ["read the old format", "write the new one"],
         }),
@@ -4441,7 +4553,7 @@ fn filed_with_steps(served: &Served) -> String {
 
 fn steps_of(served: &Served, task: &str) -> Vec<(String, bool)> {
     let said = served.call(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": task, "fields": ["steps"] }),
     );
     said["result"]["structuredContent"]["steps"]
@@ -4462,13 +4574,13 @@ fn an_agent_takes_back_a_tick_it_gave_by_mistake() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.call(
-        "tick",
-        serde_json::json!({ "task": task, "step": "read the old format" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "read the old format" }),
     );
 
     let said = served.call(
-        "untick",
-        serde_json::json!({ "task": task, "step": "Read the old format " }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": task, "step": "Read the old format " }),
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
@@ -4490,8 +4602,8 @@ fn a_tick_the_person_gave_is_not_the_agents_to_take_back() {
     assert!(steps_of(&served, &task)[0].1, "the person ticked it");
 
     let said = served.call(
-        "untick",
-        serde_json::json!({ "task": task, "step": "read the old format" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": task, "step": "read the old format" }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -4504,8 +4616,8 @@ fn unticking_a_step_nobody_ticked_changes_nothing() {
     let task = filed_with_steps(&served);
 
     let said = served.call(
-        "untick",
-        serde_json::json!({ "task": task, "step": "write the new one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": task, "step": "write the new one" }),
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
@@ -4519,12 +4631,12 @@ fn an_agent_says_a_task_should_not_be_done_and_leaves_it_to_the_person() {
     let task = filed_with_steps(&served);
 
     let said = served.call(
-        "say_not_doing",
-        serde_json::json!({ "task": task, "body": "the old reader was removed upstream" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "not_doing", "task": task, "body": "the old reader was removed upstream" }),
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
-    let read = served.call("read", serde_json::json!({ "task": task }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": task }));
     let read = &read["result"]["structuredContent"];
     assert_eq!(read["status"], "open", "saying it drops nothing: {read}");
     assert!(read["said_not_doing"].is_string(), "{read}");
@@ -4535,10 +4647,10 @@ fn an_agent_says_a_task_should_not_be_done_and_leaves_it_to_the_person() {
 fn saying_it_should_not_be_done_twice_is_refused() {
     let served = Served::new();
     let task = filed_with_steps(&served);
-    let why = serde_json::json!({ "task": task, "body": "moot" });
-    served.call("say_not_doing", why.clone());
+    let why = serde_json::json!({ "outcome": "not_doing", "task": task, "body": "moot" });
+    served.call("task_resolve", why.clone());
 
-    let again = served.call("say_not_doing", why);
+    let again = served.call("task_resolve", why);
 
     assert_eq!(again["result"]["isError"].as_bool(), Some(true), "{again}");
     assert!(
@@ -4552,13 +4664,13 @@ fn a_past_decision_is_found_in_the_archive_with_the_line_that_says_it() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.call(
-        "note",
-        serde_json::json!({ "task": task, "body": "Compared both.\nWe chose sqlite for the cache." }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": task, "body": "Compared both.\nWe chose sqlite for the cache." }),
     );
     served.person().closes(person::task(&task));
 
     let said = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "sqlite", "scope": "archive" }),
     );
 
@@ -4573,17 +4685,17 @@ fn a_step_is_not_unticked_under_a_word_that_says_it_is_done() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.call(
-        "tick",
-        serde_json::json!({ "task": task, "steps": ["read the old format", "write the new one"] }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "steps": ["read the old format", "write the new one"] }),
     );
     served.call(
-        "say_done",
-        serde_json::json!({ "task": task, "body": "both ran green" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "done", "task": task, "body": "both ran green" }),
     );
 
     let said = served.call(
-        "untick",
-        serde_json::json!({ "task": task, "step": "write the new one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": task, "step": "write the new one" }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -4595,13 +4707,13 @@ fn a_step_is_not_ticked_under_a_word_that_it_should_not_be_done() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.call(
-        "say_not_doing",
-        serde_json::json!({ "task": task, "body": "moot" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "not_doing", "task": task, "body": "moot" }),
     );
 
     let said = served.call(
-        "tick",
-        serde_json::json!({ "task": task, "step": "write the new one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "write the new one" }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -4612,11 +4724,14 @@ fn the_line_find_hands_back_keeps_a_path_on_the_disk_to_itself() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.call(
-        "note",
-        serde_json::json!({ "task": task, "body": "kept from /Users/someone/private/taxes2026/statement.txt" }),
+        "task_note",
+        serde_json::json!({ "action": "add", "task": task, "body": "kept from /Users/someone/private/taxes2026/statement.txt" }),
     );
 
-    let said = served.call("brain", serde_json::json!({ "query": "taxes2026" }));
+    let said = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "taxes2026" }),
+    );
 
     assert!(!said.to_string().contains("/Users/someone"), "{said}");
 }
@@ -4630,11 +4745,11 @@ fn read_leaves_out_an_entry_taken_out_and_says_which_ticks_are_an_agents() {
         .notes(person::task(&task), "a note to take back");
     served.person().takes_back_the_last();
     served.call(
-        "tick",
-        serde_json::json!({ "task": task, "step": "write the new one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "write the new one" }),
     );
 
-    let read = served.call("read", serde_json::json!({ "task": task }));
+    let read = served.call("workspace_read", serde_json::json!({ "task": task }));
     let read = &read["result"]["structuredContent"];
 
     assert!(read["journal"].is_null(), "{read}");
@@ -4648,8 +4763,8 @@ fn a_turn_of_a_routine_is_not_said_to_be_left_undone() {
     served.person().repeats(person::task(&task), "every 3 days");
 
     let said = served.call(
-        "say_not_doing",
-        serde_json::json!({ "task": task, "body": "moot" }),
+        "task_resolve",
+        serde_json::json!({ "outcome": "not_doing", "task": task, "body": "moot" }),
     );
 
     assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
@@ -4666,8 +4781,14 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
                     "clientInfo": { "name": "test", "version": "1" } },
     })
     .to_string()]);
-    let rules = served.call("rules", serde_json::json!({ "topic": "tasks" }));
-    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
+    let rules = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "rules", "topic": "tasks" }),
+    );
+    let tidying = served.call(
+        "workspace_guide",
+        serde_json::json!({ "kind": "rules", "topic": "tidying" }),
+    );
     let told = format!(
         "{}\n{}\n{}",
         said[0]["result"]["instructions"]
@@ -4681,7 +4802,7 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
             .unwrap_or_default()
     );
 
-    assert!(told.contains("say_not_doing"), "{told}");
+    assert!(told.contains("task_resolve"), "{told}");
     assert!(told.contains("untick"), "{told}");
 }
 
@@ -4693,8 +4814,8 @@ fn a_file_kept_in_a_document_leaves_the_log_answering_for_what_it_now_holds() {
     std::fs::write(&at, b"la cota del terreno").unwrap();
 
     let said = served.call(
-        "attach",
-        serde_json::json!({ "doc": doc, "path": at.to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": doc, "path": at.to_str().unwrap() }),
     );
 
     let body = served.body_of(&doc);
@@ -4720,17 +4841,20 @@ fn a_call_that_fits_neither_way_of_proposing_or_paging_is_told_both_ways() {
             .to_string()
     };
 
-    let paged = served.call("page_doc", serde_json::json!({}));
+    let paged = served.call("doc_organize", serde_json::json!({ "action": "add_page" }));
     assert_eq!(
         paged["result"]["isError"],
         serde_json::json!(true),
         "{paged}"
     );
     let told = text(&paged);
-    assert!(told.contains("`doc`") && told.contains("`order`"), "{told}");
+    assert!(
+        told.contains("`docs`") && told.contains("`parent`"),
+        "{told}"
+    );
     assert!(!told.contains("  "), "{told}");
 
-    let nothing = served.call("propose", serde_json::json!({}));
+    let nothing = served.call("task_create", serde_json::json!({}));
     assert_eq!(
         nothing["result"]["isError"],
         serde_json::json!(true),
@@ -4743,13 +4867,13 @@ fn a_call_that_fits_neither_way_of_proposing_or_paging_is_told_both_ways() {
     );
 
     let one = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "comprar pan", "tasks": null }),
     );
     assert!(one["result"]["isError"].as_bool() != Some(true), "{one}");
 
     let many = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "tasks": [{ "for": "agent", "title": "una" }, { "for": "agent", "description": "sin titulo" }] }),
     );
     assert!(
@@ -4765,10 +4889,10 @@ fn a_client_that_sends_null_for_every_field_it_leaves_out_is_read_as_leaving_the
     let loose = served.wrote("# Suelto", None);
 
     let paged = served.call(
-        "page_doc",
-        serde_json::json!({
-            "doc": loose, "page_of": book,
-            "after": null, "before": null, "at": null, "order": null
+        "doc_organize",
+        serde_json::json!({ "action": "add_page",
+            "docs": [loose], "parent": book,
+            "after": null, "before": null, "position": null, "order": null
         }),
     );
     assert!(
@@ -4778,7 +4902,7 @@ fn a_client_that_sends_null_for_every_field_it_leaves_out_is_read_as_leaving_the
     assert_eq!(served.pages_read(&book), vec![loose]);
 
     let whole = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({
             "for": "agent",
             "title": "mudanza",
@@ -4797,7 +4921,7 @@ fn what_comes_beside_a_list_of_tasks_is_refused_instead_of_lost() {
     let served = Served::new();
 
     let said = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "source": "sereno#9", "tasks": [{ "for": "agent", "title": "a" }, { "for": "agent", "title": "b" }] }),
     );
 
@@ -4821,18 +4945,23 @@ fn kept_in(body: &str, ending: &str) -> bool {
 #[test]
 fn a_folder_that_holds_nothing_itself_names_the_folders_below_it_that_do() {
     let served = Served::new();
-    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
     served.call(
-        "folder",
-        serde_json::json!({ "name": "Cliente", "inside": "Trabajo" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
     );
     served.call(
-        "write_doc",
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Cliente", "folder": "Trabajo" }),
+    );
+    served.call(
+        "doc_create",
         serde_json::json!({ "body": "# Notas del cliente\n\nuna\n", "folder": "Trabajo / Cliente" }),
     );
 
-    let listed = served.call("brain", serde_json::json!({ "folder": "Trabajo" }))["result"]
-        ["structuredContent"]
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": "Trabajo" }),
+    )["result"]["structuredContent"]
         .clone();
 
     assert_eq!(listed["total"], 0, "{listed}");
@@ -4843,8 +4972,8 @@ fn a_folder_that_holds_nothing_itself_names_the_folders_below_it_that_do() {
     assert_eq!(listed["below"][0]["docs"], 1, "{listed}");
 
     let below = served.call(
-        "brain",
-        serde_json::json!({ "folder": "Trabajo / Cliente" }),
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "folder": "Trabajo / Cliente" }),
     )["result"]["structuredContent"]
         .clone();
     assert_eq!(below["total"], 1, "the folder below lists its own: {below}");
@@ -4857,12 +4986,12 @@ fn what_is_added_keeps_the_indent_of_its_first_line() {
     let doc = served.wrote("# Lista\n\n- uno\n", None);
 
     served.call(
-        "append_doc",
-        serde_json::json!({ "doc": &doc, "body": "\n  - uno y medio\n- dos\n" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": &doc, "content": "\n  - uno y medio\n- dos\n" }),
     );
 
     let read =
-        served.call("read", serde_json::json!({ "doc": &doc }))["result"]["structuredContent"]
+        served.call("workspace_read", serde_json::json!({ "doc": &doc }))["result"]["structuredContent"]
             .clone();
     let body = read["body"].as_str().unwrap();
     assert!(
@@ -4883,8 +5012,8 @@ fn a_page_given_a_new_heading_takes_it_where_its_document_lists_it() {
     );
 
     served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": &page, "old": "# Capitulo viejo", "new": "# Capitulo nuevo" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": &page, "old": "# Capitulo viejo", "content": "# Capitulo nuevo" }),
     );
 
     let listed = served.body_of(&book);
@@ -4895,19 +5024,27 @@ fn a_page_given_a_new_heading_takes_it_where_its_document_lists_it() {
 #[test]
 fn documents_found_by_their_title_come_first_and_a_folder_narrows_them() {
     let served = Served::new();
-    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
-    served.call("folder", serde_json::json!({ "name": "Casa" }));
     served.call(
-        "write_doc",
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
+    );
+    served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Casa" }),
+    );
+    served.call(
+        "doc_create",
         serde_json::json!({ "body": "# Notas sueltas\n\nun ejemplo: CUSTMC-9999\n", "folder": "Casa" }),
     );
     served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# CUSTMC-9999 consentimientos\n\nel ticket\n", "folder": "Trabajo" }),
     );
 
-    let found = served.call("brain", serde_json::json!({ "query": "CUSTMC-9999" }))["result"]
-        ["structuredContent"]
+    let found = served.call(
+        "workspace_search",
+        serde_json::json!({ "query": "CUSTMC-9999" }),
+    )["result"]["structuredContent"]
         .clone();
     assert_eq!(
         found["docs"][0]["title"], "CUSTMC-9999 consentimientos",
@@ -4915,7 +5052,7 @@ fn documents_found_by_their_title_come_first_and_a_folder_narrows_them() {
     );
 
     let narrowed = served.call(
-        "brain",
+        "workspace_search",
         serde_json::json!({ "query": "CUSTMC-9999", "folder": "Casa" }),
     )["result"]["structuredContent"]
         .clone();
@@ -4931,11 +5068,11 @@ fn a_passage_edited_inside_a_fence_goes_in_as_sent() {
     let doc = served.wrote(DRAWN, None);
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": doc,
             "old": "  A[Inicio:<br/>uno] --> B[Fin]\n  B --> C[Archivo:<br/>la búsqueda]",
-            "new": "  A[Inicio:<br/>dos] --> B[Fin:<br/>tres]\n  B --> C[Archivo:<br/>la búsqueda]",
+            "content": "  A[Inicio:<br/>dos] --> B[Fin:<br/>tres]\n  B --> C[Archivo:<br/>la búsqueda]",
         }),
     );
 
@@ -4963,13 +5100,13 @@ fn lines_named_inside_a_fence_go_in_as_sent() {
         + 1;
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": doc,
             "from": at,
             "to": at,
             "print": served.print_of(&doc),
-            "new": "  A[Inicio:<br/>cuatro] --> B[Fin]",
+            "content": "  A[Inicio:<br/>cuatro] --> B[Fin]",
         }),
     );
 
@@ -4987,8 +5124,8 @@ fn a_passage_outside_a_fence_is_still_tidied_as_prose() {
     let doc = served.wrote(DRAWN, None);
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({ "doc": doc, "old": "Texto suelto.", "new": "Uno<br/>dos." }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": doc, "old": "Texto suelto.", "content": "Uno<br/>dos." }),
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
@@ -5009,11 +5146,11 @@ fn a_passage_that_brings_its_own_fence_mark_never_leaves_markup_in_prose() {
     let doc = served.wrote(DRAWN, None);
 
     served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": doc,
             "old": "  B --> C[Archivo:<br/>la búsqueda]",
-            "new": "  B --> C[Archivo]\n```\n\nUno<br/>dos.\n\n```mermaid\n  C --> D",
+            "content": "  B --> C[Archivo]\n```\n\nUno<br/>dos.\n\n```mermaid\n  C --> D",
         }),
     );
 
@@ -5033,11 +5170,11 @@ fn a_passage_edited_inside_an_indented_block_keeps_its_line_breaks() {
     );
 
     let said = served.call(
-        "edit_doc",
-        serde_json::json!({
+        "doc_edit",
+        serde_json::json!({ "mode": "patch",
             "doc": doc,
             "old": "    A[Inicio:<br/>uno] --> B[Fin]",
-            "new": "    A[Inicio:<br/>dos] --> B[Fin]",
+            "content": "    A[Inicio:<br/>dos] --> B[Fin]",
         }),
     );
 
@@ -5052,7 +5189,7 @@ fn a_translation_is_written_beside_its_document_and_both_name_their_languages() 
     let es = served.wrote("---\nlang: es\n---\n# Paseos\n\nCon Rina.", None);
 
     let said = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Walks\n\nWith Rina.", "translation_of": es, "lang": "en" }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
@@ -5066,13 +5203,13 @@ fn a_translation_is_written_beside_its_document_and_both_name_their_languages() 
             .starts_with("---\nlang: en\n---\n# Walks")
     );
 
-    let read = served.call("read", serde_json::json!({ "doc": es }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": es }));
     let languages = &read["result"]["structuredContent"]["languages"];
     assert_eq!(languages[0]["lang"], "es", "{read}");
     assert_eq!(languages[1]["doc"], en.as_str(), "{read}");
 
     let again = served.call(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Walks again", "translation_of": es, "lang": "en" }),
     );
     assert_eq!(
@@ -5087,33 +5224,39 @@ fn joining_and_parting_languages_goes_through_tongue_doc() {
     let es = served.wrote("---\nlang: es\n---\n# Red\n", None);
     let en = served.wrote("# Network\n", None);
 
-    let refused = served.call("tongue_doc", serde_json::json!({ "doc": en, "of": es }));
+    let refused = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "link_translation", "docs": [en], "parent": es }),
+    );
     assert_eq!(
         refused["result"]["isError"], true,
         "it has to say its language: {refused}"
     );
 
     let joined = served.call(
-        "tongue_doc",
-        serde_json::json!({ "doc": en, "of": es, "lang": "en" }),
+        "doc_organize",
+        serde_json::json!({ "action": "link_translation", "docs": [en], "parent": es, "lang": "en" }),
     );
     assert!(
         joined["result"]["isError"].as_bool() != Some(true),
         "{joined}"
     );
     assert!(served.body_of(&en).starts_with("---\nlang: en\n---\n"));
-    let read = served.call("read", serde_json::json!({ "doc": en }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": en }));
     assert_eq!(
         read["result"]["structuredContent"]["languages"][0]["doc"],
         es.as_str()
     );
 
-    let parted = served.call("tongue_doc", serde_json::json!({ "doc": en }));
+    let parted = served.call(
+        "doc_organize",
+        serde_json::json!({ "action": "unlink_translation", "docs": [en ]}),
+    );
     assert!(
         parted["result"]["isError"].as_bool() != Some(true),
         "{parted}"
     );
-    let read = served.call("read", serde_json::json!({ "doc": en }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": en }));
     assert!(
         read["result"]["structuredContent"]["languages"].is_null(),
         "{read}"
@@ -5130,43 +5273,49 @@ fn tongue_doc_says_what_it_needs_before_it_joins_anything() {
 
     assert!(
         served
-            .refused("tongue_doc", serde_json::json!({}))
-            .contains("`doc`")
+            .refused(
+                "doc_organize",
+                serde_json::json!({ "action": "unlink_translation",})
+            )
+            .contains("`docs`")
     );
     assert!(
         served
             .refused(
-                "tongue_doc",
-                serde_json::json!({ "doc": en, "of": es, "lang": "Inglés" })
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": [en], "parent": es, "lang": "Inglés" })
             )
             .contains("not a language tag")
     );
     assert!(
         served
-            .refused("tongue_doc", serde_json::json!({ "doc": page, "of": es }))
+            .refused(
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": [page], "parent": es })
+            )
             .contains("is a page")
     );
     assert!(
         served
             .refused(
-                "tongue_doc",
-                serde_json::json!({ "doc": en, "of": bare, "lang": "en" })
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": [en], "parent": bare, "lang": "en" })
             )
             .contains("says no language yet")
     );
     assert!(
         served
             .refused(
-                "tongue_doc",
-                serde_json::json!({ "doc": en, "of": es, "lang": "es" })
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": [en], "parent": es, "lang": "es" })
             )
             .contains("already has a document in es")
     );
     assert!(
         served
             .refused(
-                "tongue_doc",
-                serde_json::json!({ "doc": "nada-0001", "of": es })
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": ["nada-0001"], "parent": es })
             )
             .contains("no document here")
     );
@@ -5174,8 +5323,8 @@ fn tongue_doc_says_what_it_needs_before_it_joins_anything() {
     assert!(
         served
             .refused(
-                "tongue_doc",
-                serde_json::json!({ "doc": en, "of": es, "lang": "en" })
+                "doc_organize",
+                serde_json::json!({ "action": "link_translation", "docs": [en], "parent": es, "lang": "en" })
             )
             .contains("locked")
     );
@@ -5199,7 +5348,7 @@ lo suyo.",
     );
 
     let said = served.refused(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Ana's
 
 hers.", "translation_of": made, "lang": "en" }),
@@ -5216,7 +5365,7 @@ fn a_translation_needs_a_language_on_both_sides() {
     assert!(
         served
             .refused(
-                "write_doc",
+                "doc_create",
                 serde_json::json!({ "body": "# Walks", "translation_of": es })
             )
             .contains("say which language")
@@ -5224,7 +5373,7 @@ fn a_translation_needs_a_language_on_both_sides() {
     assert!(
         served
             .refused(
-                "write_doc",
+                "doc_create",
                 serde_json::json!({ "body": "# Walks", "translation_of": bare, "lang": "en" })
             )
             .contains("says no language yet")
@@ -5232,7 +5381,7 @@ fn a_translation_needs_a_language_on_both_sides() {
     assert!(
         served
             .refused(
-                "write_doc",
+                "doc_create",
                 serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "x1" })
             )
             .contains("not a language tag")
@@ -5247,16 +5396,19 @@ fn a_translation_is_never_a_page_and_the_listing_names_the_languages() {
     assert!(
         served
             .refused(
-                "write_doc",
+                "doc_create",
                 serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en", "page_of": es })
             )
             .contains("never a page")
     );
     served.said(
-        "write_doc",
+        "doc_create",
         serde_json::json!({ "body": "# Walks", "translation_of": es, "lang": "en" }),
     );
-    let listed = served.call("brain", serde_json::json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        serde_json::json!({ "mode": "folder", "scope": "either" }),
+    );
     let docs = listed["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap();
@@ -5273,8 +5425,8 @@ fn a_step_that_is_not_there_is_answered_with_the_steps_that_could_be_ticked() {
     let task = filed_with_steps(&served);
 
     let why = served.refused(
-        "tick",
-        serde_json::json!({ "task": task, "step": "read the old formats" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "read the old formats" }),
     );
 
     assert!(
@@ -5289,8 +5441,8 @@ fn a_tick_names_the_step_that_comes_next() {
     let task = filed_with_steps(&served);
 
     let said = served.call(
-        "tick",
-        serde_json::json!({ "task": task, "step": "read the old format" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "read the old format" }),
     );
 
     assert_eq!(
@@ -5304,10 +5456,10 @@ fn a_documents_id_sent_to_read_is_said_to_be_a_document() {
     let served = Served::new();
     let doc = served.wrote("# Recetas\n\narroz", None);
 
-    let why = served.refused("read", serde_json::json!({ "task": doc }));
+    let why = served.refused("workspace_read", serde_json::json!({ "task": doc }));
 
     assert!(why.contains("the document \"Recetas\""), "{why}");
-    assert!(why.contains("`read` with `doc`"), "{why}");
+    assert!(why.contains("`workspace_read` with `doc`"), "{why}");
 }
 
 #[test]
@@ -5315,10 +5467,10 @@ fn a_tasks_id_sent_to_read_as_a_doc_is_said_to_be_a_task() {
     let served = Served::new();
     let task = filed_with_steps(&served);
 
-    let why = served.refused("read", serde_json::json!({ "doc": task }));
+    let why = served.refused("workspace_read", serde_json::json!({ "doc": task }));
 
     assert!(why.contains("the task \"migrate the reader\""), "{why}");
-    assert!(why.contains("`read` shows it"), "{why}");
+    assert!(why.contains("`workspace_read` shows it"), "{why}");
 }
 
 #[test]
@@ -5326,13 +5478,13 @@ fn a_step_untick_does_not_find_is_answered_with_the_ticks_an_agent_gave() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.said(
-        "tick",
-        serde_json::json!({ "task": task, "step": "write the new one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "write the new one" }),
     );
 
     let why = served.refused(
-        "untick",
-        serde_json::json!({ "task": task, "step": "write the old one" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "untick", "task": task, "step": "write the old one" }),
     );
 
     assert!(
@@ -5346,14 +5498,14 @@ fn a_missed_step_names_twelve_of_the_steps_and_counts_the_rest() {
     let served = Served::new();
     let steps: Vec<String> = (1..=14).map(|n| format!("step {n}")).collect();
     let filed = served.call(
-        "propose",
+        "task_create",
         serde_json::json!({ "for": "agent", "title": "a long checklist", "steps": steps }),
     );
     let task = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
     let why = served.refused(
-        "tick",
-        serde_json::json!({ "task": task, "step": "step 15" }),
+        "task_edit_steps",
+        serde_json::json!({ "action": "tick", "task": task, "step": "step 15" }),
     );
 
     assert!(why.contains("\"step 12\", and 2 more"), "{why}");
@@ -5365,10 +5517,13 @@ fn a_documents_id_sent_to_note_says_how_a_document_is_written() {
     let served = Served::new();
     let doc = served.wrote("# Recetas\n\narroz", None);
 
-    let why = served.refused("note", serde_json::json!({ "task": doc, "body": "probé" }));
+    let why = served.refused(
+        "task_note",
+        serde_json::json!({ "action": "add", "task": doc, "body": "probé" }),
+    );
 
     assert!(why.contains("the document \"Recetas\""), "{why}");
-    assert!(why.contains("`append_doc`"), "{why}");
+    assert!(why.contains("`doc_edit` writes in it"), "{why}");
 }
 
 #[test]
@@ -5378,12 +5533,12 @@ fn attach_told_the_wrong_kind_of_id_says_which_field_takes_it() {
     let task = filed_with_steps(&served);
 
     let under_task = served.refused(
-        "attach",
-        serde_json::json!({ "task": doc, "path": "photo.png" }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "task": doc, "path": "photo.png" }),
     );
     let under_doc = served.refused(
-        "attach",
-        serde_json::json!({ "doc": task, "path": "photo.png" }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": task, "path": "photo.png" }),
     );
 
     assert!(under_task.contains("send it as `doc`"), "{under_task}");
@@ -5396,12 +5551,15 @@ fn flagging_a_task_says_closing_it_is_the_persons() {
     let task = filed_with_steps(&served);
 
     let why = served.refused(
-        "flag_doc",
-        serde_json::json!({ "doc": task, "reason": "obsolete", "body": "nobody needs it" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [task], "reason": "obsolete", "body": "nobody needs it" }),
     );
 
     assert!(why.contains("the task \"migrate the reader\""), "{why}");
-    assert!(why.contains("`say_not_doing`"), "{why}");
+    assert!(
+        why.contains("`task_resolve` (`outcome: \"not_doing\"`)"),
+        "{why}"
+    );
 }
 
 #[test]
@@ -5409,8 +5567,8 @@ fn a_tasks_page_sent_where_a_task_goes_names_the_task() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.said(
-        "append_doc",
-        serde_json::json!({ "doc": task, "body": "what I found" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": task, "content": "what I found" }),
     );
     let state = served.person().state();
     let page = tisty_core::task_docs::of(&state, person::task(&task))
@@ -5418,7 +5576,7 @@ fn a_tasks_page_sent_where_a_task_goes_names_the_task() {
         .file
         .clone();
 
-    let why = served.refused("read", serde_json::json!({ "task": page }));
+    let why = served.refused("workspace_read", serde_json::json!({ "task": page }));
 
     assert!(
         why.contains("is the page of the task \"migrate the reader\""),
@@ -5434,8 +5592,8 @@ fn flagging_a_closed_task_says_the_archive_keeps_it() {
     served.person().closes(person::task(&task));
 
     let why = served.refused(
-        "flag_doc",
-        serde_json::json!({ "doc": task, "reason": "obsolete", "body": "nobody needs it" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "flag", "docs": [task], "reason": "obsolete", "body": "nobody needs it" }),
     );
 
     assert!(why.contains("closed already"), "{why}");
@@ -5449,8 +5607,8 @@ fn a_closed_task_named_as_the_doc_to_attach_to_is_history() {
     served.person().closes(person::task(&task));
 
     let why = served.refused(
-        "attach",
-        serde_json::json!({ "doc": task, "path": "photo.png" }),
+        "file_transfer",
+        serde_json::json!({ "action": "attach", "doc": task, "path": "photo.png" }),
     );
 
     assert!(why.contains("was closed"), "{why}");
@@ -5462,8 +5620,8 @@ fn the_page_of_a_task_the_person_hid_takes_no_summary() {
     let served = Served::new();
     let task = filed_with_steps(&served);
     served.said(
-        "append_doc",
-        serde_json::json!({ "doc": task, "body": "what I found" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "append", "doc": task, "content": "what I found" }),
     );
     let state = served.person().state();
     let page = tisty_core::task_docs::of(&state, person::task(&task))
@@ -5473,11 +5631,11 @@ fn the_page_of_a_task_the_person_hid_takes_no_summary() {
     served.person().hides(person::task(&task));
 
     let why = served.refused(
-        "sum_up",
-        serde_json::json!({ "doc": page, "summary": "how the reader moved" }),
+        "doc_annotate",
+        serde_json::json!({ "action": "summarize", "docs": [page], "summary": "how the reader moved" }),
     );
 
-    assert!(why.contains("no document here"), "{why}");
+    assert!(why.contains("is a task's page"), "{why}");
 }
 
 #[test]
@@ -5486,7 +5644,7 @@ fn a_document_is_read_by_the_address_the_window_copies() {
     let doc = served.wrote("# Validación de datos\n\nlo que se valida.", None);
     let address = format!("tisty://doc/personal/proyectos/validacion-de-datos?id={doc}");
 
-    let read = served.call("read", serde_json::json!({ "doc": address }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": address }));
 
     let told = &read["result"]["structuredContent"];
     assert_eq!(told["doc"], doc.as_str(), "{read}");
@@ -5503,16 +5661,19 @@ fn an_address_goes_on_naming_its_document_after_a_rename_and_a_move() {
     let address = format!("tisty://doc/actas?id={doc}");
 
     served.said(
-        "edit_doc",
-        serde_json::json!({ "doc": address, "old": "# Actas", "new": "# Minutas" }),
+        "doc_edit",
+        serde_json::json!({ "mode": "patch", "doc": address, "old": "# Actas", "content": "# Minutas" }),
     );
-    served.said("folder", serde_json::json!({ "name": "Trabajo" }));
     served.said(
-        "file_doc",
-        serde_json::json!({ "doc": [address], "folder": "Trabajo" }),
+        "doc_organize",
+        serde_json::json!({ "action": "create_folder", "name": "Trabajo" }),
+    );
+    served.said(
+        "doc_organize",
+        serde_json::json!({ "action": "file", "docs": [address], "folder": "Trabajo" }),
     );
 
-    let read = served.call("read", serde_json::json!({ "doc": address }));
+    let read = served.call("workspace_read", serde_json::json!({ "doc": address }));
     let told = &read["result"]["structuredContent"];
     assert_eq!(told["doc"], doc.as_str(), "{read}");
     assert_eq!(told["title"], "Minutas", "{read}");
@@ -5525,12 +5686,12 @@ fn a_document_s_address_handed_to_the_task_reader_is_sent_to_read_with_doc() {
     let doc = served.wrote("# Actas\n\nlas de este año.", None);
 
     let why = served.refused(
-        "read",
+        "workspace_read",
         serde_json::json!({ "task": format!("tisty://doc/actas?id={doc}") }),
     );
 
     assert!(why.contains("the document \"Actas\""), "{why}");
-    assert!(why.contains("`read` with `doc`"), "{why}");
+    assert!(why.contains("`workspace_read` with `doc`"), "{why}");
 }
 
 #[test]
@@ -5538,7 +5699,7 @@ fn an_address_of_no_document_here_is_refused_as_any_unknown_id() {
     let served = Served::new();
 
     let why = served.refused(
-        "read",
+        "workspace_read",
         serde_json::json!({ "doc": "tisty://doc/de-otro-equipo?id=zzzzzzzz-0001" }),
     );
 
@@ -5569,8 +5730,8 @@ Palabras sueltas.",
 
     for into in [claude.clone(), claude.join("rules")] {
         let said = served.call(
-            "export_doc",
-            serde_json::json!({ "doc": &doc, "into": into.to_str().unwrap() }),
+            "file_transfer",
+            serde_json::json!({ "action": "export_doc", "doc": &doc, "path": into.to_str().unwrap() }),
         );
         assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     }
@@ -5578,8 +5739,8 @@ Palabras sueltas.",
     assert_eq!(left.len(), 1, "only the assistant's own `rules` is there");
 
     let beside = served.call(
-        "export_doc",
-        serde_json::json!({ "doc": &doc, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        serde_json::json!({ "action": "export_doc", "doc": &doc, "path": out.path().to_str().unwrap() }),
     );
     assert_ne!(
         beside["result"]["isError"].as_bool(),

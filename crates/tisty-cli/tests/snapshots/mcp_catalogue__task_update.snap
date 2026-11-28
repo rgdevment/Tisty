@@ -1,0 +1,68 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Patch metadata on an open task (title, description, dates, reminders, list, or parent). `description` replaces whole (read first). `date`/`deadline` apply only to agent-owned tasks; other fields work on any open task not marked done. Null clears `date`/`deadline`/`part_of`.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "add_reminders": {
+        "description": "Additional ring times (YYYY-MM-DDTHH:MM, <=32); additive only",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "date": {
+        "description": "Planned/start day (YYYY-MM-DD) or null to clear (agent tasks only)",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "deadline": {
+        "description": "Due date (YYYY-MM-DD) or null to clear (agent tasks only)",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "description": {
+        "description": "Full replacement description in Tisty Markdown (<=64,000 chars)",
+        "type": "string"
+      },
+      "list": {
+        "description": "Target existing list name",
+        "type": "string"
+      },
+      "part_of": {
+        "description": "Parent task ID (1 level) or null to detach as standalone",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "task": {
+        "description": "Open task ID",
+        "type": "string"
+      },
+      "title": {
+        "description": "New task title (<=500 chars)",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task"
+    ],
+    "type": "object"
+  },
+  "name": "task_update",
+  "title": "Update open task metadata"
+}

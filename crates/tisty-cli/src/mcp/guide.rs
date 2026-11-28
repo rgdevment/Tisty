@@ -51,10 +51,6 @@ const ADDED: &[&str] = &[
     "page-breaks",
 ];
 
-pub(super) fn topics() -> Vec<&'static str> {
-    TOPICS.iter().copied().chain(["all"]).collect()
-}
-
 fn sections(reference: &str) -> Vec<(String, String)> {
     tisty_core::docs::outlined(reference)
         .into_iter()
@@ -102,8 +98,9 @@ fn indexed(found: &[(String, String)]) -> String {
     };
     format!(
         "Plain Markdown — CommonMark with GitHub's additions — is taken as it is and turned into the \
-         Tisty language on the way in, so none of this is needed to write. Ask `language` with a \
-         `topic` for one of these when you want it, or «all» for the whole guide.\n\n\
+         Tisty language on the way in, so none of this is needed to write. Ask `workspace_guide` \
+         (`kind: \"markdown\"`) with a `topic` for one of these when you want it, or «all» for the \
+         whole guide.\n\n\
          What Tisty adds, or reads its own way:\n{}\n\nMarkdown as anywhere:\n{}",
         pick(true),
         pick(false)

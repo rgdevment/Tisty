@@ -21,7 +21,8 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let at = reachable_or(paths, &said, asked, "take files from")?;
     if !at.is_file() {
         return Err(Refused::Tool(format!(
-            "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it once per file when you are bringing a whole export across."
+            "{said:?} is not a file. `file_transfer` (`action: \"import_doc\"`) takes one markdown \
+             file at a time; call it once per file when you are bringing a whole export across."
         )));
     }
     if !at
@@ -29,7 +30,8 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         .is_some_and(|one| one.eq_ignore_ascii_case("md") || one.eq_ignore_ascii_case("markdown"))
     {
         return Err(Refused::Tool(format!(
-            "{said:?} is not markdown. A document is markdown; anything else goes in with `attach`, which keeps it beside a document or a task."
+            "{said:?} is not markdown. A document is markdown; anything else goes in with \
+             `file_transfer` (`action: \"attach\"`), which keeps it beside a document or a task."
         )));
     }
     let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
@@ -313,14 +315,14 @@ fn coming_home(
         return Err(Refused::Tool(format!(
             "{:?}'s page holds lines this file leaves out or words differently — written since \
              the file was taken out, or changed in the copy — so bringing it in would erase them; \
-             nothing was changed. `read` the task for its page as it is now and bring your changes \
-             in with `tick`, `plan`, `unplan`, `reword_step`, `describe`, `note` or `append_doc`.",
+             nothing was changed. `workspace_read` the task for its page as it is now and bring \
+             your changes in with `task_edit_steps`, `task_update`, `task_note` or `doc_edit`.",
             task.title
         )));
     }
     match broken_rule(task, &taken.ops) {
         Some(why) => Err(Refused::Tool(format!(
-            "{why}; nothing was brought in. Say what you found with `note`."
+            "{why}; nothing was brought in. Say what you found with `task_note`."
         ))),
         None => Ok(()),
     }

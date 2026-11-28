@@ -1,0 +1,48 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Create a new document for lasting reference (tasks use `task_create`). Search first via `workspace_search`: update existing subjects in place. First line sets title; single newlines break lines inside paragraphs. Inline `#tags` tag the doc.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "anyway": {
+        "description": "Allow creating even if an existing doc shares the subject",
+        "type": "boolean"
+      },
+      "body": {
+        "description": "Full Markdown document; first line is title, one line per paragraph (<=64,000 chars)",
+        "type": "string"
+      },
+      "folder": {
+        "description": "Existing folder name, path, or ID (omit only for Ideas sheet or by request)",
+        "type": "string"
+      },
+      "lang": {
+        "description": "BCP-47 tag (e.g. `es`, `en`, `pt-BR`) for `translation_of`",
+        "type": "string"
+      },
+      "page_of": {
+        "description": "Parent doc ID to attach as a subpage (1 level deep; inherits folder)",
+        "type": "string"
+      },
+      "translation_of": {
+        "description": "Source doc ID when creating a translated version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "doc_create",
+  "title": "Create a new document"
+}

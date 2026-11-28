@@ -58,9 +58,9 @@ pub(super) fn subject_free(state: &State, args: &Value, body: &str) -> Result<()
     };
     Err(Refused::Tool(format!(
         "{} already holds that subject, so nothing was written: a second document on it is a \
-         copy that drifts. Update that one — `edit_doc`, or `write_doc` with its `doc` and \
-         `print` — or, if this really is another subject, give it a title that says how, or \
-         send `anyway`.",
+         copy that drifts. Update that one — `doc_edit` (`mode: \"patch\"` or `\"rewrite\"` with \
+         its `doc` and `print`) — or, if this really is another subject, give it a title that \
+         says how, or send `anyway`.",
         doc_named(state, &taken.file)
     )))
 }
@@ -148,8 +148,9 @@ pub(super) fn compacted(
     let title = tisty_core::docs::titled(&whole);
     let more = format!(
         " Compacted from {before} to {after} characters; the window shows the person that you \
-         did, with one click to undo, and `restore_doc` brings the old body back. Leave what you worked out \
-         with `sum_up`, so the next reader does not read it all again.{}{}{}",
+         did, with one click to undo, and `doc_edit` (`mode: \"restore\"`) brings the old body \
+         back. Leave what you worked out with `doc_annotate` (`action: \"summarize\"`), so the \
+         next reader does not read it all again.{}{}{}",
         match after > before {
             true => format!(
                 " The body grew from {before} to {after} characters: compacting folds and \
@@ -315,7 +316,7 @@ pub(super) fn only_the_notes(now: &str, was: &str) -> Result<(), Refused> {
         false => Err(Refused::Tool(
             "going back on a task's page reaches only the assistant's notes, and what is kept \
              beside it differs elsewhere too — its steps, or the person's words. Nothing was \
-             changed. Write the notes again with `append_doc` and `replace` instead."
+             changed. Write the notes again with `doc_edit` (`mode: \"digest_task_notes\"`) instead."
                 .into(),
         )),
     }
@@ -328,9 +329,9 @@ pub(in crate::mcp) fn awaiting(state: &State, kept: &Kept) -> Result<(), Refused
         Some(_) => Err(Refused::Tool(format!(
             "{} was compacted and waits for the person to keep it or undo it in the window; \
              another write now would cost them that one-click undo, so nothing was written. \
-             While it is still the last write you may correct it with one more `write_doc` \
-             with `compact`; otherwise tell them what you would still change, and when they \
-             tell you in this conversation to keep it, send `keep_compaction` with your next \
+             While it is still the last write you may correct it with one more `doc_edit` \
+             (`mode: \"compact\"`); otherwise tell them what you would still change, and when \
+             they tell you in this conversation to keep it, send `keep_compaction` with your next \
              write.",
             doc_named(state, &kept.file)
         ))),
@@ -344,8 +345,9 @@ pub(super) fn not_while_awaiting(state: &State, kept: &Kept) -> Result<(), Refus
         Some(_) => Err(Refused::Tool(format!(
             "{} was compacted and waits for the person to keep it or undo it in the window; \
              going back to an older version now would cost them that one-click undo, so nothing \
-             was changed. `restore_doc` without `version` undoes the compaction itself; for an \
-             older version, tell them which one and why, and go back once they keep or undo it.",
+             was changed. `doc_edit` (`mode: \"restore\"`) without `version` undoes the compaction \
+             itself; for an older version, tell them which one and why, and go back once they keep \
+             or undo it.",
             doc_named(state, &kept.file)
         ))),
     }

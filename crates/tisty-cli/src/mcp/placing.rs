@@ -133,7 +133,7 @@ pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
                     alike.join(", ")
                 ));
             }
-            said.push_str(" `file_doc` puts it in one, or ask the person.");
+            said.push_str(" `doc_organize` (`action: \"file\"`) puts it in one, or ask the person.");
             said
         }
     }

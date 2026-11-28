@@ -1,0 +1,50 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Mark an open task done or not-doing for human confirmation (never closes or deletes). `done` requires all steps ticked/vouched and all agent subtasks resolved. Include verification proof in `body`; add `branch`/`pr` when shipping code. Call once.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "Verification proof (commands, commits, results) or reason not doing",
+        "type": "string"
+      },
+      "branch": {
+        "description": "For `done`: git branch name (<=200 chars)",
+        "type": "string"
+      },
+      "outcome": {
+        "description": "Proposed resolution: completed or moot/won't-do",
+        "enum": [
+          "done",
+          "not_doing"
+        ],
+        "type": "string"
+      },
+      "pr": {
+        "description": "For `done`: pull request number or URL (<=200 chars)",
+        "type": "string"
+      },
+      "task": {
+        "description": "Open task ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "outcome",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "task_resolve",
+  "title": "Propose task completion or cancellation"
+}

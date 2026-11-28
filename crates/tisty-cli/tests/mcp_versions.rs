@@ -78,7 +78,7 @@ impl Served {
     }
 
     fn wrote(&self, body: &str) -> String {
-        let made = self.call("write_doc", json!({ "body": body, "anyway": true }));
+        let made = self.call("doc_create", json!({ "body": body, "anyway": true }));
         made["structuredContent"]["doc"]
             .as_str()
             .unwrap_or_else(|| panic!("{made}"))
@@ -86,7 +86,7 @@ impl Served {
     }
 
     fn read(&self, doc: &str) -> Value {
-        self.call("read", json!({ "doc": doc }))["structuredContent"].clone()
+        self.call("workspace_read", json!({ "doc": doc }))["structuredContent"].clone()
     }
 
     fn body_of(&self, doc: &str) -> String {
@@ -94,11 +94,14 @@ impl Served {
     }
 
     fn edits(&self, doc: &str, old: &str, new: &str) {
-        went(&self.call("edit_doc", json!({ "doc": doc, "old": old, "new": new })));
+        went(&self.call(
+            "doc_edit",
+            json!({ "mode": "patch", "doc": doc, "old": old, "content": new }),
+        ));
     }
 
     fn versions(&self, doc: &str) -> Value {
-        let said = self.call("read", json!({ "doc": doc, "versions": true }));
+        let said = self.call("workspace_read", json!({ "doc": doc, "view": "versions" }));
         went(&said);
         said["structuredContent"].clone()
     }
@@ -112,7 +115,7 @@ impl Served {
             .filter(|row| row.get("elsewhere").is_none())
             .filter_map(|row| row["version"].as_str())
             .find(|version| {
-                let read = self.call("read", json!({ "doc": doc, "version": version }));
+                let read = self.call("workspace_read", json!({ "doc": doc, "version": version }));
                 read["structuredContent"]["body"]
                     .as_str()
                     .is_some_and(|body| body.contains(words))
@@ -135,20 +138,23 @@ impl Served {
 
     fn task_with_a_page(&self) -> (String, String) {
         let made = self.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": "Renovar el pasaporte", "list": "Personal", "description": "Pedir hora." }),
         );
         let task = made["structuredContent"]["id"]
             .as_str()
             .unwrap_or_else(|| panic!("{made}"))
             .to_string();
-        went(&self.call("append_doc", json!({ "doc": task, "body": "Nota uno." })));
+        went(&self.call(
+            "doc_edit",
+            json!({ "mode": "append", "doc": task, "content": "Nota uno." }),
+        ));
         went(&self.call_as(
             CODEX,
-            "append_doc",
-            json!({ "doc": task, "body": "Nota dos." }),
+            "doc_edit",
+            json!({ "mode": "append", "doc": task, "content": "Nota dos." }),
         ));
-        let read = self.call("read", json!({ "task": task }));
+        let read = self.call("workspace_read", json!({ "task": task }));
         let page = read["structuredContent"]["document"]["file"]
             .as_str()
             .unwrap_or_else(|| panic!("{read}"))
@@ -266,7 +272,7 @@ fn a_past_version_is_read_under_a_notice_and_carries_no_print_to_write_with() {
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let said = served.call("read", json!({ "doc": doc, "version": first }));
+    let said = served.call("workspace_read", json!({ "doc": doc, "version": first }));
 
     went(&said);
     let read = &said["structuredContent"];
@@ -295,21 +301,24 @@ fn going_back_to_a_version_is_undone_by_restore_alone_and_done_again_by_one_more
     let before = served.body_of(&doc);
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let said = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let said = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     went(&said);
     assert_eq!(served.body_of(&doc), UNO);
     assert_eq!(said["structuredContent"]["went_back_to"]["version"], first);
     insta::assert_snapshot!(settled(&said["structuredContent"], &[]));
 
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert_eq!(
         served.body_of(&doc),
         before,
         "restore alone did not undo it"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert_eq!(served.body_of(&doc), UNO, "restoring twice did not return");
 }
 
@@ -322,16 +331,19 @@ fn going_back_to_a_version_needs_no_even_if_more_though_the_person_wrote_since()
         .rewrites_doc(&doc, "# Acta\n\nCuatro, la persona de nuevo.\n");
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let plain = served.call("restore_doc", json!({ "doc": doc }));
+    let plain = served.call("doc_edit", json!({ "mode": "restore", "doc": doc }));
     assert!(
         refused(&plain),
         "the one step back went over the person's writing: {plain}"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": doc, "version": first })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    ));
     assert_eq!(served.body_of(&doc), UNO);
 
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert!(
         served
             .body_of(&doc)
@@ -345,9 +357,15 @@ fn the_text_a_document_already_says_is_no_version_to_go_back_to() {
     let served = Served::new();
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
-    went(&served.call("restore_doc", json!({ "doc": doc, "version": first })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    ));
 
-    let again = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let again = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     assert!(refused(&again), "{again}");
     assert!(
@@ -363,7 +381,7 @@ fn the_text_a_document_already_says_is_no_version_to_go_back_to() {
             .all(|row| row["version"] != first.as_str()),
         "what it says now is listed as a past version: {listed}"
     );
-    let read = served.call("read", json!({ "doc": doc, "version": first }));
+    let read = served.call("workspace_read", json!({ "doc": doc, "version": first }));
     assert!(refused(&read), "{read}");
     assert!(words(&read).contains("it is no past version"), "{read}");
 }
@@ -374,16 +392,22 @@ fn going_back_twice_to_one_version_of_a_document_with_pages_changes_nothing_the_
     let doc = served.wrote(UNO);
     served.person().rewrites_doc(&doc, DOS);
     went(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Anexo\n\nLo que cuelga del acta.\n", "page_of": doc, "anyway": true }),
     ));
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    went(&served.call("restore_doc", json!({ "doc": doc, "version": first })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    ));
     let once = served.body_of(&doc);
     assert!(once.contains("Uno,") && once.contains("Anexo"), "{once}");
 
-    let twice = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let twice = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     assert!(refused(&twice), "{twice}");
     assert!(words(&twice).contains("nothing was changed"), "{twice}");
@@ -395,10 +419,16 @@ fn an_archived_document_shows_its_versions_and_goes_back_to_none() {
     let served = Served::new();
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
-    went(&served.call("archive_doc", json!({ "doc": doc, "archived": true })));
+    went(&served.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [doc] }),
+    ));
 
     assert_eq!(served.versions(&doc)["kept_here"], 2);
-    let back = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     assert!(refused(&back), "{back}");
     assert!(words(&back).contains("put away"), "{back}");
@@ -411,10 +441,10 @@ fn going_back_to_a_compaction_that_was_undone_does_not_make_it_wait_again() {
     let doc = served.written_by_turns();
     let print = served.read(&doc)["print"].as_str().unwrap().to_string();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": doc, "print": print, "compact": true, "body": "# Acta\n\nCompacta.\n" }),
+        "doc_edit",
+        json!({ "doc": doc, "mode": "compact", "print": print, "content": "# Acta\n\nCompacta.\n" }),
     ));
-    went(&served.call_as(CODEX, "restore_doc", json!({ "doc": doc })));
+    went(&served.call_as(CODEX, "doc_edit", json!({ "mode": "restore", "doc": doc })));
     served
         .person()
         .rewrites_doc(&doc, "# Acta\n\nCuatro, la persona.\n");
@@ -423,22 +453,25 @@ fn going_back_to_a_compaction_that_was_undone_does_not_make_it_wait_again() {
         .rewrites_doc(&doc, "# Acta\n\nCinco, la persona.\n");
     let compacted = served.version_that_said(&doc, "Compacta.");
 
-    went(&served.call("restore_doc", json!({ "doc": doc, "version": compacted })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": compacted }),
+    ));
 
     assert!(
         served.read(&doc).get("compacted").is_none(),
         "it waits again"
     );
-    went(&served.call("restore_doc", json!({ "doc": doc })));
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert!(served.body_of(&doc).contains("Compacta."));
     assert!(
         served.read(&doc).get("compacted").is_none(),
         "undoing and redoing the going back made it wait again"
     );
     went(&served.call(
-        "edit_doc",
-        json!({ "doc": doc, "old": "Compacta.", "new": "Compacta, y luego corregida." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": doc, "old": "Compacta.", "content": "Compacta, y luego corregida." }),
     ));
 }
 
@@ -448,18 +481,24 @@ fn a_version_is_named_by_how_its_id_begins_when_only_one_begins_so() {
     let doc = served.written_by_turns();
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
-    let by_start = served.call("read", json!({ "doc": doc, "version": &first[..8] }));
+    let by_start = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "version": &first[..8] }),
+    );
     went(&by_start);
     assert_eq!(by_start["structuredContent"]["body"], UNO);
 
-    let empty = served.call("read", json!({ "doc": doc, "version": "" }));
+    let empty = served.call("workspace_read", json!({ "doc": doc, "version": "" }));
     assert!(empty["structuredContent"].get("print").is_some(), "{empty}");
 
-    let unknown = served.call("read", json!({ "doc": doc, "version": "zz99" }));
+    let unknown = served.call("workspace_read", json!({ "doc": doc, "version": "zz99" }));
     assert!(refused(&unknown), "{unknown}");
     insta::assert_snapshot!(settled(&unknown, &[(doc.as_str(), "[doc]")]));
 
-    let back = served.call("restore_doc", json!({ "doc": doc, "version": "zz99" }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": "zz99" }),
+    );
     assert!(refused(&back), "{back}");
     assert!(
         served.body_of(&doc).contains("Tres"),
@@ -495,7 +534,10 @@ fn a_start_two_versions_share_is_refused_and_says_to_send_it_whole() {
     tisty_core::docs::write_by(&paths.docs(), &by, &doc, "# Acta\n\nla última\n").unwrap();
     let shared = starts.iter().find(|(_, seen)| **seen >= 2).unwrap().0;
 
-    let said = served.call("read", json!({ "doc": doc, "version": shared.to_string() }));
+    let said = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "version": shared.to_string() }),
+    );
 
     assert!(refused(&said), "{said}");
     assert!(
@@ -521,7 +563,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
         .unwrap()
         .to_string();
 
-    let whole = served.call("read", json!({ "doc": doc, "version": version }));
+    let whole = served.call("workspace_read", json!({ "doc": doc, "version": version }));
     went(&whole);
     let outlined = &whole["structuredContent"];
     assert_eq!(outlined["whole"], false, "{outlined}");
@@ -529,7 +571,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     assert!(words(&whole).contains("sending `version` again"), "{whole}");
 
     let first = served.call(
-        "read",
+        "workspace_read",
         json!({ "doc": doc, "version": version, "chars": 5000 }),
     );
     went(&first);
@@ -540,7 +582,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     );
 
     let second = served.call(
-        "read",
+        "workspace_read",
         json!({ "doc": doc, "version": version, "chars": 5000, "cursor": next }),
     );
     went(&second);
@@ -562,7 +604,7 @@ fn a_long_version_comes_as_its_outline_and_is_read_on_by_parts_with_no_print() {
     assert_eq!(read, whole, "the parts are not the version");
 
     let section = served.call(
-        "read",
+        "workspace_read",
         json!({ "doc": doc, "version": version, "section": 3 }),
     );
     went(&section);
@@ -604,15 +646,15 @@ fn past_forty_versions_the_list_hands_a_next_to_ask_the_older_ones_with() {
     );
 
     let older = served.call(
-        "read",
-        json!({ "doc": doc, "versions": true, "cursor": 40 }),
+        "workspace_read",
+        json!({ "doc": doc, "view": "versions", "cursor": 40 }),
     );
     went(&older);
     let older = &older["structuredContent"];
     assert_eq!(older["versions"].as_array().unwrap().len(), 5);
     assert!(older.get("next").is_none(), "{older}");
     let oldest = older["versions"][4]["version"].as_str().unwrap();
-    let read = served.call("read", json!({ "doc": doc, "version": oldest }));
+    let read = served.call("workspace_read", json!({ "doc": doc, "version": oldest }));
     assert_eq!(read["structuredContent"]["body"], UNO);
 }
 
@@ -653,14 +695,20 @@ fn a_version_kept_on_another_machine_is_marked_elsewhere_and_neither_read_nor_go
     insta::assert_snapshot!("listed_with_one_elsewhere", settled(&listed, &[]));
 
     let elsewhere = away["version"].as_str().unwrap();
-    let read = served.call("read", json!({ "doc": doc, "version": elsewhere }));
+    let read = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "version": elsewhere }),
+    );
     assert!(refused(&read), "{read}");
     insta::assert_snapshot!(
         "reading_one_kept_elsewhere",
         settled(&read, &[(doc.as_str(), "[doc]"), (elsewhere, "[version]")])
     );
 
-    let back = served.call("restore_doc", json!({ "doc": doc, "version": elsewhere }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": elsewhere }),
+    );
     assert!(refused(&back), "{back}");
     assert_eq!(words(&back), words(&read));
     assert_eq!(
@@ -670,7 +718,7 @@ fn a_version_kept_on_another_machine_is_marked_elsewhere_and_neither_read_nor_go
     );
 
     let kept = here["version"].as_str().unwrap();
-    let read = served.call("read", json!({ "doc": doc, "version": kept }));
+    let read = served.call("workspace_read", json!({ "doc": doc, "version": kept }));
     assert_eq!(read["structuredContent"]["body"], UNO);
 }
 
@@ -745,7 +793,7 @@ fn a_tasks_id_lists_and_reads_the_versions_of_its_page() {
     );
 
     let version = rows[0]["version"].as_str().unwrap();
-    let read = served.call("read", json!({ "doc": task, "version": version }));
+    let read = served.call("workspace_read", json!({ "doc": task, "version": version }));
     went(&read);
     let body = read["structuredContent"]["body"].as_str().unwrap();
     assert!(
@@ -771,23 +819,26 @@ fn going_back_uncut_on_a_page_with_a_digest_still_undoes_and_redoes_itself() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: uno y dos descartadas." }),
     ));
-    went(&served.call("append_doc", json!({ "doc": task, "body": "Nota tres." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": task, "content": "Nota tres." }),
+    ));
     let with_three = served.body_of(&page);
     let before_the_digest = served.version_that_said(&task, "Nota dos.");
 
     went(&served.call(
-        "restore_doc",
-        json!({ "doc": task, "version": before_the_digest }),
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": before_the_digest }),
     ));
     let went_back = served.body_of(&page);
     assert!(went_back.contains("Nota dos.") && !went_back.contains("Resumen"));
 
-    went(&served.call("restore_doc", json!({ "doc": task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": task })));
     assert_eq!(served.body_of(&page), with_three, "the undo missed");
-    went(&served.call("restore_doc", json!({ "doc": task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": task })));
     assert_eq!(
         served.body_of(&page),
         went_back,
@@ -800,21 +851,21 @@ fn going_back_on_a_page_with_a_digest_is_undone_before_the_digest_is_swapped() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: uno y dos descartadas." }),
     ));
     went(&served.call_as(
         CODEX,
-        "append_doc",
-        json!({ "doc": task, "body": "Nota tres." }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": task, "content": "Nota tres." }),
     ));
     let with_three = served.body_of(&page);
     assert!(with_three.contains("Resumen") && with_three.contains("Nota tres."));
     let digest_alone = served.version_that_said(&task, "Resumen: uno y dos descartadas.");
 
     went(&served.call(
-        "restore_doc",
-        json!({ "doc": task, "version": digest_alone }),
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": digest_alone }),
     ));
     let went_back = served.body_of(&page);
     assert!(
@@ -822,14 +873,14 @@ fn going_back_on_a_page_with_a_digest_is_undone_before_the_digest_is_swapped() {
         "{went_back}"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": task })));
     assert_eq!(
         served.body_of(&page),
         with_three,
         "restore alone swapped the digest instead of undoing the going back"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": task })));
     assert_eq!(
         served.body_of(&page),
         went_back,
@@ -846,14 +897,17 @@ fn going_back_on_a_tasks_id_reaches_the_assistants_notes_and_nothing_else() {
         .unwrap()
         .to_string();
 
-    went(&served.call("restore_doc", json!({ "doc": task, "version": notes_only })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": notes_only }),
+    ));
     let now = served.body_of(&page);
     assert!(
         now.contains("Nota uno.") && !now.contains("Nota dos."),
         "{now}"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": task })));
     let both = served.body_of(&page);
     assert!(both.contains("Nota dos."), "{both}");
 
@@ -863,7 +917,10 @@ fn going_back_on_a_tasks_id_reaches_the_assistants_notes_and_nothing_else() {
         &page,
         &both.replace("Pedir hora.", "Pedir hora y llevar la foto."),
     );
-    let refused_whole = served.call("restore_doc", json!({ "doc": task, "version": notes_only }));
+    let refused_whole = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": notes_only }),
+    );
     assert!(refused(&refused_whole), "{refused_whole}");
     assert!(
         words(&refused_whole).contains("reaches only the assistant's notes")
@@ -885,19 +942,27 @@ fn going_back_by_the_pages_own_name_takes_the_whole_page_back() {
     );
     let version = served.version_that_said(&page, "Nota dos.");
 
-    let by_task = served.call("restore_doc", json!({ "doc": task, "version": version }));
+    let by_task = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": version }),
+    );
     assert!(refused(&by_task), "{by_task}");
 
-    went(&served.call("restore_doc", json!({ "doc": page, "version": version })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": page, "version": version }),
+    ));
     assert_eq!(served.body_of(&page), before);
 
-    let undo_by_task = served.call("restore_doc", json!({ "doc": task }));
+    let undo_by_task = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
     assert!(refused(&undo_by_task), "{undo_by_task}");
     assert!(
-        words(&undo_by_task).contains(&format!("`restore_doc` with `{page}` as `doc`")),
+        words(&undo_by_task).contains(&format!(
+            "`doc_edit` (`mode: \"restore\"`) with `{page}` as `doc`"
+        )),
         "{undo_by_task}"
     );
-    went(&served.call("restore_doc", json!({ "doc": page })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": page })));
     assert!(served.body_of(&page).contains("llevar la foto"));
 }
 
@@ -906,27 +971,27 @@ fn a_going_back_by_the_pages_name_its_task_refuses_leaves_the_digest_swap_alone(
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: uno y dos descartadas." }),
     ));
     let digest = served.body_of(&page);
     went(&served.call_as(
         CODEX,
-        "edit_doc",
-        json!({ "doc": page, "old": "<!-- - [ ] The first step -->", "new": "- [ ] Llevar la foto" }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": page, "old": "<!-- - [ ] The first step -->", "content": "- [ ] Llevar la foto" }),
     ));
     served.person().ticks(person::task(&task), 1);
     let with_the_step = served.body_of(&page);
     let before_the_step = served.version_that_said(&page, "Resumen: uno y dos descartadas.");
 
     let refused_back = served.call(
-        "restore_doc",
-        json!({ "doc": page, "version": before_the_step }),
+        "doc_edit",
+        json!({ "mode": "restore", "doc": page, "version": before_the_step }),
     );
     assert!(refused(&refused_back), "{refused_back}");
     assert_eq!(served.body_of(&page), with_the_step);
 
-    let out = served.call("restore_doc", json!({ "doc": task }));
+    let out = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
     went(&out);
     assert_eq!(
         out["structuredContent"]["notes_put_back"], true,
@@ -940,8 +1005,8 @@ fn undoing_a_whole_page_going_back_leaves_the_digest_to_swap_by_the_tasks_id() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: uno y dos descartadas." }),
     ));
     let digest = served.body_of(&page);
     served.person().rewrites_its_page(
@@ -951,13 +1016,13 @@ fn undoing_a_whole_page_going_back_leaves_the_digest_to_swap_by_the_tasks_id() {
     );
     let before_the_digest = served.version_that_said(&page, "Nota dos.");
     went(&served.call(
-        "restore_doc",
-        json!({ "doc": page, "version": before_the_digest }),
+        "doc_edit",
+        json!({ "mode": "restore", "doc": page, "version": before_the_digest }),
     ));
-    went(&served.call("restore_doc", json!({ "doc": page })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": page })));
     assert!(served.body_of(&page).contains("Resumen"));
 
-    let swapped = served.call("restore_doc", json!({ "doc": task }));
+    let swapped = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
 
     went(&swapped);
     assert_eq!(
@@ -976,20 +1041,23 @@ fn a_digest_written_after_a_going_back_is_still_swapped_out_and_back_in() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     let first_note = served.version_that_said(&task, "Nota uno.");
-    went(&served.call("restore_doc", json!({ "doc": task, "version": first_note })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": task, "version": first_note }),
+    ));
     let gone_back = served.body_of(&page);
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: la nota uno.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: la nota uno." }),
     ));
     let digest = served.body_of(&page);
 
-    let out = served.call("restore_doc", json!({ "doc": task }));
+    let out = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
     went(&out);
     assert_eq!(out["structuredContent"]["notes_put_back"], true, "{out}");
     assert_eq!(served.body_of(&page), gone_back);
 
-    let back_in = served.call("restore_doc", json!({ "doc": task }));
+    let back_in = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
     went(&back_in);
     assert_eq!(
         back_in["structuredContent"]["notes_put_back"], true,
@@ -1009,10 +1077,13 @@ fn a_closed_tasks_page_still_lists_its_versions_and_takes_no_going_back() {
     served.person().closes(person::task(&task));
 
     assert_eq!(served.versions(&task)["versions"][0]["version"], version);
-    went(&served.call("read", json!({ "doc": task, "version": version })));
+    went(&served.call("workspace_read", json!({ "doc": task, "version": version })));
 
     for doc in [&task, &page] {
-        let back = served.call("restore_doc", json!({ "doc": doc, "version": version }));
+        let back = served.call(
+            "doc_edit",
+            json!({ "mode": "restore", "doc": doc, "version": version }),
+        );
         assert!(refused(&back), "{doc}: {back}");
     }
     assert!(
@@ -1035,9 +1106,9 @@ fn a_task_out_of_sight_answers_for_its_versions_like_an_id_nobody_has() {
     served.person().hides(person::task(&task));
 
     for (name, args) in [
-        ("read", json!({ "versions": true })),
-        ("read", json!({ "version": version })),
-        ("restore_doc", json!({ "version": version })),
+        ("workspace_read", json!({ "view": "versions" })),
+        ("workspace_read", json!({ "version": version })),
+        ("doc_edit", json!({ "mode": "restore", "version": version })),
     ] {
         let with = |doc: &str| {
             let mut args = args.clone();
@@ -1066,10 +1137,10 @@ fn a_hidden_tasks_page_by_its_own_name_answers_like_a_page_nobody_has() {
     served.person().hides(person::task(&task));
 
     for (name, args) in [
-        ("read", json!({ "versions": true })),
-        ("read", json!({ "version": version })),
-        ("restore_doc", json!({ "version": version })),
-        ("restore_doc", json!({ "version": " " })),
+        ("workspace_read", json!({ "view": "versions" })),
+        ("workspace_read", json!({ "version": version })),
+        ("doc_edit", json!({ "mode": "restore", "version": version })),
+        ("doc_edit", json!({ "mode": "restore", "version": " " })),
     ] {
         let with = |doc: &str| {
             let mut args = args.clone();
@@ -1094,7 +1165,10 @@ fn a_locked_document_shows_its_versions_and_goes_back_to_none() {
     served.person().locks_doc(&doc);
 
     assert_eq!(served.versions(&doc)["kept_here"], 2);
-    let back = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let back = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     assert!(refused(&back), "{back}");
     assert!(words(&back).contains("is locked"), "{back}");
@@ -1109,23 +1183,29 @@ fn a_compaction_waiting_for_the_person_takes_no_version_until_it_is_undone() {
     let before = served.body_of(&doc);
     let print = served.read(&doc)["print"].as_str().unwrap().to_string();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": doc, "print": print, "compact": true, "body": "# Acta\n\nCompacta.\n" }),
+        "doc_edit",
+        json!({ "doc": doc, "mode": "compact", "print": print, "content": "# Acta\n\nCompacta.\n" }),
     ));
 
-    let waiting = served.call("restore_doc", json!({ "doc": doc, "version": first }));
+    let waiting = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    );
 
     assert!(refused(&waiting), "{waiting}");
     insta::assert_snapshot!(settled(&waiting, &[(doc.as_str(), "[doc]")]));
     assert!(served.body_of(&doc).contains("Compacta."));
 
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert_eq!(
         served.body_of(&doc),
         before,
         "restore alone no longer undoes a compaction"
     );
-    went(&served.call("restore_doc", json!({ "doc": doc, "version": first })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": first }),
+    ));
     assert_eq!(served.body_of(&doc), UNO);
 }
 
@@ -1136,31 +1216,32 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
     let first = served.version_that_said(&doc, "Uno, como lo dejó el asistente.");
 
     let both = served.call(
-        "read",
-        json!({ "doc": doc, "versions": true, "version": first }),
+        "workspace_read",
+        json!({ "doc": doc, "view": "versions", "version": first }),
     );
     assert!(refused(&both), "{both}");
     assert!(words(&both).contains("send one of the two"), "{both}");
 
-    for args in [
-        json!({ "doc": doc, "versions": true, "as": "markdown" }),
-        json!({ "doc": doc, "version": first, "as": "markdown" }),
-    ] {
-        let carried = served.call("read", args);
-        assert!(refused(&carried), "{carried}");
-        assert!(words(&carried).contains("as it reads now"), "{carried}");
-    }
+    let carried = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "version": first, "view": "markdown" }),
+    );
+    assert!(refused(&carried), "{carried}");
+    assert!(words(&carried).contains("as it reads now"), "{carried}");
 
-    let blank = served.call("read", json!({ "doc": doc, "version": " " }));
+    let blank = served.call("workspace_read", json!({ "doc": doc, "version": " " }));
     assert!(
         blank["structuredContent"].get("print").is_some(),
         "an empty version is a field left out, as everywhere: {blank}"
     );
 
-    let plain = served.call("read", json!({ "doc": doc, "versions": false }));
+    let plain = served.call("workspace_read", json!({ "doc": doc, "view": "content" }));
     assert!(plain["structuredContent"].get("print").is_some(), "{plain}");
 
-    let by_parts = served.call("read", json!({ "doc": doc, "versions": true, "from": 2 }));
+    let by_parts = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "view": "versions", "from": 2 }),
+    );
     assert!(refused(&by_parts), "{by_parts}");
     assert!(words(&by_parts).contains("takes no `from`"), "{by_parts}");
 }
@@ -1170,7 +1251,10 @@ fn a_cursor_past_the_last_version_says_so_instead_of_an_empty_list() {
     let served = Served::new();
     let doc = served.written_by_turns();
 
-    let past = served.call("read", json!({ "doc": doc, "versions": true, "cursor": 9 }));
+    let past = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "view": "versions", "cursor": 9 }),
+    );
 
     went(&past);
     assert_eq!(past["structuredContent"]["versions"], json!([]));
@@ -1184,7 +1268,10 @@ fn a_version_sent_empty_is_a_field_left_out_like_every_other() {
     let doc = served.written_by_turns();
     let before = served.body_of(&doc);
 
-    let blank = served.call("restore_doc", json!({ "doc": doc, "version": " " }));
+    let blank = served.call(
+        "doc_edit",
+        json!({ "mode": "restore", "doc": doc, "version": " " }),
+    );
 
     went(&blank);
     assert!(
@@ -1192,7 +1279,7 @@ fn a_version_sent_empty_is_a_field_left_out_like_every_other() {
         "{blank}"
     );
     assert_ne!(served.body_of(&doc), before, "it undid nothing");
-    went(&served.call("restore_doc", json!({ "doc": doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": doc })));
     assert_eq!(served.body_of(&doc), before, "the undo did not undo itself");
 }
 
@@ -1201,15 +1288,15 @@ fn a_digest_is_still_swapped_back_after_another_write_on_the_page() {
     let served = Served::new();
     let (task, page) = served.task_with_a_page();
     went(&served.call(
-        "append_doc",
-        json!({ "doc": task, "body": "Resumen: uno y dos descartadas.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": task, "content": "Resumen: uno y dos descartadas." }),
     ));
     went(&served.call(
-        "edit_doc",
-        json!({ "doc": page, "old": "Pedir hora.", "new": "Pedir hora y llevar la foto." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": page, "old": "Pedir hora.", "content": "Pedir hora y llevar la foto." }),
     ));
 
-    let swapped = served.call("restore_doc", json!({ "doc": task }));
+    let swapped = served.call("doc_edit", json!({ "mode": "restore", "doc": task }));
 
     went(&swapped);
     assert_eq!(
@@ -1232,8 +1319,10 @@ fn a_tool_named_for_history_is_pointed_at_the_two_that_hold_it() {
         .to_string();
 
     assert!(said.contains("unknown tool: doc_history"), "{said}");
+    assert!(said.contains("`workspace_read`"), "{said}");
+    assert!(said.contains("`doc_edit`"), "{said}");
     assert!(
-        said.contains("`versions` lists its past versions and `version` reads one"),
+        said.contains("lists its past versions and `version` reads one"),
         "{said}"
     );
 }

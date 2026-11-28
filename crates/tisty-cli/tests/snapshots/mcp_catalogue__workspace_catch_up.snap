@@ -1,0 +1,25 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
+  "description": "Call first at session start. Returns lists, folders, top tags, counts, pressing tasks, newest docs, your last open task, and changes since your last catch-up. Pass cursor `since` for read-only delta replay without advancing the cursor.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "since": {
+        "description": "Cursor from a prior workspace_catch_up for read-only delta replay (includes your own)",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "workspace_catch_up",
+  "title": "Resume workspace state and changes"
+}

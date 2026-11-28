@@ -96,32 +96,32 @@ fn what_an_edit_wrote_is_skipped_whatever_its_size() {
 fn a_tool_of_tisty_is_known_however_the_client_spells_it() {
     let tool = |value: Value| heard(value).tisty_tool().map(str::to_string);
     assert_eq!(
-        tool(json!({ "tool_name": "mcp__tisty__tick" })),
-        Some("tick".into())
+        tool(json!({ "tool_name": "mcp__tisty__task_edit_steps" })),
+        Some("task_edit_steps".into())
     );
     assert_eq!(
-        tool(json!({ "tool_name": "mcp__plugin_tisty_tisty__say_done" })),
-        Some("say_done".into())
+        tool(json!({ "tool_name": "mcp__plugin_tisty_tisty__task_resolve" })),
+        Some("task_resolve".into())
     );
     assert_eq!(
-        tool(json!({ "tool_name": "note", "mcp_server_name": "tisty" })),
-        Some("note".into())
+        tool(json!({ "tool_name": "task_note", "mcp_server_name": "tisty" })),
+        Some("task_note".into())
     );
     assert_eq!(
-        tool(json!({ "tool_name": "mcp_tisty_catch_up" })),
-        Some("catch_up".into())
+        tool(json!({ "tool_name": "mcp_tisty_workspace_catch_up" })),
+        Some("workspace_catch_up".into())
     );
     assert_eq!(
-        tool(json!({ "toolName": "tisty-tick" })),
-        Some("tick".into())
+        tool(json!({ "toolName": "tisty-task_edit_steps" })),
+        Some("task_edit_steps".into())
     );
     assert_eq!(
-        tool(json!({ "tool_name": "MCP:say_done" })),
-        Some("say_done".into())
+        tool(json!({ "tool_name": "MCP:task_resolve" })),
+        Some("task_resolve".into())
     );
     assert_eq!(
-        tool(json!({ "tool_name": "MCP:tick" })),
-        Some("tick".into())
+        tool(json!({ "tool_name": "MCP:task_edit_steps" })),
+        Some("task_edit_steps".into())
     );
 }
 
@@ -173,7 +173,13 @@ fn the_edits_of_every_client_count_and_nothing_else_does() {
         assert!(heard(json!({ "tool_name": named })).edits(), "{named}");
     }
     assert!(heard(json!({ "toolName": "apply_patch" })).edits());
-    for named in ["Read", "Bash", "view", "grep", "mcp__tisty__tick"] {
+    for named in [
+        "Read",
+        "Bash",
+        "view",
+        "grep",
+        "mcp__tisty__task_edit_steps",
+    ] {
         assert!(!heard(json!({ "tool_name": named })).edits(), "{named}");
     }
 }
@@ -296,7 +302,12 @@ fn the_edits_of_antigravity_count_and_its_other_tools_do_not() {
         let said = heard(json!({ "toolCall": { "name": named } }));
         assert!(said.edits(), "{named}");
     }
-    for named in ["run_command", "view_file", "grep_search", "mcp_tisty_tick"] {
+    for named in [
+        "run_command",
+        "view_file",
+        "grep_search",
+        "mcp_tisty_task_edit_steps",
+    ] {
         let said = heard(json!({ "toolCall": { "name": named } }));
         assert!(!said.edits(), "{named}");
     }
@@ -304,9 +315,9 @@ fn the_edits_of_antigravity_count_and_its_other_tools_do_not() {
 
 #[test]
 fn a_tool_of_tisty_is_known_as_antigravity_spells_it() {
-    let said = heard(json!({ "toolCall": { "name": "mcp_tisty_say_done" } }));
+    let said = heard(json!({ "toolCall": { "name": "mcp_tisty_task_resolve" } }));
 
-    assert_eq!(said.tisty_tool(), Some("say_done"));
+    assert_eq!(said.tisty_tool(), Some("task_resolve"));
 }
 
 #[test]

@@ -26,8 +26,8 @@ Las dos valen solo en el equipo donde las enciendes: en otro equipo lo decides a
 ### Qué hacen
 
 - **Al empezar una sesión**, el agente recibe las tres últimas tareas abiertas en que escribió ese mismo agente en este equipo, la más nueva primero, con cuántos pasos lleva cada una y el siguiente, lo que se movió desde entonces y lo que apremia. Son unos 2.000 caracteres, y llegan aunque el agente no llame a Tisty.
-- **Al terminar un turno que editó archivos y no escribió nada en Tisty**, le devuelve el turno una vez: si eso era trabajo de una tarea, que lo deje en un solo `tick`. Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty, así que un turno fuera de una tarea cuesta como mucho un turno extra.
-- **Cuando un turno dejó todos los pasos de su tarea marcados** sin decirla hecha, le devuelve el turno una vez para que haga `say_done` con la prueba. Nunca con una tarea tuya.
+- **Al terminar un turno que editó archivos y no escribió nada en Tisty**, le devuelve el turno una vez: si eso era trabajo de una tarea, que lo deje en un solo `task_edit_steps` (`action: "tick"` o `"set_state"`). Si el agente lo deja pasar, el hook calla hasta que vuelva a llamar a Tisty, así que un turno fuera de una tarea cuesta como mucho un turno extra.
+- **Cuando un turno dejó todos los pasos de su tarea marcados** sin decirla hecha, le devuelve el turno una vez para que haga `task_resolve` (`outcome: "done"`) con la prueba. Nunca con una tarea tuya.
 - **Después de un `git push`, un `gh pr create` o un `gh pr merge`**, le pregunta si terminó un paso o la tarea. En Claude Code la pregunta llega en el acto; en los demás agentes, al terminar el turno.
 - **Antes de dejar algo fuera**, si va a crear un archivo de texto fuera de un repo, o a proponer por su cuenta una tarjeta de tarea en la aplicación de Claude, le pregunta una vez si va en Tisty. Lo cuenta [Antes de dejar algo fuera](#antes-de-dejar-algo-fuera).
 
@@ -41,9 +41,9 @@ Un agente con Tisty delante a veces deja el encargo para otro en un `.md`, donde
 
 | Qué va a dejar | Qué le nombra Tisty |
 | :-- | :-- |
-| Algo que hacer: un encargo, un plan, lo que sigue otro día | Una tarea: `propose`, o `note` y `tick` con `state` en la que ya existe |
-| Algo que se vuelve a leer: un análisis, un contrato, una decisión | Un documento: `brain` y luego `append_doc`, `edit_doc` o `write_doc` |
-| Una tarjeta de tarea por su cuenta | Una tarea: `propose` en su lista, o `note` |
+| Algo que hacer: un encargo, un plan, lo que sigue otro día | Una tarea: `task_create`, o `task_note` y `task_edit_steps` con `state` en la que ya existe |
+| Algo que se vuelve a leer: un análisis, un contrato, una decisión | Un documento: `workspace_search` y luego `doc_edit` o `doc_create` |
+| Una tarjeta de tarea por su cuenta | Una tarea: `task_create` en su lista, o `task_note` |
 
 **Mira archivos de texto nuevos**: `.md`, `.markdown`, `.txt`, `.rst`, `.adoc`, `.org`, y los que se llaman `HANDOFF`, `NOTES`, `TODO`, `PLAN`, `PROMPT` o `BRIEF`, sin extensión. Editar uno que ya existe no pregunta.
 
@@ -72,7 +72,7 @@ En Cursor, la pregunta sale de sus propios hooks: con solo los de Claude Code, q
 Entonces lo deja en una tarea, con sus pasos, y le da a Marisol el título:
 
 ```json
-propose { "title": "Cerrar la migración de pagos", "for": "agent", "list": "Trabajo",
+task_create { "title": "Cerrar la migración de pagos", "for": "agent", "list": "Trabajo",
   "steps": ["Probar los reintentos", "Avisar al proveedor"] }
 ```
 
@@ -194,7 +194,7 @@ Una skill es una carpeta con un `SKILL.md`: tu agente lee su descripción siempr
 
 Las frases son las mismas que muestra su ficha, en **Cómo se usan**: «Escríbeselo a tu agente con tus palabras; no hay que llamarlas por su nombre.». No tienen que ser exactas: «sigamos con lo de ayer» o «¿en qué íbamos?» también llevan a la skill `tisty`.
 
-**Cada agente retoma lo suyo.** «Retoma donde quedamos» lleva a un agente a lo último que dejó él, no otro: lo que abre la sesión y lo que `catch_up` llama `last` son de cada programa. Lo que pasa de un agente a otro es lo escrito en la tarea, así que, para seguir lo que dejó otro, nómbrala por su título.
+**Cada agente retoma lo suyo.** «Retoma donde quedamos» lleva a un agente a lo último que dejó él, no otro: lo que abre la sesión y lo que `workspace_catch_up` llama `last` son de cada programa. Lo que pasa de un agente a otro es lo escrito en la tarea, así que, para seguir lo que dejó otro, nómbrala por su título.
 
 **No son los pedidos listos.** Tisty también le entrega a tu agente [ocho pedidos](Agentes-y-MCP#pedidos-listos-y-menciones-con-) que se usan como comandos, como `/mcp__tisty__pick_up` o `/mcp__tisty__consolidate Cocina` en Claude Code. Un pedido lo escribes tú, y llega a cualquier agente que tome pedidos de un servidor; una skill la elige tu agente cuando le hablas con tus palabras. Hacen el mismo trabajo, y puedes usar los dos.
 
@@ -359,9 +359,9 @@ Como Claude Code lee su configuración al abrirse, lo cierra del todo y lo abre 
 Yisset le pide a Claude Code que planifique la exportación del reporte. El agente la anota como una tarea con sus pasos:
 
 ```json
-> propose {"title": "Exportar el reporte mensual a CSV", "for": "agent", "list": "Trabajo",
-           "steps": ["Leer el formato que pide contabilidad", "Escribir la exportación",
-                     "Probar con los datos de octubre", "Agregar el botón en la pantalla de reportes"]}
+> task_create {"title": "Exportar el reporte mensual a CSV", "for": "agent", "list": "Trabajo",
+               "steps": ["Leer el formato que pide contabilidad", "Escribir la exportación",
+                         "Probar con los datos de octubre", "Agregar el botón en la pantalla de reportes"]}
 ```
 
 Esa tarde lee el formato, marca el primer paso y deja el estado: separador punto y coma y fechas `2026-10-31`, como pide contabilidad.
@@ -376,17 +376,17 @@ Your last open tasks here, newest first:
 Pressing for the person: 1 today, 3 late.
 ```
 
-Yisset escribe «Retoma donde quedamos». La frase calza con la skill `tisty`, que le dice al agente que empiece por `catch_up` y abra la tarea en que estaba:
+Yisset escribe «Retoma donde quedamos». La frase calza con la skill `tisty`, que le dice al agente que empiece por `workspace_catch_up` y abra la tarea en que estaba:
 
 ```json
-> catch_up {}
+> workspace_catch_up {}
 { "last": { "title": "Exportar el reporte mensual a CSV", "list": "Trabajo", "at": "2026-11-20 18:05",
             "stage": "under_way", "steps": [1, 4], "state": "**Hecho:** el formato de contabilidad está leído…" },
   "counts": { "open": 31, "late": 3, "today": 1, "docs": 48, … } }
 ```
 
 ```json
-> read {"task": "…Exportar el reporte mensual a CSV…"}
+> workspace_read {"task": "…Exportar el reporte mensual a CSV…"}
 { "steps": [ { "text": "Leer el formato que pide contabilidad", "done": true },
              { "text": "Escribir la exportación", "done": false }, … ] }
 ```
@@ -398,8 +398,9 @@ El estado llega primero, con lo decidido el día antes. Claude Code le responde 
 Al terminar la exportación, la prueba con octubre y marca los dos pasos y el estado en una sola llamada:
 
 ```json
-> tick {"task": "…", "steps": ["Escribir la exportación", "Probar con los datos de octubre"],
-        "state": "**Hecho:** la exportación escribe el CSV con punto y coma; octubre cuadra con el total del sistema.\n**Falta:** el botón en la pantalla de reportes.\n**Decisiones vigentes:** fechas 2026-10-31, montos sin separador de miles."}
+> task_edit_steps {"task": "…", "action": "tick",
+                   "steps": ["Escribir la exportación", "Probar con los datos de octubre"],
+                   "state": "**Hecho:** la exportación escribe el CSV con punto y coma; octubre cuadra con el total del sistema.\n**Falta:** el botón en la pantalla de reportes.\n**Decisiones vigentes:** fechas 2026-10-31, montos sin separador de miles."}
 { "ticked": 2, "left": 1, "next": "Agregar el botón en la pantalla de reportes", "stated": true,
   "said": "Ticked 2 step(s) on \"Exportar el reporte mensual a CSV\". 1 still unticked; next: \"Agregar el botón en la pantalla de reportes\". Left its state on its page, under «Estado»." }
 ```
@@ -408,15 +409,15 @@ Si se le hubiera olvidado, el hook se lo recuerda al final del turno, porque edi
 
 ```json
 { "decision": "block",
-  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `tick`…" }
+  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `task_edit_steps`…" }
 ```
 
 ### 7. «Deja esto listo para el próximo agente»
 
-Yisset tiene que irse. Escribe «Deja esto listo para el próximo agente». La skill `tisty` le pide al agente dejarlo en la tarea, no en la conversación, que se archiva: el estado al día, con `tick`, y una nota con dónde quedó el trabajo, lo que descartó, el siguiente paso y la rama o los archivos donde vive.
+Yisset tiene que irse. Escribe «Deja esto listo para el próximo agente». La skill `tisty` le pide al agente dejarlo en la tarea, no en la conversación, que se archiva: el estado al día, con `task_edit_steps`, y una nota con dónde quedó el trabajo, lo que descartó, el siguiente paso y la rama o los archivos donde vive.
 
 ```json
-> note {"task": "…", "body": "Descartado: exportar con la librería de planillas; mueve los montos a texto y contabilidad no los suma. Sigue el botón, junto a «Imprimir», como dice «Reportes: decisiones». El código está en la rama feat/monthly-csv-export."}
+> task_note {"task": "…", "action": "add", "body": "Descartado: exportar con la librería de planillas; mueve los montos a texto y contabilidad no los suma. Sigue el botón, junto a «Imprimir», como dice «Reportes: decisiones». El código está en la rama feat/monthly-csv-export."}
 { "references": { "linked": [ { "said": "Reportes: decisiones", "doc": "…", "title": "Reportes: decisiones" } ] } }
 ```
 
@@ -435,12 +436,12 @@ Si la tarea la hubiera escrito Yisset, y ella hubiera marcado el primer paso, la
 Yisset vuelve a Codex. A Codex no le agregó los hooks de Tisty, así que nada le llega al empezar, y como ya estaba conectado antes de la 1.50 nunca se le preguntó al conectar; pero lee la skill `tisty`, que Yisset encendió en el paso 3 y quedó en `~/.agents/skills`. «Retoma donde quedamos», a secas, lo llevaría a lo último que dejó **él**, así que Yisset nombra la tarea: «Retoma la exportación del reporte mensual».
 
 ```json
-> brain {"query": "exportar reporte mensual"}
+> workspace_search {"query": "exportar reporte mensual"}
 { "matches": [ { "title": "Exportar el reporte mensual a CSV", "list": "Trabajo", "status": "open" } ] }
-> read {"task": "…Exportar el reporte mensual a CSV…"}
+> workspace_read {"task": "…Exportar el reporte mensual a CSV…"}
 ```
 
-Lee el estado y la nota de Claude Code, sabe que no debe volver a probar la librería de planillas y sigue con el botón. También habría llegado por lo que se movió, que `catch_up` le cuenta desde la última vez que él miró.
+Lee el estado y la nota de Claude Code, sabe que no debe volver a probar la librería de planillas y sigue con el botón. También habría llegado por lo que se movió, que `workspace_catch_up` le cuenta desde la última vez que él miró.
 
 ### 10. Semanas después, el plugin
 

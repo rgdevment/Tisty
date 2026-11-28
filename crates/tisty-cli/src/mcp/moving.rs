@@ -26,7 +26,7 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             _ => {
                 return Err(Refused::Tool(
                     "`part_of` is the id of the task to hang this one under, or null to let it \
-                     go. Use the `id` that `brain` or `propose` gave you."
+                     go. Use the `id` that `workspace_search` or `task_create` gave you."
                         .into(),
                 ));
             }
@@ -145,7 +145,7 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
+pub(super) fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
     match lists::called(state, name)
         .map_err(Refused::Tool)?
         .as_slice()
@@ -160,7 +160,7 @@ fn list_named(state: &State, name: &str) -> Result<ListId, Refused> {
     }
 }
 
-fn hung_under(state: &State, task: &Task, up: TaskId) -> Result<TaskId, Refused> {
+pub(super) fn hung_under(state: &State, task: &Task, up: TaskId) -> Result<TaskId, Refused> {
     let Some(whole) = state.tasks.get(&up).filter(|one| !one.folded()) else {
         return Err(super::dropped::refused(state, up)
             .unwrap_or_else(|| Refused::Tool(format!("no task here has the id {up}."))));

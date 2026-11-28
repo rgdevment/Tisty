@@ -3,7 +3,7 @@ source: crates/tisty-cli/tests/mcp_versions.rs
 expression: "settled(&json!({\n    \"notice\": read[\"structuredContent\"][\"notice\"], \"title\":\n    read[\"structuredContent\"][\"title\"], \"until\":\n    read[\"structuredContent\"][\"until\"], \"written\":\n    read[\"structuredContent\"][\"written\"],\n}), &[(page.as_str(), \"[page]\"), (version, \"[version]\")])"
 ---
 {
-  "notice": "This is a past version of the page of \"Renovar el pasaporte\" [[page]], not what it says now: what it said until [when], written by Claude Code on [when]. `restore_doc` with this `version` goes back to it.",
+  "notice": "This is a past version of the page of \"Renovar el pasaporte\" [[page]], not what it says now: what it said until [when], written by Claude Code on [when]. `doc_edit` (`mode: \"restore\"`) with this `version` goes back to it.",
   "title": "Renovar el pasaporte",
   "until": "[when]",
   "written": "[when]"

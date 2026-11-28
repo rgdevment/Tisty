@@ -1,11 +1,11 @@
 use serde_json::{Value, json};
 use tisty_core::model::{FLAG_REASONS, Kept, TaskId, reason_points_elsewhere};
-use tisty_core::{Op, State, Store};
+use tisty_core::{Op, State};
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::mistaken::named_task;
-use super::super::{Refused, doc_named, hitch, named_all, opened, speaking_through, when};
+use super::super::{Refused, doc_named, hitch, named_all, opened, speaking_through};
 use super::{many_docs, said_docs};
 
 pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Result<Value, Refused> {
@@ -54,13 +54,13 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
                 ),
                 Some(task) => format!(
                     "{which:?} is the task {:?}, not a document, and closing a task is the \
-                     person's: `say_not_doing` tells them why it should not be done. Nothing was \
-                     marked.",
+                     person's: `task_resolve` (`outcome: \"not_doing\"`) tells them why it should \
+                     not be done. Nothing was marked.",
                     task.title
                 ),
                 None => format!(
-                    "no document here is called {which:?}. `brain` with a `query` finds one; nothing was \
-                     marked."
+                    "no document here is called {which:?}. `workspace_search` with a `query` finds \
+                     one; nothing was marked."
                 ),
             }));
         };
@@ -72,8 +72,7 @@ pub(in crate::mcp) fn flag_doc(paths: &tisty_core::Paths, args: &Value) -> Resul
             )));
         }
         match &kept.flagged {
-            Some(_) if listed => already.push(which.clone()),
-            Some(had) => return Err(marked_twice(&state, &store, which, had)),
+            Some(_) => already.push(which.clone()),
             None => marking.push((kept, which)),
         }
     }
@@ -260,26 +259,4 @@ pub(in crate::mcp) fn reason_said(
         Some("scratch") => "a scratch".into(),
         _ => "having had its day".into(),
     }
-}
-
-fn marked_twice(
-    state: &State,
-    store: &Store,
-    which: &str,
-    had: &tisty_core::model::Flagged,
-) -> Refused {
-    let who = match had.by == *store.device() && had.via == speaking_through() {
-        true => "you".to_string(),
-        false => had
-            .via
-            .as_deref()
-            .map(tisty_core::agent::client_named)
-            .unwrap_or_else(|| "an assistant".to_string()),
-    };
-    Refused::Tool(format!(
-        "{who} already marked {} on {}, and the person has not looked yet. Marking it again \
-         would only say the same thing twice.",
-        doc_named(state, which),
-        when(had.at)
-    ))
 }

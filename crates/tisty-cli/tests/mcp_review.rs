@@ -31,7 +31,7 @@ impl Served {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": { "name": "catch_up", "arguments": {} },
+            "params": { "name": "workspace_catch_up", "arguments": {} },
         })
         .to_string();
         let mut child = Command::new(env!("CARGO_BIN_EXE_tisty"))

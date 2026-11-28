@@ -26,7 +26,8 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
     if let Some(source) = text(args, "source") {
         if text(args, "query").is_some() {
             return Err(Refused::Tool(
-                "`brain` takes a `source` or a `query`, not both: one asks whether this exact thing was already filed, the other searches. Send one."
+                "`workspace_search` takes a `source` or a `query`, not both: one checks whether \
+                 this exact source was already filed, the other searches. Send one."
                     .into(),
             ));
         }
@@ -41,9 +42,9 @@ pub(in crate::mcp) fn found(paths: &Paths, args: &Value) -> Result<Value, Refuse
     let query = text(args, "query");
     if query.is_none() && sifted.none() {
         return Err(Refused::Tool(
-            "`brain` searches with words in `query`, or sifts with a value in one of `tag`, \
-             `list`, `by_agent`, `said_done`, `part_of`, `from_source`, `from` and `to`; \
-             these came empty."
+            "`workspace_search` searches with words in `query`, or filters with `tag`, `list`, \
+             `by_agent`, `said_done`, `part_of`, `from_source`, `date_from`, or `date_to`; these \
+             came empty."
                 .into(),
         ));
     }

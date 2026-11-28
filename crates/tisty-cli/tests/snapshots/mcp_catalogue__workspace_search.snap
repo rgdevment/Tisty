@@ -1,0 +1,106 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
+  "description": "Search or list open and archived items without reading full bodies. Any task filter excludes docs. `mode` is inferred if omitted (empty `{}` returns full taxonomy).",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "after": {
+        "description": "Pagination offset when `total` exceeds returned count",
+        "type": "integer"
+      },
+      "around": {
+        "description": "Context lines each side of an in_doc match (0-10, default 1)",
+        "type": "integer"
+      },
+      "by_agent": {
+        "description": "Filter tasks: true = agent-created, false = person-created",
+        "type": "boolean"
+      },
+      "date_from": {
+        "description": "Tasks with date/deadline >= YYYY-MM-DD",
+        "type": "string"
+      },
+      "date_to": {
+        "description": "Tasks with date/deadline <= YYYY-MM-DD",
+        "type": "string"
+      },
+      "doc": {
+        "description": "Document ID for mode=\"in_doc\" line search with `query`",
+        "type": "string"
+      },
+      "folder": {
+        "description": "Filter/list docs by folder name, path, or ID",
+        "type": "string"
+      },
+      "from_source": {
+        "description": "Filter tasks whose `source` starts with this prefix",
+        "type": "string"
+      },
+      "limit": {
+        "description": "Max results (default 10/max 100; project 50/100; folder 50/200)",
+        "type": "integer"
+      },
+      "lines": {
+        "description": "Include matching excerpt line (default true; false returns titles only)",
+        "type": "boolean"
+      },
+      "list": {
+        "description": "Filter tasks by exact list name",
+        "type": "string"
+      },
+      "mode": {
+        "description": "Query mode; inferred from params if omitted",
+        "enum": [
+          "search",
+          "source",
+          "project",
+          "folder",
+          "taxonomy",
+          "in_doc"
+        ],
+        "type": "string"
+      },
+      "part_of": {
+        "description": "Parent task ID; alone gives grouped project stage summary",
+        "type": "string"
+      },
+      "query": {
+        "description": "Search terms (accents ignored; quote phrases); optional when filtering",
+        "type": "string"
+      },
+      "said_done": {
+        "description": "Filter tasks pending human confirmation (true/false)",
+        "type": "boolean"
+      },
+      "scope": {
+        "description": "Search scope (default \"either\")",
+        "enum": [
+          "open",
+          "archive",
+          "either"
+        ],
+        "type": "string"
+      },
+      "source": {
+        "description": "Exact source URL/ID deduplication check (not with `query`)",
+        "type": "string"
+      },
+      "tag": {
+        "description": "Filter tasks by tag (# optional)",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "workspace_search",
+  "title": "Search tasks, documents, and taxonomy"
+}

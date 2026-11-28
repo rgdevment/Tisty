@@ -75,7 +75,7 @@ fn language(args: &Value) -> Result<Option<String>, Refused> {
 
 fn unsaid(state: &State, which: &str) -> Refused {
     Refused::Tool(format!(
-        "{} says no language yet. Write a `lang:` line in its properties with `edit_doc` first.",
+        "{} says no language yet. Write a `lang:` line in its properties with `doc_edit` first.",
         doc_named(state, which)
     ))
 }
@@ -155,7 +155,7 @@ pub(in crate::mcp) fn translation_written(
     // Already written, so a join that fails says so rather than inviting a second copy.
     if let Err(why) = store.append_batch(state.joining(kept.id, up.id)) {
         return Err(Refused::Tool(format!(
-            "{} was written, but it could not be joined to {} ({why}). Join it with `tongue_doc`; do not write it again.",
+            "{} was written, but it could not be joined to {} ({why}). Join it with `doc_organize` (`action: \"link_translation\"`); do not write it again.",
             doc_named(&state, &file),
             doc_named(&state, of)
         )));

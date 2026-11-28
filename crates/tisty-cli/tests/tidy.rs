@@ -52,21 +52,21 @@ impl Served {
     }
 
     fn filed(&self, title: &str) -> String {
-        said(&self.call("propose", json!({ "for": "agent", "title": title })))["id"]
+        said(&self.call("task_create", json!({ "for": "agent", "title": title })))["id"]
             .as_str()
             .unwrap()
             .to_string()
     }
 
     fn paper(&self, body: &str) -> String {
-        said(&self.call("write_doc", json!({ "body": body, "anyway": true })))["doc"]
+        said(&self.call("doc_create", json!({ "body": body, "anyway": true })))["doc"]
             .as_str()
             .unwrap()
             .to_string()
     }
 
     fn task(&self, id: &str) -> Value {
-        said(&self.call("read", json!({ "task": id }))).clone()
+        said(&self.call("workspace_read", json!({ "task": id }))).clone()
     }
 }
 
@@ -95,10 +95,10 @@ fn a_task_an_agent_filed_hangs_under_another_and_is_let_go_again() {
     let whole = served.filed("Release 2.0");
     let part = served.filed("Write the notes");
 
-    went(&served.call("move", json!({ "task": &part, "part_of": &whole })));
+    went(&served.call("task_update", json!({ "task": &part, "part_of": &whole })));
     assert_eq!(served.task(&part)["part_of"], whole.as_str());
 
-    went(&served.call("move", json!({ "task": &part, "part_of": null })));
+    went(&served.call("task_update", json!({ "task": &part, "part_of": null })));
     assert!(served.task(&part)["part_of"].is_null());
 }
 
@@ -109,7 +109,7 @@ fn the_persons_task_hangs_under_one_an_agent_filed() {
     let persons = served.person().captures("pack the boxes");
 
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": persons.to_string(), "part_of": &whole }),
     ));
 
@@ -127,17 +127,22 @@ fn hanging_is_refused_where_the_window_refuses_it_and_where_the_person_has_not_d
     let whole = served.filed("Release 2.0");
     let part = served.filed("Write the notes");
     let other = served.filed("Tag the build");
-    went(&served.call("move", json!({ "task": &part, "part_of": &whole })));
+    went(&served.call("task_update", json!({ "task": &part, "part_of": &whole })));
 
-    let itself = refused(&served.call("move", json!({ "task": &other, "part_of": &other })));
+    let itself = refused(&served.call("task_update", json!({ "task": &other, "part_of": &other })));
     assert!(itself.contains("itself"), "{itself}");
-    let under_a_part = refused(&served.call("move", json!({ "task": &other, "part_of": &part })));
+    let under_a_part =
+        refused(&served.call("task_update", json!({ "task": &other, "part_of": &part })));
     assert!(under_a_part.contains("one level"), "{under_a_part}");
-    let holding = refused(&served.call("move", json!({ "task": &whole, "part_of": &other })));
+    let holding =
+        refused(&served.call("task_update", json!({ "task": &whole, "part_of": &other })));
     assert!(holding.contains("parts of its own"), "{holding}");
 
-    went(&served.call("say_done", json!({ "task": &other, "body": "tagged" })));
-    let pending = refused(&served.call("move", json!({ "task": &part, "part_of": &other })));
+    went(&served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": &other, "body": "tagged" }),
+    ));
+    let pending = refused(&served.call("task_update", json!({ "task": &part, "part_of": &other })));
     assert!(pending.contains("has not decided"), "{pending}");
 }
 
@@ -149,10 +154,10 @@ fn a_closed_task_takes_no_part_and_the_persons_open_one_does() {
     served.person().closes(person::task(&closed));
     let persons = served.person().captures("the person's plan");
 
-    let shut = refused(&served.call("move", json!({ "task": &part, "part_of": &closed })));
+    let shut = refused(&served.call("task_update", json!({ "task": &part, "part_of": &closed })));
     assert!(shut.contains("closed"), "{shut}");
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": &part, "part_of": persons.to_string() }),
     ));
     assert_eq!(served.task(&part)["part_of"], persons.to_string());
@@ -166,14 +171,17 @@ fn a_part_of_the_persons_whole_moves_and_is_let_go() {
     let part = served.person().adds_part(persons, "book the van");
 
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": part.to_string(), "part_of": &elsewhere }),
     ));
     assert_eq!(
         served.task(&part.to_string())["part_of"],
         elsewhere.as_str()
     );
-    went(&served.call("move", json!({ "task": part.to_string(), "part_of": null })));
+    went(&served.call(
+        "task_update",
+        json!({ "task": part.to_string(), "part_of": null }),
+    ));
     assert_eq!(served.person().state().tasks[&part].part_of, None);
 }
 
@@ -182,15 +190,15 @@ fn letting_the_persons_part_go_leaves_its_list_alone() {
     let served = Served::new();
     served.person().adds_list("Work");
     let whole = served.filed("Release 2.0");
-    went(&served.call("move", json!({ "task": &whole, "list": "Work" })));
+    went(&served.call("task_update", json!({ "task": &whole, "list": "Work" })));
     let persons = served.person().captures("book the van");
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": persons.to_string(), "part_of": &whole }),
     ));
 
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": persons.to_string(), "part_of": null }),
     ));
 
@@ -204,9 +212,9 @@ fn a_list_is_chosen_for_any_task() {
     let mine = served.filed("Write the notes");
     let persons = served.person().captures("pack the boxes");
 
-    went(&served.call("move", json!({ "task": &mine, "list": "Work" })));
+    went(&served.call("task_update", json!({ "task": &mine, "list": "Work" })));
     went(&served.call(
-        "move",
+        "task_update",
         json!({ "task": persons.to_string(), "list": "Work" }),
     ));
 
@@ -219,7 +227,7 @@ fn moving_needs_somewhere_to_move_to() {
     let served = Served::new();
     let mine = served.filed("Write the notes");
 
-    let nowhere = refused(&served.call("move", json!({ "task": &mine })));
+    let nowhere = refused(&served.call("task_update", json!({ "task": &mine })));
     assert!(nowhere.contains("`list`"), "{nowhere}");
 }
 
@@ -227,19 +235,19 @@ fn moving_needs_somewhere_to_move_to() {
 fn open_steps_handed_on_leave_one_task_and_join_the_other() {
     let served = Served::new();
     let from = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Release", "steps": ["tag it", "write the notes", "ship"] }),
     );
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let to = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Docs", "steps": ["outline"] }),
     );
     let to = said(&to)["id"].as_str().unwrap().to_string();
 
     went(&served.call(
-        "unplan",
-        json!({ "task": &from, "step": "write the notes", "to": &to }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": &from, "step": "write the notes", "to": &to }),
     ));
 
     let texts = |read: &Value| -> Vec<String> {
@@ -260,16 +268,19 @@ fn open_steps_handed_on_leave_one_task_and_join_the_other() {
 fn a_ticked_step_among_those_handed_on_moves_none() {
     let served = Served::new();
     let from = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Release", "steps": ["tag it", "ship"] }),
     );
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let to = served.filed("Docs");
-    went(&served.call("tick", json!({ "task": &from, "step": "tag it" })));
+    went(&served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": &from, "step": "tag it" }),
+    ));
 
     let ticked = refused(&served.call(
-        "unplan",
-        json!({ "task": &from, "steps": ["tag it", "ship"], "to": &to }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": &from, "steps": ["tag it", "ship"], "to": &to }),
     ));
     assert!(ticked.contains("ticked"), "{ticked}");
     assert!(
@@ -283,15 +294,15 @@ fn a_ticked_step_among_those_handed_on_moves_none() {
 fn steps_go_to_the_persons_task_too() {
     let served = Served::new();
     let from = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Release", "steps": ["ship"] }),
     );
     let from = said(&from)["id"].as_str().unwrap().to_string();
     let persons = served.person().captures("the person's plan");
 
     went(&served.call(
-        "unplan",
-        json!({ "task": &from, "step": "ship", "to": persons.to_string() }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": &from, "step": "ship", "to": persons.to_string() }),
     ));
 
     assert_eq!(
@@ -313,9 +324,9 @@ fn copies_of_one_thing_are_marked_in_one_call_alike() {
     let two = served.paper("# Login, again\n\nThe same.");
 
     let marked = served.call(
-        "flag_doc",
-        json!({
-            "doc": [&one, &two],
+        "doc_annotate",
+        json!({ "action": "flag",
+            "docs": [&one, &two],
             "reason": "duplicate_of",
             "instead": &kept,
             "body": "what Login says already",
@@ -349,13 +360,13 @@ fn in_a_set_one_marked_already_is_skipped_and_named() {
     let one = served.paper("# Draft one\n\nscratch");
     let two = served.paper("# Draft two\n\nscratch");
     went(&served.call(
-        "flag_doc",
-        json!({ "doc": &one, "reason": "scratch", "body": "a scratch" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one], "reason": "scratch", "body": "a scratch" }),
     ));
 
     let again = served.call(
-        "flag_doc",
-        json!({ "doc": [&one, &two], "reason": "scratch", "body": "scratches" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one, &two], "reason": "scratch", "body": "scratches" }),
     );
     went(&again);
 
@@ -369,19 +380,19 @@ fn a_reason_that_points_elsewhere_needs_somewhere_that_exists() {
     let one = served.paper("# Draft\n\nscratch");
 
     let nowhere = refused(&served.call(
-        "flag_doc",
-        json!({ "doc": &one, "reason": "moved", "body": "moved" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one], "reason": "moved", "body": "moved" }),
     ));
     assert!(nowhere.contains("`instead`"), "{nowhere}");
     let missing = refused(&served.call(
-        "flag_doc",
-        json!({ "doc": &one, "reason": "moved", "instead": "zz-0000", "body": "moved" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one], "reason": "moved", "instead": "zz-0000", "body": "moved" }),
     ));
     assert!(missing.contains("no document or task"), "{missing}");
     let task = served.filed("Login work");
     went(&served.call(
-        "flag_doc",
-        json!({ "doc": &one, "reason": "moved", "instead": &task, "body": "moved to the task" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one], "reason": "moved", "instead": &task, "body": "moved to the task" }),
     ));
 }
 
@@ -391,8 +402,8 @@ fn a_reason_not_in_the_list_is_refused() {
     let one = served.paper("# Draft\n\nscratch");
 
     let odd = served.call(
-        "flag_doc",
-        json!({ "doc": &one, "reason": "boring", "body": "dull" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&one], "reason": "boring", "body": "dull" }),
     );
     assert_eq!(odd["result"]["isError"], true, "{odd}");
 }
@@ -401,25 +412,24 @@ fn a_reason_not_in_the_list_is_refused() {
 fn a_document_an_agent_wrote_is_compacted_and_says_so() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
-        "write_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "compact",
             "doc": &doc,
             "print": print,
-            "compact": true,
-            "body": "# Login\n\nOne. Two.\n",
+            "content": "# Login\n\nOne. Two.\n",
         }),
     );
     went(&done);
     assert!(said(&done)["size"]["after"].as_u64() < said(&done)["size"]["before"].as_u64());
     assert_eq!(said(&done)["dropped"], json!([]));
 
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"]["at"].is_string(), "{read}");
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
+    let back = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(
         back["body"].as_str().unwrap().contains("Session 1"),
         "{back}"
@@ -436,20 +446,20 @@ fn a_document_the_person_began_is_compacted_only_when_they_asked() {
     let doc = served
         .person()
         .writes_doc("# Recipes\n\nSoup.\n\n## Soup\n\nSoup.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     let asked = |asked: bool| {
         json!({
             "doc": &doc,
             "print": print,
-            "compact": true,
+            "mode": "compact",
             "person_asked": asked,
-            "body": "# Recipes\n\n## Soup\n\nSoup.\n",
+            "content": "# Recipes\n\n## Soup\n\nSoup.\n",
         })
     };
 
-    let theirs = refused(&served.call("write_doc", asked(false)));
+    let theirs = refused(&served.call("doc_edit", asked(false)));
     assert!(theirs.contains("begun by the person"), "{theirs}");
-    went(&served.call("write_doc", asked(true)));
+    went(&served.call("doc_edit", asked(true)));
 }
 
 #[test]
@@ -457,8 +467,8 @@ fn compacting_needs_a_document_to_compact() {
     let served = Served::new();
 
     let nothing = refused(&served.call(
-        "write_doc",
-        json!({ "body": "# Login\n\nOne.", "compact": true }),
+        "doc_edit",
+        json!({ "mode": "compact", "content": "# Login\n\nOne.", }),
     ));
     assert!(nothing.contains("`doc`"), "{nothing}");
 }
@@ -469,14 +479,14 @@ fn a_new_document_on_a_subject_already_kept_is_refused_naming_it() {
     let first = served.paper("# Inicio de sesión\n\nCómo funciona.");
 
     let again = refused(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# TIS-42 · inicio de sesion\n\nOtra vez." }),
     ));
     assert!(again.contains(&first), "{again}");
     assert!(again.contains("Inicio de sesión"), "{again}");
 
     went(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# TIS-42 · inicio de sesion\n\nOtra vez.", "anyway": true }),
     ));
 }
@@ -485,24 +495,27 @@ fn a_new_document_on_a_subject_already_kept_is_refused_naming_it() {
 fn only_open_documents_hold_a_subject_and_pages_never_do() {
     let served = Served::new();
     let put_away = served.paper("# Login\n\nOld.");
-    went(&served.call("archive_doc", json!({ "doc": &put_away, "archived": true })));
-    went(&served.call("write_doc", json!({ "body": "# Login\n\nNew." })));
+    went(&served.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [&put_away ]}),
+    ));
+    went(&served.call("doc_create", json!({ "body": "# Login\n\nNew." })));
 
     let marked = served.paper("# Billing\n\nOld.");
     went(&served.call(
-        "flag_doc",
-        json!({ "doc": &marked, "reason": "obsolete", "body": "retired" }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&marked], "reason": "obsolete", "body": "retired" }),
     ));
-    went(&served.call("write_doc", json!({ "body": "# Billing\n\nNew." })));
+    went(&served.call("doc_create", json!({ "body": "# Billing\n\nNew." })));
 
     let one = served.paper("# Search\n\nA.");
     let two = served.paper("# Export\n\nB.");
     went(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Overview\n\nA.", "page_of": &one }),
     ));
     went(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Overview\n\nB.", "page_of": &two }),
     ));
 }
@@ -521,8 +534,8 @@ fn a_refused_import_leaves_no_file_behind() {
     let shelf = served.home.path().join("data").join("attachments");
 
     let again = refused(&served.call(
-        "import_doc",
-        json!({ "path": from.path().join("login.md").to_str().unwrap() }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": from.path().join("login.md").to_str().unwrap() }),
     ));
 
     assert!(again.contains("already holds that subject"), "{again}");
@@ -542,8 +555,8 @@ fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied()
     )
     .unwrap();
     went(&served.call(
-        "import_doc",
-        json!({ "path": from.path().join("shots.md").to_str().unwrap() }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": from.path().join("shots.md").to_str().unwrap() }),
     ));
     let shelf = served.home.path().join("data").join("attachments");
     assert_eq!(files_under(&shelf), 1);
@@ -553,8 +566,8 @@ fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied()
     std::fs::write(from.path().join("long.md"), format!("{head}{filler}\n")).unwrap();
 
     let long = refused(&served.call(
-        "import_doc",
-        json!({ "path": from.path().join("long.md").to_str().unwrap() }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": from.path().join("long.md").to_str().unwrap() }),
     ));
 
     assert!(long.contains("characters"), "{long}");
@@ -571,62 +584,66 @@ fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied()
 fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "compact",
             "doc": &doc,
             "print": print,
-            "compact": true,
-            "body": "# Login\n\nOne. Two.\n",
+            "content": "# Login\n\nOne. Two.\n",
         }),
     ));
-    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
-    let added = refused(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
+    let added = refused(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &doc, "content": "Three." }),
+    ));
     let edited = refused(&served.call(
-        "edit_doc",
-        json!({ "doc": &doc, "old": "One. Two.", "new": "One, two." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": &doc, "old": "One. Two.", "content": "One, two." }),
     ));
     let whole = refused(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": now, "body": "# Login\n\nOne.\n" }),
+        "doc_edit",
+        json!({ "mode": "rewrite", "doc": &doc, "print": now, "content": "# Login\n\nOne.\n" }),
     ));
     for told in [&added, &edited, &whole] {
         assert!(told.contains("waits for the person"), "{told}");
     }
 
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
+    let back = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(
         back["body"].as_str().unwrap().contains("Session 1"),
         "{back}"
     );
     assert!(back["compacted"].is_null(), "{back}");
-    went(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &doc, "content": "Three." }),
+    ));
 }
 
 #[test]
 fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_through() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "compact",
             "doc": &doc,
             "print": print,
-            "compact": true,
-            "body": "# Login\n\nOne. Two.\n",
+            "content": "# Login\n\nOne. Two.\n",
         }),
     ));
 
     went(&served.call(
-        "append_doc",
-        json!({ "doc": &doc, "body": "Three.", "keep_compaction": true }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": &doc, "content": "Three.", "keep_compaction": true }),
     ));
 
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"].is_null(), "{read}");
     assert!(read["body"].as_str().unwrap().contains("Three."), "{read}");
 }
@@ -638,18 +655,18 @@ fn a_compaction_that_loses_a_link_is_refused_naming_it() {
     let doc = served.paper(&format!(
         "# Login\n\nOne, see https://example.com/old and [tokens](tisty:doc/{other}).\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n"
     ));
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     let lost = refused(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
 
     assert!(lost.contains("nowhere in the new one"), "{lost}");
     assert!(lost.contains("https://example.com/old"), "{lost}");
     assert!(lost.contains(&format!("tisty:doc/{other}")), "{lost}");
     assert!(lost.contains("Nothing was written"), "{lost}");
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"].is_null(), "{read}");
     assert!(
         read["body"].as_str().unwrap().contains("Session 1"),
@@ -663,15 +680,14 @@ fn a_compaction_lists_the_links_its_history_only_mentions() {
     let doc = served.paper(
         "# Login\n\nOne, see https://example.com/old.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n",
     );
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
-        "write_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "compact",
             "doc": &doc,
             "print": print,
-            "compact": true,
-            "body": "# Login\n\nOne. Two.\n\n## History\n\nTook out `https://example.com/old`.\n",
+            "content": "# Login\n\nOne. Two.\n\n## History\n\nTook out `https://example.com/old`.\n",
         }),
     );
 
@@ -687,26 +703,26 @@ fn a_compaction_lists_the_links_its_history_only_mentions() {
 fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
-    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne, two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": now, "content": "# Login\n\nOne, two.\n" }),
     ));
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"]["at"].is_string(), "{read}");
     assert!(
         read["body"].as_str().unwrap().contains("One, two."),
         "{read}"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
-    let back = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
+    let back = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     let body = back["body"].as_str().unwrap();
     assert!(body.contains("Session 1"), "{back}");
     assert!(!body.contains("One. Two."), "{back}");
@@ -717,19 +733,19 @@ fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body()
 fn a_compaction_written_over_since_is_not_compacted_again() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
     served
         .person()
         .saves_doc(&doc, "# Login\n\nOne. Two. Three.\n");
-    let now = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let now = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     let again = refused(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": now, "content": "# Login\n\nOne.\n" }),
     ));
     assert!(again.contains("waits for the person"), "{again}");
 }
@@ -738,15 +754,14 @@ fn a_compaction_written_over_since_is_not_compacted_again() {
 fn a_compaction_that_grows_the_body_says_so() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     let done = served.call(
-        "write_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "compact",
             "doc": &doc,
             "print": print,
-            "compact": true,
-            "body": "# Login\n\nOne, and a good deal more than there was.\n",
+            "content": "# Login\n\nOne, and a good deal more than there was.\n",
         }),
     );
 
@@ -761,7 +776,7 @@ fn the_outline_names_links_that_lead_nowhere() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nSee [gone](tisty:doc/zzzzzzzz-9999).\n");
 
-    let outline = served.call("brain", json!({ "doc": &doc }));
+    let outline = served.call("workspace_read", json!({ "doc": &doc , "view": "card" }));
     went(&outline);
     let told = said(&outline);
     assert_eq!(told["dead"][0]["to"], "tisty:doc/zzzzzzzz-9999", "{told}");
@@ -778,14 +793,14 @@ fn links_to_nothing_or_to_documents_marked_now_need_no_line_in_the_history() {
         "# Login\n\nOne.\n\n[the plan](tisty:doc/{old})\n\n[gone](tisty:doc/zzzzzzzz-0099)\n\n## Session 1\n\nTwo.\n"
     ));
     went(&served.call(
-        "flag_doc",
-        json!({ "doc": &old, "reason": "obsolete", "body": "Its branch was merged." }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&old], "reason": "obsolete", "body": "Its branch was merged." }),
     ));
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
 
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
 }
 
@@ -804,12 +819,18 @@ fn files_under(at: &std::path::Path) -> usize {
 fn the_assistants_notes_are_written_again_whole_and_can_be_put_back() {
     let served = Served::new();
     let task = served.filed("Login work");
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried B." }),
+    ));
 
     went(&served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "Digest: A and B ruled out.\n- [ ] still open", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "Digest: A and B ruled out.\n- [ ] still open" }),
     ));
     let read = served.task(&task);
     let page = read["document"].to_string();
@@ -820,7 +841,7 @@ fn the_assistants_notes_are_written_again_whole_and_can_be_put_back() {
         "a box is no step: {read}"
     );
 
-    went(&served.call("restore_doc", json!({ "doc": &task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &task })));
     let back = served.task(&task)["document"].to_string();
     assert!(back.contains("Tried B."), "{back}");
 }
@@ -831,8 +852,8 @@ fn replacing_is_only_for_a_task_s_page() {
     let doc = served.paper("# Log\n\nOne.");
 
     let wrong = refused(&served.call(
-        "append_doc",
-        json!({ "doc": &doc, "body": "Two.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &doc, "content": "Two." }),
     ));
     assert!(wrong.contains("task"), "{wrong}");
 }
@@ -842,12 +863,12 @@ fn the_outline_names_alike_documents_repeated_headings_and_who_began_each_page()
     let served = Served::new();
     let book = served.paper("# Login\n\n## Tokens\n\nA.\n");
     went(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Code review 1\n\n## Tokens\n\nB.\n", "page_of": &book }),
     ));
     let loose = served.paper("# Code review 1\n\nThe same review, loose.");
 
-    let outline = served.call("brain", json!({ "doc": &book }));
+    let outline = served.call("workspace_read", json!({ "doc": &book , "view": "card" }));
     went(&outline);
     let told = said(&outline);
     assert_eq!(told["by"], "agent");
@@ -859,11 +880,17 @@ fn the_outline_names_alike_documents_repeated_headings_and_who_began_each_page()
 #[test]
 fn a_new_document_outside_every_folder_is_pointed_at_the_closest_ones() {
     let served = Served::new();
-    served.call("folder", json!({ "name": "Recipes" }));
-    served.call("folder", json!({ "name": "Work" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Recipes" }),
+    );
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Work" }),
+    );
 
     let near = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Recipes for winter\n\nSoup." }),
     );
     let text = near["result"]["content"][0]["text"].as_str().unwrap();
@@ -876,7 +903,7 @@ fn a_new_document_outside_every_folder_is_pointed_at_the_closest_ones() {
             .contains("outside any folder")
     );
 
-    let far = served.call("write_doc", json!({ "body": "# Holidays\n\nBeach." }));
+    let far = served.call("doc_create", json!({ "body": "# Holidays\n\nBeach." }));
     let text = far["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("nothing kept in one reads like it"), "{text}");
     assert!(
@@ -888,16 +915,22 @@ fn a_new_document_outside_every_folder_is_pointed_at_the_closest_ones() {
 #[test]
 fn two_plain_words_in_common_point_at_no_folder() {
     let served = Served::new();
-    served.call("folder", json!({ "name": "Work" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Work" }),
+    );
     let doc = served.paper(
         "# Meeting notes weekly
 
 Who said what.",
     );
-    served.call("file_doc", json!({ "doc": doc, "folder": "Work" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "file", "docs": [doc], "folder": "Work" }),
+    );
 
     let loose = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Meeting notes dentist
 
 Next visit.", "anyway": true }),
@@ -910,8 +943,14 @@ Next visit.", "anyway": true }),
 #[test]
 fn a_new_document_is_pointed_at_the_folder_whose_documents_read_like_it() {
     let served = Served::new();
-    served.call("folder", json!({ "name": "Projects" }));
-    served.call("folder", json!({ "name": "Kitchen" }));
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Projects" }),
+    );
+    served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Kitchen" }),
+    );
     for body in [
         "# Plan: attachments in one place
 
@@ -921,11 +960,14 @@ Where they live. #attachments",
 How they are let go. #attachments",
     ] {
         let doc = served.paper(body);
-        served.call("file_doc", json!({ "doc": doc, "folder": "Projects" }));
+        served.call(
+            "doc_organize",
+            json!({ "action": "file", "docs": [doc], "folder": "Projects" }),
+        );
     }
 
     let loose = served.call(
-        "write_doc",
+        "doc_create",
         json!({
             "body": "# Plan: join duplicate attachments
 
@@ -948,7 +990,7 @@ fn a_task_left_in_the_inbox_is_pointed_at_the_closest_list() {
     served.person().adds_list("Garden");
 
     let near = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Water the garden" }),
     );
     let text = near["result"]["content"][0]["text"].as_str().unwrap();
@@ -958,24 +1000,30 @@ fn a_task_left_in_the_inbox_is_pointed_at_the_closest_list() {
 #[test]
 fn the_new_tool_and_its_fields_are_listed() {
     let served = Served::new();
-    let unknown = served.call("move", json!({ "task": "x", "where": "y" }));
+    let unknown = served.call("task_update", json!({ "task": "x", "where": "y" }));
     let said = unknown["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("part_of") && said.contains("list"), "{said}");
 }
 
 fn digested(served: &Served) -> String {
     let task = said(&served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Login work", "steps": ["read the old flow", "write the new one"] }),
     ))["id"]
         .as_str()
         .unwrap()
         .to_string();
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
     went(&served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "Digest: A and B ruled out.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried B." }),
+    ));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "Digest: A and B ruled out." }),
     ));
     task
 }
@@ -991,12 +1039,18 @@ fn page_of(served: &Served, task: &str) -> String {
 fn a_digest_says_how_much_it_folded_and_whose_notes_they_were() {
     let served = Served::new();
     let task = served.filed("Login work");
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried B." }),
+    ));
 
     let done = served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "Digest: A and B ruled out.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "Digest: A and B ruled out." }),
     );
 
     went(&done);
@@ -1007,7 +1061,7 @@ fn a_digest_says_how_much_it_folded_and_whose_notes_they_were() {
     assert_eq!(told["by"].as_array().unwrap().len(), 1, "{told}");
     let text = done["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("folding 2 dated entries"), "{text}");
-    assert!(text.contains("`restore_doc`"), "{text}");
+    assert!(text.contains("`doc_edit` (`mode: \"restore\"`)"), "{text}");
 }
 
 #[test]
@@ -1015,12 +1069,15 @@ fn a_digest_is_undone_even_after_later_ticks_and_notes() {
     let served = Served::new();
     let task = digested(&served);
     went(&served.call(
-        "tick",
-        json!({ "task": &task, "step": "read the old flow" }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": &task, "step": "read the old flow" }),
     ));
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Then C." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Then C." }),
+    ));
 
-    let back = served.call("restore_doc", json!({ "doc": &task }));
+    let back = served.call("doc_edit", json!({ "mode": "restore", "doc": &task }));
 
     went(&back);
     assert_eq!(said(&back)["notes_put_back"], true, "{back}");
@@ -1047,9 +1104,9 @@ fn a_digest_is_undone_even_after_later_ticks_and_notes() {
 fn putting_the_notes_back_twice_brings_the_digest_back() {
     let served = Served::new();
     let task = digested(&served);
-    went(&served.call("restore_doc", json!({ "doc": &task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &task })));
 
-    went(&served.call("restore_doc", json!({ "doc": &task })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &task })));
 
     let page = page_of(&served, &task);
     assert!(page.contains("Digest"), "{page}");
@@ -1060,7 +1117,10 @@ fn putting_the_notes_back_twice_brings_the_digest_back() {
 fn a_digest_never_writes_over_notes_no_assistant_signed() {
     let served = Served::new();
     let task = served.filed("Login work");
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
     let page = served.task(&task)["document"].clone();
     let file = page["file"].as_str().unwrap();
     let body = page["body"].as_str().unwrap().replacen(
@@ -1071,8 +1131,8 @@ fn a_digest_never_writes_over_notes_no_assistant_signed() {
     served.person().saves_doc(file, &body);
 
     let over = refused(&served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "Digest.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "Digest." }),
     ));
 
     assert!(over.contains("no assistant wrote"), "{over}");
@@ -1084,7 +1144,10 @@ fn a_digest_never_writes_over_notes_no_assistant_signed() {
 fn a_line_the_person_added_under_an_assistant_s_note_is_found_and_passes_once_carried() {
     let served = Served::new();
     let task = served.filed("Login work");
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
     let page = served.task(&task)["document"].clone();
     let file = page["file"].as_str().unwrap();
     let body = page["body"].as_str().unwrap().replacen(
@@ -1093,20 +1156,22 @@ fn a_line_the_person_added_under_an_assistant_s_note_is_found_and_passes_once_ca
         1,
     );
     served.person().saves_doc(file, &body);
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried B." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried B." }),
+    ));
 
     let over = refused(&served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "Digest: A ruled out.", "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "Digest: A ruled out." }),
     ));
     assert!(over.contains("«The client wants v1 kept.»"), "{over}");
 
     went(&served.call(
-        "append_doc",
-        json!({
+        "doc_edit",
+        json!({ "mode": "digest_task_notes",
             "doc": &task,
-            "body": "Digest: A ruled out.\nThe client wants v1 kept.",
-            "replace": true,
+            "content": "Digest: A ruled out.\nThe client wants v1 kept.",
         }),
     ));
     assert!(page_of(&served, &task).contains("The client wants v1 kept."));
@@ -1116,11 +1181,14 @@ fn a_line_the_person_added_under_an_assistant_s_note_is_found_and_passes_once_ca
 fn a_digest_longer_than_the_notes_should_ever_be_is_refused() {
     let served = Served::new();
     let task = served.filed("Login work");
-    went(&served.call("append_doc", json!({ "doc": &task, "body": "Tried A." })));
+    went(&served.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": &task, "content": "Tried A." }),
+    ));
 
     let long = refused(&served.call(
-        "append_doc",
-        json!({ "doc": &task, "body": "x".repeat(6_001), "replace": true }),
+        "doc_edit",
+        json!({ "mode": "digest_task_notes", "doc": &task, "content": "x".repeat(6_001) }),
     ));
 
     assert!(long.contains("at most 6000 characters"), "{long}");
@@ -1131,16 +1199,16 @@ fn a_digest_longer_than_the_notes_should_ever_be_is_refused() {
 fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_person() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
 
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
 
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(
         read["body"].as_str().unwrap().contains("One. Two."),
         "{read}"
@@ -1152,19 +1220,19 @@ fn undoing_an_undone_compaction_brings_the_compaction_back_waiting_for_the_perso
 fn a_compaction_the_person_kept_is_not_marked_again_when_undone_twice() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
-    let print = said(&served.call("read", json!({ "doc": &doc })))["print"].clone();
+    let print = said(&served.call("workspace_read", json!({ "doc": &doc })))["print"].clone();
     went(&served.call(
-        "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        "doc_edit",
+        json!({ "mode": "compact", "doc": &doc, "print": print, "content": "# Login\n\nOne. Two.\n" }),
     ));
     went(&served.call(
-        "edit_doc",
-        json!({ "doc": &doc, "old": "One. Two.", "new": "One, two.", "keep_compaction": true }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": &doc, "old": "One. Two.", "content": "One, two.", "keep_compaction": true }),
     ));
 
-    went(&served.call("restore_doc", json!({ "doc": &doc })));
+    went(&served.call("doc_edit", json!({ "mode": "restore", "doc": &doc })));
 
-    let read = said(&served.call("read", json!({ "doc": &doc }))).clone();
+    let read = said(&served.call("workspace_read", json!({ "doc": &doc }))).clone();
     assert!(
         read["body"].as_str().unwrap().contains("One. Two."),
         "{read}"
@@ -1180,7 +1248,7 @@ fn marking_a_translation_names_the_original_it_leaves_behind() {
     let served = Served::new();
     let es = served.paper("---\nlang: es\n---\n# Inicio de sesión\n\nUno.\n");
     let en = said(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Login\n\nOne.", "translation_of": &es, "lang": "en" }),
     ))["doc"]
         .as_str()
@@ -1189,8 +1257,8 @@ fn marking_a_translation_names_the_original_it_leaves_behind() {
     let stays = served.paper("# Sign-in\n\nOne, and more.\n");
 
     let marked = served.call(
-        "flag_doc",
-        json!({ "doc": &en, "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&en], "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
     );
 
     went(&marked);
@@ -1202,7 +1270,7 @@ fn marking_a_document_names_its_other_languages_and_what_links_to_it() {
     let served = Served::new();
     let es = served.paper("---\nlang: es\n---\n# Inicio de sesión\n\nUno.\n");
     let en = said(&served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Login\n\nOne.", "translation_of": &es, "lang": "en" }),
     ))["doc"]
         .as_str()
@@ -1212,8 +1280,8 @@ fn marking_a_document_names_its_other_languages_and_what_links_to_it() {
     let pointing = served.paper(&format!("# Index\n\n[login](tisty:doc/{es})\n"));
 
     let marked = served.call(
-        "flag_doc",
-        json!({ "doc": &es, "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [&es], "reason": "duplicate_of", "instead": &stays, "body": "Sign-in says it all." }),
     );
 
     went(&marked);

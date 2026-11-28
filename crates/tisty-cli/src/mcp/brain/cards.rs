@@ -90,7 +90,7 @@ fn card_of(paths: &Paths, state: &State, base: Option<&Brain>, id: &str) -> Opti
     base?.card(id, today, |one| gate.sees(one)).ok().flatten()
 }
 
-pub(super) fn of_doc(paths: &Paths, which: &str, args: &Value) -> Result<Value, Refused> {
+pub(in crate::mcp) fn of_doc(paths: &Paths, which: &str, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     if let Some(at) = args.get("section") {
         let Some(at) = at.as_u64() else {
@@ -155,7 +155,7 @@ fn with_neighbours(answer: &mut Value, card: Card) {
     }
 }
 
-pub(super) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value, Refused> {
+pub(in crate::mcp) fn of_task(paths: &Paths, which: &str, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let Ok(id) = which.parse::<TaskId>() else {
         return Err(Refused::Tool(not_a_task_id(&state, which)));

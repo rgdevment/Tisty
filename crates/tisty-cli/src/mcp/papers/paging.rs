@@ -210,7 +210,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         true => String::new(),
         false => format!(
             " The line naming {} is still written in {}, which no longer holds it: take it out \
-             with `edit_doc` when you are done.",
+             with `doc_edit` (`mode: \"patch\"`) when you are done.",
             named_all(
                 &state,
                 &stayed

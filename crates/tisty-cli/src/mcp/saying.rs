@@ -58,7 +58,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(Refused::Tool(format!(
             "{who} already said {:?} {} on {}, and the person has not looked yet. Saying \
              it again would only stack another entry on the journal — add what is new with \
-             `note`.",
+             `task_note`.",
             task.title,
             if already.drop {
                 "would not be done"
@@ -78,16 +78,16 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(Refused::Tool(format!(
             "{:?} still has {open_parts} part(s) open, and a whole is done only when its parts \
              are. Say each of yours done as you finish it. What only the person can do goes to \
-             them with `unplan` and `to_person`, and their part never holds the whole; then \
-             `say_done`. Whether to let the rest go is the person's call: say what is left with \
-             `note`.",
+             them with `task_edit_steps` (`action: \"remove\"`, `to_person: true`), and their part \
+             never holds the whole; then `task_resolve` (`outcome: \"done\"`). Whether to let the \
+             rest go is the person's call: say what is left with `task_note`.",
             task.title
         )));
     }
     if drop && (task.repeat.is_some() || task.after.is_some()) {
         return Err(Refused::Tool(format!(
             "{:?} is a turn of something that repeats, and dropping it would end the repeat. \
-             Whether it goes on is the person's call: say why with `note`.",
+             Whether it goes on is the person's call: say why with `task_note`.",
             task.title
         )));
     }

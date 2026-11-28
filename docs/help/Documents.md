@@ -347,7 +347,7 @@ It is there for a text you deleted on purpose: you pasted a number into «Insura
 
 ### With your agent
 
-You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An agent lists, reads and goes back to the same versions with `read` and `restore_doc`, and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
+You also go back without opening the list: when something writes in the document you have open, the bar offers **Put back what it said before**. An agent lists, reads and goes back to the same versions with `workspace_read` and `doc_edit` (`mode: "restore"`), and can never empty them: that is yours. You can ask in your own words: «put "Rina's walks" back the way it was before your change yesterday». How it does it, with examples, is in [MCP tools](MCP-Tools#a-documents-earlier-versions).
 
 ## Taking documents out
 

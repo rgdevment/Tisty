@@ -1,0 +1,72 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Add, tick, untick, reword, or remove/hand off steps on an open task, or update its page `state` digest. On `person` tasks, `tick` records your word for user confirmation. On `remove`, `to_person: true` hands human-only steps to the companion subtask.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Step/state operation",
+        "enum": [
+          "add",
+          "tick",
+          "untick",
+          "reword",
+          "remove",
+          "set_state"
+        ],
+        "type": "string"
+      },
+      "state": {
+        "description": "Current-state summary overwritten on task page (<=3,000 chars; `tick`/`set_state`)",
+        "type": "string"
+      },
+      "step": {
+        "description": "Single step exact text (required for `reword`; fallback for single-step ops)",
+        "type": "string"
+      },
+      "steps": {
+        "description": "Exact step texts (<=100 chars each for `add`; all-or-nothing match for others)",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "task": {
+        "description": "Open task ID",
+        "type": "string"
+      },
+      "text": {
+        "description": "Replacement step text for `reword` (<=100 chars)",
+        "type": "string"
+      },
+      "title": {
+        "description": "Companion task title if created by `to_person`",
+        "type": "string"
+      },
+      "to": {
+        "description": "Destination open task ID to transfer removed steps onto (`remove`)",
+        "type": "string"
+      },
+      "to_person": {
+        "description": "Hand removed steps to task's person-owned companion subtask (`remove`)",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "task",
+      "action"
+    ],
+    "type": "object"
+  },
+  "name": "task_edit_steps",
+  "title": "Manage task steps and state"
+}

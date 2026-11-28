@@ -128,15 +128,18 @@ fn a_session_starts_knowing_the_open_tasks_this_client_left() {
     let mut agent = home.connect("claude-code");
     for title in ["Ship the hooks", "Measure the hooks"] {
         agent.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Personal", "steps": ["one", "two"] }),
         );
     }
     let first = home.person().id_of("Ship the hooks");
-    agent.call("tick", json!({ "task": first.to_string(), "step": "one" }));
+    agent.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": first.to_string(), "step": "one" }),
+    );
     let mut other = home.connect("codex");
     other.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Codex's own work", "steps": ["x"] }),
     );
 
@@ -165,11 +168,11 @@ fn a_session_does_not_start_with_the_tasks_filed_for_the_person() {
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one"] }),
     );
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "person", "title": "Try the hooks by hand", "list": "Personal", "steps": ["open it"] }),
     );
 
@@ -185,13 +188,13 @@ fn a_person_task_made_by_handing_steps_over_does_not_start_a_session_either() {
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one", "try it"] }),
     );
     let id = home.person().id_of("Ship the hooks").to_string();
     agent.call(
-        "unplan",
-        json!({ "task": id, "step": "try it", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": id, "step": "try it", "to_person": true }),
     );
 
     let said = started(&home);
@@ -206,17 +209,20 @@ fn the_hook_and_catch_up_say_the_same_of_the_task_left_open() {
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the hooks", "list": "Personal", "steps": ["one", "two"] }),
     );
     let id = home.person().id_of("Ship the hooks").to_string();
     agent.call(
-        "tick",
-        json!({ "task": id, "step": "one", "state": "Blocked: waiting for the signing key." }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "one", "state": "Blocked: waiting for the signing key." }),
     );
 
     let started = started(&home);
-    let caught = agent.ask("tools/call", json!({ "name": "catch_up", "arguments": {} }));
+    let caught = agent.ask(
+        "tools/call",
+        json!({ "name": "workspace_catch_up", "arguments": {} }),
+    );
     let last = &caught["result"]["structuredContent"]["last"];
     let said = caught["result"]["content"][0]["text"].as_str().unwrap();
 
@@ -241,7 +247,7 @@ fn what_the_person_moved_since_the_last_catch_up_comes_with_it() {
     let home = Home::new();
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
-    agent.call("catch_up", json!({}));
+    agent.call("workspace_catch_up", json!({}));
     std::thread::sleep(std::time::Duration::from_millis(20));
     home.person().captures("Buy the new cable");
 
@@ -257,11 +263,11 @@ fn a_hidden_task_and_the_diary_never_reach_a_starting_session() {
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Secret errand", "list": "Personal", "steps": ["one"] }),
     );
     let secret = home.person().id_of("Secret errand");
-    agent.call("catch_up", json!({}));
+    agent.call("workspace_catch_up", json!({}));
     std::thread::sleep(std::time::Duration::from_millis(20));
     home.person().hides(secret);
     let today = jiff::ZonedDateTime::now().date();
@@ -432,20 +438,23 @@ fn in_session(session: &str) -> Value {
 }
 
 fn a_tick_of(session: &str, task: &str) -> Value {
-    json!({ "session_id": session, "tool_name": "mcp__tisty__tick",
-            "tool_input": { "task": task, "step": "one" } })
+    json!({ "session_id": session, "tool_name": "mcp__tisty__task_edit_steps",
+            "tool_input": { "action": "tick", "task": task, "step": "one" } })
 }
 
 fn an_agent_task(home: &Home, agent: &mut Connection, title: &str, steps: &[&str]) -> String {
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": title, "list": "Personal", "steps": steps }),
     );
     home.person().id_of(title).to_string()
 }
 
 fn every_step_ticked(agent: &mut Connection, task: &str, steps: &[&str]) {
-    agent.call("tick", json!({ "task": task, "steps": steps }));
+    agent.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": steps }),
+    );
 }
 
 fn shell_push(client: &str, session: &str) -> Value {
@@ -481,7 +490,7 @@ fn claude_code_is_asked_what_it_finished_right_after_a_push_and_the_stop_does_no
         .as_str()
         .unwrap();
     assert!(context.contains(PUBLISHED), "{context}");
-    assert!(context.contains("`say_done`"), "{context}");
+    assert!(context.contains("`task_resolve`"), "{context}");
 
     assert_eq!(stopped(&home, "claude-code", &in_session("s-push")), "");
 }
@@ -631,7 +640,7 @@ fn a_task_with_every_step_ticked_is_asked_to_be_said_done_once_at_the_stop() {
     let reason = told["reason"].as_str().unwrap();
     assert!(reason.contains("Ship the hooks"), "{reason}");
     assert!(reason.contains(EVERY_STEP), "{reason}");
-    assert!(reason.contains("`say_done`"), "{reason}");
+    assert!(reason.contains("`task_resolve`"), "{reason}");
 
     assert_eq!(stopped(&home, "claude-code", &in_session("s-ready")), "");
 }
@@ -667,8 +676,8 @@ fn a_task_already_said_done_is_not_asked_again() {
     let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
     every_step_ticked(&mut agent, &task, &["one"]);
     agent.call(
-        "say_done",
-        json!({ "task": task, "body": "built and proven", "branch": "feat/x" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": task, "body": "built and proven", "branch": "feat/x" }),
     );
     home.hook("claude-code", "tool", &a_tick_of("s-said", &task));
 
@@ -681,7 +690,7 @@ fn a_task_for_the_person_is_never_asked_to_be_said_done() {
     home.person().lets_the_agent_in();
     let mut agent = home.connect("claude-code");
     agent.call(
-        "propose",
+        "task_create",
         json!({ "for": "person", "title": "Try it by hand", "list": "Personal",
                 "steps": ["one"] }),
     );
@@ -720,7 +729,7 @@ fn only_a_task_written_through_a_tisty_write_tool_is_asked_about() {
     let task = an_agent_task(&home, &mut agent, "Ship the hooks", &["one"]);
     every_step_ticked(&mut agent, &task, &["one"]);
 
-    let read = json!({ "session_id": "s-read", "tool_name": "mcp__tisty__read",
+    let read = json!({ "session_id": "s-read", "tool_name": "mcp__tisty__workspace_read",
                        "tool_input": { "task": task } });
     home.hook("claude-code", "tool", &read);
 

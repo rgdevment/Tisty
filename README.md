@@ -727,25 +727,26 @@ Things to ask once it is connected:
 
 ## Tools
 
-What `tisty mcp` offers an agent, by what it works on. It never closes or
-deletes: `say_done` leaves a task for you to confirm, and `flag_doc` marks a
-document for you to delete, put away or keep. Each tool is described in
+What `tisty mcp` offers an agent, in 15 cohesive tools grouped by domain. It
+never closes or deletes: `task_resolve` leaves a task for you to confirm, and
+`doc_annotate` (`action: "flag"`) marks a document for you to delete, put away
+or keep. Each tool is described in
 [MCP tools](https://www.tisty.app/docs/mcp-tools/).
 
-- **Tasks** — file one with steps and a date, plan and tick its steps, set
-  when it rings, move its day, say it is done: `propose`, `describe`, `plan`,
-  `tick`, `untick`, `reword_step`, `unplan`, `rename`, `move`, `remind`,
-  `reschedule`, `say_done`, `say_not_doing`, `read`
-- **A task's journal and files** — `note`, `reword_note`, `attach`
-- **Documents** — write one, add to it, change a passage or a table, read only
-  the part it needs: `write_doc`, `append_doc`, `edit_doc`, `edit_table`,
-  `read`, `sum_up`, `restore_doc`, `import_doc`, `export_doc`,
-  `archive_doc`, `flag_doc`
-- **Folders, pages and languages** — `folder`, `file_doc`, `page_doc`,
-  `tongue_doc`
-- **Finding things** — open and archived work, a document's card, a project's
-  parts, lists, folders and tags: `brain`, `catch_up`
-- **How to work here** — `rules`, `language`, `help`
+- **Workspace & discovery** — catch up on what moved, search tasks and
+  documents or inspect cards and folders, read a task or slice of a document,
+  and fetch workflow rules, Markdown syntax or app help: `workspace_catch_up`,
+  `workspace_search`, `workspace_read`, `workspace_guide`
+- **Tasks** — file one or many tasks with steps and owner (`for`), update its
+  fields/schedule/list/parent, add/reword/remove/tick/untick steps with state,
+  keep its journal, and report it done or not doing: `task_create`,
+  `task_update`, `task_edit_steps`, `task_note`, `task_resolve`
+- **Documents** — create a new document/page/translation, patch/append/rewrite/
+  compact/restore content, edit Markdown tables, organize folders, pages and
+  languages, and archive, summarize or flag documents: `doc_create`, `doc_edit`,
+  `doc_edit_table`, `doc_organize`, `doc_annotate`
+- **Files** — attach a local file to a task or document, or import/export a
+  Markdown document on disk: `file_transfer`
 
 Beside the tools, it offers eight ready-made requests your agent shows as
 commands (`pick_up`, `leave_off`, `plan_task`, `solved_before`,

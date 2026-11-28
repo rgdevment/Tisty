@@ -197,14 +197,15 @@ pub(super) fn answer_masked(paths: &Paths, mut said: Value) -> Value {
 
 // Tisty's own guides name example tasks that were never there, and must reach the agent as written.
 pub(super) fn reads_the_persons_words(name: &str) -> bool {
-    !matches!(name, "rules" | "help" | "language")
+    name != "workspace_guide"
 }
 
 fn rewritten_keys(name: &str) -> &'static [&'static str] {
     match name {
-        "write_doc" | "edit_doc" | "append_doc" => &["body", "old", "new"],
-        "describe" | "reword_note" => &["body"],
-        "reword_step" => &["text"],
+        "doc_edit" => &["content", "old"],
+        "task_update" => &["description"],
+        "task_note" => &["body"],
+        "task_edit_steps" => &["text"],
         _ => &[],
     }
 }
@@ -237,7 +238,7 @@ pub(super) fn args_unmasked(paths: &Paths, name: &str, mut args: Value) -> Value
 
 fn rewritten(paths: &Paths, state: &State, name: &str, args: &Value) -> Option<String> {
     let said = |key: &str| args.get(key).and_then(Value::as_str);
-    if matches!(name, "write_doc" | "edit_doc" | "append_doc") {
+    if name == "doc_edit" {
         let which = said("doc")?;
         let file = match which.parse::<TaskId>() {
             Ok(task) => {
@@ -260,8 +261,8 @@ fn rewritten(paths: &Paths, state: &State, name: &str, args: &Value) -> Option<S
             .join("\n"),
     };
     Some(match name {
-        "describe" => task.description.clone().unwrap_or_default(),
-        "reword_note" => one_of(
+        "task_update" => task.description.clone().unwrap_or_default(),
+        "task_note" => one_of(
             task.log
                 .iter()
                 .map(|one| (one.id.to_string(), one.body.as_str()))

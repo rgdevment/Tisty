@@ -35,7 +35,7 @@ pub(super) fn sheet_may_start(paths: &Paths, state: &State, placed: bool) -> Res
     if let Some((kept, _)) = sheet(paths, state) {
         return Err(Refused::Tool(format!(
             "the person's Ideas sheet is already {}, and there is only ever one: add these ideas \
-             to it with `append_doc`. Nothing was written.",
+             to it with `doc_edit` (`mode: \"append\"`). Nothing was written.",
             doc_named(state, &kept.file)
         )));
     }
@@ -377,7 +377,7 @@ fn still_waits(named: &str, idea: &Idea, into: &str) -> Filed {
     Filed {
         said: format!(
             " «{}» could not be taken off {named} just now, so it still waits there: mark it \
-             `moved` with `flag_doc`, `instead` {into}.",
+             `moved` with `doc_annotate` (`action: \"flag\"`), `instead` {into}.",
             idea.text
         ),
         off: false,
@@ -423,8 +423,8 @@ pub(super) fn filed_off(
             said: format!(
                 " This note is headed as «{}» on {named}, but its words are not that idea's, so \
                  the sheet still holds it: a filed idea goes alone, its words as the sheet has \
-                 them. If this note files it, mark that idea `moved` with `flag_doc`, `instead` \
-                 \"{into}\", rather than adding the note again.",
+                 them. If this note files it, mark that idea `moved` with `doc_annotate` (`action: \
+                 \"flag\"`), `instead` \"{into}\", rather than adding the note again.",
                 named_one.text
             ),
             off: false,
@@ -467,14 +467,15 @@ pub(super) fn made_a_task(
         [] => Filed {
             said: format!(
                 " No idea on {named} is headed {heading:?}, so the one this task came from still \
-                 waits there: mark it `moved` with `flag_doc`, `instead` this task."
+                 waits there: mark it `moved` with `doc_annotate` (`action: \"flag\"`), `instead` \
+                 this task."
             ),
             off: false,
         },
         _ => Filed {
             said: format!(
                 " {} ideas on {named} carry that heading, so none was taken off: mark the one \
-                 this task came from with `flag_doc`, `moved` to it.",
+                 this task came from with `doc_annotate` (`action: \"flag\"`), `moved` to it.",
                 found.len()
             ),
             off: false,
@@ -492,8 +493,8 @@ pub(super) fn keeps_every_idea(
         return match is_sheet(after) {
             true => Err(Refused::Tool(format!(
                 "`brainstorm: on` would turn {} into an Ideas sheet, and a sheet is only ever \
-                 made new with `write_doc`, as `rules` «ideas» says. Leave that line out. Nothing \
-                 was written.",
+                 made new with `doc_create`, as `workspace_guide` (`kind: \"rules\"`, `topic: \
+                 \"ideas\"`) says. Leave that line out. Nothing was written.",
                 doc_named(state, which)
             ))),
             false => Ok(()),
@@ -539,8 +540,8 @@ pub(super) fn keeps_every_idea(
         return Err(Refused::Tool(format!(
             "{named} is the person's Ideas sheet, and this write would take {} idea(s) off it or \
              leave them without their words, «{}» first. Taking an idea off is theirs: mark it \
-             with `flag_doc`, `doc` \"{which}#{}\", or file it in a document or a task, which \
-             takes it off as the window does. Nothing was written.",
+             with `doc_annotate` (`action: \"flag\"`), `docs: [\"{which}#{}\"]`, or file it in a \
+             document or a task, which takes it off as the window does. Nothing was written.",
             lost.len(),
             gone.text,
             gone.heading
@@ -586,8 +587,8 @@ pub(super) fn flag_ideas(
     let Some((kept, sheet_body)) = sheet_named(paths, &state, &first) else {
         return Err(Refused::Tool(format!(
             "{first:?} is not the Ideas sheet, so `{first}#` and a heading names no idea. Ideas are \
-             named by the sheet's id: `catch_up` gives it. A document is marked by its id alone. \
-             Nothing was marked."
+             named by the sheet's id: `workspace_catch_up` gives it. A document is marked by its \
+             id alone. Nothing was marked."
         )));
     };
     let named = doc_named(&state, &kept.file);
