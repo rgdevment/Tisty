@@ -95,7 +95,7 @@ impl Page {
             false => format!("\n\nIts page:\n{}", self.body.trim_end()),
             true => format!(
                 "\n\nIts page holds {} characters, so here are its sections rather than the whole \
-                 of it: `read` with `doc` {:?} and a `section` brings one.\n{}",
+                 of it: `workspace_read` with `doc` {:?} and a `section` brings one.\n{}",
                 self.body.chars().count(),
                 self.file,
                 tisty_core::docs::outlined(&self.body)
@@ -124,7 +124,7 @@ impl Page {
         if self.wants_compacting() {
             told.push_str(&format!(
                 "\n\nThe assistant's notes on it hold {} characters: compact them when you leave \
-                 off, as `rules` «tasks» says.",
+                 off, as `workspace_guide` (`kind: \"rules\"`, `topic: \"tasks\"`) says.",
                 self.notes_held
             ));
         }

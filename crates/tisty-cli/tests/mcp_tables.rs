@@ -332,7 +332,7 @@ fn what_cannot_be_done_is_refused_saying_what_would_work_and_nothing_is_written(
             json!({ "action": "set", "row": "Luis", "column": "Rol" }),
             "this change needs `value`",
         ),
-        (json!({ "action": "add_row" }), "`add` needs `values`"),
+        (json!({ "action": "add_row" }), "`add_row` needs `values`"),
         (json!({ "action": "merge" }), "not \"merge\""),
     ] {
         let refused = served.table(&doc, asked.clone());

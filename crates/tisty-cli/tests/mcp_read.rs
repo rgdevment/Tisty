@@ -443,7 +443,7 @@ fn marks_bring_the_highlighted_and_bold_passages_by_section() {
         json!({ "doc": doc, "view": "marks", "from": 2 }),
     );
     assert!(
-        carried.contains("`marks` reads the whole document"),
+        carried.contains("`view: \"marks\"` reads the whole document"),
         "{carried}"
     );
 }

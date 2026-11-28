@@ -12,7 +12,7 @@ pub(super) fn asked(args: &Value) -> Result<bool, Refused> {
     }
     match NOT_WITH.into_iter().find(|key| args.get(*key).is_some()) {
         Some(key) => Err(Refused::Tool(format!(
-            "`marks` reads the whole document, or one `section`, so it takes no `{key}`. \
+            "`view: \"marks\"` reads the whole document, or one `section`, so it takes no `{key}`. \
              Nothing was read."
         ))),
         None => Ok(true),
@@ -30,7 +30,8 @@ pub(super) fn answered(
     let (from, to) = match args.get("section").and_then(Value::as_u64) {
         Some(at) => tisty_core::docs::section_lines(body, at as usize).ok_or_else(|| {
             Refused::Tool(format!(
-                "this document has no section {at}. Its card from `brain` numbers them from 0."
+                "this document has no section {at}. Its card from `workspace_read` \
+                 (`view: \"card\"`) numbers them from 0."
             ))
         })?,
         None => (1, usize::MAX),

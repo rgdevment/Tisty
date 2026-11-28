@@ -66,7 +66,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
         Some(Value::Bool(one)) => *one,
         Some(other) => {
             return Err(Refused::Tool(format!(
-                "`archived` is true or false, and {other} is neither. Leave it out to put the document away."
+                "`doc_annotate` takes `action: \"archive\"` or `\"unarchive\"`, not {other}."
             )));
         }
     };
@@ -168,7 +168,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
                     doc_named(&state, &which)
                 ),
                 (false, true) => format!(
-                    "Put {} away. It is not gone: `brain` still reaches it with `scope`, and this same call with `archived` false brings it back.",
+                    "Put {} away. It is not gone: `workspace_search` still reaches it with `scope`, and `doc_annotate` with `action: \"unarchive\"` brings it back.",
                     doc_named(&state, &which)
                 ),
                 (false, false) => format!(
@@ -417,8 +417,8 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
     let parent = match (text(args, "inside"), &under) {
         (Some(inside), Some(path)) if as_path(&inside) != as_path(path) => {
             return Err(Refused::Tool(format!(
-                "`name` reads as a path under {path:?} and `inside` says {inside:?}, which \
-                 are two different places. Send the name alone with `inside`, or the whole path \
+                "`name` reads as a path under {path:?} and `folder` says {inside:?}, which \
+                 are two different places. Send the name alone with `folder`, or the whole path \
                  without it."
             )));
         }
@@ -427,7 +427,7 @@ pub(in crate::mcp) fn folder(paths: &Paths, args: &Value) -> Result<Value, Refus
             Refused::Tool(said) => Refused::Tool(format!(
                 "a folder's name is its own and never a path, so {path:?} was read as the folder \
                  to nest it in, and {said} Make each step of the path first, and nest with \
-                 `inside`."
+                 `folder`."
             )),
             other => other,
         })?),

@@ -271,23 +271,23 @@ Un tipeo o una traducción cuenta como una palabra en común: dos cosas se parec
 - **En la ficha que lee tu agente**, en `guessed`, aparte de todo lo que alguien escribió. Cada parecido trae su título, su estado, su puntaje, lo que comparten y `method`, que dice cómo se unieron: `words`, `typo` o `dictionary`. La frase que lo acompaña lo dice con palabras: «shares» para las palabras en común, «spelled almost the same:» para un tipeo o un plural, como `vacuna≈vacunas`, y «alike by translation:» para el diccionario. Las reglas le piden leer los dos antes de unir nada. Una pareja llega como `a≈b`, sin espacios, y nunca es una palabra que los dos escribieron igual:
 
 ```json
-> brain {"task": "…Pedir presupuesto del techo…"}
+> workspace_read {"task": "…Pedir presupuesto del techo…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "doc", "title": "Arreglos de la casa", "state": "open", "score": 0.42, "shared": ["presupuesto", "techo"], "method": "words" } ] }
 "Guessed alike by Tisty, linked by no one: \"Arreglos de la casa\" […] (open) (shares presupuesto, techo)."
 
-> brain {"task": "…La imrpesora nueva no imprime en color…"}
+> workspace_read {"task": "…La imrpesora nueva no imprime en color…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "task", "title": "Instalar la impresora nueva", "state": "open", "score": 0.55, "shared": ["impresora≈imrpesora", "nueva"], "method": "typo" } ] }
 "Guessed alike by Tisty, linked by no one: \"Instalar la impresora nueva\" […] (open) (spelled almost the same: impresora≈imrpesora, nueva)."
 
-> brain {"task": "…Pagar la cuenta del agua…"}
+> workspace_read {"task": "…Pagar la cuenta del agua…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "task", "title": "Pay the water bill", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pay the water bill\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta o descartada nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos. Y `read`, que trae el texto, no trae parecidos: van solo en la ficha de `brain`.
+Un parecido aparece solo cuando sus dos puntas están a la vista: en la red, las dos tienen que estar dibujadas; para un agente, las dos tienen que pasar su puerta, así que una tarea oculta o descartada nunca se nombra a través de un parecido. Un parecido no suma conexiones a la cuenta de arriba ni cuenta para el tope de 12.000 nodos. Y `workspace_read` con `view: "content"`, que trae el texto, no trae parecidos: van solo en su ficha (`view: "card"`).
 
 ## Lo que conviene saber
 

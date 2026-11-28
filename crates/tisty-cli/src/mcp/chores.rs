@@ -410,8 +410,8 @@ pub(super) fn proposed(
         return Ok(told(
             format!(
                 "Proposed the task {title:?} {where_at} for the person, tagged #{INBOX_TAG}{}: it \
-                 waits among theirs, and a `tick` of yours on it only gives your word.{parts_said} \
-                 {ONE_OWNER} [{id}]",
+                 waits among theirs, and a `task_edit_steps` (`action: \"tick\"`) of yours on it \
+                 only gives your word.{parts_said} {ONE_OWNER} [{id}]",
                 match planned {
                     0 => String::new(),
                     n => format!(", with {n} step(s)"),
@@ -568,7 +568,7 @@ pub(super) fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let bells = moments(args, "at")?;
     if bells.is_empty() {
         return Err(Refused::Tool(
-            "a reminder needs `at`, a day and an hour like 2026-08-31T09:00.".into(),
+            "a reminder needs `add_reminders`, a day and an hour like 2026-08-31T09:00.".into(),
         ));
     }
     let (state, mut store) = opened(paths)?;
@@ -723,7 +723,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool(
-            "describing needs a `body`, in the Tisty language.".into(),
+            "describing needs `description`, in the Tisty language.".into(),
         ));
     };
     let (state, mut store) = opened(paths)?;
@@ -776,7 +776,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(said) = &task.resolved {
         return Err(Refused::Tool(format!(
             "{:?} has already been said {}, and a step added now would stand under that mark \
-             unlooked at. Say what is still left with `note` and leave the task to the person.",
+             unlooked at. Say what is still left with `task_note` and leave the task to the person.",
             task.title,
             marked_as(said)
         )));
@@ -907,7 +907,7 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(step) = chosen.iter().find(|step| step.done && !step.by_agent) {
         return Err(Refused::Tool(format!(
             "{:?} was ticked by the person, and taking it back is theirs; nothing was \
-             unticked. Say what you found with `note`.",
+             unticked. Say what you found with `task_note`.",
             step.text
         )));
     }
@@ -1078,7 +1078,7 @@ pub(super) fn steps_asked(
     }
     if wanted.is_empty() {
         return Err(Refused::Tool(format!(
-            "{doing} needs `steps`: the text of {which}, as `read` shows it (`step` for one)."
+            "{doing} needs `steps`: the text of {which}, as `workspace_read` shows it (`step` for one)."
         )));
     }
     Ok((said, wanted))
@@ -1191,7 +1191,7 @@ pub(super) fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
     task.resolved.as_ref().map(|said| {
         Refused::Tool(format!(
             "{:?} has already been said {}, so {doing} now would speak over a mark nobody has \
-             looked at yet. Say what you have learnt with `note` and leave the task to the \
+             looked at yet. Say what you have learnt with `task_note` and leave the task to the \
              person.",
             task.title,
             marked_as(said)

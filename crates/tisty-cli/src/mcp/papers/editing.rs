@@ -88,7 +88,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
     let by_place = args.get("section").is_some() || args.get("from").is_some();
     let Some(new) = raw(args, "new") else {
         return Err(Refused::Tool(
-            "an edit needs `new`, what goes there. Send \"\" to take the text out.".into(),
+            "an edit needs `content`, what goes there. Send \"\" to take the text out.".into(),
         ));
     };
     let old = match (raw(args, "old"), by_place) {

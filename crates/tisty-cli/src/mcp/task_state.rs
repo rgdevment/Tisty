@@ -36,7 +36,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             return Err(Refused::Tool(match ticked {
                 Some(_) => format!(
                     "the steps were ticked on {title:?}, but its state could not be written just now \
-                 ({why}). Send `tick` again with only `state`."
+                 ({why}). Call `task_edit_steps` (`action: \"set_state\"`) with `state`."
                 ),
                 None => format!(
                     "the state of {title:?} could not be written just now ({why}). Nothing changed."
@@ -179,7 +179,9 @@ fn written(
     })
     .map_err(|e| e.to_string())?;
     if written_over {
-        return Err("the person wrote in it meanwhile; `read` it and carry their lines".into());
+        return Err(
+            "the person wrote in it meanwhile; `workspace_read` it and carry their lines".into(),
+        );
     }
     let Some((before, after)) = sides else {
         return Err("the task has no page to write on".into());
@@ -263,8 +265,8 @@ pub(super) fn replacing(
         .filter(|one| !one.body.trim().is_empty());
     let Some(old) = old else {
         return Err(Refused::Tool(format!(
-            "no note of {title:?} has the id {said}; nothing was noted. `read` gives each note's \
-             id, and `notes` 0 brings them all."
+            "no note of {title:?} has the id {said}; nothing was noted. `workspace_read` gives \
+             each note's id, and `notes` 0 brings them all."
         )));
     };
     let on = when(old.at);
@@ -281,7 +283,8 @@ pub(super) fn replacing(
     {
         return Err(Refused::Tool(format!(
             "the note of {on} is the one that said {title:?} is settled, and it stays while the \
-             person decides; nothing was noted. `note` what changed without `replaces`."
+             person decides; nothing was noted. `task_note` (`action: \"add\"`) what changed \
+             without `replaces`."
         )));
     }
     if old
@@ -291,7 +294,8 @@ pub(super) fn replacing(
     {
         return Err(Refused::Tool(format!(
             "the note of {on} on {title:?} is the person's, and taking it back is theirs; nothing \
-             was noted. `note` what you found without `replaces`, and tell them."
+             was noted. `task_note` (`action: \"add\"`) what you found without `replaces`, and \
+             tell them."
         )));
     }
     Ok(Some(old.id))

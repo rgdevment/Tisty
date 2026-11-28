@@ -224,8 +224,8 @@ pub(in crate::mcp) fn instead_of(
     match doc.is_some() || task.is_some() {
         true => Ok(Some(instead)),
         false => Err(Refused::Tool(format!(
-            "`instead` is {instead:?}, and no document or task here has that id. `brain` gives \
-             them."
+            "`instead` is {instead:?}, and no document or task here has that id. \
+             `workspace_search` gives them."
         ))),
     }
 }

@@ -34,7 +34,7 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
     };
     let Some(said) = text(args, "into") else {
         return Err(Refused::Tool(
-            "exporting needs an `into` folder on this machine to leave the files in.".into(),
+            "exporting needs a `path` folder on this machine to leave the files in.".into(),
         ));
     };
     let (state, _) = opened(paths)?;
@@ -825,8 +825,13 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
         .into_iter()
         .find(|key| args.get(*key).is_some_and(|one| !one.is_null()))
     {
+        let shown = match also {
+            "doc" => "docs",
+            "at" => "position",
+            other => other,
+        };
         return Err(Refused::Tool(format!(
-            "`order` says where every page it names goes, so it takes no `{also}`: one call \
+            "`order` says where every page it names goes, so it takes no `{shown}`: one call \
              says an order, another puts one page somewhere. Send them apart."
         )));
     }
@@ -848,7 +853,7 @@ pub(super) fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refuse
     }
     let Some(said) = text(args, "page_of") else {
         return Err(Refused::Tool(
-            "`order` says how the pages of one document are read, so it needs `page_of`.".into(),
+            "`order` says how the pages of one document are read, so it needs `parent`.".into(),
         ));
     };
     let (state, mut store) = opened(paths)?;
@@ -957,8 +962,8 @@ pub(super) fn beside_ready(
     if mark.page_of != Some(up) {
         return Err(Refused::Tool(format!(
             "{} is not a page of {}, so it says nothing about where this one goes. \
-             its card from `brain` lists the pages in the order they are read, and says which of them \
-             no line names.",
+             Its card from `workspace_read` (`view: \"card\"`) lists the pages in the order they \
+             are read, and says which of them no line names.",
             doc_named(state, anchor),
             doc_named(state, &parent.file)
         )));
@@ -966,14 +971,14 @@ pub(super) fn beside_ready(
     if mark.file == which {
         return Err(Refused::Tool(
             "a page cannot be placed before or after itself. Name another page of the same \
-             document, or send `at` as \"first\" or \"last\"."
+             document, or send `position` as \"first\" or \"last\"."
                 .into(),
         ));
     }
     let Some(sits) = line_of(&held, anchor) else {
         return Err(Refused::Tool(format!(
             "{} is a page of {}, but no line in it names {}, so there is nothing to place this \
-             one beside. Send `at` as \"first\" or \"last\" instead, and the line is written \
+             one beside. Send `position` as \"first\" or \"last\" instead, and the line is written \
              without an anchor.",
             doc_named(state, anchor),
             doc_named(state, &parent.file),
@@ -1144,7 +1149,7 @@ fn ordered(
         if page.page_of != Some(up) {
             return Err(Refused::Tool(format!(
                 "{} is not a page of {}, so it has no place in its order. Hang it there \
-                 first with `page_of`, then say the order.",
+                 first with `doc_organize` (`action: \"add_page\"`, `parent`), then say the order.",
                 doc_named(state, id),
                 doc_named(state, &parent.file)
             )));
@@ -1152,7 +1157,7 @@ fn ordered(
         let Some(at) = line_of(&held, id) else {
             return Err(Refused::Tool(format!(
                 "no line of {} names {}, so there is no place of its own to move it between. \
-                 Give it one with `after`, `before` or `at`, and then order them.",
+                 Give it one with `after`, `before` or `position`, and then order them.",
                 doc_named(state, &parent.file),
                 doc_named(state, id)
             )));
@@ -1165,7 +1170,8 @@ fn ordered(
     let Some(whole) = cards_ordered(&body, order) else {
         return Err(Refused::Tool(
             "the lines naming those pages are not all there to move between. Ask \
-             `brain` with `doc` which pages this document names, and order those."
+             `workspace_read` (`view: \"card\"`) with `doc` which pages this document names, and \
+             order those."
                 .to_string(),
         ));
     };

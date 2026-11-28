@@ -82,7 +82,7 @@ fn unsaid(state: &State, which: &str) -> Refused {
 
 fn taken(state: &State, which: &str, lang: &str) -> Refused {
     Refused::Tool(format!(
-        "{} already has a document in {lang}. Change that one instead, by its own `doc`.",
+        "{} already has a document in {lang}. Change that one instead, by its own id.",
         doc_named(state, which)
     ))
 }
@@ -172,7 +172,7 @@ pub(in crate::mcp) fn translation_written(
 
 pub(in crate::mcp) fn tongue_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool("name the document in `doc`.".into()));
+        return Err(Refused::Tool("name the document in `docs`.".into()));
     };
     let lang = language(args)?;
     let (state, mut store) = opened(paths)?;

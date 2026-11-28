@@ -177,7 +177,7 @@ pub(super) fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool),
         Some(Value::Array(many)) => {
             if many.is_empty() {
                 return Err(Refused::Tool(format!(
-                    "`doc` came as an empty list, so there is nothing to {what}. Send one name, or several."
+                    "`docs` came as an empty list, so there is nothing to {what}. Send one name, or several."
                 )));
             }
             let mut named = Vec::new();
@@ -202,7 +202,7 @@ pub(super) fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool),
         _ => match text(args, "doc") {
             Some(one) => Ok((vec![one], false)),
             None => Err(Refused::Tool(format!(
-                "to {what} a document, name it in `doc`."
+                "to {what} a document, name it in `docs`."
             ))),
         },
     }

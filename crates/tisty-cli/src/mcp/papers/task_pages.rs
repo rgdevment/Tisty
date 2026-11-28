@@ -107,9 +107,9 @@ fn settled(paths: &Paths, id: TaskId, page: &PageWrite) -> Result<String, Refuse
         return Err(Refused::Tool(format!(
             "the lines between `---` at the top of {:?}'s page belong to Tisty, and this write \
              changed them, so the page was put back as it was. A task's day, list, priority and \
-             reminders never change from its page: `rules` «tasks» says which tool changes each, \
-             and which are the person's alone. Write again keeping those lines as `read` gives \
-             them.",
+             reminders never change from its page: `workspace_guide` (`kind: \"rules\"`, `topic: \
+             \"tasks\"`) says which tool changes each, and which are the person's alone. Write \
+             again keeping those lines as `workspace_read` gives them.",
             task.title
         )));
     }

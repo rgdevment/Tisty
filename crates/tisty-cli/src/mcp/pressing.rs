@@ -117,9 +117,9 @@ pub(super) fn name_pressing(
             let how = format!(
                 "{open} tasks are open and {} of them press; {} are named here. Say in your answer \
                  that {more} more press: with the counts, that answers what is pending. Only if \
-                 the person asks for them: `brain` with `scope` «open», `said_done` false and \
-                 `to` {near} brings them among the near ones; the pressing carry a `standing` of \
-                 `overdue`, `due_soon`, `today` or `late`.",
+                 the person asks for them: `workspace_search` with `scope` «open», `said_done` \
+                 false and `date_to` {near} brings them among the near ones; the pressing carry a \
+                 `standing` of `overdue`, `due_soon`, `today` or `late`.",
                 pressing.len(),
                 shown.len()
             );
@@ -128,7 +128,7 @@ pub(super) fn name_pressing(
         }
     };
     Some(format!(
-        "Pressing, most first: {}. Tell the person, and `read` one before you take it up.{rest}",
+        "Pressing, most first: {}. Tell the person, and `workspace_read` one before you take it up.{rest}",
         named.join(", ")
     ))
 }

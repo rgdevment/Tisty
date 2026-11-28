@@ -51,4 +51,4 @@ Las imágenes salen al doble de su tamaño para que se vean nítidas (una muy gr
 
 ## Con un agente
 
-Un agente conectado por [[MCP|Agentes-y-MCP]] escribe diagramas como cualquier otro texto del documento: un bloque `mermaid`. La herramienta `language` le explica qué tipos abre la ventana y que las líneas `%% tisty:` se conservan tal cual, así no deshace lo que acomodaste.
+Un agente conectado por [[MCP|Agentes-y-MCP]] escribe diagramas como cualquier otro texto del documento: un bloque `mermaid`. `workspace_guide` (`kind: "markdown"`) le explica qué tipos abre la ventana y que las líneas `%% tisty:` se conservan tal cual, así no deshace lo que acomodaste.

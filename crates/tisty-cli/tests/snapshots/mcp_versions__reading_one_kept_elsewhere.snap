@@ -5,7 +5,7 @@ expression: "settled(&read, &[(doc.as_str(), \"[doc]\"), (elsewhere, \"[version]
 {
   "content": [
     {
-      "text": "that version of \"Acta\" [[doc]] was written over on Portátil de Rina, not on this machine, and versions never leave the machine that kept them: its text is not here, so from here it is neither read nor gone back to. Nothing was changed. Tell the person which machine may keep it; `read` with `versions` shows the ones this machine keeps, without `elsewhere`.",
+      "text": "that version of \"Acta\" [[doc]] was written over on Portátil de Rina, not on this machine, and versions never leave the machine that kept them: its text is not here, so from here it is neither read nor gone back to. Nothing was changed. Tell the person which machine may keep it; `workspace_read` (`view: \"versions\"`) shows the ones this machine keeps, without `elsewhere`.",
       "type": "text"
     }
   ],

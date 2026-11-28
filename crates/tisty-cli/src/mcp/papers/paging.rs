@@ -22,19 +22,23 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         match args.get("doc").is_some_and(Value::is_array) {
             true => refused,
             false => Refused::Tool(
-                "name the document in `doc` to hang or unhang it, or send `order` with `page_of` to put the pages of one in order."
+                "name the document in `docs` to hang or unhang it, or send `order` with `parent` to put the pages of one in order."
                     .into(),
             ),
         }
     })?;
     let (state, mut store) = opened(paths)?;
 
+    fn shown_side(key: &str) -> &str {
+        if key == "at" { "position" } else { key }
+    }
     for side in ["after", "before", "at"] {
         if args.get(side).is_some() && text(args, side).is_none() {
             return Err(Refused::Tool(format!(
-                "`{side}` came empty. A page goes where another page is named, or first or \
+                "`{}` came empty. A page goes where another page is named, or first or \
                  last, and an empty name says neither — leave it out to hang the page without \
-                 writing its line."
+                 writing its line.",
+                shown_side(side)
             )));
         }
     }
@@ -45,10 +49,10 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         .collect();
     if named.len() > 1 {
         return Err(Refused::Tool(format!(
-            "send one of `after`, `before` and `at`, not {}: a page goes in one place.",
+            "send one of `after`, `before` and `position`, not {}: a page goes in one place.",
             named
                 .iter()
-                .map(|(key, _)| format!("`{key}`"))
+                .map(|(key, _)| format!("`{}`", shown_side(key)))
                 .collect::<Vec<_>>()
                 .join(" and ")
         )));
@@ -59,7 +63,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         Some("last") => Some(Spot::Last),
         Some(other) => {
             return Err(Refused::Tool(format!(
-                "`at` is either \"first\" or \"last\", and {other:?} is neither. Name a page with \
+                "`position` is either \"first\" or \"last\", and {other:?} is neither. Name a page with \
                  `after` or `before` to put it anywhere else."
             )));
         }
@@ -72,15 +76,15 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if beside.is_some() {
         if many.len() != 1 {
             return Err(Refused::Tool(
-                "`after`, `before` and `at` place one page, so `doc` takes a single name \
+                "`after`, `before` and `position` place one page, so `docs` takes a single name \
                  here. Hang them together first, then place them one at a time."
                     .into(),
             ));
         }
         if text(args, "page_of").is_none() {
             return Err(Refused::Tool(
-                "`after`, `before` and `at` say where a page sits inside the document that \
-                 holds it, so they need `page_of`. Left out, the page leaves that document \
+                "`after`, `before` and `position` say where a page sits inside the document that \
+                 holds it, so they need `parent`. Left out, the page leaves that document \
                  altogether and there is no order to give it."
                     .into(),
             ));
@@ -292,7 +296,7 @@ fn what_was_put(
                 (true, true) => format!(
                     " {} ends inside a fence, so no line was written for it there: a line in \
                      code is not a way in. Close the fence and name it with `after`, `before` or \
-                     `at`.",
+                     `position`.",
                     up_named(state, over).unwrap_or_default()
                 ),
                 (true, false) => String::new(),

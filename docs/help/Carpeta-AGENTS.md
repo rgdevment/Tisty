@@ -930,10 +930,10 @@ Qué guarda Tisty de todo esto, y qué viaja, está en [Privacidad](Privacidad#t
 
 Un agente que dejas entrar por [[MCP|Agentes-y-MCP]] **lee** tus documentos de Agentes como cualquier otro, sincronice o no, y su guía le explica qué son. **No los escribe: te propone el cambio, y solo tú lo apruebas.** Tampoco puede traer, sincronizar, dejar de sincronizar, ocultar ni mostrar Agentes: ninguna herramienta MCP lo hace, solo tú, en la ventana de Tisty. Por MCP la carpeta se llama `AGENTS`, su nombre guardado, en cualquier idioma: por eso las respuestas de abajo dicen `AGENTS` y no Agentes. Por ejemplo, le pides a Claude Code «¿Qué reglas mías lees?».
 
-**1. Lee su guía.** `rules` con el tema «documents» trae, entre otras, la sección sobre la carpeta:
+**1. Lee su guía.** `workspace_guide` con `kind: "rules"` y `topic: "documents"` trae, entre otras, la sección sobre la carpeta:
 
 ```json
-{ "name": "rules", "arguments": { "topic": "documents" } }
+{ "name": "workspace_guide", "arguments": { "kind": "rules", "topic": "documents" } }
 ```
 
 ```text

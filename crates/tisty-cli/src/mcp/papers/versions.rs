@@ -25,8 +25,8 @@ impl Asked {
         let asked = match (list, text(args, "version")) {
             (true, Some(_)) => {
                 return Err(Refused::Tool(
-                    "`versions` lists what a document said before and `version` reads one of \
-                     them: send one of the two."
+                    "`view: \"versions\"` lists what a document said before and `version` reads \
+                     one of them: send one of the two."
                         .into(),
                 ));
             }
@@ -37,16 +37,17 @@ impl Asked {
         if sent("as") {
             return Err(Refused::Tool(
                 "`view: \"markdown\"` carries the document as it reads now, so it takes no \
-                 `versions` or `version`. Read the version with `view: \"content\"`, or go back \
-                 to it with `doc_edit` (`mode: \"restore\"`) and carry the document then."
+                 `version`. Read the version with `view: \"content\"`, or go back to it with \
+                 `doc_edit` (`mode: \"restore\"`) and carry the document then."
                     .into(),
             ));
         }
         if let (Self::List, Some(part)) = (&asked, READ_BY_PARTS.into_iter().find(|key| sent(key)))
         {
             return Err(Refused::Tool(format!(
-                "`versions` lists what the document said before, so it takes no `{part}`: only \
-                 `cursor`, for the older ones. Read one of them by parts with `version`."
+                "`view: \"versions\"` lists what the document said before, so it takes no \
+                 `{part}`: only `cursor`, for the older ones. Read one of them by parts with \
+                 `version`."
             )));
         }
         Ok(Some(asked))
@@ -74,8 +75,8 @@ pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result
         false => Ok(()),
         true => Err(Refused::Tool(
             "the diary is the person's own, and so is what it said before: an assistant reads \
-             what it says now and no version of it. `workspace_read` without `versions` or \
-             `version` reads it."
+             what it says now and no version of it. `workspace_read` (`view: \"content\"`, \
+             without `version`) reads it."
                 .into(),
         )),
     }
@@ -299,7 +300,11 @@ pub(super) fn listed(
          gone back to"
     );
     let older = match next {
-        Some(next) => format!(" Older ones: `versions` again with `cursor` {next}."),
+        Some(next) => {
+            format!(
+                " Older ones: `workspace_read` (`view: \"versions\"`) again with `cursor` {next}."
+            )
+        }
         None => String::new(),
     };
     let said = match (all.len(), rows.is_empty(), here) {
@@ -310,7 +315,7 @@ pub(super) fn listed(
         ),
         (every, true, _) => format!(
             "No version of {named} is left past `cursor` {from}: the list holds {every} in all. \
-             Ask `versions` again without `cursor` for the newest."
+             Ask `workspace_read` (`view: \"versions\"`) again without `cursor` for the newest."
         ),
         (_, false, 0) => format!(
             "Nothing of what {named} said before is kept on this machine; {elsewhere}. Versions \
@@ -408,19 +413,19 @@ pub(super) fn kept_here(
         (Some(_), Some(_)) => {
             return Err(Refused::Tool(format!(
                 "{asked:?} begins more than one version of {named}. Send the `version` whole, \
-                 as `read` with `versions` gives it."
+                 as `workspace_read` (`view: \"versions\"`) gives it."
             )));
         }
         (None, _) if says.is_some_and(|now| now.starts_with(&wanted)) => {
             return Err(Refused::Tool(format!(
                 "{named} already says what version {asked:?} says, so it is no past version: \
-                 `read` without `version` reads it, and there is nothing to go back to."
+                 `workspace_read` without `version` reads it, and there is nothing to go back to."
             )));
         }
         (None, _) => {
             return Err(Refused::Tool(format!(
-                "{named} keeps no version {asked:?}. `read` with `versions` lists the ones \
-                 it keeps; one past its days, or emptied by the person, is gone."
+                "{named} keeps no version {asked:?}. `workspace_read` (`view: \"versions\"`) \
+                 lists the ones it keeps; one past its days, or emptied by the person, is gone."
             )));
         }
     };
@@ -430,8 +435,8 @@ pub(super) fn kept_here(
             "that version of {named} was written over on {machine}, not on this machine, and \
              versions never leave the machine that kept them: its text is not here, so from \
              here it is neither read nor gone back to. Nothing was changed. Tell the person \
-             which machine may keep it; `read` with `versions` shows the ones this machine \
-             keeps, without `elsewhere`."
+             which machine may keep it; `workspace_read` (`view: \"versions\"`) shows the ones \
+             this machine keeps, without `elsewhere`."
         )));
     }
     let Some(body) = tisty_core::history::read(paths.data(), &kept.file, &one.print) else {

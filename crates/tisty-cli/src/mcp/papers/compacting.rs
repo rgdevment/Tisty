@@ -17,8 +17,9 @@ pub(super) fn compacting(args: &Value) -> bool {
 pub(super) fn not_alone(args: &Value) -> Result<(), Refused> {
     match compacting(args) {
         true => Err(Refused::Tool(
-            "`compact` writes an existing document back into shape, so it needs the `doc` and \
-             the `print` you read it at. A new document is written without it."
+            "`doc_edit` (`mode: \"compact\"`) writes an existing document back into shape, so it \
+             needs the `doc` and the `print` you read it at. A new document is written with \
+             `doc_create`."
                 .into(),
         )),
         false => Ok(()),

@@ -90,7 +90,7 @@ Lo que guardas ya estaba unido: un documento cita otro, una tarea nació de un a
 - [[Enlazar documentos|Enlazar-documentos]]: `[[` para enlazar un documento o una de sus secciones, la vista previa y **Enlazado desde**.
 - [[Tareas en documentos|Tareas-en-documentos]]: citar una tarea como tarjeta viva, crear una con `/` sin salir del documento y **Nació en**.
 - [[La red de Brainsty|Red-de-Brainsty]]: todo lo que guardas dibujado como una red, de lejos y de cerca, con su buscador, sus filtros y el teclado.
-- [[Cómo trabaja un agente|Cómo-trabaja-un-agente]]: una sesión real, llamada por llamada: `brain`, el estado de una tarea, las preguntas de Tisty y los hooks.
+- [[Cómo trabaja un agente|Cómo-trabaja-un-agente]]: una sesión real, llamada por llamada: `workspace_search`, `workspace_read`, el estado de una tarea, las preguntas de Tisty y los hooks.
 
 ## Tus datos
 

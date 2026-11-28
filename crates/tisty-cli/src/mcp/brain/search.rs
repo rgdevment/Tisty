@@ -492,7 +492,9 @@ pub(super) fn inside_a_doc(
                 .collect::<Vec<_>>()
                 .join("\n"),
             match all > found.len() {
-                true => "\nThe rest: narrow the words, or read on with `read` `from` a line.",
+                true => {
+                    "\nThe rest: narrow the words, or read on with `workspace_read` `from` a line."
+                }
                 false => "",
             }
         ),
@@ -659,13 +661,13 @@ pub(super) fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sig
 
 impl Sifted {
     fn asked(args: &Value, state: &State) -> Result<Self, Refused> {
-        let on = |key: &str| -> Result<Option<jiff::civil::Date>, Refused> {
+        let on = |key: &str, label: &str| -> Result<Option<jiff::civil::Date>, Refused> {
             let Some(said) = text(args, key) else {
                 return Ok(None);
             };
             said.parse::<jiff::civil::Date>().map(Some).map_err(|_| {
                 Refused::Tool(format!(
-                    "`{key}` has to be a plain date like 2026-08-31, not {said:?}."
+                    "`{label}` has to be a plain date like 2026-08-31, not {said:?}."
                 ))
             })
         };
@@ -686,8 +688,8 @@ impl Sifted {
                 })?),
             },
             from_source: text(args, "from_source").map(|one| alike(&one)),
-            from: on("from")?,
-            to: on("to")?,
+            from: on("from", "date_from")?,
+            to: on("to", "date_to")?,
         })
     }
 

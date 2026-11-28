@@ -289,7 +289,7 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
         "Sorting by where it matched is done. Next: the newest line."
     );
     assert!(card["moved"].as_str().is_some(), "{card}");
-    assert!(card["next"].as_str().unwrap().contains("`read`"));
+    assert!(card["next"].as_str().unwrap().contains("`workspace_read`"));
 }
 
 #[test]

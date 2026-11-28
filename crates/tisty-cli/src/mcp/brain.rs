@@ -32,7 +32,7 @@ pub(super) fn brain(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let task = text(args, "task");
     if doc.is_some() && task.is_some() {
         return Err(Refused::Tool(
-            "`brain` looks at one thing at a time: a `doc` or a `task`, not both.".into(),
+            "`workspace_read` looks at one thing at a time: a `doc` or a `task`, not both.".into(),
         ));
     }
     for (key, needs) in [("links", "a `doc` or a `task`"), ("section", "a `doc`")] {

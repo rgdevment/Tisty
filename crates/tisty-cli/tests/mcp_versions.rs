@@ -641,7 +641,7 @@ fn past_forty_versions_the_list_hands_a_next_to_ask_the_older_ones_with() {
         newest["said"]
             .as_str()
             .unwrap()
-            .contains("`versions` again with `cursor` 40"),
+            .contains("`workspace_read` (`view: \"versions\"`) again with `cursor` 40"),
         "{newest}"
     );
 
@@ -1220,7 +1220,12 @@ fn listing_reading_and_carrying_out_are_asked_one_at_a_time() {
         json!({ "doc": doc, "view": "versions", "version": first }),
     );
     assert!(refused(&both), "{both}");
-    assert!(words(&both).contains("send one of the two"), "{both}");
+    assert!(
+        words(&both).contains(
+            "send `view: \"content\"` with `version`, or `view: \"versions\"` without `version`"
+        ),
+        "{both}"
+    );
 
     let carried = served.call(
         "workspace_read",

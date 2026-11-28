@@ -48,8 +48,9 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     super::agents_kept::left_out(&state, kept)?;
     if kept.task_of.is_some() {
         return Err(Refused::Tool(format!(
-            "{} is a task's page. What a task stands at goes in `tick` with `state`, where the \
-             person reads it, not in a note only agents see. Nothing was written.",
+            "{} is a task's page. What a task stands at goes in `task_edit_steps` (`action: \
+             \"tick\"` or `\"set_state\"`) with `state`, where the person reads it, not in a note \
+             only agents see. Nothing was written.",
             super::doc_named(&state, &which)
         )));
     }

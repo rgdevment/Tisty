@@ -146,12 +146,12 @@ pub(super) fn loose_task(state: &State, title: &str) -> String {
     }
     match closest_lists(state, title).as_slice() {
         [] => format!(
-            " It waits in the inbox; the lists are {}. `move` with `list` puts it in one.",
+            " It waits in the inbox; the lists are {}. `task_update` with `list` puts it in one.",
             all.join(", ")
         ),
         near => format!(
-            " It waits in the inbox; the closest list by name: {}. `move` with `list` puts it \
-             in one.",
+            " It waits in the inbox; the closest list by name: {}. `task_update` with `list` puts \
+             it in one.",
             near.join(", ")
         ),
     }
@@ -223,7 +223,7 @@ fn held_below(
 pub(super) fn told_below(below: &[Value]) -> Option<String> {
     (!below.is_empty()).then(|| {
         format!(
-            "Folders below it hold documents of their own, listed when asked for by name or path, or with `deep`: {}.",
+            "Folders below it hold documents of their own, listed when asked for by name or path: {}.",
             below
                 .iter()
                 .map(|one| format!("{} ({})", super::said(one, "folder"), one["docs"]))

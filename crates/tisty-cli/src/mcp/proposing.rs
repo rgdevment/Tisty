@@ -224,7 +224,7 @@ fn printed_as(asked: &Asked) -> Result<(), Refused> {
     let Some(said) = text(asked.args, "print") else {
         return Err(Refused::Tool(format!(
             "a change by place or a whole body for {} needs the `print` of the text you worked \
-             from: `read` with this `doc` gives it.",
+             from: `workspace_read` with this `doc` gives it.",
             asked.named
         )));
     };
@@ -234,7 +234,7 @@ fn printed_as(asked: &Asked) -> Result<(), Refused> {
     let told = match asked.pending {
         Some(one) if said == tisty_core::docs::print_of_text(&asked.approved) => format!(
             "that `print` is the approved text of {}, but a proposal already waits on top of it, \
-             with the print {}. Build on that proposal: `read` with this `doc` hands it back.",
+             with the print {}. Build on that proposal: `workspace_read` with this `doc` hands it back.",
             asked.named, one.print
         ),
         _ => format!(
@@ -249,9 +249,9 @@ fn printed_as(asked: &Asked) -> Result<(), Refused> {
 fn where_to_read(asked: &Asked) -> &'static str {
     match asked.pending {
         Some(_) => {
-            "A proposal already waits on it, and your change goes on top of that: `read` with this `doc` hands both back."
+            "A proposal already waits on it, and your change goes on top of that: `workspace_read` with this `doc` hands both back."
         }
-        None => "Read it again with `read`.",
+        None => "Read it again with `workspace_read`.",
     }
 }
 
