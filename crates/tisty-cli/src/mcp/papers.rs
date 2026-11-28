@@ -27,7 +27,8 @@ pub(super) const FOLDERS_AT_MOST: usize = 64;
 pub(super) fn put_away(state: &State, kept: &tisty_core::model::Kept, named: &str) -> Refused {
     Refused::Tool(format!(
         "{named} is put away, so nothing was written. If it should change, tell the person: {}. \
-         If its subject moved on, ask `brain` for the document that covers it now and write there.",
+         If its subject moved on, ask `workspace_search` for the document that covers it now and \
+         write there.",
         brought_back(state, kept)
     ))
 }
@@ -58,7 +59,7 @@ fn brought_back(state: &State, kept: &tisty_core::model::Kept) -> String {
             super::holder(state, kept)
         ),
         (false, _) => {
-            "they bring it back, or ask you to with `archive_doc` and `archived` false".into()
+            "they bring it back, or ask you to with `doc_annotate` (`action: \"unarchive\"`)".into()
         }
     }
 }
@@ -185,7 +186,7 @@ pub(super) fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool),
                     Some(said) => named.push(said.to_string()),
                     None => {
                         return Err(Refused::Tool(format!(
-                            "{one} is not a document name, and a list is taken whole or not at all, so nothing moved. `brain` gives the names."
+                            "{one} is not a document name, and a list is taken whole or not at all, so nothing moved. `workspace_search` gives the names."
                         )));
                     }
                 }
@@ -245,18 +246,13 @@ pub(super) fn named_anew(
     )
 }
 
-const WRITES_DOCUMENTS: [&str; 11] = [
-    "write_doc",
-    "import_doc",
-    "append_doc",
-    "edit_doc",
-    "edit_table",
-    "restore_doc",
-    "archive_doc",
-    "flag_doc",
-    "file_doc",
-    "page_doc",
-    "attach",
+const WRITES_DOCUMENTS: [&str; 6] = [
+    "doc_create",
+    "doc_edit",
+    "doc_edit_table",
+    "doc_organize",
+    "doc_annotate",
+    "file_transfer",
 ];
 
 // A task's page is written like a document, but it ends, moves and holds files as its task does.
@@ -264,7 +260,7 @@ pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused
     if !WRITES_DOCUMENTS.contains(&name) || task_pages::page_named(name, args).is_some() {
         return Ok(());
     }
-    let named = ["doc", "page_of"]
+    let named = ["doc", "docs", "page_of", "parent"]
         .iter()
         .filter_map(|key| args.get(*key))
         .flat_map(|one| match one {
@@ -275,7 +271,7 @@ pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused
         .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
     match named {
         Some(file) => Err(Refused::Tool(format!(
-            "{file} is a task's page: write it with `edit_doc`, `edit_table`, `write_doc` or `append_doc` by its own name. It is no document to put away, mark, file or hang as a page: the task ends with `say_done` or `say_not_doing`, moves with `move`, and keeps files with `attach` and the task's id."
+            "{file} is a task's page: write it with `doc_edit` or `doc_edit_table` by its own name. It is no document to put away, mark, file or hang as a page: the task ends with `task_resolve`, moves with `task_update`, and keeps files with `file_transfer` (`action: \"attach\"`) and the task's id."
         ))),
         None => Ok(()),
     }

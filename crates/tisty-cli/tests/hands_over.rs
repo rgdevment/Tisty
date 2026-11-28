@@ -117,7 +117,7 @@ fn propose(
         into,
         from,
         serde_json::json!({ "jsonrpc": "2.0", "id": id, "method": "tools/call",
-                            "params": { "name": "propose", "arguments": { "for": "agent", "title": title } } }),
+                            "params": { "name": "task_create", "arguments": { "for": "agent", "title": title } } }),
     )
 }
 

@@ -1,0 +1,89 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Modify or undo changes to an existing doc or task page. Prefer `patch` (`old` or `section`/`from`+`to`+`print`) over `rewrite`. `append` adds chronologically, under `under`, or to assistant notes (task ID) / Diary. `digest_task_notes` compacts assistant notes (<=6,000 chars).",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "content": {
+        "description": "New text for `patch` (\"\" deletes), `append`, `rewrite`, `compact`, `digest_task_notes`",
+        "type": "string"
+      },
+      "doc": {
+        "description": "Doc ID, task-page filename, or task ID (for `append`, `digest_task_notes`, `restore`)",
+        "type": "string"
+      },
+      "echo": {
+        "description": "Return lines around the change (`patch`/`append`)",
+        "type": "boolean"
+      },
+      "even_if_more": {
+        "description": "For `restore`: revert past newer edits after inspecting them",
+        "type": "boolean"
+      },
+      "from": {
+        "description": "For `patch`: 1-based start line (requires `print`)",
+        "type": "integer"
+      },
+      "keep_compaction": {
+        "description": "Confirm keeping prior compaction on user request",
+        "type": "boolean"
+      },
+      "mode": {
+        "description": "Edit operation",
+        "enum": [
+          "patch",
+          "append",
+          "rewrite",
+          "compact",
+          "digest_task_notes",
+          "restore"
+        ],
+        "type": "string"
+      },
+      "old": {
+        "description": "For `patch`: unique verbatim passage to replace (not with `section`/`from`)",
+        "type": "string"
+      },
+      "person_asked": {
+        "description": "For `compact`: user explicitly asked to compact a doc they began",
+        "type": "boolean"
+      },
+      "print": {
+        "description": "Card/read fingerprint; required for `rewrite`, `compact`, positional `patch`",
+        "type": "string"
+      },
+      "section": {
+        "description": "For `patch`: 0-based heading index from card (requires `print`)",
+        "type": "integer"
+      },
+      "to": {
+        "description": "For `patch`: 1-based end line (defaults to EOF; with `from` only)",
+        "type": "integer"
+      },
+      "under": {
+        "description": "For `append`: exact heading text to append under",
+        "type": "string"
+      },
+      "version": {
+        "description": "For `restore`: target version ID from `workspace_read(view=\"versions\")`",
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc",
+      "mode"
+    ],
+    "type": "object"
+  },
+  "name": "doc_edit",
+  "title": "Edit, append, compact, or restore a doc"
+}

@@ -1,0 +1,45 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
+  "description": "Load Tisty reference guides progressively. Omit `topic` to fetch the index first, then request only the specific topic needed.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "description": "Guide family: workflow rules, Markdown extensions, or app help",
+        "enum": [
+          "rules",
+          "markdown",
+          "help"
+        ],
+        "type": "string"
+      },
+      "lang": {
+        "description": "Language for `markdown` and `help` (default \"en\")",
+        "enum": [
+          "en",
+          "es"
+        ],
+        "type": "string"
+      },
+      "topic": {
+        "description": "Topic slug or \"all\" (omit for index). Rules: tasks|documents|tidying|ideas|all",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind"
+    ],
+    "type": "object"
+  },
+  "name": "workspace_guide",
+  "title": "Read Tisty rules, syntax, and help"
+}

@@ -18,7 +18,9 @@ const ROWS_SHOWN: usize = 50;
 /// One table of a document changed by what its columns and rows are called, never by its Markdown.
 pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool("`edit_table` needs the `doc` name.".into()));
+        return Err(Refused::Tool(
+            "`doc_edit_table` needs the `doc` name.".into(),
+        ));
     };
     let asked = args["do"].as_str().unwrap_or("show");
     if asked == "show" {
@@ -60,7 +62,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     shaped["print"] = json!(tisty_core::attach::printed(whole.as_bytes()));
     let reply = told(
         format!(
-            "Changed the table {} in {}, {}. What it was is kept in its history on this machine: `restore_doc` undoes it.{}{}{}",
+            "Changed the table {} in {}, {}. What it was is kept in its history on this machine: `doc_edit` (`mode: \"restore\"`) undoes it.{}{}{}",
             nth + 1,
             written_name(&state, &which, &whole),
             by_how_much(&was, &whole),
@@ -73,7 +75,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     Ok(heard(reply, &changed))
 }
 
-fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
+pub(in crate::mcp) fn shown(paths: &Paths, args: &Value, which: &str) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(super::super::mistaken::no_document_called(
@@ -158,8 +160,8 @@ fn chosen<'a>(
     match found.and_then(|at| tables.get(at).map(|one| (at, one))) {
         Some(one) => Ok(one),
         None if tables.is_empty() => Err(Refused::Tool(format!(
-            "{named} holds no table. Write one with `edit_doc`; `language` with the topic \
-             `tables` says how."
+            "{named} holds no table. Write one with `doc_edit`; `workspace_guide` (`kind: \
+             \"markdown\"`, `topic: \"tables\"`) says how."
         ))),
         None => Err(Refused::Tool(format!(
             "name the table with `table`, by its number or the heading over it. {named} holds: {}.",

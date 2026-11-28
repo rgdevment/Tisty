@@ -48,25 +48,20 @@ fn started_by_the_person() -> Refused {
     )
 }
 
-const LEFT_ALONE: [&str; 12] = [
-    "write_doc",
-    "import_doc",
-    "edit_doc",
-    "edit_table",
-    "restore_doc",
-    "archive_doc",
-    "flag_doc",
-    "file_doc",
-    "page_doc",
-    "tongue_doc",
-    "attach",
-    "sum_up",
+const LEFT_ALONE: [&str; 6] = [
+    "doc_create",
+    "doc_edit",
+    "doc_edit_table",
+    "doc_organize",
+    "doc_annotate",
+    "file_transfer",
 ];
 
 // One door for every change but adding to today, so no tool can rewrite what the person wrote.
 pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), Refused> {
-    let only_shown = name == "edit_table" && text(args, "do").is_none_or(|asked| asked == "show");
-    if !LEFT_ALONE.contains(&name) || only_shown {
+    let allowed = (name == "doc_edit" && text(args, "mode").as_deref() == Some("append"))
+        || (name == "file_transfer" && text(args, "action").as_deref() == Some("export_doc"));
+    if !LEFT_ALONE.contains(&name) || allowed {
         return Ok(());
     }
     let named = every_name(args);
@@ -80,8 +75,8 @@ pub(super) fn left_alone(paths: &Paths, name: &str, args: &Value) -> Result<(), 
     match named.iter().find(|file| in_the_diary(paths, &state, file)) {
         Some(file) => Err(Refused::Tool(format!(
             "{} is the person's diary, and its words are theirs: nothing in it is rewritten, \
-             moved, marked, summed up or put away. Add to today with `append_doc`, and only when they ask. \
-             Nothing was written.",
+             moved, marked, summed up or put away. Add to today with `doc_edit` (`mode: \"append\"`), \
+             and only when they ask. Nothing was written.",
             doc_named(&state, file)
         ))),
         None => Ok(()),
@@ -129,7 +124,7 @@ pub(super) fn written_today(
     }
     let said = said.trim();
     if said.is_empty() {
-        return Err(Refused::Tool("adding needs words in `body`.".into()));
+        return Err(Refused::Tool("adding needs words in `content`.".into()));
     }
     super::papers::writing::keeps(said)?;
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;

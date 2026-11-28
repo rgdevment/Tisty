@@ -10,7 +10,7 @@ expression: "settled(read, &[])"
   "doc": "[doc]",
   "from": 1,
   "lines": 3,
-  "notice": "This is a past version of \"Acta\" [[doc]], not what it says now: what it said until [when], written by Claude Code on [when]. `restore_doc` with this `version` goes back to it.",
+  "notice": "This is a past version of \"Acta\" [[doc]], not what it says now: what it said until [when], written by Claude Code on [when]. `doc_edit` (`mode: \"restore\"`) with this `version` goes back to it.",
   "title": "Acta",
   "to": 3,
   "until": "[when]",

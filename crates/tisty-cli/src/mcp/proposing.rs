@@ -8,35 +8,36 @@ use super::asked::text;
 use super::jsonrpc::told;
 use super::{Refused, hitch};
 
-const TAKES: [(&str, &[&str]); 3] = [
-    ("write_doc", &["doc", "body", "print", "keep_compaction"]),
-    (
-        "edit_doc",
-        &[
-            "doc",
-            "old",
-            "new",
-            "section",
-            "from",
-            "to",
-            "print",
-            "echo",
-            "keep_compaction",
-        ],
-    ),
-    ("append_doc", &["doc", "body", "echo", "keep_compaction"]),
+const REWRITE_KEYS: &[&str] = &["mode", "doc", "content", "print", "keep_compaction"];
+const PATCH_KEYS: &[&str] = &[
+    "mode",
+    "doc",
+    "old",
+    "content",
+    "section",
+    "from",
+    "to",
+    "print",
+    "echo",
+    "keep_compaction",
 ];
+const APPEND_KEYS: &[&str] = &["mode", "doc", "content", "echo", "keep_compaction"];
 
 pub(super) fn takes(name: &str, args: &Value) -> bool {
-    let Some((_, keys)) = TAKES.iter().find(|(tool, _)| *tool == name) else {
+    if name != "doc_edit" {
         return false;
+    }
+    let keys = match text(args, "mode").as_deref() {
+        Some("rewrite") => REWRITE_KEYS,
+        Some("patch") => PATCH_KEYS,
+        Some("append") => APPEND_KEYS,
+        _ => return false,
     };
     args.as_object()
         .is_some_and(|all| all.keys().all(|key| keys.contains(&key.as_str())))
 }
 
 struct Asked<'a> {
-    name: &'a str,
     args: &'a Value,
     named: String,
     approved: String,
@@ -85,7 +86,7 @@ fn store_of(paths: &Paths, state: &State) -> Result<tisty_core::Store, Refused> 
 pub(super) fn proposed(
     paths: &Paths,
     state: &State,
-    name: &str,
+    _name: &str,
     args: &Value,
     file: &str,
 ) -> Result<Value, Refused> {
@@ -110,7 +111,6 @@ pub(super) fn proposed(
     }
     let approved = tisty_core::docs::read(&paths.docs(), file).map_err(hitch)?;
     let asked = Asked {
-        name,
         args,
         named,
         approved,
@@ -143,13 +143,14 @@ pub(super) fn proposed(
 
 fn made(asked: &Asked) -> Result<String, Refused> {
     let base = asked.base();
-    match asked.name {
-        "write_doc" => {
+    let mode = text(asked.args, "mode");
+    match mode.as_deref() {
+        Some("rewrite") => {
             printed_as(asked)?;
-            Ok(raw(asked.args, "body").unwrap_or_default().to_string())
+            Ok(raw(asked.args, "content").unwrap_or_default().to_string())
         }
-        "append_doc" => {
-            let added = raw(asked.args, "body").unwrap_or_default();
+        Some("append") => {
+            let added = raw(asked.args, "content").unwrap_or_default();
             let kept = base.trim_end_matches('\n');
             Ok(format!("{kept}\n\n{}\n", added.trim_end_matches('\n')))
         }
@@ -168,7 +169,7 @@ fn as_in(base: &str, said: &str) -> String {
 
 fn passage_replaced(asked: &Asked, base: &str) -> Result<String, Refused> {
     let old = as_in(base, raw(asked.args, "old").unwrap_or_default());
-    let new = as_in(base, raw(asked.args, "new").unwrap_or_default());
+    let new = as_in(base, raw(asked.args, "content").unwrap_or_default());
     match base.matches(old.as_str()).count() {
         1 if !old.is_empty() => Ok(base.replacen(old.as_str(), &new, 1)),
         0 | 1 => Err(Refused::Tool(format!(
@@ -207,7 +208,7 @@ fn lines_replaced(asked: &Asked, base: &str) -> Result<String, Refused> {
             "`from` is line {from} and `to` is line {to}, so there is nothing between them."
         )));
     }
-    let new = as_in(base, raw(asked.args, "new").unwrap_or_default());
+    let new = as_in(base, raw(asked.args, "content").unwrap_or_default());
     let tail = match new.is_empty() || new.ends_with('\n') {
         true => new,
         false => format!("{new}\n"),

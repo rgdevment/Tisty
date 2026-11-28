@@ -46,7 +46,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if body.is_some_and(|body| in_a_fence(&body, args)) {
         return edited(paths, args, true);
     }
-    spoken(paths, "edit_doc", args, "new", |args| {
+    spoken(paths, "doc_edit", args, "new", |args| {
         edited(paths, args, false)
     })
 }
@@ -103,10 +103,11 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
         (None, true) => "",
         (None, false) => {
             return Err(Refused::Tool(
-                    "an edit needs `old`, the text to replace — or `section`, or `from` and `to`, \
-                 which name a passage by where it sits. The document's card from `brain` gives both numbers."
-                        .into(),
-                ));
+                "an edit needs `old`, the text to replace — or `section`, or `from` and `to`, \
+                 which name a passage by where it sits. The document's card from `workspace_read` \
+                 (`view: \"card\"`) gives both numbers."
+                    .into(),
+            ));
         }
     };
     let (state, mut store, named) = writable(paths, args, &which)?;
@@ -154,21 +155,22 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
                 Some((line, near)) => format!(
                     "nothing in {named} reads exactly like that `old`, so nothing was changed. \
                      The nearest it has is line {line}:\n\n{near}\n\nCopy it character for \
-                     character as `read` hands it back, or name the place with `section` \
-                     or `from` and `to`."
+                     character as `workspace_read` hands it back, or name the place with \
+                     `section` or `from` and `to`."
                 ),
                 None => format!(
                     "nothing in {named} reads like that `old`, so nothing was changed. Ask \
-                     `brain` with this `doc` and a `query` where the words are, or `read` for the part you \
-                     mean."
+                     `workspace_search` (`mode: \"in_doc\"`) with this `doc` and a `query` where \
+                     the words are, or `workspace_read` for the part you mean."
                 ),
             }
         })),
         tisty_core::docs::Change::TheLot => Err(Refused::Tool(format!(
-            "that `old` is the whole of {named}, which `edit_doc` will not take: a passage it \
-             cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
-             changed. Edit the passage that differs, or replace the body with `write_doc`, naming \
-             {named} and the `print` `read` gave you."
+            "that `old` is the whole of {named}, which `doc_edit` (`mode: \"patch\"`) will not \
+             take: a passage it cannot tell from the document is a rewrite wearing an edit's \
+             clothes. Nothing was changed. Edit the passage that differs, or replace the body \
+             with `doc_edit` (`mode: \"rewrite\"`), naming {named} and the `print` `workspace_read` \
+             gave you."
         ))),
         tisty_core::docs::Change::Twice(many) => Err(Refused::Tool({
             let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
@@ -191,7 +193,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
             Ok(told(
                 format!(
                     "Changed that passage in {}, {}. What it was is kept in its history on \
-                     this machine: `restore_doc` puts it back.{}{}{}{}",
+                     this machine: `doc_edit` (`mode: \"restore\"`) puts it back.{}{}{}{}",
                     written_name(&state, &which, &whole),
                     by_how_much(&was, &whole),
                     loose_words(&state, &loose),

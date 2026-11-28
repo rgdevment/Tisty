@@ -77,7 +77,10 @@ impl Connection {
     }
 
     fn files_a_folder(&mut self, name: &str) -> Value {
-        self.call("folder", json!({ "name": name }))
+        self.call(
+            "doc_organize",
+            json!({ "action": "create_folder", "name": name }),
+        )
     }
 }
 
@@ -100,7 +103,7 @@ fn ask(said: &Value) -> Option<&Value> {
 
 fn proposes_work(talk: &mut Connection) -> String {
     let said = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the export",
             "steps": ["Write the parser", "Wire the menu"],
             "list": "Work",
@@ -147,7 +150,10 @@ fn ticking_the_task_quiets_it_until_the_next_stretch() {
         talk.files_a_folder(name);
     }
 
-    let ticked = talk.call("tick", json!({ "task": task, "step": "Write the parser" }));
+    let ticked = talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Write the parser" }),
+    );
     assert_eq!(ask(&ticked), None);
     assert_eq!(ask(&talk.files_a_folder("Letters")), None);
     assert_eq!(ask(&talk.files_a_folder("Bills")), None);
@@ -170,8 +176,8 @@ fn the_person_turning_it_off_quiets_a_connection_already_open() {
 
     served.person().lets_agents_be_asked(true);
     talk.call(
-        "note",
-        json!({ "task": task, "body": "Chose CSV over XLSX: the bank reads it." }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Chose CSV over XLSX: the bank reads it." }),
     );
     for name in ["Bills", "Photos"] {
         assert_eq!(ask(&talk.files_a_folder(name)), None);
@@ -185,12 +191,12 @@ fn a_task_said_done_is_never_asked_about() {
     let mut talk = served.connect();
     let task = proposes_work(&mut talk);
     talk.call(
-        "tick",
-        json!({ "task": task, "steps": ["Write the parser", "Wire the menu"] }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": ["Write the parser", "Wire the menu"] }),
     );
     talk.call(
-        "say_done",
-        json!({ "task": task, "body": "Both steps are in; the export opens in the bank." }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": task, "body": "Both steps are in; the export opens in the bank." }),
     );
 
     for name in ["Notes", "Drafts", "Receipts", "Letters"] {
@@ -205,7 +211,7 @@ fn a_task_the_person_wrote_and_the_agent_read_is_the_one_asked_about() {
     served.person().adds_step(theirs, "Book the appointment");
     let mut talk = served.connect();
 
-    talk.call("read", json!({ "task": theirs.to_string() }));
+    talk.call("workspace_read", json!({ "task": theirs.to_string() }));
     for name in ["Notes", "Drafts"] {
         talk.files_a_folder(name);
     }
@@ -219,7 +225,7 @@ fn a_note_filed_for_the_person_first_does_not_take_the_place_of_the_work() {
     let served = Served::new();
     let mut talk = served.connect();
     talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Call the bank back", "list": "Work" }),
     );
     let task = proposes_work(&mut talk);

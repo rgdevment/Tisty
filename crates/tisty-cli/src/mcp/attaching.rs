@@ -164,8 +164,8 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 &kept.at,
                 &named,
                 &format!(
-                    "write it between the brackets with `reword_note` on the note {note}, and \
-                     next time say it in `label`"
+                    "write it between the brackets with `task_note` (`action: \"reword\"`) on the \
+                     note {note}, and next time say it in `label`"
                 ),
             ))
         }
@@ -206,7 +206,7 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 answer,
                 &kept.at,
                 &named,
-                "write it between the brackets with `edit_doc`, and next time say it in `label`",
+                "write it between the brackets with `doc_edit` (`mode: \"patch\"`), and next time say it in `label`",
             ))
         }
     }

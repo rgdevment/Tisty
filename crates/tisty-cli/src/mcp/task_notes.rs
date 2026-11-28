@@ -89,9 +89,9 @@ pub(super) fn noted_on_page(
                 format!(
                     "Wrote the assistant's notes on {title:?}'s page again as one digest, from \
                      {before} to {} characters, folding {} dated entries by {}; the rest of the \
-                     page is as it was. While the digest heads the notes, `restore_doc` with the \
-                     task's id puts back the notes it replaced, even after later ticks and \
-                     notes.{elsewhere}",
+                     page is as it was. While the digest heads the notes, `doc_edit` (`mode: \
+                     \"restore\"`) with the task's id puts back the notes it replaced, even after \
+                     later ticks and notes.{elsewhere}",
                     note.chars().count(),
                     was.by.len(),
                     named_hands(&was.by)
@@ -109,8 +109,8 @@ pub(super) fn noted_on_page(
     if length > super::chores::NOTE_AT_MOST {
         return Err(Refused::Tool(format!(
             "{title:?}'s page could not be written just now, and at {length} characters this \
-             is too long for its History, so nothing was written. Try `append_doc` again in \
-             a moment, or keep it in a document of its own with `write_doc`."
+             is too long for its History, so nothing was written. Try `doc_edit` (`mode: \
+             \"append\"`) again in a moment, or keep it in a document of its own with `doc_create`."
         )));
     }
     let zone = jiff::tz::TimeZone::system().iana_name().map(str::to_string);

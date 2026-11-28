@@ -57,7 +57,7 @@ impl Served {
 
     fn files(&self, title: &str) -> String {
         let made = self.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Personal", "again": true }),
         );
         assert_eq!(made["structuredContent"]["proposed"], true, "{made}");
@@ -70,7 +70,10 @@ impl Served {
     // The agent says it will not be done, and the person confirms by dropping it.
     fn dropped_for(&self, title: &str, why: &str) -> String {
         let id = self.files(title);
-        let said = self.call("say_not_doing", json!({ "task": id, "body": why }));
+        let said = self.call(
+            "task_resolve",
+            json!({ "outcome": "not_doing", "task": id, "body": why }),
+        );
         assert_ne!(said["isError"], true, "{said}");
         self.person().drops(person::task(&id));
         id
@@ -99,7 +102,7 @@ fn reading_a_dropped_task_gives_only_its_card_and_the_reason_the_agent_gave() {
         .person()
         .adds_step(person::task(&id), "a private step");
 
-    let read = served.call("read", json!({ "task": id }));
+    let read = served.call("workspace_read", json!({ "task": id }));
 
     assert_ne!(read["isError"], true, "{read}");
     let card = card(&read);
@@ -127,7 +130,7 @@ fn a_dropped_task_without_a_word_says_so() {
     let id = served.files("migrate the billing database");
     served.person().drops(person::task(&id));
 
-    let read = served.call("read", json!({ "task": id }));
+    let read = served.call("workspace_read", json!({ "task": id }));
 
     assert!(card(&read).get("reason").is_none(), "{read}");
     assert!(text(&read).contains("they wrote no reason"), "{read}");
@@ -142,7 +145,7 @@ fn a_note_of_the_day_it_was_dropped_stands_for_the_reason() {
         .notes(person::task(&id), "not worth it anymore");
     served.person().drops(person::task(&id));
 
-    let read = served.call("read", json!({ "task": id }));
+    let read = served.call("workspace_read", json!({ "task": id }));
 
     assert_eq!(card(&read)["reason"], "not worth it anymore", "{read}");
 }
@@ -152,7 +155,7 @@ fn brain_with_the_task_gives_the_same_card() {
     let served = Served::new();
     let id = served.dropped_for("migrate the billing database", "the vendor shut down");
 
-    let brain = served.call("brain", json!({ "task": id }));
+    let brain = served.call("workspace_read", json!({ "task": id, "view": "card" }));
 
     assert_ne!(brain["isError"], true, "{brain}");
     assert_eq!(card(&brain)["status"], "dropped", "{brain}");
@@ -168,7 +171,10 @@ fn a_query_lists_a_dropped_task_apart_from_the_matches() {
     let id = served.dropped_for("migrate the billing database", "the vendor shut down");
     served.files("write the quarterly report");
 
-    let found = served.call("brain", json!({ "query": "migrate billing database" }));
+    let found = served.call(
+        "workspace_search",
+        json!({ "query": "migrate billing database" }),
+    );
 
     let whole = card(&found);
     let dropped = whole["dropped"]
@@ -189,7 +195,7 @@ fn a_query_finds_a_dropped_task_by_its_reason() {
     let served = Served::new();
     served.dropped_for("migrate the billing database", "the vendor shut down");
 
-    let found = served.call("brain", json!({ "query": "vendor" }));
+    let found = served.call("workspace_search", json!({ "query": "vendor" }));
 
     assert_eq!(
         card(&found)["dropped"].as_array().unwrap().len(),
@@ -204,7 +210,7 @@ fn an_open_scope_never_lists_dropped_tasks() {
     served.dropped_for("migrate the billing database", "the vendor shut down");
 
     let found = served.call(
-        "brain",
+        "workspace_search",
         json!({ "query": "migrate billing database", "scope": "open" }),
     );
 
@@ -217,7 +223,7 @@ fn a_query_that_matches_nothing_dropped_adds_nothing() {
     let served = Served::new();
     served.dropped_for("migrate the billing database", "the vendor shut down");
 
-    let found = served.call("brain", json!({ "query": "garden fence" }));
+    let found = served.call("workspace_search", json!({ "query": "garden fence" }));
 
     assert!(card(&found).get("dropped").is_none(), "{found}");
 }
@@ -229,7 +235,10 @@ fn no_more_than_three_dropped_cards_come_with_a_query() {
         served.dropped_for(&format!("migrate billing database {n}"), "stopped");
     }
 
-    let found = served.call("brain", json!({ "query": "migrate billing database" }));
+    let found = served.call(
+        "workspace_search",
+        json!({ "query": "migrate billing database" }),
+    );
 
     assert_eq!(
         card(&found)["dropped"].as_array().unwrap().len(),
@@ -244,13 +253,13 @@ fn a_hidden_dropped_task_is_named_nowhere() {
     let id = served.dropped_for("secret zebra gift", "secret reason");
     served.person().hides(person::task(&id));
 
-    let read = served.call("read", json!({ "task": id }));
-    let by_task = served.call("brain", json!({ "task": id }));
-    let by_query = served.call("brain", json!({ "query": "secret zebra gift" }));
-    let nobody_read = served.call("read", json!({ "task": NOBODY }));
-    let nobody_task = served.call("brain", json!({ "task": NOBODY }));
+    let read = served.call("workspace_read", json!({ "task": id }));
+    let by_task = served.call("workspace_read", json!({ "task": id, "view": "card" }));
+    let by_query = served.call("workspace_search", json!({ "query": "secret zebra gift" }));
+    let nobody_read = served.call("workspace_read", json!({ "task": NOBODY }));
+    let nobody_task = served.call("workspace_read", json!({ "task": NOBODY, "view": "card" }));
     let proposed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "secret zebra gift again", "list": "Personal" }),
     );
 
@@ -282,9 +291,18 @@ fn a_dropped_task_refuses_to_be_written() {
     let id = served.dropped_for("migrate the billing database", "the vendor shut down");
     let before = served.person().ops().len();
 
-    let noted = served.call("note", json!({ "task": id, "body": "more words" }));
-    let ticked = served.call("tick", json!({ "task": id, "step": "a step" }));
-    let reminded = served.call("remind", json!({ "task": id, "at": ["2030-01-01T10:00"] }));
+    let noted = served.call(
+        "task_note",
+        json!({ "action": "add", "task": id, "body": "more words" }),
+    );
+    let ticked = served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a step" }),
+    );
+    let reminded = served.call(
+        "task_update",
+        json!({ "task": id, "add_reminders": ["2030-01-01T10:00"] }),
+    );
 
     for said in [&noted, &ticked, &reminded] {
         assert_eq!(said["isError"], true, "{said}");
@@ -302,7 +320,7 @@ fn a_title_alike_to_a_dropped_one_is_held_until_again_is_set() {
     let before = served.person().ops().len();
 
     let held = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Migrate billing database", "list": "Personal" }),
     );
 
@@ -312,7 +330,7 @@ fn a_title_alike_to_a_dropped_one_is_held_until_again_is_set() {
     assert_eq!(served.person().ops().len(), before);
 
     let filed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Migrate billing database", "list": "Personal", "again": true }),
     );
 
@@ -326,7 +344,7 @@ fn an_unrelated_title_is_filed_without_a_word_about_dropped_tasks() {
     served.dropped_for("migrate the billing database", "the vendor shut down");
 
     let filed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "paint the garden fence", "list": "Personal" }),
     );
 
@@ -340,7 +358,7 @@ fn the_batch_form_says_which_line_was_not_written() {
     served.dropped_for("migrate the billing database", "the vendor shut down");
 
     let batch = served.call(
-        "propose",
+        "task_create",
         json!({ "tasks": [
             { "for": "agent", "title": "Migrate billing database", "list": "Personal" },
             { "for": "agent", "title": "paint the garden fence", "list": "Personal" },
@@ -376,7 +394,7 @@ fn a_shared_prefix_alone_does_not_hold_a_proposal() {
     served.dropped_for("Tisty MCP: import", "not needed");
 
     let filed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Tisty MCP: export", "list": "Personal" }),
     );
 
@@ -403,8 +421,8 @@ fn attaching_to_a_dropped_task_says_it_was_dropped() {
     let before = served.person().ops().len();
 
     let said = served.call(
-        "attach",
-        json!({ "task": id, "path": served.home.path().join("a.txt").to_string_lossy() }),
+        "file_transfer",
+        json!({ "action": "attach", "task": id, "path": served.home.path().join("a.txt").to_string_lossy() }),
     );
 
     assert_says_dropped(&said, "migrate the billing database");
@@ -418,7 +436,7 @@ fn proposing_a_part_of_a_dropped_task_says_it_was_dropped() {
     let before = served.person().ops().len();
 
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "paint the garden fence", "part_of": id }),
     );
 
@@ -433,7 +451,7 @@ fn moving_under_a_dropped_task_says_it_was_dropped() {
     let other = served.files("paint the garden fence");
     let before = served.person().ops().len();
 
-    let said = served.call("move", json!({ "task": other, "part_of": id }));
+    let said = served.call("task_update", json!({ "task": other, "part_of": id }));
 
     assert_says_dropped(&said, "migrate the billing database");
     assert_eq!(served.person().ops().len(), before);
@@ -453,12 +471,15 @@ fn hidden_and_unknown_ids_keep_the_plain_answer() {
         .into_owned();
 
     for gone in [secret.as_str(), NOBODY] {
-        let attached = served.call("attach", json!({ "task": gone, "path": path }));
+        let attached = served.call(
+            "file_transfer",
+            json!({ "action": "attach", "task": gone, "path": path }),
+        );
         let proposed = served.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": "something else", "part_of": gone }),
         );
-        let moved = served.call("move", json!({ "task": other, "part_of": gone }));
+        let moved = served.call("task_update", json!({ "task": other, "part_of": gone }));
         for said in [&attached, &proposed, &moved] {
             assert_says_nothing_here(said);
             assert!(!said.to_string().contains("secret"), "{said}");
@@ -471,7 +492,10 @@ fn a_note_on_a_dropped_task_says_how_it_ended_not_that_it_is_put_away() {
     let served = Served::new();
     let id = served.dropped_for("migrate the billing database", "the vendor shut down.");
 
-    let noted = served.call("note", json!({ "task": id, "body": "more words" }));
+    let noted = served.call(
+        "task_note",
+        json!({ "action": "add", "task": id, "body": "more words" }),
+    );
 
     assert_eq!(noted["isError"], true, "{noted}");
     let why = text(&noted);
@@ -486,7 +510,10 @@ fn a_note_on_a_hidden_task_still_says_it_is_put_away() {
     let id = served.files("secret zebra gift");
     served.person().hides(person::task(&id));
 
-    let noted = served.call("note", json!({ "task": id, "body": "more words" }));
+    let noted = served.call(
+        "task_note",
+        json!({ "action": "add", "task": id, "body": "more words" }),
+    );
 
     assert_eq!(noted["isError"], true, "{noted}");
     assert!(!text(&noted).contains("secret zebra"), "{noted}");
@@ -498,8 +525,11 @@ fn reschedule_and_say_done_on_a_dropped_task_are_refused_and_write_nothing() {
     let id = served.dropped_for("migrate the billing database", "the vendor shut down");
     let before = served.person().ops().len();
 
-    let moved = served.call("reschedule", json!({ "task": id, "date": "2030-01-01" }));
-    let done = served.call("say_done", json!({ "task": id, "body": "did it" }));
+    let moved = served.call("task_update", json!({ "task": id, "date": "2030-01-01" }));
+    let done = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "did it" }),
+    );
 
     for said in [&moved, &done] {
         assert_says_dropped(said, "migrate the billing database");
@@ -513,12 +543,12 @@ fn brain_part_of_a_dropped_whole_gives_the_card_and_no_parts() {
     let served = Served::new();
     let whole = served.files("release plan");
     served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "write the changelog", "part_of": whole }),
     );
     served.person().drops(person::task(&whole));
 
-    let seen = served.call("brain", json!({ "part_of": whole }));
+    let seen = served.call("workspace_search", json!({ "part_of": whole }));
 
     assert_says_dropped(&seen, "release plan");
     assert!(!text(&seen).contains("changelog"), "{seen}");
@@ -542,7 +572,7 @@ fn a_part_alike_to_a_dropped_task_is_refused_unless_the_whole_says_again() {
         one
     };
 
-    let refused = served.call("propose", args(false));
+    let refused = served.call("task_create", args(false));
 
     assert_eq!(refused["isError"], true, "{refused}");
     let why = text(&refused);
@@ -552,7 +582,7 @@ fn a_part_alike_to_a_dropped_task_is_refused_unless_the_whole_says_again() {
     let state = served.person().state();
     assert!(!state.tasks.values().any(|t| t.title == "quarterly cleanup"));
 
-    let filed = served.call("propose", args(true));
+    let filed = served.call("task_create", args(true));
 
     assert_ne!(filed["isError"], true, "{filed}");
     let state = served.person().state();
@@ -572,9 +602,12 @@ fn hidden_ids_keep_the_plain_answer_on_note_and_brain_part_of() {
     served.person().hides(person::task(&id));
 
     for said in [
-        served.call("note", json!({ "task": id, "body": "more" })),
-        served.call("brain", json!({ "part_of": id })),
-        served.call("reschedule", json!({ "task": id, "date": "2030-01-01" })),
+        served.call(
+            "task_note",
+            json!({ "action": "add", "task": id, "body": "more" }),
+        ),
+        served.call("workspace_search", json!({ "part_of": id })),
+        served.call("task_update", json!({ "task": id, "date": "2030-01-01" })),
     ] {
         assert_eq!(said["isError"], true, "{said}");
         assert!(!said.to_string().contains("secret"), "{said}");

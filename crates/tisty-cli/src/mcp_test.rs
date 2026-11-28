@@ -210,11 +210,9 @@ fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
                 "{name} does not say `{hint}`, and OpenAI's directory turns away a tool without all four"
             );
         }
-        // These two leave the store alone yet write: a summary kept here only, a copy in a folder.
-        let writes_outside_the_store = ["sum_up", "export_doc"].contains(&name);
         assert_eq!(
             one["annotations"]["readOnlyHint"] == json!(true),
-            ONLY_READS.contains(&name) && !writes_outside_the_store,
+            ONLY_READS.contains(&name),
             "{name} says whether it only reads differently from ONLY_READS"
         );
     }
@@ -222,13 +220,72 @@ fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
     let mut effects: Vec<&str> = super::catalogue::EFFECTS
         .iter()
         .map(|(name, _)| *name)
-        .filter(|name| super::brain::moved(name).is_none())
         .collect();
     listed.sort_unstable();
     effects.sort_unstable();
     assert_eq!(
         listed, effects,
         "EFFECTS names other tools than the catalogue"
+    );
+}
+
+#[test]
+fn surface_stays_within_fifteen_tools_naming_grammar_and_token_budget() {
+    let all = tools();
+    let tools_list = all.as_array().expect("the tools come back as a list");
+    assert_eq!(
+        tools_list.len(),
+        15,
+        "surface must stay at 15 tools for TDQS 5/5"
+    );
+    for one in tools_list {
+        let name = one["name"].as_str().unwrap();
+        assert!(
+            (8..=20).contains(&name.len()),
+            "{name} length {} outside 8..=20",
+            name.len()
+        );
+        assert!(
+            name.starts_with("workspace_")
+                || name.starts_with("task_")
+                || name.starts_with("doc_")
+                || name.starts_with("file_"),
+            "{name} breaks <domain>_<verb> naming"
+        );
+        let title = one["title"].as_str().unwrap();
+        assert!(
+            (14..=48).contains(&title.chars().count()),
+            "{name} title length {} outside 14..=48",
+            title.chars().count()
+        );
+        let desc = one["description"].as_str().unwrap();
+        assert!(
+            desc.chars().count() <= 360,
+            "{name} description is {} chars (max 360)",
+            desc.chars().count()
+        );
+        if let Some(props) = one["inputSchema"]["properties"].as_object() {
+            for (field, schema) in props {
+                let pdesc = schema["description"].as_str().unwrap_or_default();
+                assert!(
+                    pdesc.chars().count() <= 140,
+                    "{name}.{field} description is {} chars (max 140)",
+                    pdesc.chars().count()
+                );
+            }
+        }
+    }
+    let bytes = serde_json::to_string(&all).unwrap().len();
+    assert!(
+        bytes <= 26_000,
+        "tools/list weighs {bytes} bytes, past the 26_000 token-budget ceiling"
+    );
+    let head = instructions(jiff::civil::date(2026, 11, 27));
+    let (_, body) = head.split_once("\n\n").unwrap();
+    assert!(
+        body.chars().count() <= 1_350,
+        "HEAD instructions are {} chars (max 1_350)",
+        body.chars().count()
     );
 }
 
@@ -554,18 +611,18 @@ fn a_store_left_behind_by_a_move_asks_for_a_restart_not_an_update() {
 #[test]
 fn showing_a_table_stirs_nothing_and_changing_one_does() {
     assert!(only_reads(
-        "edit_table",
-        &json!({ "arguments": { "doc": "q7ntmzbm-0001" } })
+        "workspace_read",
+        &json!({ "arguments": { "doc": "q7ntmzbm-0001", "view": "table" } })
     ));
     assert!(only_reads(
-        "edit_table",
-        &json!({ "arguments": { "do": "show" } })
+        "file_transfer",
+        &json!({ "arguments": { "action": "export_doc", "doc": "q7ntmzbm-0001", "path": "/tmp" } })
     ));
     assert!(!only_reads(
-        "edit_table",
-        &json!({ "arguments": { "do": "add" } })
+        "doc_edit_table",
+        &json!({ "arguments": { "action": "add_row" } })
     ));
-    assert!(!only_reads("append_doc", &json!({ "arguments": {} })));
+    assert!(!only_reads("doc_edit", &json!({ "arguments": {} })));
 }
 
 #[test]

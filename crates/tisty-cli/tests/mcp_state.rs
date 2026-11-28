@@ -125,7 +125,7 @@ fn shown(said: &Value) -> &Value {
 
 fn proposes(talk: &mut Connection) -> String {
     let said = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Move payments to v2",
             "steps": ["Sign", "Upload", "Resume a cut upload"],
             "list": "Work",
@@ -142,13 +142,13 @@ fn one_tick_marks_the_step_and_leaves_the_state_on_the_page() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     talk.call(
-        "note",
-        json!({ "task": task, "body": "Tried the old signatures first." }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Tried the old signatures first." }),
     );
 
     let said = talk.call(
-        "tick",
-        json!({ "task": task, "step": "Sign", "state": STATE }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign", "state": STATE }),
     );
 
     assert_eq!(shown(&said)["ticked"], 1);
@@ -184,9 +184,15 @@ fn a_state_alone_ticks_nothing_and_replaces_the_last_whole() {
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "state": "First take." }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "First take." }),
+    );
 
-    let said = talk.call("tick", json!({ "task": task, "state": "Second take." }));
+    let said = talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Second take." }),
+    );
 
     assert_eq!(shown(&said)["stated"], true);
     assert_eq!(shown(&said)["left"], 3);
@@ -208,18 +214,21 @@ fn read_brings_the_state_and_only_the_notes_after_it() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     for n in 0..4 {
-        talk.call("note", json!({ "task": task, "body": format!("try {n}") }));
+        talk.call(
+            "task_note",
+            json!({ "action": "add", "task": task, "body": format!("try {n}") }),
+        );
     }
     talk.call(
-        "tick",
-        json!({ "task": task, "step": "Sign", "state": STATE }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign", "state": STATE }),
     );
     talk.call(
-        "note",
-        json!({ "task": task, "body": "Blocked: the bank's sandbox is down." }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Blocked: the bank's sandbox is down." }),
     );
 
-    let said = talk.call("read", json!({ "task": task }));
+    let said = talk.call("workspace_read", json!({ "task": task }));
 
     let kept = shown(&said);
     let journal = kept["journal"].as_array().unwrap();
@@ -235,7 +244,7 @@ fn read_brings_the_state_and_only_the_notes_after_it() {
     let text = said["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("4 note(s) from before its state"), "{text}");
 
-    let log = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let log = talk.call("workspace_read", json!({ "task": task, "notes": 0 }));
     assert_eq!(shown(&log)["journal"].as_array().unwrap().len(), 5);
 }
 
@@ -245,10 +254,16 @@ fn a_long_page_brings_its_state_whole_beside_its_sections() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     let analysis = "The retries stopped once the queue kept its own clock. ".repeat(90);
-    talk.call("append_doc", json!({ "doc": task, "body": analysis }));
-    talk.call("tick", json!({ "task": task, "state": STATE }));
+    talk.call(
+        "doc_edit",
+        json!({ "mode": "append", "doc": task, "content": analysis }),
+    );
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": STATE }),
+    );
 
-    let said = talk.call("read", json!({ "task": task }));
+    let said = talk.call("workspace_read", json!({ "task": task }));
 
     let kept = shown(&said);
     assert_eq!(kept["document"]["whole"], false, "{kept}");
@@ -261,20 +276,26 @@ fn a_state_grows_old_when_steps_move_after_it_and_is_fresh_again_with_the_next()
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "state": STATE }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": STATE }),
+    );
 
-    talk.call("tick", json!({ "task": task, "step": "Sign" }));
-    let said = talk.call("read", json!({ "task": task }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign" }),
+    );
+    let said = talk.call("workspace_read", json!({ "task": task }));
     assert_eq!(
         shown(&said)["state"]["old"],
         "older than the last change to its steps"
     );
 
     talk.call(
-        "tick",
-        json!({ "task": task, "step": "Upload", "state": STATE }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Upload", "state": STATE }),
     );
-    let again = talk.call("read", json!({ "task": task }));
+    let again = talk.call("workspace_read", json!({ "task": task }));
     assert!(shown(&again)["state"].get("old").is_none(), "{again}");
 }
 
@@ -284,8 +305,8 @@ fn the_person_writing_the_state_makes_it_fresh_and_keeps_their_lines() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     talk.call(
-        "tick",
-        json!({ "task": task, "step": "Sign", "state": STATE }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign", "state": STATE }),
     );
     served.person().ticks(person::task(&task), 1);
     let file = served.file(&task);
@@ -298,10 +319,13 @@ fn the_person_writing_the_state_makes_it_fresh_and_keeps_their_lines() {
         .person()
         .writes_on_its_page(person::task(&task), &file, &theirs);
 
-    let said = talk.call("read", json!({ "task": task }));
+    let said = talk.call("workspace_read", json!({ "task": task }));
     assert!(shown(&said)["state"].get("old").is_none(), "{said}");
 
-    let refused = talk.refused("tick", json!({ "task": task, "state": "All uploaded." }));
+    let refused = talk.refused(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "All uploaded." }),
+    );
     assert!(
         refused.contains("«Ask Rina before the upload.»"),
         "{refused}"
@@ -313,7 +337,10 @@ fn the_person_writing_the_state_makes_it_fresh_and_keeps_their_lines() {
     assert!(served.page(&task).contains("Ask Rina before the upload."));
 
     let carried = "All uploaded.\nAsk Rina before the upload.";
-    talk.call("tick", json!({ "task": task, "state": carried }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": carried }),
+    );
     assert!(served.page(&task).contains("All uploaded."));
 }
 
@@ -325,17 +352,20 @@ fn a_state_that_cannot_be_kept_ticks_nothing() {
 
     let long = "x".repeat(3_001);
     let refused = talk.refused(
-        "tick",
-        json!({ "task": task, "step": "Sign", "state": long }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign", "state": long }),
     );
     assert!(refused.contains("at most 3000 characters"), "{refused}");
     assert!(!served.person().state().tasks[&person::task(&task)].steps[0].done);
 
-    talk.call("tick", json!({ "task": task, "state": "Short." }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Short." }),
+    );
     served.person().locks_doc(&served.file(&task));
     let locked = talk.refused(
-        "tick",
-        json!({ "task": task, "step": "Sign", "state": "Again." }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign", "state": "Again." }),
     );
     assert!(locked.contains("locked"), "{locked}");
     assert!(!served.person().state().tasks[&person::task(&task)].steps[0].done);
@@ -349,7 +379,10 @@ fn a_routine_keeps_no_state() {
     served.person().repeats(id, "every week");
     let mut talk = served.connect();
 
-    let refused = talk.refused("tick", json!({ "task": id.to_string(), "state": "Done." }));
+    let refused = talk.refused(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": id.to_string(), "state": "Done." }),
+    );
 
     assert!(refused.contains("routine"), "{refused}");
 }
@@ -360,15 +393,18 @@ fn a_task_said_done_takes_no_state() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     talk.call(
-        "tick",
-        json!({ "task": task, "steps": ["Sign", "Upload", "Resume a cut upload"] }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": ["Sign", "Upload", "Resume a cut upload"] }),
     );
     talk.call(
-        "say_done",
-        json!({ "task": task, "body": "All three work on v2." }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": task, "body": "All three work on v2." }),
     );
 
-    let refused = talk.refused("tick", json!({ "task": task, "state": "Done." }));
+    let refused = talk.refused(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Done." }),
+    );
 
     assert!(refused.contains("already been said done"), "{refused}");
 }
@@ -378,29 +414,32 @@ fn without_a_written_state_read_builds_one_and_pins_the_closing_note() {
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "step": "Sign" }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Sign" }),
+    );
 
-    let said = talk.call("read", json!({ "task": task }));
+    let said = talk.call("workspace_read", json!({ "task": task }));
     let built = &shown(&said)["state"];
     assert_eq!(built["built"], true);
     assert_eq!(built["done"], 1);
     assert_eq!(built["of"], 3);
 
     talk.call(
-        "tick",
-        json!({ "task": task, "steps": ["Upload", "Resume a cut upload"] }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": ["Upload", "Resume a cut upload"] }),
     );
     talk.call(
-        "say_done",
-        json!({ "task": task, "body": "All three work on v2, run 4471." }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": task, "body": "All three work on v2, run 4471." }),
     );
     for n in 0..12 {
         talk.call(
-            "note",
-            json!({ "task": task, "body": format!("later {n}: {}", "x".repeat(400)) }),
+            "task_note",
+            json!({ "action": "add", "task": task, "body": format!("later {n}: {}", "x".repeat(400)) }),
         );
     }
-    let closed = talk.call("read", json!({ "task": task }));
+    let closed = talk.call("workspace_read", json!({ "task": task }));
     let closing = &shown(&closed)["state"]["closing"];
     assert!(
         closing["body"].as_str().unwrap().contains("run 4471"),
@@ -414,36 +453,36 @@ fn a_note_replaces_an_agents_earlier_one_which_stays_marked_in_the_history() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     talk.call(
-        "note",
-        json!({ "task": task, "body": "Decided: CSV for the bank." }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Decided: CSV for the bank." }),
     );
-    let read = talk.call("read", json!({ "task": task }));
+    let read = talk.call("workspace_read", json!({ "task": task }));
     let old = shown(&read)["journal"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     let said = talk.call(
-        "note",
-        json!({ "task": task, "body": "Decided: XLSX, the bank changed its importer.", "replaces": old }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Decided: XLSX, the bank changed its importer.", "replaces": old }),
     );
 
     assert_eq!(shown(&said)["replaces"], old);
     let text = said["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("read as replaced"), "{text}");
-    let now = talk.call("read", json!({ "task": task }));
+    let now = talk.call("workspace_read", json!({ "task": task }));
     let journal = shown(&now)["journal"].as_array().unwrap();
     assert_eq!(journal.len(), 1, "{now}");
     assert_eq!(journal[0]["replaces"], old);
-    let log = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let log = talk.call("workspace_read", json!({ "task": task, "notes": 0 }));
     let all = shown(&log)["journal"].as_array().unwrap();
     assert_eq!(all[0]["replaced"], true, "{log}");
     let held = served.person().state();
     assert_eq!(held.tasks[&person::task(&task)].replaced().len(), 1);
 
     let twice = talk.refused(
-        "note",
-        json!({ "task": task, "body": "Decided: JSON.", "replaces": old }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Decided: JSON.", "replaces": old }),
     );
     assert!(twice.contains("replaced already"), "{twice}");
 }
@@ -454,21 +493,21 @@ fn a_note_never_replaces_the_persons_or_one_it_cannot_find() {
     let id = served.person().captures("Renew the passport");
     served.person().notes(id, "Book it for March.");
     let mut talk = served.connect();
-    let read = talk.call("read", json!({ "task": id.to_string() }));
+    let read = talk.call("workspace_read", json!({ "task": id.to_string() }));
     let theirs = shown(&read)["journal"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
     let refused = talk.refused(
-        "note",
-        json!({ "task": id.to_string(), "body": "April is better.", "replaces": theirs }),
+        "task_note",
+        json!({ "action": "add", "task": id.to_string(), "body": "April is better.", "replaces": theirs }),
     );
     assert!(refused.contains("the person's"), "{refused}");
 
     let unknown = talk.refused(
-        "note",
-        json!({ "task": id.to_string(), "body": "April.", "replaces": "01J00000000000000000000000" }),
+        "task_note",
+        json!({ "action": "add", "task": id.to_string(), "body": "April.", "replaces": "01J00000000000000000000000" }),
     );
     assert!(unknown.contains("no note of"), "{unknown}");
     assert_eq!(served.person().state().tasks[&id].journal().count(), 1);
@@ -480,19 +519,31 @@ fn a_state_answers_the_question_about_the_open_task() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
     for name in ["Notes", "Drafts"] {
-        talk.call("folder", json!({ "name": name }));
+        talk.call(
+            "doc_organize",
+            json!({ "action": "create_folder", "name": name }),
+        );
     }
-    let asked = talk.call("folder", json!({ "name": "Receipts" }));
+    let asked = talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Receipts" }),
+    );
     let said = shown(&asked)["ask"]["said"].as_str().unwrap();
     assert!(said.contains("`state`"), "{said}");
 
-    talk.call("tick", json!({ "task": task, "state": STATE }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": STATE }),
+    );
 
     for name in ["Letters", "Bills"] {
         assert!(
-            shown(&talk.call("folder", json!({ "name": name })))
-                .get("ask")
-                .is_none()
+            shown(&talk.call(
+                "doc_organize",
+                json!({ "action": "create_folder", "name": name })
+            ))
+            .get("ask")
+            .is_none()
         );
     }
 }
@@ -503,7 +554,10 @@ fn an_empty_list_of_steps_beside_a_state_still_leaves_the_state() {
     let mut talk = served.connect();
     let task = proposes(&mut talk);
 
-    let said = talk.call("tick", json!({ "task": task, "steps": [], "state": STATE }));
+    let said = talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": [], "state": STATE }),
+    );
 
     assert_eq!(shown(&said)["stated"], true);
     assert!(served.page(&task).contains("v2 signatures only"));
@@ -514,16 +568,19 @@ fn a_state_the_agent_mended_by_its_page_is_still_its_own() {
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "state": STATE }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": STATE }),
+    );
     let file = served.file(&task);
     talk.call(
-        "edit_doc",
-        json!({ "doc": file, "old": "upload is next.", "new": "upload is next, then resuming." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": file, "old": "upload is next.", "content": "upload is next, then resuming." }),
     );
 
     let said = talk.call(
-        "tick",
-        json!({ "task": task, "state": "Everything uploaded." }),
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Everything uploaded." }),
     );
 
     assert_eq!(shown(&said)["stated"], true);
@@ -535,7 +592,10 @@ fn a_line_of_the_persons_is_carried_whole_not_found_inside_another() {
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "state": STATE }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": STATE }),
+    );
     let file = served.file(&task);
     let theirs = served
         .page(&task)
@@ -545,8 +605,8 @@ fn a_line_of_the_persons_is_carried_whole_not_found_inside_another() {
         .writes_on_its_page(person::task(&task), &file, &theirs);
 
     let refused = talk.refused(
-        "tick",
-        json!({ "task": task, "state": "OK so far: signed." }),
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "OK so far: signed." }),
     );
 
     assert!(refused.contains("«OK»"), "{refused}");
@@ -557,7 +617,10 @@ fn a_state_written_long_by_other_means_comes_cut() {
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes(&mut talk);
-    talk.call("tick", json!({ "task": task, "state": "Short." }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Short." }),
+    );
     let file = served.file(&task);
     let long = served
         .page(&task)
@@ -566,7 +629,7 @@ fn a_state_written_long_by_other_means_comes_cut() {
         .person()
         .writes_on_its_page(person::task(&task), &file, &long);
 
-    let said = talk.call("read", json!({ "task": task }));
+    let said = talk.call("workspace_read", json!({ "task": task }));
 
     let state = &shown(&said)["state"];
     assert_eq!(state["cut"], true, "{state}");
@@ -582,13 +645,13 @@ fn on_the_persons_task_the_step_waits_for_them_and_the_state_is_kept_with_its_cl
     let task = id.to_string();
     let mut talk = served.connect();
     talk.call(
-        "note",
-        json!({ "task": task, "body": "The office opens at nine." }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "The office opens at nine." }),
     );
 
     let said = talk.call(
-        "tick",
-        json!({ "task": task, "step": "Book the appointment", "state": "Booked for Monday; the fee is left." }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "step": "Book the appointment", "state": "Booked for Monday; the fee is left." }),
     );
 
     assert_eq!(shown(&said)["said"], 1, "{said}");
@@ -603,7 +666,7 @@ fn on_the_persons_task_the_step_waits_for_them_and_the_state_is_kept_with_its_cl
         after.stated_at.is_some(),
         "the door let the trail of its state in"
     );
-    let read = talk.call("read", json!({ "task": task }));
+    let read = talk.call("workspace_read", json!({ "task": task }));
     let kept = shown(&read);
     assert!(kept["state"]["written"].is_string(), "{kept}");
     assert!(kept["state"].get("old").is_none(), "{kept}");

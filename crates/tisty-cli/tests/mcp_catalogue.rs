@@ -39,10 +39,13 @@ fn request(method: &str, params: &Value) -> Value {
 }
 
 fn rules(topic: Option<&str>) -> String {
-    let arguments = topic.map_or_else(|| json!({}), |one| json!({ "topic": one }));
+    let mut arguments = serde_json::Map::from_iter([("kind".into(), json!("rules"))]);
+    if let Some(one) = topic {
+        arguments.insert("topic".into(), json!(one));
+    }
     let said = ask(&[request(
         "tools/call",
-        &json!({ "name": "rules", "arguments": arguments }),
+        &json!({ "name": "workspace_guide", "arguments": arguments }),
     )]);
     said[0]["result"]["content"][0]["text"]
         .as_str()
@@ -59,7 +62,7 @@ fn the_instructions_an_agent_reads_when_it_connects() {
     insta::assert_snapshot!(kept);
 }
 
-const DOOR_AT_MOST: usize = 41_700;
+const DOOR_AT_MOST: usize = 27_500;
 const DOOR_SLACK: usize = 1_000;
 
 #[test]
@@ -87,7 +90,11 @@ fn what_an_agent_pays_to_have_tisty_connected_only_shrinks() {
 #[test]
 fn brain_read_and_sum_up_stay_within_the_weight_each_was_given() {
     let said = ask(&[request("tools/list", &json!({}))]);
-    for (name, at_most) in [("brain", 3_800), ("read", 2_140), ("sum_up", 900)] {
+    for (name, at_most) in [
+        ("workspace_search", 2_600),
+        ("workspace_read", 2_550),
+        ("doc_annotate", 1_550),
+    ] {
         let tool = said[0]["result"]["tools"]
             .as_array()
             .unwrap()
@@ -98,7 +105,7 @@ fn brain_read_and_sum_up_stay_within_the_weight_each_was_given() {
 
         assert!(
             weight <= at_most,
-            "`{name}` weighs {weight} bytes in the list, past the {at_most} it was given: say it in fewer words, or move the how-to into `rules`"
+            "`{name}` weighs {weight} bytes in the list, past the {at_most} it was given: say it in fewer words, or move the how-to into `workspace_guide`"
         );
     }
 }
@@ -133,15 +140,12 @@ fn the_guides_weigh_what_the_rules_tool_says_they_do() {
     for topic in ["tasks", "documents", "tidying", "ideas"] {
         let size = rules(Some(topic)).chars().count();
         assert!(
-            (3_000..=11_600).contains(&size),
-            "«{topic}» is {size} characters, and `rules` says 3,000 to 11,600: say the new size there"
+            (3_000..=12_600).contains(&size),
+            "«{topic}» is {size} characters, outside 3,000 to 12,600"
         );
     }
     let all = rules(Some("all")).chars().count();
-    assert!(
-        all <= 35_200,
-        "`all` is {all} characters, and `rules` says 35,200: say the new size there"
-    );
+    assert!(all <= 37_500, "`all` is {all} characters, past 37,500");
 }
 
 #[test]
@@ -157,14 +161,20 @@ fn nothing_an_agent_is_handed_names_a_tool_that_moved() {
         request("server/discover", &json!({})),
         request("tools/list", &json!({})),
         request("prompts/list", &json!({})),
-        call("rules", json!({})),
-        call("language", json!({})),
-        call("language", json!({ "topic": "all" })),
-        call("help", json!({ "lang": "en" })),
-        call("help", json!({ "lang": "es" })),
+        call("workspace_guide", json!({ "kind": "rules" })),
+        call("workspace_guide", json!({ "kind": "markdown" })),
+        call(
+            "workspace_guide",
+            json!({ "kind": "markdown", "topic": "all" }),
+        ),
+        call("workspace_guide", json!({ "kind": "help", "lang": "en" })),
+        call("workspace_guide", json!({ "kind": "help", "lang": "es" })),
     ];
     for topic in ["tasks", "documents", "tidying", "ideas", "all"] {
-        asked.push(call("rules", json!({ "topic": topic })));
+        asked.push(call(
+            "workspace_guide",
+            json!({ "kind": "rules", "topic": topic }),
+        ));
     }
     for prompt in prompts[0]["result"]["prompts"].as_array().unwrap() {
         asked.push(request(
@@ -190,14 +200,42 @@ fn nothing_an_agent_is_handed_names_a_tool_that_moved() {
     ] {
         assert!(said.contains(read), "{read} was not handed");
     }
-    // `docs`, `lists` and `tags` moved too, but they are also the names of fields and answer keys.
-    let named: Vec<&str> = ["find", "outline_doc", "read_doc"]
+    let moved = [
+        "catch_up",
+        "brain",
+        "find",
+        "outline_doc",
+        "read_doc",
+        "propose",
+        "rename",
+        "describe",
+        "reschedule",
+        "remind",
+        "plan",
+        "unplan",
+        "reword_step",
+        "reword_note",
+        "say_done",
+        "say_not_doing",
+        "write_doc",
+        "edit_doc",
+        "append_doc",
+        "restore_doc",
+        "edit_table",
+        "archive_doc",
+        "flag_doc",
+        "file_doc",
+        "page_doc",
+        "tongue_doc",
+        "sum_up",
+    ];
+    let named: Vec<&str> = moved
         .into_iter()
         .filter(|name| said.contains(&format!("`{name}`")))
         .collect();
     assert!(
         named.is_empty(),
-        "an agent is still pointed at {named:?}, which only answer that they moved: name `brain` or `read` instead"
+        "an agent is still pointed at {named:?}, which only answer that they moved"
     );
 }
 

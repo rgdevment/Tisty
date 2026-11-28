@@ -79,7 +79,7 @@ impl Connection {
     }
 
     fn body_of(&mut self, doc: &str) -> String {
-        let said = self.call("read", json!({ "doc": doc }));
+        let said = self.call("workspace_read", json!({ "doc": doc }));
         said["structuredContent"]["body"]
             .as_str()
             .unwrap_or_default()
@@ -104,7 +104,7 @@ fn text(said: &Value) -> &str {
 
 fn proposes_work(talk: &mut Connection) -> String {
     let said = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the export", "steps": ["Write the parser"], "list": "Work" }),
     );
     shown(&said)["id"].as_str().unwrap().to_string()
@@ -121,8 +121,8 @@ fn a_note_links_a_task_named_by_id_and_a_document_named_by_its_exact_title() {
     let task = proposes_work(&mut talk);
 
     let said = talk.call(
-        "note",
-        json!({ "task": task, "body": format!("Ask {bank} first, as «Brainsty: decisiones» says.") }),
+        "task_note",
+        json!({ "action": "add", "task": task, "body": format!("Ask {bank} first, as «Brainsty: decisiones» says.") }),
     );
 
     let linked = &shown(&said)["references"]["linked"];
@@ -134,7 +134,7 @@ fn a_note_links_a_task_named_by_id_and_a_document_named_by_its_exact_title() {
         "{}",
         text(&said)
     );
-    let read = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let read = talk.call("workspace_read", json!({ "task": task, "notes": 0 }));
     let journal = read["structuredContent"]["journal"].to_string();
     assert!(
         journal.contains(&format!("[Call the bank](tisty:task/{bank})")),
@@ -152,10 +152,13 @@ fn a_title_two_documents_carry_is_proposed_and_left_as_written() {
     served.person().writes_doc("# Vet visits\n\nFirst.\n");
     served.person().writes_doc("# Vet visits\n\nSecond.\n");
     let mut talk = served.connect();
-    talk.call("folder", json!({ "name": "Personal" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Personal" }),
+    );
 
     let said = talk.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Rina\n\nBook «Vet visits» soon.\n", "folder": "Personal" }),
     );
 
@@ -171,16 +174,19 @@ fn a_hidden_task_carrying_the_same_title_changes_nothing_in_the_answer() {
     let served = Served::new();
     served.person().writes_doc("# Vet visits\n\nThe card.\n");
     let mut talk = served.connect();
-    talk.call("folder", json!({ "name": "Personal" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Personal" }),
+    );
     let before = talk.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Rina\n\nBook «Vet visits» soon.\n", "folder": "Personal" }),
     );
     let twin = served.person().captures("Vet visits");
     served.person().hides(twin);
 
     let after = talk.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Bruno\n\nBook «Vet visits» soon.\n", "folder": "Personal" }),
     );
 
@@ -212,11 +218,14 @@ fn what_is_hidden_from_the_agent_is_never_linked_nor_named() {
     let task = proposes_work(&mut talk);
     let body = format!("About {secret}, «Surprise party for Rina» and «{diary}», nothing more.");
 
-    let said = talk.call("note", json!({ "task": task, "body": body }));
+    let said = talk.call(
+        "task_note",
+        json!({ "action": "add", "task": task, "body": body }),
+    );
 
     assert_eq!(shown(&said).get("references"), None, "{said}");
     assert!(!said.to_string().contains(&book), "{said}");
-    let read = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let read = talk.call("workspace_read", json!({ "task": task, "notes": 0 }));
     assert!(
         read["structuredContent"]["journal"]
             .to_string()
@@ -235,17 +244,18 @@ fn a_line_the_person_wrote_is_kept_as_they_wrote_it_when_the_document_is_written
         .person()
         .writes_doc("# Plans\n\nRead «Brainsty: decisiones» later.\n");
     let mut talk = served.connect();
-    let print = talk.call("read", json!({ "doc": plans }))["structuredContent"]["print"]
+    let print = talk.call("workspace_read", json!({ "doc": plans }))["structuredContent"]["print"]
         .as_str()
         .unwrap()
         .to_string();
 
     talk.call(
-        "write_doc",
+        "doc_edit",
         json!({
+            "mode": "rewrite",
             "doc": plans,
             "print": print,
-            "body": "# Plans\n\nRead «Brainsty: decisiones» later.\n\nThen «Brainsty: decisiones» again.\n",
+            "content": "# Plans\n\nRead «Brainsty: decisiones» later.\n\nThen «Brainsty: decisiones» again.\n",
         }),
     );
 
@@ -274,10 +284,10 @@ fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_w
         .notes(person::task(&task), "Mine: «Brainsty: decisiones» stays.");
 
     talk.call(
-        "edit_doc",
-        json!({ "doc": plans, "old": "To do.", "new": "Read «Brainsty: decisiones»." }),
+        "doc_edit",
+        json!({ "mode": "patch", "doc": plans, "old": "To do.", "content": "Read «Brainsty: decisiones»." }),
     );
-    let read = talk.call("read", json!({ "task": task, "notes": 0 }));
+    let read = talk.call("workspace_read", json!({ "task": task, "notes": 0 }));
     let theirs = read["structuredContent"]["journal"]
         .as_array()
         .unwrap()
@@ -292,11 +302,11 @@ fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_w
         .unwrap()
         .to_string();
     let reworded = talk.call(
-        "reword_note",
-        json!({ "task": task, "note": theirs, "body": "Mine: «Brainsty: decisiones» stays." }),
+        "task_note",
+        json!({ "action": "reword", "task": task, "note": theirs, "body": "Mine: «Brainsty: decisiones» stays." }),
     );
     let proposed = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the import",
             "list": "Work",
             "parts": [{ "title": "Read first", "description": "As «Brainsty: decisiones» says." }],
@@ -306,7 +316,7 @@ fn an_edit_a_reworded_note_and_a_proposed_part_link_too_but_never_the_person_s_w
     assert!(
         talk.body_of(&plans)
             .contains("Read «[Brainsty: decisiones](tisty:doc/"),
-        "edit_doc links its new passage"
+        "doc_edit links its new passage"
     );
     assert_eq!(
         shown(&reworded).get("references"),
@@ -330,8 +340,8 @@ fn a_state_links_its_new_lines_and_keeps_the_person_s_line_as_they_wrote_it() {
     let mut talk = served.connect();
     let task = proposes_work(&mut talk);
     talk.call(
-        "tick",
-        json!({ "task": task, "state": "Parser half done." }),
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Parser half done." }),
     );
     let paths = tisty_core::Paths::new(
         served.home.path().join("data"),
@@ -354,8 +364,8 @@ fn a_state_links_its_new_lines_and_keeps_the_person_s_line_as_they_wrote_it() {
     );
 
     let said = talk.call(
-        "tick",
-        json!({ "task": task, "state": format!("Parser done; ask {bank}.\n{theirs}") }),
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": format!("Parser done; ask {bank}.\n{theirs}") }),
     );
 
     let page = tisty_core::docs::read(&paths.docs(), &page_of()).unwrap();
@@ -382,18 +392,18 @@ fn attaching_a_picture_named_by_its_file_asks_what_it_shows() {
     let mut talk = served.connect();
 
     let unnamed = talk.call(
-        "attach",
-        json!({ "doc": doc, "path": at.to_str().unwrap() }),
+        "file_transfer",
+        json!({ "action": "attach", "doc": doc, "path": at.to_str().unwrap() }),
     );
     let named = talk.call(
-        "attach",
-        json!({ "doc": doc, "path": at.to_str().unwrap(), "label": "Rina on her chair" }),
+        "file_transfer",
+        json!({ "action": "attach", "doc": doc, "path": at.to_str().unwrap(), "label": "Rina on her chair" }),
     );
 
     let ask = &shown(&unnamed)["ask"];
     assert_eq!(ask["pictures"].as_array().map(Vec::len), Some(1));
     assert!(
-        ask["said"].as_str().unwrap().contains("`edit_doc`"),
+        ask["said"].as_str().unwrap().contains("`doc_edit`"),
         "{ask}"
     );
     assert!(text(&unnamed).ends_with(ask["said"].as_str().unwrap()));
@@ -405,14 +415,23 @@ fn a_picture_written_without_words_is_asked_about_and_the_open_task_question_wai
     let served = Served::new();
     let mut talk = served.connect();
     let task = proposes_work(&mut talk);
-    talk.call("folder", json!({ "name": "Notes" }));
-    talk.call("folder", json!({ "name": "Drafts" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Notes" }),
+    );
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Drafts" }),
+    );
 
     let pictured = talk.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "# Scan\n\n![](scan-3f9a1c2b.png)\n", "folder": "Notes" }),
     );
-    let next = talk.call("folder", json!({ "name": "Receipts" }));
+    let next = talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Receipts" }),
+    );
 
     assert_eq!(
         shown(&pictured)["ask"]["pictures"],

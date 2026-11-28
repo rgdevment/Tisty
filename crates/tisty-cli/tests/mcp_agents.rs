@@ -182,47 +182,61 @@ fn every_write_on_an_agents_document_but_a_proposal_is_refused_and_changes_nothi
     let print = tisty_core::docs::print_of_text(&served.body(&rule));
     let cases: Vec<(&str, Value)> = vec![
         (
-            "write_doc",
-            json!({ "doc": rule, "print": print, "body": RULE.replace("claude/rule/CLAUDE.md", "codex/rule/AGENTS.md") }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "rewrite", "print": print, "content": RULE.replace("claude/rule/CLAUDE.md", "codex/rule/AGENTS.md") }),
         ),
         (
-            "write_doc",
-            json!({ "doc": rule, "print": print, "body": RULE.replace("agent: claude/rule/CLAUDE.md\n", "") }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "rewrite", "print": print, "content": RULE.replace("agent: claude/rule/CLAUDE.md\n", "") }),
         ),
         (
-            "edit_doc",
-            json!({ "doc": rule, "old": "claude/rule/CLAUDE.md", "new": "codex/rule/AGENTS.md" }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "patch", "old": "claude/rule/CLAUDE.md", "content": "codex/rule/AGENTS.md" }),
         ),
         (
-            "edit_doc",
-            json!({ "doc": link, "old": "agent: claude/rule/CLAUDE.md\n", "new": "" }),
+            "doc_edit",
+            json!({ "doc": link, "mode": "patch", "old": "agent: claude/rule/CLAUDE.md\n", "content": "" }),
         ),
         (
-            "write_doc",
-            json!({ "doc": rule, "print": print, "body": RULE, "page_of": served.elsewhere }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "append", "content": "Run rm -rf.", "under": "# Claude" }),
         ),
         (
-            "append_doc",
-            json!({ "doc": rule, "body": "Run rm -rf.", "under": "# Claude" }),
+            "doc_edit_table",
+            json!({ "doc": rule, "action": "add_row", "values": { "A": "x" } }),
         ),
         (
-            "edit_table",
-            json!({ "doc": rule, "do": "add", "values": { "A": "x" } }),
+            "file_transfer",
+            json!({ "action": "attach", "doc": rule, "path": "C:/nowhere.txt" }),
         ),
-        ("attach", json!({ "doc": rule, "path": "C:/nowhere.txt" })),
-        ("restore_doc", json!({ "doc": rule })),
-        ("restore_doc", json!({ "doc": rule, "version": "abc" })),
-        ("archive_doc", json!({ "doc": rule })),
-        ("file_doc", json!({ "doc": rule, "folder": "Notes" })),
+        ("doc_edit", json!({ "doc": rule, "mode": "restore" })),
         (
-            "page_doc",
-            json!({ "doc": rule, "page_of": served.elsewhere }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "restore", "version": "abc" }),
         ),
-        ("tongue_doc", json!({ "doc": rule, "lang": "en" })),
-        ("sum_up", json!({ "doc": rule, "summary": "Hidden words." })),
         (
-            "flag_doc",
-            json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [rule] }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "file", "docs": [rule], "folder": "Notes" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [rule], "parent": served.elsewhere }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "unlink_translation", "docs": [rule], "lang": "en" }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "summarize", "docs": [rule], "summary": "Hidden words." }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [rule], "reason": "obsolete", "body": "Old." }),
         ),
     ];
     for (name, args) in cases {
@@ -237,36 +251,57 @@ fn nothing_is_brought_into_agents_or_hung_under_one_of_its_documents() {
     let rule = served.rule.clone();
     let cases: Vec<(&str, Value)> = vec![
         (
-            "write_doc",
+            "doc_create",
             json!({ "body": "# A rule\n", "folder": "AGENTS / Claude" }),
         ),
         (
-            "write_doc",
+            "doc_create",
             json!({ "body": "# A page\n", "page_of": rule }),
         ),
         (
-            "write_doc",
+            "doc_create",
             json!({ "body": "# In English\n", "translation_of": rule }),
         ),
         (
-            "file_doc",
-            json!({ "doc": elsewhere, "folder": "AGENTS / Claude" }),
-        ),
-        ("file_doc", json!({ "doc": elsewhere, "folder": "AGENTS" })),
-        ("page_doc", json!({ "doc": elsewhere, "page_of": rule })),
-        ("tongue_doc", json!({ "doc": elsewhere, "of": rule })),
-        (
-            "import_doc",
-            json!({ "path": "C:/nowhere.md", "folder": "AGENTS / Claude" }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [elsewhere], "folder": "AGENTS / Claude" }),
         ),
         (
-            "archive_doc",
-            json!({ "doc": elsewhere, "folder": "AGENTS" }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [elsewhere], "folder": "AGENTS" }),
         ),
-        ("folder", json!({ "name": "AGENTS / Codex" })),
-        ("folder", json!({ "name": "Codex", "inside": "AGENTS" })),
-        ("folder", json!({ "name": "AGENTS", "icon": "folder" })),
-        ("folder", json!({ "name": "agents", "icon": "robot" })),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [elsewhere], "parent": rule }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "link_translation", "docs": [elsewhere], "parent": rule }),
+        ),
+        (
+            "file_transfer",
+            json!({ "action": "import_doc", "path": "C:/nowhere.md", "folder": "AGENTS / Claude" }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [elsewhere], "folder": "AGENTS" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "AGENTS / Codex" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "Codex", "folder": "AGENTS" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "AGENTS", "icon": "folder" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "agents", "icon": "robot" }),
+        ),
     ];
     for (name, args) in cases {
         served.refuses(name, args);
@@ -276,14 +311,14 @@ fn nothing_is_brought_into_agents_or_hung_under_one_of_its_documents() {
 #[test]
 fn a_body_with_an_agent_line_is_never_written_anywhere() {
     let served = Served::new();
-    let made = served.call("write_doc", json!({ "body": RULE }));
+    let made = served.call("doc_create", json!({ "body": RULE }));
     assert_eq!(made["result"]["isError"], true, "{made}");
     let text = made["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("`agent:` line"), "{text}");
 
     let over = served.call(
-        "write_doc",
-        json!({ "doc": served.elsewhere, "body": RULE }),
+        "doc_edit",
+        json!({ "doc": served.elsewhere, "mode": "rewrite", "content": RULE }),
     );
     assert_eq!(over["result"]["isError"], true, "{over}");
     assert!(!served.body(&served.elsewhere).contains("agent:"));
@@ -292,9 +327,12 @@ fn a_body_with_an_agent_line_is_never_written_anywhere() {
 #[test]
 fn reading_agents_documents_is_still_open_and_other_documents_still_take_writes() {
     let served = Served::new();
-    let read = served.call("read", json!({ "doc": served.rule }));
+    let read = served.call("workspace_read", json!({ "doc": served.rule }));
     assert_ne!(read["result"]["isError"], true, "{read}");
-    let shown = served.call("edit_table", json!({ "doc": served.rule }));
+    let shown = served.call(
+        "workspace_read",
+        json!({ "doc": served.rule, "view": "table" }),
+    );
     assert!(
         !shown["result"]["content"][0]["text"]
             .as_str()
@@ -303,8 +341,8 @@ fn reading_agents_documents_is_still_open_and_other_documents_still_take_writes(
         "{shown}"
     );
     let edited = served.call(
-        "edit_doc",
-        json!({ "doc": served.elsewhere, "old": "Something of mine.", "new": "Something else." }),
+        "doc_edit",
+        json!({ "doc": served.elsewhere, "mode": "patch", "old": "Something of mine.", "content": "Something else." }),
     );
     assert_ne!(edited["result"]["isError"], true, "{edited}");
     assert!(served.body(&served.elsewhere).contains("Something else."));
@@ -319,8 +357,8 @@ fn a_whole_write_waits_as_a_proposal_byte_for_byte_and_the_approved_text_stays()
         "Tests first.\n\n\tRun [[Notes]] and #always **check**.",
     );
     let said = served.proposes(
-        "write_doc",
-        json!({ "doc": served.rule, "print": print, "body": sent }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "rewrite", "print": print, "content": sent }),
     );
     assert_eq!(said["proposed"], true, "{said}");
     assert_eq!(served.proposal().as_deref(), Some(sent.as_str()));
@@ -338,19 +376,19 @@ fn edits_in_a_row_build_on_the_proposal_and_each_one_survives() {
     let served = Served::new();
     let link = format!("tisty://doc/claude-md?id={}", served.rule);
     served.proposes(
-        "edit_doc",
-        json!({ "doc": served.rule, "old": "Tests first.", "new": "Tests first, always." }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "patch", "old": "Tests first.", "content": "Tests first, always." }),
     );
     served.proposes(
-        "edit_doc",
-        json!({ "doc": link, "old": "# Claude", "new": "# Claude rules" }),
+        "doc_edit",
+        json!({ "doc": link, "mode": "patch", "old": "# Claude", "content": "# Claude rules" }),
     );
     served.proposes(
-        "append_doc",
-        json!({ "doc": served.rule, "body": "Ask before deleting." }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "append", "content": "Ask before deleting." }),
     );
     let proposal = served.proposal().unwrap();
-    let read = served.call("read", json!({ "doc": served.rule }));
+    let read = served.call("workspace_read", json!({ "doc": served.rule }));
     let read = &read["result"]["structuredContent"];
     assert_eq!(read["proposal"]["body"], proposal.as_str(), "{read}");
     assert_eq!(read["proposal"]["approved"], false, "{read}");
@@ -377,20 +415,20 @@ fn a_write_by_place_needs_the_proposal_s_print_once_one_waits() {
     let served = Served::new();
     let approved = tisty_core::docs::print_of_text(&served.body(&served.rule));
     let said = served.proposes(
-        "edit_doc",
-        json!({ "doc": served.rule, "old": "Tests first.", "new": "Tests first, always." }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "patch", "old": "Tests first.", "content": "Tests first, always." }),
     );
     let stale = served.call(
-        "edit_doc",
-        json!({ "doc": served.rule, "from": 6, "to": 6, "print": approved, "new": "Gone." }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "patch", "from": 6, "to": 6, "print": approved, "content": "Gone." }),
     );
     assert_eq!(stale["result"]["isError"], true, "{stale}");
     let text = stale["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains(said["print"].as_str().unwrap()), "{text}");
 
     served.proposes(
-        "edit_doc",
-        json!({ "doc": served.rule, "from": 6, "to": 6, "print": said["print"], "new": "Tests last." }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "patch", "from": 6, "to": 6, "print": said["print"], "content": "Tests last." }),
     );
     let proposal = served.proposal().unwrap();
     assert!(proposal.contains("Tests last."), "{proposal}");
@@ -403,8 +441,8 @@ fn proposing_what_the_document_already_says_leaves_nothing_waiting() {
     let body = served.body(&served.rule);
     let print = tisty_core::docs::print_of_text(&body);
     let said = served.proposes(
-        "write_doc",
-        json!({ "doc": served.rule, "print": print, "body": body }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "rewrite", "print": print, "content": body }),
     );
     assert_eq!(said["proposed"], false, "{said}");
     assert!(served.proposal().is_none());
@@ -415,13 +453,13 @@ fn writing_the_approved_text_back_withdraws_the_proposal() {
     let served = Served::new();
     let body = served.body(&served.rule);
     let said = served.proposes(
-        "edit_doc",
-        json!({ "doc": served.rule, "old": "Tests first.", "new": "Tests always.", "keep_compaction": false }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "patch", "old": "Tests first.", "content": "Tests always.", "keep_compaction": false }),
     );
     assert!(served.proposal().is_some());
     let back = served.proposes(
-        "write_doc",
-        json!({ "doc": served.rule, "print": said["print"], "body": body }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "rewrite", "print": said["print"], "content": body }),
     );
     assert_eq!(back["proposed"], false, "{back}");
     assert!(served.proposal().is_none());
@@ -431,8 +469,8 @@ fn writing_the_approved_text_back_withdraws_the_proposal() {
 fn a_whole_write_without_a_print_is_told_it_needs_one() {
     let served = Served::new();
     let said = served.call(
-        "write_doc",
-        json!({ "doc": served.rule, "body": RULE.replace("Tests first.", "Tests always.") }),
+        "doc_edit",
+        json!({ "doc": served.rule, "mode": "rewrite", "content": RULE.replace("Tests first.", "Tests always.") }),
     );
     assert_eq!(said["result"]["isError"], true, "{said}");
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
@@ -450,24 +488,36 @@ fn a_document_named_with_blanks_around_it_is_kept_like_its_bare_id() {
         format!("\t{rule} "),
     ];
     for padded in &padded {
-        served.refuses("restore_doc", json!({ "doc": padded }));
-        served.refuses("archive_doc", json!({ "doc": padded }));
-        served.refuses("file_doc", json!({ "doc": padded, "folder": "AGENTS" }));
+        served.refuses("doc_edit", json!({ "doc": padded, "mode": "restore" }));
         served.refuses(
-            "sum_up",
-            json!({ "doc": padded, "summary": "Hidden words." }),
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [padded] }),
         );
         served.refuses(
-            "flag_doc",
-            json!({ "doc": padded, "reason": "obsolete", "body": "Old." }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [padded], "folder": "AGENTS" }),
+        );
+        served.refuses(
+            "doc_annotate",
+            json!({ "action": "summarize", "docs": [padded], "summary": "Hidden words." }),
+        );
+        served.refuses(
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [padded], "reason": "obsolete", "body": "Old." }),
         );
     }
     served.proposes(
-        "edit_doc",
-        json!({ "doc": padded[0], "old": "Tests first.", "new": "Tests never." }),
+        "doc_edit",
+        json!({ "doc": padded[0], "mode": "patch", "old": "Tests first.", "content": "Tests never." }),
     );
-    served.proposes("append_doc", json!({ "doc": padded[1], "body": "One." }));
-    served.proposes("append_doc", json!({ "doc": padded[2], "body": "Two." }));
+    served.proposes(
+        "doc_edit",
+        json!({ "doc": padded[1], "mode": "append", "content": "One." }),
+    );
+    served.proposes(
+        "doc_edit",
+        json!({ "doc": padded[2], "mode": "append", "content": "Two." }),
+    );
     let proposal = served.proposal().unwrap();
     assert!(proposal.contains("Tests never."), "{proposal}");
     assert!(proposal.ends_with("\n\nOne.\n\nTwo.\n"), "{proposal}");
@@ -480,32 +530,41 @@ fn a_folder_named_with_hidden_marks_is_kept_like_agents() {
     person.makes_folder("Claude", None, None);
     let claude = served.claude.to_string();
     let cases: Vec<(&str, Value)> = vec![
-        ("folder", json!({ "name": "AGEN\tTS", "icon": "home" })),
         (
-            "folder",
-            json!({ "name": "AGENTS\u{2066}", "icon": "home" }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "AGEN\tTS", "icon": "home" }),
         ),
         (
-            "folder",
-            json!({ "name": "\u{202e}AGENTS", "icon": "home" }),
-        ),
-        ("folder", json!({ "name": "ÁGENTS", "icon": "home" })),
-        ("folder", json!({ "name": "Claude", "icon": "home" })),
-        (
-            "folder",
-            json!({ "name": "Claude", "inside": " ", "icon": "home" }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "AGENTS\u{2066}", "icon": "home" }),
         ),
         (
-            "folder",
-            json!({ "name": "Codex", "inside": format!(" {claude}") }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "\u{202e}AGENTS", "icon": "home" }),
         ),
         (
-            "file_doc",
-            json!({ "doc": served.elsewhere, "folder": format!(" {claude}") }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "ÁGENTS", "icon": "home" }),
         ),
         (
-            "file_doc",
-            json!({ "doc": served.elsewhere, "folder": format!("{}\n", served.root) }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "Claude", "icon": "home" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "Claude", "folder": " ", "icon": "home" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "Codex", "folder": format!(" {claude}") }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "file", "docs": [served.elsewhere.clone()], "folder": format!(" {claude}") }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "file", "docs": [served.elsewhere.clone()], "folder": format!("{}\n", served.root) }),
         ),
     ];
     for (name, args) in cases {
@@ -513,9 +572,11 @@ fn a_folder_named_with_hidden_marks_is_kept_like_agents() {
     }
 }
 
-const NAMES_A_DOCUMENT: [&str; 8] = [
+const NAMES_A_DOCUMENT: [&str; 10] = [
     "doc",
+    "docs",
     "page_of",
+    "parent",
     "translation_of",
     "of",
     "after",
@@ -524,10 +585,16 @@ const NAMES_A_DOCUMENT: [&str; 8] = [
     "instead",
 ];
 const NAMES_A_FOLDER: [&str; 2] = ["folder", "inside"];
-const PROPOSES: [&str; 3] = ["write_doc", "edit_doc", "append_doc"];
+const PROPOSES: [&str; 1] = ["doc_edit"];
 // A task, step, note, path, heading, cell or setting: never a document or a folder.
-const NAMES_NEITHER: [&str; 58] = [
+const NAMES_NEITHER: [&str; 64] = [
+    "action",
+    "add_reminders",
     "branch",
+    "content",
+    "mode",
+    "outcome",
+    "position",
     "pr",
     "for",
     "to_person",
@@ -595,8 +662,6 @@ impl Served {
             .unwrap()
             .iter()
             .filter(|one| one["annotations"]["readOnlyHint"] != true)
-            // It reads the store and writes only a copy outside it, so the door lets it through.
-            .filter(|one| one["name"] != "export_doc")
             .map(|one| {
                 let taken = one["inputSchema"]["properties"].as_object().unwrap();
                 let shapes = taken
@@ -702,15 +767,17 @@ fn with(keys: &[String], key: &str, said: Value, elsewhere: &str) -> Value {
     args.insert(key.to_string(), said);
     let around = [
         ("doc", json!(elsewhere)),
+        ("docs", json!([elsewhere])),
+        ("action", json!("attach")),
+        ("mode", json!("patch")),
         ("body", json!("# Placed")),
+        ("content", json!("Tests always.")),
         ("path", json!("C:/nowhere.md")),
         ("name", json!("Codex")),
-        ("do", json!("add")),
         ("old", json!("Tests first.")),
-        ("new", json!("Tests always.")),
     ];
     for (one, value) in around {
-        if takes(one) && (one != "doc" || NAMES_A_FOLDER.contains(&key)) {
+        if takes(one) && (!["doc", "docs"].contains(&one) || NAMES_A_FOLDER.contains(&key)) {
             args.insert(one.to_string(), value);
         }
     }
@@ -721,12 +788,12 @@ fn with(keys: &[String], key: &str, said: Value, elsewhere: &str) -> Value {
 fn every_tool_that_writes_keeps_agents_however_a_name_is_wrapped() {
     let served = Served::new();
     let tools = served.tools_that_write();
-    assert!(tools.len() > 20, "{tools:?}");
+    assert_eq!(tools.len(), 11, "{tools:?}");
     for (name, keys, _) in &tools {
         for key in keys {
             let placed = NAMES_A_DOCUMENT.contains(&key.as_str())
                 || NAMES_A_FOLDER.contains(&key.as_str())
-                || (name == "folder" && key == "name")
+                || (name == "doc_organize" && key == "name")
                 || NAMES_NEITHER.contains(&key.as_str());
             assert!(
                 placed,
@@ -768,14 +835,22 @@ fn every_tool_that_writes_keeps_agents_however_a_name_is_wrapped() {
         }
     }
     for said in folders_as_an_agent_could_write_them(&served) {
-        served.keeps_agents("folder", json!({ "name": said, "icon": "home" }), false);
         served.keeps_agents(
-            "folder",
-            json!({ "name": format!("{said} / Codex") }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": said, "icon": "home" }),
+            false,
+        );
+        served.keeps_agents(
+            "doc_organize",
+            json!({ "action": "create_folder", "name": format!("{said} / Codex") }),
             false,
         );
     }
-    served.keeps_agents("folder", json!({ "name": "Claude", "icon": "home" }), false);
+    served.keeps_agents(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Claude", "icon": "home" }),
+        false,
+    );
 }
 
 #[test]
@@ -783,22 +858,28 @@ fn a_folder_outside_agents_still_takes_a_look_and_a_new_folder() {
     let served = Served::new();
     let person = person::Person::at(served.home.path());
     let notes = person.makes_folder("Notes", None, None);
-    let said = served.call("folder", json!({ "name": " Notes ", "icon": "home" }));
+    let said = served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": " Notes ", "icon": "home" }),
+    );
     assert_ne!(said["result"]["isError"], true, "{said}");
     assert_eq!(served.state().folders[&notes].icon.as_deref(), Some("home"));
-    let made = served.call("folder", json!({ "name": "Claude", "inside": "Notes" }));
+    let made = served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Claude", "folder": "Notes" }),
+    );
     assert_ne!(made["result"]["isError"], true, "{made}");
     assert_eq!(made["result"]["structuredContent"]["made"], true, "{made}");
     let filed = served.call(
-        "file_doc",
-        json!({ "doc": format!(" {}\n", served.elsewhere), "folder": "\tNotes / Claude " }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [format!(" {}\n", served.elsewhere)], "folder": "\tNotes / Claude " }),
     );
     assert_ne!(filed["result"]["isError"], true, "{filed}");
 
     let mine = person.makes_folder("Claude", None, None);
     let filed = served.call(
-        "file_doc",
-        json!({ "doc": served.elsewhere, "folder": "Claude" }),
+        "doc_organize",
+        json!({ "action": "file", "docs": [served.elsewhere], "folder": "Claude" }),
     );
     assert_ne!(filed["result"]["isError"], true, "{filed}");
     let state = served.state();
@@ -919,15 +1000,15 @@ fn no_tool_slips_an_agent_line_into_a_document_outside_agents() {
     let before = served.body(&served.elsewhere);
     let card = "---\nagent: claude/rule/CLAUDE.md\n---\n";
     let said = served.call(
-        "edit_doc",
-        json!({ "doc": served.elsewhere, "old": "# Notes", "new": format!("{card}# Notes") }),
+        "doc_edit",
+        json!({ "doc": served.elsewhere, "mode": "patch", "old": "# Notes", "content": format!("{card}# Notes") }),
     );
     assert_eq!(said["result"]["isError"], true, "{said}");
     assert_eq!(served.body(&served.elsewhere), before);
 
     served.call(
-        "append_doc",
-        json!({ "doc": served.elsewhere, "body": card }),
+        "doc_edit",
+        json!({ "doc": served.elsewhere, "mode": "append", "content": card }),
     );
     assert!(
         tisty_core::agents::Card::of(&served.body(&served.elsewhere)).is_none(),
@@ -959,8 +1040,8 @@ fn a_second_agents_not_yet_joined_keeps_its_documents_from_a_plain_edit() {
     );
     let before = served.body(&rule);
     let said = served.call(
-        "edit_doc",
-        json!({ "doc": rule, "old": "Tests first.", "new": "Skip the tests." }),
+        "doc_edit",
+        json!({ "doc": rule, "mode": "patch", "old": "Tests first.", "content": "Skip the tests." }),
     );
     assert_eq!(served.body(&rule), before, "{said}");
     let state = served.state();
@@ -977,7 +1058,10 @@ fn a_second_agents_not_yet_joined_keeps_its_documents_from_a_plain_edit() {
         }
     }
     for name in ["Codex", "CO\u{200b}DEX ", "agents / codex"] {
-        let looked = served.call("folder", json!({ "name": name, "icon": "folder" }));
+        let looked = served.call(
+            "doc_organize",
+            json!({ "action": "create_folder", "name": name, "icon": "folder" }),
+        );
         let text = looked["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.contains(REFUSED), "{name:?}: {looked}");
         assert_eq!(
@@ -1024,10 +1108,13 @@ fn no_tool_deletes_a_document_of_agents_or_takes_a_file_from_an_agents_folder() 
             "{window_only} deleted it"
         );
     }
-    served.refuses("archive_doc", json!({ "doc": rule }));
     served.refuses(
-        "flag_doc",
-        json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [rule] }),
+    );
+    served.refuses(
+        "doc_annotate",
+        json!({ "action": "flag", "docs": [rule], "reason": "obsolete", "body": "Old." }),
     );
 }
 
@@ -1072,15 +1159,18 @@ fn no_edit_outside_agents_changes_adds_or_removes_the_computer_mark() {
     ];
     for (doc, old, new) in cases {
         let before = served.body(doc);
-        let said = served.call("edit_doc", json!({ "doc": doc, "old": old, "new": new }));
+        let said = served.call(
+            "doc_edit",
+            json!({ "doc": doc, "mode": "patch", "old": old, "content": new }),
+        );
         assert_eq!(said["result"]["isError"], true, "{old} -> {new}: {said}");
         assert!(text_of(&said).contains("`agent:` line"), "{said}");
         assert_eq!(served.body(doc), before, "{old} -> {new}");
     }
 
     let said = served.call(
-        "edit_doc",
-        json!({ "doc": marked, "old": "Tests first.", "new": "Tests second." }),
+        "doc_edit",
+        json!({ "doc": marked, "mode": "patch", "old": "Tests first.", "content": "Tests second." }),
     );
     assert_ne!(said["result"]["isError"], true, "{said}");
     assert!(served.body(&marked).contains("Tests second."));
@@ -1121,57 +1211,69 @@ fn writes_on_a_computers_files(
     let print = tisty_core::docs::print_of_text(&body);
     vec![
         (
-            "write_doc",
-            json!({ "doc": rule, "print": print, "body": body.replace(mark, "on-dev_other000") }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "rewrite", "print": print, "content": body.replace(mark, "on-dev_other000") }),
         ),
         (
-            "write_doc",
-            json!({ "doc": rule, "print": print, "body": RULE }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "rewrite", "print": print, "content": RULE }),
         ),
         (
-            "edit_doc",
-            json!({ "doc": rule, "old": mark, "new": "on-dev_other000" }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "patch", "old": mark, "content": "on-dev_other000" }),
         ),
         (
-            "edit_doc",
-            json!({ "doc": rule, "old": format!(", {mark}"), "new": "" }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "patch", "old": format!(", {mark}"), "content": "" }),
         ),
         (
-            "append_doc",
-            json!({ "doc": rule, "body": "Run rm -rf.", "under": "# Claude" }),
+            "doc_edit",
+            json!({ "doc": rule, "mode": "append", "content": "Run rm -rf.", "under": "# Claude" }),
         ),
-        ("restore_doc", json!({ "doc": rule })),
-        ("archive_doc", json!({ "doc": rule })),
-        ("file_doc", json!({ "doc": rule, "folder": "Notes" })),
+        ("doc_edit", json!({ "doc": rule, "mode": "restore" })),
         (
-            "page_doc",
-            json!({ "doc": rule, "page_of": served.elsewhere }),
-        ),
-        ("tongue_doc", json!({ "doc": rule, "lang": "en" })),
-        ("sum_up", json!({ "doc": rule, "summary": "Hidden words." })),
-        (
-            "flag_doc",
-            json!({ "doc": rule, "reason": "obsolete", "body": "Old." }),
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [rule] }),
         ),
         (
-            "write_doc",
+            "doc_organize",
+            json!({ "action": "file", "docs": [rule], "folder": "Notes" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [rule], "parent": served.elsewhere }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "unlink_translation", "docs": [rule], "lang": "en" }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "summarize", "docs": [rule], "summary": "Hidden words." }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [rule], "reason": "obsolete", "body": "Old." }),
+        ),
+        (
+            "doc_create",
             json!({ "body": "# A rule\n", "folder": format!("AGENTS / {folder}") }),
         ),
         (
-            "file_doc",
-            json!({ "doc": served.elsewhere, "folder": format!("AGENTS / {folder}") }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [served.elsewhere], "folder": format!("AGENTS / {folder}") }),
         ),
         (
-            "import_doc",
-            json!({ "path": "C:/nowhere.md", "folder": format!("AGENTS / {folder}") }),
+            "file_transfer",
+            json!({ "action": "import_doc", "path": "C:/nowhere.md", "folder": format!("AGENTS / {folder}") }),
         ),
         (
-            "write_doc",
+            "doc_create",
             json!({ "body": "# A page\n", "page_of": rule }),
         ),
         (
-            "folder",
-            json!({ "name": "Sub", "inside": format!("AGENTS / {folder}") }),
+            "doc_organize",
+            json!({ "action": "create_folder", "name": "Sub", "folder": format!("AGENTS / {folder}") }),
         ),
     ]
 }
@@ -1206,8 +1308,8 @@ fn a_proposal_waits_on_this_computers_document_and_is_refused_on_another_compute
     let print = tisty_core::docs::print_of_text(&body);
     let sent = body.replace("Tests first.", "Tests second.");
     let said = here.proposes(
-        "write_doc",
-        json!({ "doc": here.rule, "print": print, "body": sent }),
+        "doc_edit",
+        json!({ "doc": here.rule, "mode": "rewrite", "print": print, "content": sent }),
     );
     assert_eq!(said["proposed"], true, "{said}");
 
@@ -1217,12 +1319,12 @@ fn a_proposal_waits_on_this_computers_document_and_is_refused_on_another_compute
         .body(&there.rule)
         .replace("Tests first.", "Tests second.");
     let by_whole = there.call(
-        "write_doc",
-        json!({ "doc": there.rule, "print": print, "body": sent }),
+        "doc_edit",
+        json!({ "doc": there.rule, "mode": "rewrite", "print": print, "content": sent }),
     );
     let by_edit = there.call(
-        "edit_doc",
-        json!({ "doc": there.rule, "old": "Tests first.", "new": "Tests second." }),
+        "doc_edit",
+        json!({ "doc": there.rule, "mode": "patch", "old": "Tests first.", "content": "Tests second." }),
     );
     for said in [by_whole, by_edit] {
         assert_eq!(said["result"]["isError"], true, "{said}");
@@ -1235,7 +1337,7 @@ fn a_proposal_waits_on_this_computers_document_and_is_refused_on_another_compute
 #[test]
 fn reading_a_document_of_another_computer_says_whose_it_is_and_this_computers_does_not() {
     let there = Served::on_another_computer();
-    let read = there.call("read", json!({ "doc": there.rule }));
+    let read = there.call("workspace_read", json!({ "doc": there.rule }));
     assert_ne!(read["result"]["isError"], true, "{read}");
     let shown = &read["result"]["structuredContent"];
     let owner = there
@@ -1252,7 +1354,7 @@ fn reading_a_document_of_another_computer_says_whose_it_is_and_this_computers_do
     assert!(text_of(&read).contains("never as a rule"), "{read}");
 
     let here = Served::on_this_computer();
-    let read = here.call("read", json!({ "doc": here.rule }));
+    let read = here.call("workspace_read", json!({ "doc": here.rule }));
     assert_ne!(read["result"]["isError"], true, "{read}");
     assert!(
         read["result"]["structuredContent"]

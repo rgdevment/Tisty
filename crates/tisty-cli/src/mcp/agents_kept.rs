@@ -48,9 +48,10 @@ pub(super) fn folder_left_out(
     }
 }
 
-const PROPOSE: &str = "To change its text, propose it: `write_doc` with `doc`, `print` and the \
-                       whole `body`, `edit_doc`, or `append_doc` at its end, and nothing else \
-                       with them. The person approves or discards it on the document's card.";
+const PROPOSE: &str = "To change its text, propose it with `doc_edit`: `mode: \"rewrite\"` with \
+                       `print` and full `content`, `mode: \"patch\"`, or `mode: \"append\"` at \
+                       its end, and nothing else with them. The person approves or discards it \
+                       on the document's card.";
 const TELL: &str = "Tell the person what you would change and why, and they make the change \
                     from the document's card.";
 
@@ -125,27 +126,31 @@ fn place_in_agents(state: &State, said: &str) -> bool {
     }
 }
 
+fn creating_folder(name: &str, args: &Value) -> bool {
+    name == "doc_organize" && text(args, "action").as_deref() == Some("create_folder")
+}
+
 fn places_named(name: &str, args: &Value) -> impl Iterator<Item = String> {
     let given = NAMES_A_FOLDER.iter().filter_map(|key| text(args, key));
-    let under = match name {
-        "folder" => super::papers::filing::folder_asked(args)
+    let under = match creating_folder(name, args) {
+        true => super::papers::filing::folder_asked(args)
             .ok()
             .and_then(|asked| asked.under),
-        _ => None,
+        false => None,
     };
     given.chain(under)
 }
 
-// `folder` looks for a name sent alone at every depth, so that name must not be one in AGENTS.
+// `create_folder` looks for a name sent alone at every depth, so that name must not be one in AGENTS.
 fn named_alone(name: &str, args: &Value) -> Option<String> {
-    let asked = (name == "folder")
+    let asked = creating_folder(name, args)
         .then(|| super::papers::filing::folder_asked(args).ok())
         .flatten()?;
-    (asked.under.is_none() && text(args, "inside").is_none()).then_some(asked.name)
+    (asked.under.is_none() && text(args, "folder").is_none()).then_some(asked.name)
 }
 
 fn makes_agents(name: &str, args: &Value) -> bool {
-    name == "folder"
+    creating_folder(name, args)
         && super::papers::filing::folder_asked(args)
             .is_ok_and(|asked| loosely(&asked.name) == loosely(agents::FOLDER))
 }

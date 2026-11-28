@@ -32,14 +32,14 @@ pub(super) fn aimed(args: &Value) -> Option<TaskId> {
 pub(super) fn touch(name: &str, aimed: Option<TaskId>, writes: bool, said: &Value) -> Touch {
     let shown = &said["structuredContent"];
     match name {
-        "say_done" | "say_not_doing" => Touch::Ended,
+        "task_resolve" => Touch::Ended,
         // Only a task's own read opens it: its page read as a document is a look, as it always was.
-        "read" => match aimed {
+        "workspace_read" => match aimed {
             Some(task) if still_open(shown) && shown["id"] == task.to_string() => Touch::Read(task),
             _ => Touch::Looked,
         },
         // A task filed with nothing to tick is a note for the person, never the agent's own work.
-        "propose" => match (shown["proposed"].as_bool(), shown["id"].as_str()) {
+        "task_create" => match (shown["proposed"].as_bool(), shown["id"].as_str()) {
             (Some(true), Some(id)) if shown["steps"].as_u64().is_some_and(|steps| steps > 0) => {
                 id.parse().map_or(Touch::Looked, Touch::Proposed)
             }
@@ -206,14 +206,16 @@ fn asked_about(paths: &Paths, due: &Due) -> Asked {
 }
 
 pub(crate) const TURN_LEFT_UNWRITTEN: &str = "You edited files this turn and wrote nothing in \
-    Tisty. If this was work on a Tisty task, leave it in one `tick`: the steps you finished, if \
-    any, and `state` with what is done, what is left and the decisions in force. If it was not \
-    work on a task, end your turn without writing anything.";
+    Tisty. If this was work on a Tisty task, leave it in one `task_edit_steps` (`action: \"tick\"` \
+    or `\"set_state\"`): the steps you finished, if any, and `state` with what is done, what is \
+    left and the decisions in force. If it was not work on a task, end your turn without writing \
+    anything.";
 
 pub(crate) const PUBLISHED_ASK: &str = "You just pushed or opened or merged a pull request. Did \
-    you finish a step or the task? If it was a step of a Tisty task, `tick` it with `state`; if \
-    the work is done and proven, `say_done` with the branch, the commit and how you verified it. \
-    Merging and publishing after that are the person's, and need no waiting.";
+    you finish a step or the task? If it was a step of a Tisty task, call `task_edit_steps` \
+    (`action: \"tick\"`) with `state`; if the work is done and proven, call `task_resolve` \
+    (`outcome: \"done\"`) with the branch, the commit and how you verified it. Merging and \
+    publishing after that are the person's, and need no waiting.";
 
 pub(crate) fn ready_to_say_done(paths: &Paths, said: &str) -> Option<String> {
     let id = said.parse::<TaskId>().ok()?;
@@ -235,9 +237,10 @@ pub(crate) fn ready_to_say_done(paths: &Paths, said: &str) -> Option<String> {
     ready.then(|| {
         format!(
             "Every step of {:?} is ticked, but it is not said done. If the work is done and \
-             proven, `say_done` it now with the branch, the commit and how you verified it; what \
-             only the person can do goes to them with `unplan` and `to_person`. If it is not \
-             done, end your turn.",
+             proven, call `task_resolve` (`outcome: \"done\"`) now with the branch, the commit \
+             and how you verified it; what only the person can do goes to them with \
+             `task_edit_steps` (`action: \"remove\"`, `to_person: true`). If it is not done, \
+             end your turn.",
             task.title
         )
     })
@@ -292,10 +295,11 @@ pub(super) fn question(task: &Task, due: &Due) -> Option<Value> {
         false => "",
     };
     let said = format!(
-        "Is {:?} up to date? {quiet}{missing}{stale}. Leave it in one `tick`: the steps you \
-         finished, if any, and `state` with what is done, what is left and the decisions in \
-         force. If the work is done, `say_done` with the proof. A decision, something ruled out \
-         or a block goes in `note`.{another}",
+        "Is {:?} up to date? {quiet}{missing}{stale}. Leave it in one `task_edit_steps` \
+         (`action: \"tick\"` or `\"set_state\"`): the steps you finished, if any, and `state` \
+         with what is done, what is left and the decisions in force. If the work is done, call \
+         `task_resolve` (`outcome: \"done\"`) with the proof. A decision, something ruled out or \
+         a block goes in `task_note`.{another}",
         task.title
     );
     Some(json!({

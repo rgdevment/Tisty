@@ -95,7 +95,7 @@ pub(super) fn parts_drafted(
                  task around it. Nothing was written."
             )));
         }
-        only_what_it_takes("propose", taken, one)?;
+        only_what_it_takes("task_create", taken, one)?;
         short_and_plain(one)?;
         let Some(title) = text(one, "title") else {
             return Err(Refused::Tool(
@@ -122,7 +122,7 @@ pub(super) fn parts_drafted(
                     "the part {title:?} comes from {source:?}, which {} Nothing was written.",
                     match twice {
                         true => "the task or another part in this call comes from too.",
-                        false => "was proposed already: `brain` finds it with `source`.",
+                        false => "was proposed already: `workspace_search` finds it with `source`.",
                     }
                 )));
             }

@@ -1,0 +1,66 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Transfer files between permitted local dirs (Downloads, Documents, Pictures, Desktop, temp) and Tisty. `attach` copies into task journal or doc end (<=650 MB); `import_doc` imports `.md` (or restores exported task page); `export_doc` copies doc + attachments to folder.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Transfer direction/type",
+        "enum": [
+          "attach",
+          "import_doc",
+          "export_doc"
+        ],
+        "type": "string"
+      },
+      "anyway": {
+        "description": "For `import_doc`: allow import despite subject overlap",
+        "type": "boolean"
+      },
+      "doc": {
+        "description": "Target doc ID (for `attach` or `export_doc`)",
+        "type": "string"
+      },
+      "folder": {
+        "description": "For `import_doc`: destination folder name, path, or ID",
+        "type": "string"
+      },
+      "label": {
+        "description": "For `attach`: display label (<=200 chars; defaults to filename)",
+        "type": "string"
+      },
+      "page_of": {
+        "description": "For `import_doc`: parent doc ID to attach as subpage",
+        "type": "string"
+      },
+      "path": {
+        "description": "Source file path (`attach`/`import_doc`) or destination directory (`export_doc`)",
+        "type": "string"
+      },
+      "task": {
+        "description": "For `attach`: target open task ID (mutually exclusive with `doc`)",
+        "type": "string"
+      },
+      "title": {
+        "description": "For `import_doc`: override title if first line is not a heading (<=500 chars)",
+        "type": "string"
+      }
+    },
+    "required": [
+      "action",
+      "path"
+    ],
+    "type": "object"
+  },
+  "name": "file_transfer",
+  "title": "Attach, import, or export local files"
+}

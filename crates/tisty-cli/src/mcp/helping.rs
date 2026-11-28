@@ -15,8 +15,8 @@ fn page_of(spanish: bool, topic: &str) -> Option<&'static tisty_help::Page> {
 fn indexed(spanish: bool) -> String {
     let mut out = String::from(
         "How Tisty itself works, from the pages its own Help and tisty.app show: tasks, documents, \
-         sync, encryption, assistants, shortcuts. Ask `help` with a `topic` for one page. A link \
-         written help:<topic> names another page to ask for.\n",
+         sync, encryption, assistants, shortcuts. Ask `workspace_guide` (`kind: \"help\"`) with a \
+         `topic` for one page. A link written help:<topic> names another page to ask for.\n",
     );
     let mut section = "";
     for one in tisty_help::pages(spanish)

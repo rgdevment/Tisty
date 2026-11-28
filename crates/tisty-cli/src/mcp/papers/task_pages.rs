@@ -9,13 +9,7 @@ use super::super::{Refused, history, hitch, moved, opened, retold};
 use super::importing::{as_an_assistant, broken_rule};
 use super::reading::in_sight;
 
-const WRITE_A_PAGE: [&str; 5] = [
-    "write_doc",
-    "append_doc",
-    "edit_doc",
-    "edit_table",
-    "restore_doc",
-];
+const WRITE_A_PAGE: [&str; 2] = ["doc_edit", "doc_edit_table"];
 
 pub(in crate::mcp) fn page_named(name: &str, args: &Value) -> Option<String> {
     let file = text(args, "doc")?;
@@ -24,8 +18,7 @@ pub(in crate::mcp) fn page_named(name: &str, args: &Value) -> Option<String> {
 }
 
 pub(in crate::mcp) fn page_written(name: &str, args: &Value) -> Option<String> {
-    let only_shown = name == "edit_table" && text(args, "do").is_none_or(|asked| asked == "show");
-    page_named(name, args).filter(|_| !only_shown)
+    page_named(name, args)
 }
 
 struct PageWrite<'a> {

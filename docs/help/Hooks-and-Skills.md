@@ -26,8 +26,8 @@ Both count only on the computer where you turn them on: on another computer you 
 ### What they do
 
 - **When a session starts**, the agent gets the last three open tasks that same agent wrote on this computer, newest first, with how many steps each has ticked and the next one, what moved since and what is pressing. It is about 2,000 characters, and it arrives even if the agent never calls Tisty.
-- **When a turn edited files and wrote nothing in Tisty**, it hands the turn back once: if that was work on a task, leave it in one `tick`. If the agent lets it pass, the hook stays quiet until it calls Tisty again, so a turn outside any task costs one extra turn at most.
-- **When a turn left every step of its task ticked** without saying it done, it hands the turn back once, for a `say_done` with the proof. Never on a task of yours.
+- **When a turn edited files and wrote nothing in Tisty**, it hands the turn back once: if that was work on a task, leave it in one `task_edit_steps` (`action: "tick"` or `"set_state"`). If the agent lets it pass, the hook stays quiet until it calls Tisty again, so a turn outside any task costs one extra turn at most.
+- **When a turn left every step of its task ticked** without saying it done, it hands the turn back once, for a `task_resolve` (`outcome: "done"`) with the proof. Never on a task of yours.
 - **After a `git push`, a `gh pr create` or a `gh pr merge`**, it asks whether it finished a step or the task. In Claude Code the question comes at once; in the other agents, when the turn ends.
 - **Before it leaves something outside**, if it is about to create a text file outside a repository, or to propose a task card of its own in the Claude app, it asks it once whether that belongs in Tisty. [Before it leaves something outside](#before-it-leaves-something-outside) tells it.
 
@@ -41,9 +41,9 @@ An agent with Tisty in front of it sometimes leaves the work for another one in 
 
 | What it is about to leave | What Tisty names |
 | :-- | :-- |
-| Something to do: work to hand over, a plan, what goes on another day | A task: `propose`, or `note` and `tick` with `state` on the one there is |
-| Something to read again: an analysis, a contract, a decision | A document: `brain` and then `append_doc`, `edit_doc` or `write_doc` |
-| A task card of its own | A task: `propose` in its list, or `note` |
+| Something to do: work to hand over, a plan, what goes on another day | A task: `task_create`, or `task_note` and `task_edit_steps` with `state` on the one there is |
+| Something to read again: an analysis, a contract, a decision | A document: `workspace_search` and then `doc_edit` or `doc_create` |
+| A task card of its own | A task: `task_create` in its list, or `task_note` |
 
 **It looks at new text files**: `.md`, `.markdown`, `.txt`, `.rst`, `.adoc`, `.org`, and those named `HANDOFF`, `NOTES`, `TODO`, `PLAN`, `PROMPT` or `BRIEF`, with no extension. Editing one that is already there does not ask.
 
@@ -72,7 +72,7 @@ In Cursor, the question comes from its own hooks: with only Claude Code's, which
 So it leaves it on a task, with its steps, and gives Marisol the title:
 
 ```json
-propose { "title": "Finish the payments migration", "for": "agent", "list": "Work",
+task_create { "title": "Finish the payments migration", "for": "agent", "list": "Work",
   "steps": ["Test the retries", "Tell the provider"] }
 ```
 
@@ -194,7 +194,7 @@ A skill is a folder with a `SKILL.md`: your agent always reads its description, 
 
 The phrases are the ones their card shows, under **How to use them**: «Write it to your agent in your own words; there is no need to call them by name.». They need not be exact: “let's carry on with yesterday's” or “where were we?” also lead to the `tisty` skill.
 
-**Each agent picks up its own.** “Pick up where we left off” takes an agent to the last thing it left, not another: what opens the session and what `catch_up` calls `last` belong to each program. What passes from one agent to another is what is written on the task, so to carry on with what another left, name it by its title.
+**Each agent picks up its own.** “Pick up where we left off” takes an agent to the last thing it left, not another: what opens the session and what `workspace_catch_up` calls `last` belong to each program. What passes from one agent to another is what is written on the task, so to carry on with what another left, name it by its title.
 
 **They are not the ready-made requests.** Tisty also hands your agent [eight requests](Agents-and-MCP#ready-made-requests-and--mentions) used as commands, like `/mcp__tisty__pick_up` or `/mcp__tisty__consolidate Kitchen` in Claude Code. You type a request, and it reaches any agent that takes requests from a server; your agent picks a skill when you talk to it in your own words. They do the same work, and you can use both.
 
@@ -359,9 +359,9 @@ Since Claude Code reads its settings when it opens, she quits it completely and 
 Yisset asks Claude Code to plan the export of the report. The agent files it as a task with its steps:
 
 ```json
-> propose {"title": "Export the monthly report to CSV", "for": "agent", "list": "Work",
-           "steps": ["Read the format accounting asks for", "Write the export",
-                     "Try it with October's data", "Add the button to the reports screen"]}
+> task_create {"title": "Export the monthly report to CSV", "for": "agent", "list": "Work",
+               "steps": ["Read the format accounting asks for", "Write the export",
+                         "Try it with October's data", "Add the button to the reports screen"]}
 ```
 
 That afternoon it reads the format, ticks the first step and leaves the state: semicolon as separator and dates as `2026-10-31`, the way accounting wants them.
@@ -376,17 +376,17 @@ Your last open tasks here, newest first:
 Pressing for the person: 1 today, 3 late.
 ```
 
-Yisset types “Pick up where we left off”. The phrase fits the `tisty` skill, which tells the agent to start with `catch_up` and open the task it was on:
+Yisset types “Pick up where we left off”. The phrase fits the `tisty` skill, which tells the agent to start with `workspace_catch_up` and open the task it was on:
 
 ```json
-> catch_up {}
+> workspace_catch_up {}
 { "last": { "title": "Export the monthly report to CSV", "list": "Work", "at": "2026-11-20 18:05",
             "stage": "under_way", "steps": [1, 4], "state": "**Done:** the accounting format is read…" },
   "counts": { "open": 31, "late": 3, "today": 1, "docs": 48, … } }
 ```
 
 ```json
-> read {"task": "…Export the monthly report to CSV…"}
+> workspace_read {"task": "…Export the monthly report to CSV…"}
 { "steps": [ { "text": "Read the format accounting asks for", "done": true },
              { "text": "Write the export", "done": false }, … ] }
 ```
@@ -398,8 +398,9 @@ The state comes first, with what was decided the day before. Claude Code tells Y
 Once the export is done, it tries it with October and ticks both steps and the state in a single call:
 
 ```json
-> tick {"task": "…", "steps": ["Write the export", "Try it with October's data"],
-        "state": "**Done:** the export writes the CSV with semicolons; October matches the system's total.\n**Left:** the button on the reports screen.\n**Decisions in force:** dates as 2026-10-31, amounts with no thousands separator."}
+> task_edit_steps {"task": "…", "action": "tick",
+                   "steps": ["Write the export", "Try it with October's data"],
+                   "state": "**Done:** the export writes the CSV with semicolons; October matches the system's total.\n**Left:** the button on the reports screen.\n**Decisions in force:** dates as 2026-10-31, amounts with no thousands separator."}
 { "ticked": 2, "left": 1, "next": "Add the button to the reports screen", "stated": true,
   "said": "Ticked 2 step(s) on \"Export the monthly report to CSV\". 1 still unticked; next: \"Add the button to the reports screen\". Left its state on its page, under «State»." }
 ```
@@ -408,15 +409,15 @@ Had it forgotten, the hook reminds it at the end of the turn, because it edited 
 
 ```json
 { "decision": "block",
-  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `tick`…" }
+  "reason": "You edited files this turn and wrote nothing in Tisty. If this was work on a Tisty task, leave it in one `task_edit_steps`…" }
 ```
 
 ### 7. “Leave this ready for the next agent”
 
-Yisset has to go. She types “Leave this ready for the next agent”. The `tisty` skill asks the agent to leave it on the task, not in the conversation, which gets archived: the state up to date, with `tick`, and a note with where the work stands, what it ruled out, the next step and the branch or files it lives in.
+Yisset has to go. She types “Leave this ready for the next agent”. The `tisty` skill asks the agent to leave it on the task, not in the conversation, which gets archived: the state up to date, with `task_edit_steps`, and a note with where the work stands, what it ruled out, the next step and the branch or files it lives in.
 
 ```json
-> note {"task": "…", "body": "Ruled out: exporting with the spreadsheet library; it turns the amounts into text and accounting cannot add them up. Next is the button, beside Print, as «Reports: decisions» says. The code is on the branch feat/monthly-csv-export."}
+> task_note {"task": "…", "action": "add", "body": "Ruled out: exporting with the spreadsheet library; it turns the amounts into text and accounting cannot add them up. Next is the button, beside Print, as «Reports: decisions» says. The code is on the branch feat/monthly-csv-export."}
 { "references": { "linked": [ { "said": "Reports: decisions", "doc": "…", "title": "Reports: decisions" } ] } }
 ```
 
@@ -435,12 +436,12 @@ Had Yisset written the task herself and ticked the first step, the agent's ticks
 Yisset goes back to Codex. She never gave Codex Tisty's hooks, so nothing reaches it when it starts, and since it was connected before 1.50 it never saw the box for connecting; but it reads the `tisty` skill, which Yisset turned on in step 3 and which landed in `~/.agents/skills`. “Pick up where we left off”, alone, would take it to the last thing **it** left, so Yisset names the task: “Pick up the monthly report export”.
 
 ```json
-> brain {"query": "export monthly report"}
+> workspace_search {"query": "export monthly report"}
 { "matches": [ { "title": "Export the monthly report to CSV", "list": "Work", "status": "open" } ] }
-> read {"task": "…Export the monthly report to CSV…"}
+> workspace_read {"task": "…Export the monthly report to CSV…"}
 ```
 
-It reads Claude Code's state and note, knows not to try the spreadsheet library again, and carries on with the button. It would also have got there through what moved, which `catch_up` tells it since the last time it looked.
+It reads Claude Code's state and note, knows not to try the spreadsheet library again, and carries on with the button. It would also have got there through what moved, which `workspace_catch_up` tells it since the last time it looked.
 
 ### 10. Weeks later, the plugin
 

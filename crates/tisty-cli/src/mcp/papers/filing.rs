@@ -12,6 +12,49 @@ use super::super::{
     named_all, named_doc, opened, trail, up_named,
 };
 
+pub(in crate::mcp) fn check_archive(
+    paths: &Paths,
+    state: &tisty_core::State,
+    which: &str,
+    away: bool,
+    folder: Option<&str>,
+) -> Result<(), Refused> {
+    let Some(kept) = super::super::mistaken::named_document(state, which) else {
+        return Err(Refused::Tool(no_document_called(state, which)));
+    };
+    super::super::agents_kept::left_out(state, kept)?;
+    if away && super::super::ideas::sheet_named(paths, state, which).is_some() {
+        return Err(super::super::ideas::sheet_stays_put(state, which));
+    }
+    if state.held_by_another(kept) {
+        let holds = holder(state, kept);
+        return Err(Refused::Tool(match away {
+            true => format!(
+                "{} is in the archive already, held there by {holds}. A mark of its own would \
+                 outlive that and keep it away after {holds} comes back, which is not what \
+                 putting something away means here.",
+                doc_named(state, which)
+            ),
+            false => format!(
+                "{} is in the archive with {holds}, so it does not come back on its own and \
+                 nothing here takes it out. The person brings back what holds it, from the \
+                 window.",
+                doc_named(state, which)
+            ),
+        }));
+    }
+    if let Some(said) = folder {
+        if kept.page_of.is_some() {
+            return Err(Refused::Tool(format!(
+                "{which} is a page, and a page is kept where its document is, so there is no \
+                 folder to put it in."
+            )));
+        }
+        folder_named(state, said)?;
+    }
+    Ok(())
+}
+
 pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool(
@@ -189,8 +232,8 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         super::super::agents_kept::left_out(&state, kept)?;
         if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {
             return Err(Refused::Tool(format!(
-                "{} is a page of {up}, and a page is kept where its document is. `page_doc` \
-                 takes it out as a document of its own first.",
+                "{} is a page of {up}, and a page is kept where its document is. `doc_organize` \
+                 (`action: \"remove_page\"`) takes it out as a document of its own first.",
                 doc_named(&state, which)
             )));
         }

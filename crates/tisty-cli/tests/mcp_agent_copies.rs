@@ -58,7 +58,7 @@ impl Served {
         });
         let asked = json!({
             "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-            "params": { "name": "read", "arguments": args },
+            "params": { "name": "workspace_read", "arguments": args },
         });
         let mut child = Command::new(env!("CARGO_BIN_EXE_tisty"))
             .env("TISTY_DATA", root.join("data"))
@@ -93,7 +93,7 @@ fn a_copy_of_an_agents_file_never_comes_out_through_the_versions_of_its_document
         tisty_core::agents::read_kept(&served.data(), std::path::Path::new(AGENT_FILE), 1).unwrap();
     assert!(String::from_utf8(kept).unwrap().contains(SECRET));
 
-    let listed = served.call(json!({ "doc": served.rule, "versions": true }));
+    let listed = served.call(json!({ "doc": served.rule, "view": "versions" }));
     assert_ne!(listed["isError"], json!(true), "{listed}");
     let versions: Vec<String> = listed["structuredContent"]["versions"]
         .as_array()

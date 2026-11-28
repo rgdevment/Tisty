@@ -109,113 +109,134 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
     std::fs::write(&outside, "# Hoja\n\nAlgo.\n").unwrap();
     let picture = served.home.path().join("foto.txt");
     std::fs::write(&picture, "una foto").unwrap();
+    let exported = served.home.path().join("out.md");
 
     for file in [&book, &page] {
-        answered_as_missing(&served, "read", |doc| json!({ "doc": doc }), file);
-        answered_as_missing(&served, "brain", |doc| json!({ "doc": doc }), file);
+        answered_as_missing(&served, "workspace_read", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
-            "brain",
-            |doc| json!({ "doc": doc, "links": "all" }),
+            "workspace_read",
+            |doc| json!({ "doc": doc, "view": "card" }),
             file,
         );
         answered_as_missing(
             &served,
-            "brain",
-            |doc| json!({ "doc": doc, "section": 0 }),
-            file,
-        );
-        answered_as_missing(&served, "export_doc", |doc| json!({ "doc": doc }), file);
-        answered_as_missing(
-            &served,
-            "append_doc",
-            |doc| json!({ "doc": doc, "body": "Hola." }),
+            "workspace_read",
+            |doc| json!({ "doc": doc, "view": "links", "links": "all" }),
             file,
         );
         answered_as_missing(
             &served,
-            "edit_doc",
-            |doc| json!({ "doc": doc, "old": "Paseo", "new": "Vuelta" }),
-            file,
-        );
-        answered_as_missing(&served, "edit_table", |doc| json!({ "doc": doc }), file);
-        answered_as_missing(
-            &served,
-            "flag_doc",
-            |doc| json!({ "doc": doc, "reason": "obsolete", "body": "viejo" }),
+            "workspace_read",
+            |doc| json!({ "doc": doc, "view": "card", "section": 0 }),
             file,
         );
         answered_as_missing(
             &served,
-            "archive_doc",
-            |doc| json!({ "doc": doc, "archived": true }),
+            "file_transfer",
+            |doc| json!({ "action": "export_doc", "doc": doc, "path": exported.to_string_lossy() }),
             file,
         );
-        answered_as_missing(&served, "restore_doc", |doc| json!({ "doc": doc }), file);
         answered_as_missing(
             &served,
-            "restore_doc",
+            "doc_edit",
+            |doc| json!({ "doc": doc, "mode": "append", "content": "Hola." }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_edit",
+            |doc| json!({ "doc": doc, "mode": "patch", "old": "Paseo", "content": "Vuelta" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_edit_table",
+            |doc| json!({ "action": "add_row", "doc": doc }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_annotate",
+            |doc| json!({ "action": "flag", "docs": [doc], "reason": "obsolete", "body": "viejo" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_annotate",
+            |doc| json!({ "action": "archive", "docs": [doc] }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_edit",
+            |doc| json!({ "doc": doc, "mode": "restore" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "doc_edit",
+            |doc| json!({ "doc": doc, "mode": "restore", "version": "0a1b2c3d" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "workspace_read",
+            |doc| json!({ "doc": doc, "view": "versions" }),
+            file,
+        );
+        answered_as_missing(
+            &served,
+            "workspace_read",
             |doc| json!({ "doc": doc, "version": "0a1b2c3d" }),
             file,
         );
         answered_as_missing(
             &served,
-            "read",
-            |doc| json!({ "doc": doc, "versions": true }),
+            "doc_organize",
+            |doc| json!({ "action": "file", "docs": [doc], "folder": "Personal" }),
             file,
         );
         answered_as_missing(
             &served,
-            "read",
-            |doc| json!({ "doc": doc, "version": "0a1b2c3d" }),
+            "doc_organize",
+            |doc| json!({ "action": "add_page", "docs": [other], "parent": doc }),
             file,
         );
         answered_as_missing(
             &served,
-            "file_doc",
-            |doc| json!({ "doc": doc, "folder": "Personal" }),
+            "doc_organize",
+            |doc| json!({ "action": "link_translation", "docs": [other], "parent": doc, "lang": "en" }),
             file,
         );
         answered_as_missing(
             &served,
-            "page_doc",
-            |doc| json!({ "doc": other, "page_of": doc }),
+            "workspace_search",
+            |doc| json!({ "mode": "in_doc", "doc": doc, "query": "Rina" }),
             file,
         );
         answered_as_missing(
             &served,
-            "tongue_doc",
-            |doc| json!({ "doc": other, "of": doc }),
-            file,
-        );
-        answered_as_missing(
-            &served,
-            "brain",
-            |doc| json!({ "doc": doc, "query": "Rina" }),
-            file,
-        );
-        answered_as_missing(
-            &served,
-            "write_doc",
+            "doc_create",
             |doc| json!({ "page_of": doc, "body": "# Hoja\n\nAlgo.\n" }),
             file,
         );
         answered_as_missing(
             &served,
-            "import_doc",
-            |doc| json!({ "page_of": doc, "path": outside.to_string_lossy() }),
+            "file_transfer",
+            |doc| json!({ "action": "import_doc", "page_of": doc, "path": outside.to_string_lossy() }),
             file,
         );
         answered_as_missing(
             &served,
-            "attach",
-            |doc| json!({ "doc": doc, "path": picture.to_string_lossy() }),
+            "file_transfer",
+            |doc| json!({ "action": "attach", "doc": doc, "path": picture.to_string_lossy() }),
             file,
         );
         answered_as_missing(
             &served,
-            "sum_up",
-            |doc| json!({ "doc": doc, "summary": "Paseos." }),
+            "doc_annotate",
+            |doc| json!({ "action": "summarize", "docs": [doc], "summary": "Paseos." }),
             file,
         );
         let read = served.ask(
@@ -240,15 +261,21 @@ fn a_shut_diary_answers_every_tool_as_a_document_that_is_not_there() {
 #[test]
 fn a_shut_diary_is_left_out_of_every_listing_and_count() {
     let served = Served::new();
-    served.call("catch_up", json!({}));
+    served.call("workspace_catch_up", json!({}));
     served.diary();
 
     for (name, args) in [
-        ("catch_up", json!({})),
-        ("brain", json!({ "scope": "either" })),
-        ("brain", json!({})),
-        ("brain", json!({ "query": "paseo" })),
-        ("brain", json!({ "query": "cerro", "scope": "either" })),
+        ("workspace_catch_up", json!({})),
+        (
+            "workspace_search",
+            json!({ "mode": "folder", "scope": "either" }),
+        ),
+        ("workspace_search", json!({})),
+        ("workspace_search", json!({ "query": "paseo" })),
+        (
+            "workspace_search",
+            json!({ "query": "cerro", "scope": "either" }),
+        ),
     ] {
         let searching = args.get("query").is_some();
         let answer = served.call(name, args);
@@ -264,7 +291,7 @@ fn a_shut_diary_is_left_out_of_every_listing_and_count() {
     }
     let listed = served.ask("resources/list", json!({}));
     untold(&listed);
-    let caught = served.call("catch_up", json!({}));
+    let caught = served.call("workspace_catch_up", json!({}));
     assert_eq!(
         caught["structuredContent"]["counts"]["docs"],
         json!(0),
@@ -278,16 +305,19 @@ fn an_agent_never_starts_a_diary_of_its_own() {
     let plain = served.person().writes_doc("# Planes\n\nAlgo.\n");
 
     let written = served.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": "---\ndiary: on\n---\n\n# Diario 2026\n" }),
     );
     let edited = served.call(
-        "edit_doc",
-        json!({ "doc": plain, "old": "# Planes", "new": "---\ndiary: on\n---\n\n# Planes" }),
+        "doc_edit",
+        json!({ "doc": plain, "mode": "patch", "old": "# Planes", "content": "---\ndiary: on\n---\n\n# Planes" }),
     );
     let outside = served.home.path().join("diario.md");
     std::fs::write(&outside, "---\ndiary: on\n---\n\n# Diario 2026\n").unwrap();
-    let imported = served.call("import_doc", json!({ "path": outside.to_string_lossy() }));
+    let imported = served.call(
+        "file_transfer",
+        json!({ "action": "import_doc", "path": outside.to_string_lossy() }),
+    );
 
     for answer in [&written, &edited, &imported] {
         assert!(refused(answer), "{answer}");
@@ -307,14 +337,17 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
     let (book, page) = served.diary();
     served.person().opens_the_diary_to_agents(true);
 
-    let listed = served.call("brain", json!({ "scope": "either" }));
+    let listed = served.call(
+        "workspace_search",
+        json!({ "mode": "folder", "scope": "either" }),
+    );
     assert!(listed.to_string().contains(&book), "{listed}");
-    let read = served.call("read", json!({ "doc": page }));
+    let read = served.call("workspace_read", json!({ "doc": page }));
     assert!(read.to_string().contains("Paseo con Rina"), "{read}");
 
     let edited = served.call(
-        "edit_doc",
-        json!({ "doc": page, "old": "Paseo", "new": "Vuelta" }),
+        "doc_edit",
+        json!({ "doc": page, "mode": "patch", "old": "Paseo", "content": "Vuelta" }),
     );
     assert!(refused(&edited), "{edited}");
     assert!(
@@ -324,7 +357,10 @@ fn an_opened_diary_is_seen_but_its_words_are_never_rewritten() {
     assert!(served.body(&page).contains("Paseo con Rina"));
 
     served.person().opens_the_diary_to_agents(false);
-    untold(&served.call("brain", json!({ "scope": "either" })));
+    untold(&served.call(
+        "workspace_search",
+        json!({ "mode": "folder", "scope": "either" }),
+    ));
 }
 
 fn santiago_today() -> jiff::civil::Date {
@@ -344,12 +380,12 @@ fn an_agent_adds_only_at_the_end_of_today_signed_once_the_diary_is_open() {
     served.person().opens_the_diary_to_agents(true);
 
     let under = served.call(
-        "append_doc",
-        json!({ "doc": page, "under": "Notas", "body": "Algo." }),
+        "doc_edit",
+        json!({ "doc": page, "mode": "append", "under": "Notas", "content": "Algo." }),
     );
     let added = served.call(
-        "append_doc",
-        json!({ "doc": book, "body": "Jaime called about the trip." }),
+        "doc_edit",
+        json!({ "doc": book, "mode": "append", "content": "Jaime called about the trip." }),
     );
 
     assert!(refused(&under), "{under}");
@@ -385,15 +421,17 @@ fn what_an_open_diary_said_before_is_never_listed_nor_read() {
 
     for file in [&book, &page] {
         for args in [
-            json!({ "doc": file, "versions": true }),
+            json!({ "doc": file, "view": "versions" }),
             json!({ "doc": file, "version": "0a1b2c3d" }),
         ] {
-            let answer = served.call("read", args);
+            let answer = served.call("workspace_read", args);
             assert!(refused(&answer), "{answer}");
             assert!(answer.to_string().contains("no version of it"), "{answer}");
         }
     }
-    assert!(!refused(&served.call("read", json!({ "doc": page }))));
+    assert!(!refused(
+        &served.call("workspace_read", json!({ "doc": page }))
+    ));
 }
 
 #[test]
@@ -408,32 +446,59 @@ fn every_other_change_to_an_open_diary_is_refused() {
     served.person().opens_the_diary_to_agents(true);
 
     for (name, args) in [
-        ("archive_doc", json!({ "doc": page, "archived": true })),
         (
-            "flag_doc",
-            json!({ "doc": book, "reason": "obsolete", "body": "viejo" }),
+            "doc_annotate",
+            json!({ "action": "archive", "docs": [page] }),
         ),
-        ("file_doc", json!({ "doc": book, "folder": "Personal" })),
-        ("page_doc", json!({ "doc": other, "page_of": book })),
-        ("tongue_doc", json!({ "doc": other, "of": page })),
-        ("restore_doc", json!({ "doc": page })),
-        ("restore_doc", json!({ "doc": page, "version": "0a1b2c3d" })),
-        ("edit_table", json!({ "doc": page, "do": "add_row" })),
-        ("write_doc", json!({ "doc": page, "body": "# Noviembre\n" })),
         (
-            "write_doc",
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [book], "reason": "obsolete", "body": "viejo" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "file", "docs": [book], "folder": "Personal" }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "add_page", "docs": [other], "parent": book }),
+        ),
+        (
+            "doc_organize",
+            json!({ "action": "link_translation", "docs": [other], "parent": page, "lang": "en" }),
+        ),
+        ("doc_edit", json!({ "doc": page, "mode": "restore" })),
+        (
+            "doc_edit",
+            json!({ "doc": page, "mode": "restore", "version": "0a1b2c3d" }),
+        ),
+        (
+            "doc_edit_table",
+            json!({ "doc": page, "action": "add_row" }),
+        ),
+        (
+            "doc_edit",
+            json!({ "doc": page, "mode": "rewrite", "content": "# Noviembre\n" }),
+        ),
+        (
+            "doc_create",
             json!({ "page_of": book, "body": "# Hoja\n\nAlgo.\n" }),
         ),
         (
-            "import_doc",
-            json!({ "page_of": book, "path": outside.to_string_lossy() }),
+            "file_transfer",
+            json!({ "action": "import_doc", "page_of": book, "path": outside.to_string_lossy() }),
         ),
         (
-            "attach",
-            json!({ "doc": page, "path": picture.to_string_lossy() }),
+            "file_transfer",
+            json!({ "action": "attach", "doc": page, "path": picture.to_string_lossy() }),
         ),
-        ("sum_up", json!({ "doc": book, "summary": "Paseos." })),
-        ("sum_up", json!({ "doc": page, "notes": "Leer antes." })),
+        (
+            "doc_annotate",
+            json!({ "action": "summarize", "docs": [book], "summary": "Paseos." }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "summarize", "docs": [page], "notes": "Leer antes." }),
+        ),
     ] {
         let answer = served.call(name, args);
         assert!(refused(&answer), "{name}: {answer}");
@@ -466,20 +531,23 @@ fn a_list_of_names_or_a_translation_meets_the_same_door() {
 
     for (name, args) in [
         (
-            "flag_doc",
-            json!({ "doc": [book], "reason": "obsolete", "body": "viejo" }),
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [book], "reason": "obsolete", "body": "viejo" }),
         ),
         (
-            "file_doc",
-            json!({ "doc": [other, book], "folder": "Personal" }),
-        ),
-        ("page_doc", json!({ "doc": [page] })),
-        (
-            "flag_doc",
-            json!({ "doc": other, "reason": "duplicate_of", "instead": page, "body": "viejo" }),
+            "doc_organize",
+            json!({ "action": "file", "docs": [other, book], "folder": "Personal" }),
         ),
         (
-            "write_doc",
+            "doc_organize",
+            json!({ "action": "remove_page", "docs": [page] }),
+        ),
+        (
+            "doc_annotate",
+            json!({ "action": "flag", "docs": [other], "reason": "duplicate_of", "instead": page, "body": "viejo" }),
+        ),
+        (
+            "doc_create",
             json!({ "translation_of": page, "lang": "en", "body": "# November\n\nSome.\n" }),
         ),
     ] {
@@ -512,8 +580,8 @@ fn an_agent_never_writes_today_into_a_locked_book_by_naming_another_year() {
     served.person().opens_the_diary_to_agents(true);
 
     let added = served.call(
-        "append_doc",
-        json!({ "doc": old_book, "body": "Jaime called." }),
+        "doc_edit",
+        json!({ "doc": old_book, "mode": "append", "content": "Jaime called." }),
     );
 
     assert!(refused(&added), "{added}");
@@ -533,10 +601,13 @@ fn a_note_an_agent_left_on_the_diary_before_reaches_no_reader() {
     served.person().opens_the_diary_to_agents(true);
 
     for (name, args) in [
-        ("read", json!({ "doc": book })),
-        ("read", json!({ "doc": page })),
-        ("brain", json!({ "doc": book })),
-        ("brain", json!({ "scope": "either" })),
+        ("workspace_read", json!({ "doc": book })),
+        ("workspace_read", json!({ "doc": page })),
+        ("workspace_read", json!({ "doc": book, "view": "card" })),
+        (
+            "workspace_search",
+            json!({ "mode": "folder", "scope": "either" }),
+        ),
     ] {
         let said = served.call(name, args.clone());
         assert!(!refused(&said), "{name} {args}: {said}");

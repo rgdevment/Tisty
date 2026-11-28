@@ -93,9 +93,8 @@ impl Heard {
             let (server, tool) = rest.rsplit_once("__")?;
             ours(server).then_some(tool)?
         } else if let Some(rest) = named.strip_prefix("MCP:") {
-            // Cursor names no server here, so only a name no other server would use counts.
-            let telling = rest.contains('_') || ["tick", "untick", "propose"].contains(&rest);
-            (telling && crate::mcp::is_tool(rest)).then_some(rest)?
+            // Cursor names no server here, so only a scoped tool name of ours counts.
+            (rest.contains('_') && crate::mcp::is_tool(rest)).then_some(rest)?
         } else {
             named
                 .strip_prefix("mcp_tisty_")

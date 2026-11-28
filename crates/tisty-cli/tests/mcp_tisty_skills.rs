@@ -125,10 +125,9 @@ fn brain_never_sees_tistys_own_skills() {
         json!({ "query": "tisty skill" }),
         json!({ "scope": "either" }),
     ] {
-        never_names_them(&served.call("brain", args));
+        never_names_them(&served.call("workspace_search", args));
     }
-    let searched =
-        &served.call("brain", json!({ "query": "Zorblax" }))["result"]["structuredContent"];
+    let searched = &served.call("workspace_search", json!({ "query": "Zorblax" }))["result"]["structuredContent"];
     assert_eq!(searched["docsTotal"], 0, "{searched}");
     assert_eq!(searched["total"], 0, "{searched}");
 }
@@ -138,9 +137,12 @@ fn reading_or_exporting_one_of_tistys_own_skills_answers_as_for_a_document_nobod
     let served = Served::new();
     let into = tempfile::tempdir().unwrap();
     for (tool, extra) in [
-        ("read", json!({})),
-        ("brain", json!({})),
-        ("export_doc", json!({ "into": into.path() })),
+        ("workspace_read", json!({})),
+        ("workspace_read", json!({ "view": "card" })),
+        (
+            "file_transfer",
+            json!({ "action": "export_doc", "path": into.path() }),
+        ),
     ] {
         let ask = |doc: &str| {
             let mut args = extra.clone();
@@ -159,20 +161,37 @@ fn reading_or_exporting_one_of_tistys_own_skills_answers_as_for_a_document_nobod
 fn no_tool_that_writes_can_reach_tistys_own_skills() {
     let served = Served::new();
     let at = served.agent_home().join(".claude/skills/tisty/SKILL.md");
-    for (tool, extra) in [
+    for (tool, extra, multi) in [
         (
-            "write_doc",
-            json!({ "print": "0", "body": "# Mine\n\nZorblax gone.\n" }),
+            "doc_edit",
+            json!({ "mode": "rewrite", "print": "0", "content": "# Mine\n\nZorblax gone.\n" }),
+            false,
         ),
-        ("edit_doc", json!({ "old": "Zorblax", "new": "Mine" })),
-        ("append_doc", json!({ "body": "Mine." })),
-        ("archive_doc", json!({})),
-        ("flag_doc", json!({ "why": "duplicate" })),
-        ("restore_doc", json!({})),
+        (
+            "doc_edit",
+            json!({ "mode": "patch", "old": "Zorblax", "content": "Mine" }),
+            false,
+        ),
+        (
+            "doc_edit",
+            json!({ "mode": "append", "content": "Mine." }),
+            false,
+        ),
+        ("doc_annotate", json!({ "action": "archive" }), true),
+        (
+            "doc_annotate",
+            json!({ "action": "flag", "reason": "duplicate_of", "instead": NOBODY }),
+            true,
+        ),
+        ("doc_edit", json!({ "mode": "restore" }), false),
     ] {
         let ask = |doc: &str| {
             let mut args = extra.clone();
-            args["doc"] = json!(doc);
+            if multi {
+                args["docs"] = json!([doc]);
+            } else {
+                args["doc"] = json!(doc);
+            }
             served.call(tool, args)
         };
         let ours = ask(OURS);

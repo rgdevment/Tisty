@@ -52,7 +52,7 @@ impl Served {
     }
 
     fn wrote(&self, body: &str) -> String {
-        let made = self.call("write_doc", json!({ "body": body }));
+        let made = self.call("doc_create", json!({ "body": body }));
         made["result"]["structuredContent"]["doc"]
             .as_str()
             .unwrap_or_else(|| panic!("{made}"))
@@ -60,7 +60,7 @@ impl Served {
     }
 
     fn body(&self, doc: &str) -> String {
-        self.call("read", json!({ "doc": doc }))["result"]["structuredContent"]["body"]
+        self.call("workspace_read", json!({ "doc": doc }))["result"]["structuredContent"]["body"]
             .as_str()
             .unwrap()
             .to_string()
@@ -69,7 +69,12 @@ impl Served {
     fn table(&self, doc: &str, args: Value) -> Value {
         let mut args = args;
         args["doc"] = json!(doc);
-        self.call("edit_table", args)["result"].clone()
+        if args.get("action").is_some() {
+            self.call("doc_edit_table", args)["result"].clone()
+        } else {
+            args["view"] = json!("table");
+            self.call("workspace_read", args)["result"].clone()
+        }
     }
 }
 
@@ -146,7 +151,7 @@ fn a_document_whose_text_has_not_arrived_says_it_may_still_be_arriving() {
     let shown = served.table(&doc, json!({}));
     let added = served.table(
         &doc,
-        json!({ "do": "add", "values": { "Producto": "Sal" } }),
+        json!({ "action": "add_row", "values": { "Producto": "Sal" } }),
     );
 
     for one in [&shown, &added] {
@@ -167,7 +172,7 @@ fn a_cell_is_set_by_its_row_s_first_cell_and_its_column_title_in_its_type_s_form
     ] {
         let made = served.table(
             &doc,
-            json!({ "do": "set", "row": row, "column": column, "value": value }),
+            json!({ "action": "set", "row": row, "column": column, "value": value }),
         );
         assert_eq!(made["isError"], Value::Null, "{made}");
         assert_eq!(made["structuredContent"]["amiss"], json!([]), "{made}");
@@ -183,7 +188,7 @@ fn a_value_its_type_cannot_read_is_kept_as_sent_and_named_in_the_answer() {
 
     let made = served.table(
         &doc,
-        json!({ "do": "add", "values": { "Producto": "Té", "Precio": 2490, "Llegó": "pronto" } }),
+        json!({ "action": "add_row", "values": { "Producto": "Té", "Precio": 2490, "Llegó": "pronto" } }),
     );
 
     assert_eq!(
@@ -215,7 +220,7 @@ fn a_column_given_a_type_names_the_values_already_there_that_do_not_fit_it() {
 
     let made = served.table(
         &doc,
-        json!({ "do": "type", "column": "Horas", "type": "number" }),
+        json!({ "action": "set_type", "column": "Horas", "type": "number" }),
     );
 
     assert_eq!(
@@ -236,11 +241,11 @@ fn rows_and_columns_are_added_moved_and_taken_out_without_touching_what_is_aroun
     let doc = served.wrote(SHOPPING);
 
     for asked in [
-        json!({ "do": "sort", "column": "Precio", "down": true }),
-        json!({ "do": "rename", "column": 1, "title": "Artículo" }),
-        json!({ "do": "add_column", "title": "Nota" }),
-        json!({ "do": "remove", "row": "Aceite" }),
-        json!({ "do": "remove_column", "column": "Llegó" }),
+        json!({ "action": "sort", "column": "Precio", "down": true }),
+        json!({ "action": "rename_column", "column": 1, "title": "Artículo" }),
+        json!({ "action": "add_column", "title": "Nota" }),
+        json!({ "action": "remove_row", "row": "Aceite" }),
+        json!({ "action": "remove_column", "column": "Llegó" }),
     ] {
         let made = served.table(&doc, asked.clone());
         assert_eq!(made["isError"], Value::Null, "{asked} → {made}");
@@ -304,28 +309,31 @@ fn what_cannot_be_done_is_refused_saying_what_would_work_and_nothing_is_written(
 
     for (asked, told) in [
         (
-            json!({ "do": "set", "row": "Ana", "column": "Rol", "value": "x" }),
+            json!({ "action": "set", "row": "Ana", "column": "Rol", "value": "x" }),
             "2 rows start with \"Ana\", at 1, 2",
         ),
         (
-            json!({ "do": "remove", "row": "Pedro" }),
+            json!({ "action": "remove_row", "row": "Pedro" }),
             "Its first cells are: Ana, Ana, Luis",
         ),
-        (json!({ "do": "remove", "row": 9 }), "this table has 3 rows"),
         (
-            json!({ "do": "sort", "column": "Edad" }),
+            json!({ "action": "remove_row", "row": 9 }),
+            "this table has 3 rows",
+        ),
+        (
+            json!({ "action": "sort", "column": "Edad" }),
             "This table's columns are: Nombre, Rol",
         ),
         (
-            json!({ "do": "type", "column": "Rol", "type": "colour" }),
+            json!({ "action": "set_type", "column": "Rol", "type": "colour" }),
             "not one Tisty knows",
         ),
         (
-            json!({ "do": "set", "row": "Luis", "column": "Rol" }),
+            json!({ "action": "set", "row": "Luis", "column": "Rol" }),
             "this change needs `value`",
         ),
-        (json!({ "do": "add" }), "`add` needs `values`"),
-        (json!({ "do": "merge" }), "not \"merge\""),
+        (json!({ "action": "add_row" }), "`add` needs `values`"),
+        (json!({ "action": "merge" }), "not \"merge\""),
     ] {
         let refused = served.table(&doc, asked.clone());
         assert_eq!(refused["isError"], true, "{asked}");
@@ -342,7 +350,7 @@ fn a_table_keeps_its_last_column() {
     let served = Served::new();
     let doc = served.wrote("| Solo |\n| --- |\n| uno |\n");
 
-    let refused = served.table(&doc, json!({ "do": "remove_column", "column": "Solo" }));
+    let refused = served.table(&doc, json!({ "action": "remove_column", "column": "Solo" }));
 
     assert!(said(&refused).contains("at least one column"), "{refused}");
     assert_eq!(served.body(&doc), "| Solo |\n| --- |\n| uno |\n");
@@ -352,8 +360,12 @@ fn a_table_keeps_its_last_column() {
 fn the_language_s_tables_topic_tells_the_column_types_and_counts_as_tisty_s_own() {
     let served = Served::new();
 
-    let topic = served.call("language", json!({ "topic": "tables" }))["result"].clone();
-    let index = served.call("language", json!({}))["result"].clone();
+    let topic = served.call(
+        "workspace_guide",
+        json!({ "kind": "markdown", "topic": "tables" }),
+    )["result"]
+        .clone();
+    let index = served.call("workspace_guide", json!({ "kind": "markdown" }))["result"].clone();
 
     assert!(said(&topic).contains("### Column types"), "{topic}");
     let (added, plain) = said(&index).split_once("Markdown as anywhere").unwrap();
@@ -368,7 +380,7 @@ fn rows_and_columns_are_named_whatever_their_capitals_and_accents() {
 
     let made = served.table(
         &doc,
-        json!({ "do": "set", "row": "CAFE", "column": "llego", "value": "2026-10-09" }),
+        json!({ "action": "set", "row": "CAFE", "column": "llego", "value": "2026-10-09" }),
     );
 
     assert_eq!(made["isError"], Value::Null, "{made}");
@@ -382,7 +394,7 @@ fn a_value_in_another_markdown_comes_in_as_the_tisty_language() {
 
     let made = served.table(
         &doc,
-        json!({ "do": "set", "row": "Diseño", "column": "Nota", "value": "<mark>urgente</mark>" }),
+        json!({ "action": "set", "row": "Diseño", "column": "Nota", "value": "<mark>urgente</mark>" }),
     );
 
     assert_eq!(made["isError"], Value::Null, "{made}");
@@ -423,7 +435,7 @@ fn a_number_sent_as_words_names_a_place_when_nothing_is_called_so() {
 
     let made = served.table(
         &doc,
-        json!({ "table": "2", "do": "set", "row": "2", "column": "2", "value": "21:00" }),
+        json!({ "table": "2", "action": "set", "row": "2", "column": "2", "value": "21:00" }),
     );
     assert_eq!(made["isError"], Value::Null, "{made}");
     assert!(
@@ -432,7 +444,10 @@ fn a_number_sent_as_words_names_a_place_when_nothing_is_called_so() {
         served.body(&doc)
     );
 
-    let by_words = served.table(&doc, json!({ "table": 2, "do": "remove", "row": "1" }));
+    let by_words = served.table(
+        &doc,
+        json!({ "table": 2, "action": "remove_row", "row": "1" }),
+    );
     assert_eq!(by_words["isError"], Value::Null, "{by_words}");
     let body = served.body(&doc);
     assert!(
@@ -458,7 +473,10 @@ lo de marzo.",
 | Abril | nada |
 "
     ));
-    let hung = served.call("page_doc", json!({ "doc": page, "page_of": book }));
+    let hung = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [page], "parent": book }),
+    );
     assert_eq!(hung["result"]["isError"], Value::Null, "{hung}");
     let body = served.body(&book);
     assert_eq!(
@@ -467,7 +485,7 @@ lo de marzo.",
         "the table's card already names it: {body}"
     );
 
-    let made = served.table(&book, json!({ "do": "remove", "row": "Marzo" }));
+    let made = served.table(&book, json!({ "action": "remove_row", "row": "Marzo" }));
 
     assert_eq!(made["structuredContent"]["loose"], json!([page]), "{made}");
     assert!(said(&made).contains("Marzo"), "{made}");
@@ -478,7 +496,7 @@ fn a_type_is_changed_only_when_one_is_sent_and_an_empty_one_takes_it_away() {
     let served = Served::new();
     let doc = served.wrote(SHOPPING);
 
-    let refused = served.table(&doc, json!({ "do": "type", "column": "Precio" }));
+    let refused = served.table(&doc, json!({ "action": "set_type", "column": "Precio" }));
     assert!(
         said(&refused).contains("this change needs `type`"),
         "{refused}"
@@ -487,7 +505,7 @@ fn a_type_is_changed_only_when_one_is_sent_and_an_empty_one_takes_it_away() {
 
     let untyped = served.table(
         &doc,
-        json!({ "do": "type", "column": "Precio", "type": "" }),
+        json!({ "action": "set_type", "column": "Precio", "type": "" }),
     );
     assert_eq!(untyped["isError"], Value::Null, "{untyped}");
     let body = served.body(&doc);
@@ -504,7 +522,10 @@ fn a_heading_two_tables_share_names_neither_of_them() {
         "## Semana\n\n| Día | Hora |\n| --- | --- |\n| Lunes | 9 |\n\n| Día | Sala |\n| --- | --- |\n| Martes | 2 |\n",
     );
 
-    let refused = served.table(&doc, json!({ "table": "semana", "do": "remove", "row": 1 }));
+    let refused = served.table(
+        &doc,
+        json!({ "table": "semana", "action": "remove_row", "row": 1 }),
+    );
 
     assert!(
         said(&refused).contains("2 tables sit under \"semana\""),

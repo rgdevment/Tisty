@@ -97,7 +97,7 @@ fn writable(
     if task.repeat.is_some() || task.after.is_some() {
         return Err(Refused::Tool(format!(
             "{title:?} comes back as a routine, and every round shares one page, so it keeps no \
-             state: `tick` without `state`, and what was different this round goes in `note`."
+             state: tick without `state`, and what was different this round goes in `task_note`."
         )));
     }
     let length = words.chars().count();
@@ -106,7 +106,8 @@ fn writable(
             "a state says what stands now — what is done, what is left, the decisions in force, \
              what was ruled out — in at most {STATE_AT_MOST} characters, and this one has \
              {length}. Nothing was ticked or written. Put the long part on the task's page with \
-             `append_doc`, or in a document of its own, and say in the state where it is."
+             `doc_edit` (`mode: \"append\"`), or in a document of its own, and say in the state \
+             where it is."
         )));
     }
     let owner = tisty_core::task_docs::owner(state, task.id);
@@ -114,7 +115,7 @@ fn writable(
     if page.is_some_and(|kept| state.shut(kept.id)) {
         return Err(Refused::Tool(format!(
             "{title:?}'s page is locked. The person shut it so nothing writes in it; nothing was \
-             ticked. `tick` without `state`, and tell the person what stands."
+             ticked. Tick without `state`, and tell the person what stands."
         )));
     }
     let body = page.and_then(|kept| {

@@ -71,7 +71,7 @@ pub(super) fn written_doc(
     super::compacting::not_alone(args)?;
     if text(args, "print").is_some() {
         return Err(Refused::Tool(
-            "`print` says which body you mean to replace, so it needs the `doc` it belongs to. Without one, `write_doc` writes a new document."
+            "`print` says which body you mean to replace, so it needs the `doc` it belongs to. Without one, `doc_create` writes a new document."
                 .into(),
         ));
     }
@@ -172,7 +172,7 @@ pub(super) fn written_doc(
                 }
                 (Some(named), _) => format!(
                     "Wrote the document {:?} [{}], a page of {named}, but no line naming it was \
-                 written, so it is loose: {}. Name it with `page_doc` once that is dealt with.",
+                 written, so it is loose: {}. Name it with `doc_organize` (`action: \"add_page\"`) once that is dealt with.",
                     made.title,
                     made.id,
                     match named_there {
@@ -265,8 +265,8 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             None => {
                 return Err(Refused::Tool(format!(
                     "nothing is kept beside {named} to go back to. Only a write that replaced a \
-                     body is held, and adding to the end — `append_doc`, or a file kept with \
-                     `attach` — replaces nothing."
+                     body is held, and adding to the end — `doc_edit` (`mode: \"append\"`), or a \
+                     file kept with `file_transfer` (`action: \"attach\"`) — replaces nothing."
                 )));
             }
         },
@@ -286,8 +286,8 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
                 (None, true) => Refused::Tool(format!(
                     "the page was last moved between two of its versions whole, steps and all, by \
                      its own name, and a task's id reaches only the assistant's notes. Nothing \
-                     was changed. Move it back and forth by that name: `restore_doc` with \
-                     `{which}` as `doc`."
+                     was changed. Move it back and forth by that name: `doc_edit` (`mode: \
+                     \"restore\"`) with `{which}` as `doc`."
                 )),
                 (None, false) => refused,
             }
@@ -343,7 +343,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
                 one.short()
             )));
         }
-        if super::task_pages::page_named("restore_doc", args).is_none() {
+        if super::task_pages::page_named("doc_edit", args).is_none() {
             super::versions::went_back(paths, &which, &now, &whole);
         }
     }
@@ -384,7 +384,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     if let Some(one) = &past {
         let went = format!(
             " That went back to version {}, over everything written since: what it wrote over \
-             is kept in turn, so `restore_doc` without `version` puts it back.",
+             is kept in turn, so `doc_edit` (`mode: \"restore\"`) without `version` puts it back.",
             one.short()
         );
         for at in ["/content/0/text", "/structuredContent/said"] {
@@ -502,8 +502,8 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     }
     if args.get("replace").and_then(Value::as_bool) == Some(true) {
         return Err(Refused::Tool(
-            "`replace` writes the assistant's notes on a task's page again, so it needs a task's \
-             id in `doc`. A document's passage is changed with `edit_doc`."
+            "`digest_task_notes` writes the assistant's notes on a task's page again, so it needs \
+             a task's id in `doc`. A document's passage is changed with `doc_edit` (`mode: \"patch\"`)."
                 .into(),
         ));
     }
@@ -639,12 +639,14 @@ pub(super) fn over_again(
     }
     if text(args, "folder").is_some() || text(args, "page_of").is_some() {
         return Err(Refused::Tool(format!(
-            "replacing the body of {called} does not move it. `file_doc` puts a document in a folder and `page_doc` makes it a page."
+            "replacing the body of {called} does not move it. `doc_organize` (`action: \"file\"`) \
+             puts a document in a folder and `action: \"add_page\"` makes it a page."
         )));
     }
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(format!(
-            "replacing the body of {called} needs the `print` you read it at, which `read` hands back beside the text. Read it, then send that print with the new body."
+            "replacing the body of {called} needs the `print` you read it at, which `workspace_read` \
+             hands back beside the text. Read it, then send that print with the new body."
         )));
     };
 
@@ -736,12 +738,12 @@ print: {}",
                     "Wrote {} again, whole. {}{}{}{}{}",
                     written_name(state, which, &whole),
                     "What it said before is kept in its history on this machine: \
-                     `restore_doc` puts it back.",
+                     `doc_edit` (`mode: \"restore\"`) puts it back.",
                     twice_words(state, &twice) + &anew,
                     match kept_back.is_empty() {
                         true => String::new(),
                         false => format!(
-                            " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `edit_doc` if they belong somewhere else.",
+                            " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `doc_edit` (`mode: \"patch\"`) if they belong somewhere else.",
                             kept_back.join(", ")
                         ),
                     },
@@ -910,7 +912,7 @@ fn under_a_heading(was: &str, under: &str, body: &str) -> Result<String, String>
         many => {
             return Err(format!(
                 "{} headings read {under:?}, and Tisty will not choose for you: lines {}. Name a \
-                 `section` with `edit_doc` instead.",
+                 `section` with `doc_edit` (`mode: \"patch\"`) instead.",
                 many.len(),
                 many.iter()
                     .map(|at| all[*at].0.to_string())
@@ -928,7 +930,7 @@ fn under_a_heading(was: &str, under: &str, body: &str) -> Result<String, String>
     if !holds_together(was, &held, &rest) {
         return Err(
             "that heading could not be cut out cleanly, so nothing was added. Read the document \
-             again and add under a heading its card from `brain` names."
+             again and add under a heading its card from `workspace_read` (`view: \"card\"`) names."
                 .to_string(),
         );
     }
@@ -968,7 +970,8 @@ pub(super) fn in_its_place(
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(
             "an edit that names a place rather than a passage needs the `print` the document read \
-             at, since there is no text to recognise it by. Its card from `brain` hands it back."
+             at, since there is no text to recognise it by. Its card from `workspace_read` \
+             (`view: \"card\"`) hands it back."
                 .into(),
         ));
     };
@@ -978,7 +981,8 @@ pub(super) fn in_its_place(
     let (from, to) = match args.get("section").and_then(Value::as_u64) {
         Some(at) => tisty_core::docs::section_lines(&body, at as usize).ok_or_else(|| {
             Refused::Tool(format!(
-                "this document has no section {at}. Its card from `brain` numbers them from 0."
+                "this document has no section {at}. Its card from `workspace_read` (`view: \
+                 \"card\"`) numbers them from 0."
             ))
         })?,
         None => {
@@ -1005,9 +1009,10 @@ pub(super) fn in_its_place(
 
     if from <= 1 && to >= last {
         return Err(Refused::Tool(format!(
-            "that names the whole of {named}, which `edit_doc` will not take: a passage it \
-             cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
-             changed. Name the part that differs, or replace the body with `write_doc`."
+            "that names the whole of {named}, which `doc_edit` (`mode: \"patch\"`) will not take: \
+             a passage it cannot tell from the document is a rewrite wearing an edit's clothes. \
+             Nothing was changed. Name the part that differs, or replace the body with `doc_edit` \
+             (`mode: \"rewrite\"`)."
         )));
     }
 
@@ -1044,8 +1049,8 @@ pub(super) fn in_its_place(
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
             "{named} does not read as it did when you took that print, so line {from} is no \
-             longer where you left it and nothing was changed. Ask `brain` for its card, where the \
-             passage sits now."
+             longer where you left it and nothing was changed. Ask `workspace_read` (`view: \
+             \"card\"`) for its card, where the passage sits now."
         ))),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
             let loose = left_loose(state, which, &body, &whole);
@@ -1055,7 +1060,7 @@ pub(super) fn in_its_place(
             Ok(told(
                 format!(
                     "Changed lines {from} to {to} of {}. What it was is kept in its history \
-                     on this machine: `restore_doc` puts it back.{}{}{}",
+                     on this machine: `doc_edit` (`mode: \"restore\"`) puts it back.{}{}{}",
                     written_name(state, which, &whole),
                     loose_words(state, &loose),
                     twice_words(state, &twice) + &anew,

@@ -7,9 +7,11 @@ use tempfile::TempDir;
 mod person;
 
 const NOBODY: &str = "t_01j00000000000000000000000-0001";
-const NAMES_A_DOCUMENT: [&str; 8] = [
+const NAMES_A_DOCUMENT: [&str; 10] = [
     "doc",
+    "docs",
     "page_of",
+    "parent",
     "translation_of",
     "of",
     "after",
@@ -71,16 +73,19 @@ impl Served {
 
     fn task_with_a_page(&self, title: &str, note: &str) -> (String, String) {
         let made = self.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Personal" }),
         );
         let task = made["structuredContent"]["id"]
             .as_str()
             .unwrap()
             .to_string();
-        let added = self.call("append_doc", json!({ "doc": task, "body": note }));
+        let added = self.call(
+            "doc_edit",
+            json!({ "mode": "append", "doc": task, "content": note }),
+        );
         assert_ne!(added["isError"], true, "{added}");
-        let read = self.call("read", json!({ "task": task }));
+        let read = self.call("workspace_read", json!({ "task": task }));
         let page = read["structuredContent"]["document"]["file"]
             .as_str()
             .unwrap()
@@ -197,21 +202,61 @@ fn kinds(shape: &Value) -> Vec<String> {
     }
 }
 
-fn around(served: &Served, keys: &[(String, Vec<String>)], key: &str, said: Value) -> Value {
+fn around(
+    served: &Served,
+    name: &str,
+    keys: &[(String, Vec<String>)],
+    key: &str,
+    said: Value,
+) -> Value {
     let takes = |one: &str| one != key && keys.iter().any(|(k, _)| k == one);
     let mut args = serde_json::Map::new();
     args.insert(key.to_string(), said);
+    match name {
+        "doc_edit" => {
+            args.insert("mode".into(), json!("patch"));
+            args.insert("old".into(), json!("Nota uno."));
+            args.insert("content".into(), json!("Otra."));
+        }
+        "doc_edit_table" => {
+            args.insert("action".into(), json!("set"));
+        }
+        "doc_organize" => {
+            let action = match key {
+                "order" => "reorder_pages",
+                "docs" | "parent" | "after" | "before" => "add_page",
+                _ => "file",
+            };
+            args.insert("action".into(), json!(action));
+            if key != "parent" {
+                args.insert("parent".into(), json!(served.other));
+            }
+            if key != "docs" && action == "add_page" {
+                args.insert("docs".into(), json!([served.other]));
+            }
+        }
+        "doc_annotate" => {
+            args.insert("action".into(), json!("flag"));
+            if key != "docs" {
+                args.insert("docs".into(), json!([served.other]));
+            }
+            args.insert("reason".into(), json!("moved"));
+        }
+        "file_transfer" => {
+            args.insert("action".into(), json!("attach"));
+            args.insert("path".into(), json!(served.file));
+        }
+        _ => {}
+    }
     for (one, value) in [
         ("doc", json!(served.other)),
         ("body", json!("# Hoja\n\nAlgo.\n")),
         ("path", json!(served.file)),
         ("anyway", json!(true)),
         ("reason", json!("moved")),
-        ("old", json!("Nota uno.")),
-        ("new", json!("Otra.")),
         ("summary", json!("Un resumen.")),
     ] {
-        if takes(one) {
+        if takes(one) && !args.contains_key(one) {
             args.insert(one.to_string(), value);
         }
     }
@@ -222,7 +267,7 @@ fn around(served: &Served, keys: &[(String, Vec<String>)], key: &str, said: Valu
 fn every_tool_that_writes_answers_a_hidden_task_s_page_as_a_page_nobody_has() {
     let served = Served::new();
     let tools = served.tools_that_write();
-    assert!(tools.len() > 20, "{tools:?}");
+    assert_eq!(tools.len(), 11, "{tools:?}");
     let mut tried = 0;
     let mut wrong = Vec::new();
     for (name, keys) in &tools {
@@ -237,7 +282,7 @@ fn every_tool_that_writes_answers_a_hidden_task_s_page_as_a_page_nobody_has() {
                     }
                     wrong.extend(served.told_apart(hidden, nobody, name, |one| {
                         let said = if wrapped { json!([one]) } else { json!(one) };
-                        around(&served, keys, key, said)
+                        around(&served, name, keys, key, said)
                     }));
                     tried += 1;
                 }
@@ -245,7 +290,7 @@ fn every_tool_that_writes_answers_a_hidden_task_s_page_as_a_page_nobody_has() {
         }
     }
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
-    assert!(tried > 20, "only {tried} calls reached a document name");
+    assert!(tried >= 20, "only {tried} calls reached a document name");
 }
 
 #[test]
@@ -254,8 +299,8 @@ fn a_page_is_never_hung_under_a_hidden_task_s_page_by_import() {
     let page_before = served.body(&served.page);
 
     served.answers_as_nobody(
-        "import_doc",
-        |page| json!({ "path": served.file, "page_of": page, "anyway": true }),
+        "file_transfer",
+        |page| json!({ "action": "import_doc", "path": served.file, "page_of": page, "anyway": true }),
     );
 
     assert_eq!(served.body(&served.page), page_before);
@@ -270,12 +315,12 @@ fn a_task_s_page_written_by_name_never_hangs_from_a_hidden_one() {
     let open_before = served.body(&served.open_page);
 
     served.answers_as_nobody(
-        "write_doc",
-        |page| json!({ "doc": served.open_page, "page_of": page, "body": open_before }),
+        "doc_create",
+        |page| json!({ "page_of": page, "body": open_before }),
     );
     served.answers_as_nobody(
-        "import_doc",
-        |page| json!({ "path": served.file, "page_of": page }),
+        "file_transfer",
+        |page| json!({ "action": "import_doc", "path": served.file, "page_of": page }),
     );
 }
 
@@ -284,8 +329,8 @@ fn an_open_task_s_page_takes_no_page_by_import_either() {
     let served = Served::new();
 
     let hung = served.call(
-        "import_doc",
-        json!({ "path": served.file, "page_of": served.open_page, "anyway": true }),
+        "file_transfer",
+        json!({ "action": "import_doc", "path": served.file, "page_of": served.open_page, "anyway": true }),
     );
 
     assert_eq!(hung["isError"], true, "{hung}");
@@ -309,8 +354,8 @@ fn a_file_naming_a_hidden_task_comes_in_as_one_naming_no_task() {
         let file = served.home.path().join(format!("pagina-{at}.md"));
         std::fs::write(&file, body).unwrap();
         let brought = served.call(
-            "import_doc",
-            json!({ "path": file.to_string_lossy(), "anyway": true }),
+            "file_transfer",
+            json!({ "action": "import_doc", "path": file.to_string_lossy(), "anyway": true }),
         );
         assert!(!brought.to_string().contains("secret zebra"), "{brought}");
         assert_ne!(brought["isError"], true, "{body}: {brought}");
@@ -328,10 +373,16 @@ fn a_page_hung_under_a_hidden_task_s_page_is_read_as_one_nobody_has() {
 
     let home = served.home.path().to_string_lossy().into_owned();
     for (name, more) in [
-        ("read", json!({})),
-        ("brain", json!({})),
-        ("brain", json!({ "query": "Nota" })),
-        ("export_doc", json!({ "into": home })),
+        ("workspace_read", json!({})),
+        ("workspace_read", json!({ "view": "card" })),
+        (
+            "workspace_search",
+            json!({ "mode": "in_doc", "query": "Nota" }),
+        ),
+        (
+            "file_transfer",
+            json!({ "action": "export_doc", "path": home }),
+        ),
     ] {
         let with = |one: &str| {
             let mut args = more.clone();
@@ -345,19 +396,28 @@ fn a_page_hung_under_a_hidden_task_s_page_is_read_as_one_nobody_has() {
         let wrong = served.told_apart(
             hidden,
             nobody,
-            "write_doc",
+            "doc_create",
             |one| json!({ "page_of": one, "body": "# Hoja\n\nAlgo.\n" }),
         );
         assert!(wrong.is_empty(), "{}", wrong.join("\n"));
     }
     for (name, args) in [
-        ("brain", json!({ "doc": served.other })),
-        ("brain", json!({ "doc": served.other, "links": "all" })),
-        ("read", json!({ "doc": served.other })),
-        ("brain", json!({})),
-        ("brain", json!({ "scope": "either" })),
-        ("brain", json!({ "query": "escondida", "scope": "either" })),
-        ("catch_up", json!({})),
+        (
+            "workspace_read",
+            json!({ "doc": served.other, "view": "card" }),
+        ),
+        (
+            "workspace_read",
+            json!({ "doc": served.other, "view": "links", "links": "all" }),
+        ),
+        ("workspace_read", json!({ "doc": served.other })),
+        ("workspace_search", json!({})),
+        ("workspace_search", json!({ "scope": "either" })),
+        (
+            "workspace_search",
+            json!({ "query": "escondida", "scope": "either" }),
+        ),
+        ("workspace_catch_up", json!({})),
     ] {
         let said = served.call(name, args.clone()).to_string();
         for word in SECRET {
@@ -383,7 +443,7 @@ fn a_page_hung_under_a_hidden_task_s_page_is_read_as_one_nobody_has() {
 fn a_task_the_person_let_go_is_never_named_by_its_source() {
     let served = Served::new();
     let made = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "secret zebra gift", "source": "mail:77", "list": "Personal" }),
     );
     let task = made["structuredContent"]["id"]
@@ -392,9 +452,12 @@ fn a_task_the_person_let_go_is_never_named_by_its_source() {
         .to_string();
     served.person().drops(person::task(&task));
 
-    let found = served.call("brain", json!({ "source": "mail:77" }));
+    let found = served.call(
+        "workspace_search",
+        json!({ "mode": "source", "source": "mail:77" }),
+    );
     let proposed = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "otra", "source": "mail:77", "list": "Personal" }),
     );
 
@@ -412,7 +475,7 @@ fn a_task_the_person_let_go_is_never_named_by_its_source() {
         "{proposed}"
     );
     let again = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "otra vez", "source": "mail:77", "list": "Personal", "again": true }),
     );
     assert_eq!(again["structuredContent"]["proposed"], true, "{again}");

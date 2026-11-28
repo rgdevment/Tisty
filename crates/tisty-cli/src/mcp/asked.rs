@@ -7,6 +7,7 @@ const AT_MOST: &[(&str, usize)] = &[
     ("title", 500),
     ("description", 64_000),
     ("body", 64_000),
+    ("content", 64_000),
     ("old", 64_000),
     ("new", 64_000),
     ("source", 512),
@@ -14,7 +15,13 @@ const AT_MOST: &[(&str, usize)] = &[
     ("step", EACH_AT_MOST),
 ];
 
-const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200), ("remind", 32), ("at", 32)];
+const MANY_AT_MOST: &[(&str, usize)] = &[
+    ("tags", 32),
+    ("steps", 200),
+    ("remind", 32),
+    ("add_reminders", 32),
+    ("at", 32),
+];
 
 const EACH_AT_MOST: usize = 2_000;
 
@@ -202,7 +209,9 @@ pub(super) fn short_and_plain(args: &Value) -> Result<(), Refused> {
             )));
         }
         // A passage copied out of a document written on Windows carries its carriage returns.
-        let carriage = matches!(*key, "old" | "new");
+        let patch_content =
+            *key == "content" && said.get("mode").and_then(Value::as_str) == Some("patch");
+        let carriage = matches!(*key, "old" | "new") || patch_content;
         if one
             .chars()
             .any(|c| c.is_control() && c != '\n' && c != '\t' && !(carriage && c == '\r'))

@@ -1,0 +1,329 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Create actionable task(s); lasting reference belongs in `doc_create`. Every task requires single owner `for` (\"agent\" or \"person\"). Pass `source` to deduplicate; `parts` creates subtasks (1 level, <=32). Batch up to 32 via `tasks` alone. Tagged #agent.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "again": {
+        "description": "Allow re-filing from a closed/dropped `source` only when user asks to redo",
+        "type": "boolean"
+      },
+      "date": {
+        "description": "Planned day (YYYY-MM-DD), or start day when `deadline` is set",
+        "type": "string"
+      },
+      "deadline": {
+        "description": "Hard due date (YYYY-MM-DD); only past deadlines become overdue",
+        "type": "string"
+      },
+      "description": {
+        "description": "Task details in Tisty Markdown (<=64,000 chars)",
+        "type": "string"
+      },
+      "for": {
+        "description": "Required single owner: \"agent\" (you do/verify) or \"person\" (only they can)",
+        "enum": [
+          "agent",
+          "person"
+        ],
+        "type": "string"
+      },
+      "list": {
+        "description": "Existing list name (from workspace_catch_up); omit for inbox only with reason",
+        "type": "string"
+      },
+      "part_of": {
+        "description": "Open parent task ID to attach this task as a subtask",
+        "type": "string"
+      },
+      "parts": {
+        "description": "Up to 32 subtasks (`for` inherits parent if omitted; 1 level only)",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "description": "Day ISO",
+              "type": "string"
+            },
+            "deadline": {
+              "description": "Due ISO",
+              "type": "string"
+            },
+            "description": {
+              "description": "Markdown details",
+              "type": "string"
+            },
+            "for": {
+              "description": "Owner",
+              "enum": [
+                "agent",
+                "person"
+              ],
+              "type": "string"
+            },
+            "list": {
+              "description": "List name",
+              "type": "string"
+            },
+            "priority": {
+              "description": "Priority",
+              "enum": [
+                "do",
+                "decide",
+                "delegate",
+                "minor"
+              ],
+              "type": "string"
+            },
+            "remind": {
+              "description": "Ring ISO times",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "source": {
+              "description": "Origin ID/URL",
+              "type": "string"
+            },
+            "steps": {
+              "description": "Steps (<=100 chars)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "tags": {
+              "description": "Tags",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Title (<=500 chars)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "priority": {
+        "description": "Eisenhower priority (only if explicitly requested)",
+        "enum": [
+          "do",
+          "decide",
+          "delegate",
+          "minor"
+        ],
+        "type": "string"
+      },
+      "remind": {
+        "description": "One-off ring times (YYYY-MM-DDTHH:MM, <=32); evening before for fixed-hour events",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "source": {
+        "description": "Origin ID/URL for deduplication; idea name removes it from Ideas",
+        "type": "string"
+      },
+      "steps": {
+        "description": "Checklist items (<=200 items, <=100 chars each)",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "tags": {
+        "description": "Plain subject words (<=32; reuse existing tags)",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "tasks": {
+        "description": "Batch up to 32 tasks (each shaped like a single task); omit top-level fields",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "again": {
+              "description": "Redo closed source",
+              "type": "boolean"
+            },
+            "date": {
+              "description": "Day ISO",
+              "type": "string"
+            },
+            "deadline": {
+              "description": "Due ISO",
+              "type": "string"
+            },
+            "description": {
+              "description": "Markdown details",
+              "type": "string"
+            },
+            "for": {
+              "description": "Owner",
+              "enum": [
+                "agent",
+                "person"
+              ],
+              "type": "string"
+            },
+            "list": {
+              "description": "List name",
+              "type": "string"
+            },
+            "part_of": {
+              "description": "Parent task ID",
+              "type": "string"
+            },
+            "parts": {
+              "description": "Up to 32 subtasks",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "date": {
+                    "description": "Day ISO",
+                    "type": "string"
+                  },
+                  "deadline": {
+                    "description": "Due ISO",
+                    "type": "string"
+                  },
+                  "description": {
+                    "description": "Markdown details",
+                    "type": "string"
+                  },
+                  "for": {
+                    "description": "Owner",
+                    "enum": [
+                      "agent",
+                      "person"
+                    ],
+                    "type": "string"
+                  },
+                  "list": {
+                    "description": "List name",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "description": "Priority",
+                    "enum": [
+                      "do",
+                      "decide",
+                      "delegate",
+                      "minor"
+                    ],
+                    "type": "string"
+                  },
+                  "remind": {
+                    "description": "Ring ISO times",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "source": {
+                    "description": "Origin ID/URL",
+                    "type": "string"
+                  },
+                  "steps": {
+                    "description": "Steps (<=100 chars)",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "tags": {
+                    "description": "Tags",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "title": {
+                    "description": "Title (<=500 chars)",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "priority": {
+              "description": "Priority",
+              "enum": [
+                "do",
+                "decide",
+                "delegate",
+                "minor"
+              ],
+              "type": "string"
+            },
+            "remind": {
+              "description": "Ring ISO times",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "source": {
+              "description": "Origin ID/URL",
+              "type": "string"
+            },
+            "steps": {
+              "description": "Steps (<=100 chars)",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "tags": {
+              "description": "Tags",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Title (<=500 chars)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "title",
+            "for"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "title": {
+        "description": "Task title in one line (<=500 chars)",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "task_create",
+  "title": "Create one or more tasks"
+}

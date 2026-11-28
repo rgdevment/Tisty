@@ -31,12 +31,13 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (only, other) = match (text(args, "task"), text(args, "doc")) {
         (Some(_), Some(_)) => {
             return Err(Refused::Tool(
-                "`read` reads one thing at a time: a `task` or a `doc`, not both.".into(),
+                "`workspace_read` reads one thing at a time: a `task` or a `doc`, not both.".into(),
             ));
         }
         (None, None) => {
             return Err(Refused::Tool(
-                "`read` needs a `task` id or a `doc` id; `brain` finds either.".into(),
+                "`workspace_read` needs a `task` id or a `doc` id; `workspace_search` finds either."
+                    .into(),
             ));
         }
         (Some(_), None) => (&DOC_ONLY[..], "a `doc`"),
@@ -73,7 +74,7 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
             return Err(gone(&state, &said));
         }
         return Err(Refused::Tool(format!(
-            "no task here has the id {said}. Look it up again with `brain`."
+            "no task here has the id {said}. Look it up again with `workspace_search`."
         )));
     };
 
@@ -408,7 +409,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         None => None,
         Some(since) => Some(since.parse::<jiff::Timestamp>().map_err(|_| {
             Refused::Tool(format!(
-                "`since` has to be a `cursor` a previous `catch_up` handed back, not {since:?}."
+                "`since` has to be a `cursor` a previous `workspace_catch_up` handed back, not {since:?}."
             ))
         })?),
     };
@@ -452,7 +453,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 (false, _) => String::new(),
                 (true, false) => format!(
                     " Here are the first that moved, at most {MOVED_SHOWN} of each kind; the \
-                     next `catch_up` without `since` brings the rest."
+                     next `workspace_catch_up` without `since` brings the rest."
                 ),
                 (true, true) => format!(
                     " Here are the first that moved, at most {MOVED_SHOWN} of each kind; ask \

@@ -189,7 +189,7 @@ pub(super) fn last_moved(task: &Task) -> jiff::Timestamp {
         .fold(made, std::cmp::max)
 }
 
-pub(super) fn view(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+pub(in crate::mcp) fn view(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let said = text(args, "part_of").unwrap_or_default();
     let (whole_id, whole) = seen_task(&state, &said)?;

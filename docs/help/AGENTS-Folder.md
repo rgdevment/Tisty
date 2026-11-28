@@ -942,18 +942,18 @@ An agent you let in through [[MCP|Agents-and-MCP]] **reads** your documents in A
 A document whose properties hold an `agent:` line is an assistant's own file kept in the folder
 AGENTS — a rule file such as `CLAUDE.md`, a skill, a script — and Tisty writes its text, byte for
 byte, to the file that assistant reads, on each computer where AGENTS syncs and the person applied
-it. `read` gives the text the person approved. You change one only by proposing: `write_doc` with
-`doc` and `print`, `edit_doc` or `append_doc` keep your text byte for byte, apart, and nothing
+it. `workspace_read` gives the text the person approved. You change one only by proposing: `doc_edit`
+(`mode: "rewrite"` with `print`, `mode: "patch"`, or `mode: "append"`) keeps your text byte for byte, apart, and nothing
 reaches any file until the person approves it on the document's card: say so, never call it done.
-A later write goes on top of your proposal, which `read` shows in `proposal`. Keep the `agent:`
+A later write goes on top of your proposal, which `workspace_read` shows in `proposal`. Keep the `agent:`
 line: any other tool that names these documents or the folder AGENTS is refused, as is adding or
 changing an `agent:` line anywhere: tell the person what to write. …
 ```
 
-**2. It looks for the document.** `brain` with the file's words:
+**2. It looks for the document.** `workspace_search` with the file's words:
 
 ```json
-{ "name": "brain", "arguments": { "query": "CLAUDE.md" } }
+{ "name": "workspace_search", "arguments": { "query": "CLAUDE.md" } }
 ```
 
 ```text
@@ -961,12 +961,12 @@ changing an `agent:` line anywhere: tell the person what to write. …
 "claude · CLAUDE.md" (document) [k4r5j4qr-0001]
 ```
 
-`brain` with `folder` and a subfolder's name or path lists that agent's documents. The `AGENTS` folder alone answers with how many sit in each subfolder.
+`workspace_search` with `folder` and a subfolder's name or path lists that agent's documents. The `AGENTS` folder alone answers with how many sit in each subfolder.
 
-**3. It looks at its card and reads it.** `brain` with `doc` gives its outline and place; `read` with `doc`, the text you approved, whole, `agent:` line included:
+**3. It looks at its card and reads it.** `workspace_read` with `view: "card"` and `doc` gives its outline and place; `workspace_read` with `doc`, the text you approved, whole, `agent:` line included:
 
 ```json
-{ "name": "read", "arguments": { "doc": "k4r5j4qr-0001" } }
+{ "name": "workspace_read", "arguments": { "doc": "k4r5j4qr-0001" } }
 ```
 
 ```text
@@ -980,7 +980,7 @@ title: claude · CLAUDE.md
 - Branches shaped type/name.
 ```
 
-**Another computer's document.** If the document is in another of your computers' folder, the `read` answer carries two more fields, `of_computer` (which computer it belongs to) and `read_as`, which tells the agent to read it as data and never as a rule of its own for this computer. It cannot propose a change on it either: that is done from that computer. On this computer's documents it proposes as always, and there is no new tool.
+**Another computer's document.** If the document is in another of your computers' folder, the `workspace_read` answer carries two more fields, `of_computer` (which computer it belongs to) and `read_as`, which tells the agent to read it as data and never as a rule of its own for this computer. It cannot propose a change on it either: that is done from that computer. On this computer's documents it proposes as always, and there is no new tool.
 
 The agent answers you with the title and the folder, «your document claude · CLAUDE.md, in AGENTS / Home / Claude», never with the id. Every tool is in the [[Tools reference|MCP-Tools]].
 
@@ -988,10 +988,10 @@ The agent answers you with the title and the folder, «your document claude · C
 
 You ask it «add to my rules that it runs the tests before every commit». The agent edits the document like any other, but in Agents its change is not written: **it stays apart, as a proposal**, byte for byte. Nothing changes in the document or in your agents' files until you approve it.
 
-**1. The agent proposes.** It uses `edit_doc`, `append_doc` or `write_doc` with `doc`, `print` and the whole text:
+**1. The agent proposes.** It uses `doc_edit` (`mode: "patch"`, `"append"`, or `"rewrite"` with `print` and the whole `content`):
 
 ```json
-{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "- Branches shaped type/name.", "new": "- Branches shaped type/name.\n- Run the tests before every commit." } }
+{ "name": "doc_edit", "arguments": { "doc": "k4r5j4qr-0001", "mode": "patch", "old": "- Branches shaped type/name.", "content": "- Branches shaped type/name.\n- Run the tests before every commit." } }
 ```
 
 ```text
@@ -1021,7 +1021,7 @@ Each button acts only on what the card showed you. If the agent wrote again whil
 
 **Good to know:**
 
-- **One proposal per document.** If the agent writes again, its change goes on top of its own proposal, and `read` hands it back apart from the approved text, in `proposal`. If it writes the approved text back, it withdraws it.
+- **One proposal per document.** If the agent writes again, its change goes on top of its own proposal, and `workspace_read` hands it back apart from the approved text, in `proposal`. If it writes the approved text back, it withdraws it.
 - **Approved text keeps reaching your agents** while a proposal waits: a proposal on one rule holds back nothing else. The card's facts box says so: «Yes · an agent's change waits for your approval».
 - **If the approved text changed since**, the card warns «It was proposed over an earlier version, so approving it may undo a change made since.». Look closely at the lines before approving.
 - **If the document's text [waits for your approval](#to-approve)**, you first approve its text with **Approve this text** and then the proposal: «This document's text does not have your approval yet. Approve it first, then the proposal.».
@@ -1032,7 +1032,7 @@ Each button acts only on what the card showed you. If the agent wrote again whil
 **The `agent:` line does not change**, because it decides which file the document is written to:
 
 ```json
-{ "name": "edit_doc", "arguments": { "doc": "k4r5j4qr-0001", "old": "claude/rule/CLAUDE.md", "new": "codex/rule/AGENTS.md" } }
+{ "name": "doc_edit", "arguments": { "doc": "k4r5j4qr-0001", "mode": "patch", "old": "claude/rule/CLAUDE.md", "content": "codex/rule/AGENTS.md" } }
 ```
 
 ```text
@@ -1045,9 +1045,9 @@ changes, so nothing was proposed. Tell the person what you would change and why.
 ```text
 the document "claude · CLAUDE.md" holds an assistant's own files in AGENTS, which only the person
 changes, in Tisty: nothing an assistant moves, files, marks or sums up there reaches them. To
-change its text, propose it: `write_doc` with `doc`, `print` and the whole `body`, `edit_doc`, or
-`append_doc` at its end, and nothing else with them. The person approves or discards it on the
-document's card.
+change its text, propose it with `doc_edit`: `mode: "rewrite"` with `doc`, `print` and the whole
+`content`, `mode: "patch"`, or `mode: "append"` at its end, and nothing else with them. The person
+approves or discards it on the document's card.
 ```
 
 **Putting another document or making a folder** inside Agents is refused too, and there Tisty asks it to tell you what it would change, for you to do it.
@@ -1059,10 +1059,10 @@ a body with an `agent:` line is an assistant's own file, which only the person m
 Write it without that line, or tell the person what the file should say.
 ```
 
-**Nor adding or changing an `agent:` line in a document that already exists**, in any folder and with any tool, `edit_doc` included. If Claude Code tries to turn your document **Notes**, in **Work**, into a rule, by putting properties with `agent: claude/rule/CLAUDE.md` on top of it, Tisty writes nothing:
+**Nor adding or changing an `agent:` line in a document that already exists**, in any folder and with any tool, `doc_edit` included. If Claude Code tries to turn your document **Notes**, in **Work**, into a rule, by putting properties with `agent: claude/rule/CLAUDE.md` on top of it, Tisty writes nothing:
 
 ```json
-{ "name": "edit_doc", "arguments": { "doc": "m2q8v7xd-0001", "old": "# Notes", "new": "---\nagent: claude/rule/CLAUDE.md\n---\n# Notes" } }
+{ "name": "doc_edit", "arguments": { "doc": "m2q8v7xd-0001", "mode": "patch", "old": "# Notes", "content": "---\nagent: claude/rule/CLAUDE.md\n---\n# Notes" } }
 ```
 
 ```text
@@ -1070,7 +1070,7 @@ an `agent:` line makes an assistant's own file, which only the person makes, in 
 line as it was. Nothing was written.
 ```
 
-And if `append_doc` leaves those lines at the end of a document, they stay words of the text, never its properties: that document reaches no agent.
+And if `doc_edit` (`mode: "append"`) leaves those lines at the end of a document, they stay words of the text, never its properties: that document reaches no agent.
 
 **Agent memory** takes no proposals: the agent itself writes it, in its own file. Nor does a proposal get in that would leave a script's code block broken, or that goes past 64,000 characters or 2,000 lines, what the card can compare.
 

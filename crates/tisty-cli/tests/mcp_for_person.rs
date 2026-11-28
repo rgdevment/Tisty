@@ -81,7 +81,7 @@ impl Served {
     }
 
     fn files(&self, args: Value) -> String {
-        let said = self.call("propose", args);
+        let said = self.call("task_create", args);
         assert_ne!(said["result"]["isError"], json!(true), "{said}");
         said["result"]["structuredContent"]["id"]
             .as_str()
@@ -90,7 +90,7 @@ impl Served {
     }
 
     fn read(&self, id: &str) -> Value {
-        self.call("read", json!({ "task": id }))["result"]["structuredContent"].clone()
+        self.call("workspace_read", json!({ "task": id }))["result"]["structuredContent"].clone()
     }
 }
 
@@ -136,7 +136,10 @@ fn titles(parts: &[Value]) -> Vec<String> {
 fn propose_says_in_its_schema_that_a_task_is_for_the_agent_or_the_person() {
     let served = Served::new();
     let tools = served.tools();
-    let propose = tools.iter().find(|one| one["name"] == "propose").unwrap();
+    let propose = tools
+        .iter()
+        .find(|one| one["name"] == "task_create")
+        .unwrap();
     let whose = &propose["inputSchema"]["properties"]["for"];
     assert_eq!(whose["type"], json!("string"), "{whose}");
     assert_eq!(whose["enum"], json!(["agent", "person"]), "{whose}");
@@ -154,7 +157,10 @@ fn propose_says_in_its_schema_that_a_task_is_for_the_agent_or_the_person() {
 fn unplan_says_in_its_schema_that_steps_can_go_to_the_person() {
     let served = Served::new();
     let tools = served.tools();
-    let unplan = tools.iter().find(|one| one["name"] == "unplan").unwrap();
+    let unplan = tools
+        .iter()
+        .find(|one| one["name"] == "task_edit_steps")
+        .unwrap();
     let props = &unplan["inputSchema"]["properties"];
     assert_eq!(props["to_person"]["type"], json!("boolean"), "{props}");
     assert_eq!(props["title"]["type"], json!("string"), "{props}");
@@ -162,14 +168,14 @@ fn unplan_says_in_its_schema_that_steps_can_go_to_the_person() {
         unplan["description"]
             .as_str()
             .unwrap()
-            .contains("`to_person`")
+            .contains("`to_person: true`")
     );
 }
 
 #[test]
 fn a_task_without_for_is_refused_and_the_refusal_teaches_both_values() {
     let served = Served::new();
-    let said = served.call("propose", json!({ "title": "no owner" }));
+    let said = served.call("task_create", json!({ "title": "no owner" }));
     let why = refused(&said);
     assert!(why.contains("needs `for`"), "{why}");
     assert!(
@@ -185,7 +191,7 @@ fn a_task_without_for_is_refused_and_the_refusal_teaches_both_values() {
 #[test]
 fn a_task_with_for_null_is_refused_like_one_without_it() {
     let served = Served::new();
-    let said = served.call("propose", json!({ "title": "null owner", "for": null }));
+    let said = served.call("task_create", json!({ "title": "null owner", "for": null }));
     assert!(refused(&said).contains("needs `for`"));
     assert!(!served.person().open().contains("null owner"));
 }
@@ -194,7 +200,7 @@ fn a_task_with_for_null_is_refused_like_one_without_it() {
 fn a_task_with_an_invalid_for_is_refused_saying_what_works() {
     let served = Served::new();
     for bad in [json!("both"), json!("Agent"), json!("")] {
-        let said = served.call("propose", json!({ "title": "bad owner", "for": bad }));
+        let said = served.call("task_create", json!({ "title": "bad owner", "for": bad }));
         let why = refused(&said);
         assert!(
             why.contains("`for` is \"agent\" or \"person\""),
@@ -209,7 +215,7 @@ fn a_task_with_an_invalid_for_is_refused_saying_what_works() {
 fn a_for_that_is_not_text_is_refused_saying_it_takes_text() {
     let served = Served::new();
     for bad in [json!(3), json!(true), json!(["agent"])] {
-        let said = served.call("propose", json!({ "title": "bad owner", "for": bad }));
+        let said = served.call("task_create", json!({ "title": "bad owner", "for": bad }));
         let why = refused(&said);
         assert!(why.contains("`for` takes text"), "{bad}: {why}");
         assert!(why.contains("\"agent\""), "{bad}: {why}");
@@ -221,7 +227,7 @@ fn a_for_that_is_not_text_is_refused_saying_it_takes_text() {
 fn a_task_for_the_agent_is_filed_unflagged_and_says_so() {
     let served = Served::new();
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "mine", "steps": ["a"] }),
     );
     let kept = answered(&said);
@@ -234,7 +240,7 @@ fn a_task_for_the_agent_is_filed_unflagged_and_says_so() {
 fn a_task_for_the_person_is_filed_flagged_and_says_so() {
     let served = Served::new();
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "for": "person", "title": "try it by hand", "steps": ["open the app"] }),
     );
     let kept = answered(&said);
@@ -246,10 +252,10 @@ fn a_task_for_the_person_is_filed_flagged_and_says_so() {
 #[test]
 fn the_answer_to_a_task_of_the_agent_ends_with_the_one_owner_sentence() {
     let served = Served::new();
-    let plain = text(&served.call("propose", json!({ "for": "agent", "title": "bare" })));
+    let plain = text(&served.call("task_create", json!({ "for": "agent", "title": "bare" })));
     assert!(plain.contains(ONE_OWNER), "{plain}");
     let stepped = text(&served.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "with steps", "steps": ["a", "b"] }),
     ));
     assert!(stepped.contains(ONE_OWNER), "{stepped}");
@@ -259,7 +265,7 @@ fn the_answer_to_a_task_of_the_agent_ends_with_the_one_owner_sentence() {
 fn a_batch_without_for_turns_every_task_away_teaching_why() {
     let served = Served::new();
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "tasks": [{ "title": "one" }, { "title": "two" }] }),
     );
     let kept = answered(&said);
@@ -281,7 +287,7 @@ fn a_batch_without_for_turns_every_task_away_teaching_why() {
 fn a_batch_files_the_tasks_that_say_whose_they_are_and_turns_the_others_away() {
     let served = Served::new();
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "tasks": [
             { "for": "agent", "title": "mine" },
             { "title": "nobody" },
@@ -311,7 +317,7 @@ fn a_batch_files_the_tasks_that_say_whose_they_are_and_turns_the_others_away() {
 #[test]
 fn a_batch_that_wrote_nothing_does_not_end_with_the_one_owner_sentence() {
     let served = Served::new();
-    let said = served.call("propose", json!({ "tasks": [{ "title": "one" }] }));
+    let said = served.call("task_create", json!({ "tasks": [{ "title": "one" }] }));
     assert!(!text(&said).ends_with(ONE_OWNER), "{said}");
     assert!(text(&said).ends_with("Nothing was written."), "{said}");
 }
@@ -353,7 +359,7 @@ fn the_parts_of_a_whole_for_the_person_are_the_persons_unless_they_say_otherwise
 fn a_part_with_an_invalid_for_turns_the_whole_call_away() {
     let served = Served::new();
     let said = served.call(
-        "propose",
+        "task_create",
         json!({
             "for": "agent", "title": "ship it",
             "parts": [{ "title": "try it", "for": "nobody" }]
@@ -368,10 +374,13 @@ fn a_part_with_an_invalid_for_turns_the_whole_call_away() {
 fn a_part_filed_under_an_open_whole_with_part_of_needs_its_own_for() {
     let served = Served::new();
     let whole = served.files(json!({ "for": "agent", "title": "ship it" }));
-    let missing = served.call("propose", json!({ "title": "try it", "part_of": whole }));
+    let missing = served.call(
+        "task_create",
+        json!({ "title": "try it", "part_of": whole }),
+    );
     assert!(refused(&missing).contains("needs `for`"));
     let said = served.call(
-        "propose",
+        "task_create",
         json!({ "title": "try it", "part_of": whole, "for": "person" }),
     );
     assert_eq!(answered(&said)["for"], json!("person"), "{said}");
@@ -405,7 +414,10 @@ fn a_tick_on_a_task_for_the_person_gives_a_word_and_ticks_nothing() {
     let id = served.files(json!({
         "for": "person", "title": "try it by hand", "steps": ["open the app", "press go"]
     }));
-    let said = served.call("tick", json!({ "task": id, "step": "open the app" }));
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "open the app" }),
+    );
     let kept = answered(&said);
     assert_eq!(kept["said"], json!(1), "{said}");
     assert_eq!(kept["ticked"], json!(0), "{said}");
@@ -420,7 +432,10 @@ fn a_tick_on_a_task_for_the_person_gives_a_word_and_ticks_nothing() {
 fn a_tick_on_a_task_for_the_agent_ticks_for_real() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "mine", "steps": ["a", "b"] }));
-    let said = served.call("tick", json!({ "task": id, "step": "a" }));
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a" }),
+    );
     let kept = answered(&said);
     assert_eq!(kept["ticked"], json!(1), "{said}");
     let state = served.person().state();
@@ -434,8 +449,14 @@ fn the_word_on_a_step_of_a_task_for_the_person_can_be_taken_back() {
     let id = served.files(json!({
         "for": "person", "title": "try it by hand", "steps": ["open the app"]
     }));
-    served.call("tick", json!({ "task": id, "step": "open the app" }));
-    let said = served.call("untick", json!({ "task": id, "step": "open the app" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "open the app" }),
+    );
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "untick", "task": id, "step": "open the app" }),
+    );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
     let state = served.person().state();
     let task = &state.tasks[&served.person().id_of("try it by hand")];
@@ -451,7 +472,10 @@ fn the_persons_own_tick_on_a_task_for_the_person_is_not_taken_back_by_untick() {
     served
         .person()
         .ticks(served.person().id_of("try it by hand"), 1);
-    let said = served.call("untick", json!({ "task": id, "step": "open the app" }));
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "untick", "task": id, "step": "open the app" }),
+    );
     assert_eq!(said["result"]["isError"], json!(true), "{said}");
     let state = served.person().state();
     assert!(state.tasks[&served.person().id_of("try it by hand")].steps[0].done);
@@ -461,9 +485,12 @@ fn the_persons_own_tick_on_a_task_for_the_person_is_not_taken_back_by_untick() {
 fn the_last_tick_says_to_say_done_without_waiting_for_publishing_or_merging() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "mine", "steps": ["a"] }));
-    let said = served.call("tick", json!({ "task": id, "step": "a" }));
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a" }),
+    );
     let why = text(&said);
-    assert!(why.contains("None left: `say_done`"), "{why}");
+    assert!(why.contains("None left: call `task_resolve`"), "{why}");
     assert!(
         why.contains("Publishing and merging are the person's"),
         "{why}"
@@ -474,12 +501,21 @@ fn the_last_tick_says_to_say_done_without_waiting_for_publishing_or_merging() {
 fn say_done_with_a_step_unticked_hands_it_over_with_unplan_and_to_person() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "mine", "steps": ["a", "b"] }));
-    served.call("tick", json!({ "task": id, "step": "a" }));
-    let said = served.call("say_done", json!({ "task": id, "body": "did it" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a" }),
+    );
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "did it" }),
+    );
     let why = refused(&said);
     assert!(why.contains("still has 1 step(s) unticked"), "{why}");
-    assert!(why.contains("`unplan` and `to_person`"), "{why}");
-    assert!(why.contains("`note`"), "{why}");
+    assert!(
+        why.contains("`task_edit_steps` (`action: \"remove\"`, `to_person: true`)"),
+        "{why}"
+    );
+    assert!(why.contains("`task_note`"), "{why}");
 }
 
 #[test]
@@ -488,10 +524,16 @@ fn say_done_with_an_open_part_of_the_agent_names_unplan_to_person() {
     let whole = served.files(json!({
         "for": "agent", "title": "ship it", "parts": [{ "title": "write it" }]
     }));
-    let said = served.call("say_done", json!({ "task": whole, "body": "did it" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": whole, "body": "did it" }),
+    );
     let why = refused(&said);
     assert!(why.contains("still has 1 part(s) open"), "{why}");
-    assert!(why.contains("`unplan` and `to_person`"), "{why}");
+    assert!(
+        why.contains("`task_edit_steps` (`action: \"remove\"`, `to_person: true`)"),
+        "{why}"
+    );
 }
 
 #[test]
@@ -502,8 +544,8 @@ fn an_open_part_for_the_person_does_not_pin_the_whole() {
         "parts": [{ "title": "try it", "for": "person" }]
     }));
     let said = served.call(
-        "say_done",
-        json!({ "task": whole, "body": "built and proven" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": whole, "body": "built and proven" }),
     );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
     assert!(
@@ -520,7 +562,10 @@ fn a_part_of_the_agent_still_pins_the_whole_beside_one_for_the_person() {
         "for": "agent", "title": "ship it",
         "parts": [{ "title": "try it", "for": "person" }, { "title": "write it" }]
     }));
-    let said = served.call("say_done", json!({ "task": whole, "body": "done" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": whole, "body": "done" }),
+    );
     assert!(
         refused(&said).contains("still has 1 part(s) open"),
         "{said}"
@@ -533,8 +578,14 @@ fn say_done_on_a_task_for_the_person_is_only_a_word() {
     let id = served.files(json!({
         "for": "person", "title": "try it by hand", "steps": ["open the app"]
     }));
-    served.call("tick", json!({ "task": id, "step": "open the app" }));
-    let said = served.call("say_done", json!({ "task": id, "body": "I tried it" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "open the app" }),
+    );
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "I tried it" }),
+    );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
     let state = served.person().state();
     let task = &state.tasks[&served.person().id_of("try it by hand")];
@@ -550,8 +601,8 @@ fn unplan_to_person_makes_one_companion_part_in_the_list_with_the_steps() {
         "steps": ["write it", "try it by hand", "try it on a phone"]
     }));
     let said = served.call(
-        "unplan",
-        json!({ "task": whole, "steps": ["try it by hand", "try it on a phone"], "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "steps": ["try it by hand", "try it on a phone"], "to_person": true }),
     );
     let kept = answered(&said);
     assert_eq!(kept["to_person"], json!(true), "{said}");
@@ -586,8 +637,8 @@ fn unplan_to_person_takes_the_title_it_is_given() {
         "for": "agent", "title": "ship the export", "steps": ["write it", "try it"]
     }));
     served.call(
-        "unplan",
-        json!({ "task": whole, "step": "try it", "to_person": true, "title": "Try the export" }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "try it", "to_person": true, "title": "Try the export" }),
     );
     let state = served.person().state();
     let companion = &state.tasks[&served.person().id_of("Try the export")];
@@ -605,8 +656,8 @@ fn unplan_to_person_titles_the_companion_in_english_by_default() {
     let served = Served::new();
     let whole = served.files(json!({ "for": "agent", "title": "Export", "steps": ["a", "b"] }));
     served.call(
-        "unplan",
-        json!({ "task": whole, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "b", "to_person": true }),
     );
     assert!(
         served
@@ -623,8 +674,8 @@ fn unplan_to_person_titles_the_companion_in_the_language_of_the_person() {
     let served = Served::speaking("es_ES.UTF-8");
     let whole = served.files(json!({ "for": "agent", "title": "Exportar", "steps": ["a", "b"] }));
     served.call(
-        "unplan",
-        json!({ "task": whole, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "b", "to_person": true }),
     );
     let made: Vec<String> = served
         .person()
@@ -646,12 +697,12 @@ fn a_second_unplan_to_person_reuses_the_same_companion() {
         "for": "agent", "title": "ship the export", "steps": ["a", "b", "c"]
     }));
     let first = answered(&served.call(
-        "unplan",
-        json!({ "task": whole, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "b", "to_person": true }),
     ));
     let second = served.call(
-        "unplan",
-        json!({ "task": whole, "step": "c", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "c", "to_person": true }),
     );
     let kept = answered(&second);
     assert_eq!(kept["companion_made"], json!(false), "{second}");
@@ -674,8 +725,8 @@ fn the_steps_of_a_part_go_to_the_companion_of_its_whole() {
     }));
     let part = served.person().id_of("write it").to_string();
     let said = served.call(
-        "unplan",
-        json!({ "task": part, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": part, "step": "b", "to_person": true }),
     );
     let kept = answered(&said);
     let state = served.person().state();
@@ -695,8 +746,8 @@ fn the_steps_of_a_part_under_a_whole_of_the_person_go_to_that_whole() {
     }));
     let part = served.person().id_of("write it").to_string();
     let said = served.call(
-        "unplan",
-        json!({ "task": part, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": part, "step": "b", "to_person": true }),
     );
     let kept = answered(&said);
     assert_eq!(kept["to"], json!(whole), "{said}");
@@ -720,8 +771,8 @@ fn a_part_of_the_person_already_there_is_the_companion() {
         "parts": [{ "title": "try it", "for": "person" }]
     }));
     let said = served.call(
-        "unplan",
-        json!({ "task": whole, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "b", "to_person": true }),
     );
     let kept = answered(&said);
     assert_eq!(kept["companion_made"], json!(false), "{said}");
@@ -737,14 +788,17 @@ fn unplan_to_person_never_pins_the_whole() {
     let whole = served.files(json!({
         "for": "agent", "title": "ship it", "steps": ["build", "try it by hand"]
     }));
-    served.call("tick", json!({ "task": whole, "step": "build" }));
     served.call(
-        "unplan",
-        json!({ "task": whole, "step": "try it by hand", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": whole, "step": "build" }),
+    );
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "try it by hand", "to_person": true }),
     );
     let said = served.call(
-        "say_done",
-        json!({ "task": whole, "body": "built and proven" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": whole, "body": "built and proven" }),
     );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
 }
@@ -755,8 +809,8 @@ fn unplan_refuses_to_and_to_person_together() {
     let one = served.files(json!({ "for": "agent", "title": "one", "steps": ["a"] }));
     let other = served.files(json!({ "for": "agent", "title": "other" }));
     let said = served.call(
-        "unplan",
-        json!({ "task": one, "step": "a", "to": other, "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": one, "step": "a", "to": other, "to_person": true }),
     );
     let why = refused(&said);
     assert!(why.contains("`to`") && why.contains("`to_person`"), "{why}");
@@ -769,8 +823,8 @@ fn unplan_to_person_from_a_task_that_is_already_the_persons_is_refused() {
     let served = Served::new();
     let theirs = served.files(json!({ "for": "person", "title": "theirs", "steps": ["a"] }));
     let said = served.call(
-        "unplan",
-        json!({ "task": theirs, "step": "a", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": theirs, "step": "a", "to_person": true }),
     );
     let why = refused(&said);
     assert!(why.contains("is the person's already"), "{why}");
@@ -784,8 +838,8 @@ fn unplan_to_person_from_a_task_the_person_wrote_is_refused() {
     let id = served.person().id_of("algo mio");
     served.person().adds_step(id, "something");
     let said = served.call(
-        "unplan",
-        json!({ "task": id.to_string(), "step": "something", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": id.to_string(), "step": "something", "to_person": true }),
     );
     assert_eq!(said["result"]["isError"], json!(true), "{said}");
     assert_eq!(served.person().state().tasks[&id].steps.len(), 1);
@@ -801,8 +855,8 @@ fn unplan_to_person_from_a_part_whose_whole_is_closed_is_refused() {
     let part = served.person().id_of("write it").to_string();
     served.person().closes(served.person().id_of("ship it"));
     let said = served.call(
-        "unplan",
-        json!({ "task": part, "step": "a", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": part, "step": "a", "to_person": true }),
     );
     assert_eq!(said["result"]["isError"], json!(true), "{said}");
 }
@@ -815,8 +869,8 @@ fn unplan_to_person_from_a_turn_of_something_that_repeats_is_refused() {
         .person()
         .repeats(served.person().id_of("water"), "every week");
     let said = served.call(
-        "unplan",
-        json!({ "task": id, "step": "a", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": id, "step": "a", "to_person": true }),
     );
     let why = refused(&said);
     assert!(why.contains("repeats"), "{why}");
@@ -827,10 +881,13 @@ fn unplan_to_person_from_a_turn_of_something_that_repeats_is_refused() {
 fn unplan_to_person_with_a_step_already_ticked_changes_nothing() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "mine", "steps": ["a", "b"] }));
-    served.call("tick", json!({ "task": id, "step": "a" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a" }),
+    );
     let said = served.call(
-        "unplan",
-        json!({ "task": id, "step": "a", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": id, "step": "a", "to_person": true }),
     );
     assert_eq!(said["result"]["isError"], json!(true), "{said}");
     assert!(
@@ -847,7 +904,10 @@ fn unplan_to_person_with_a_step_already_ticked_changes_nothing() {
 fn unplan_without_to_person_still_just_takes_the_steps_off() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "mine", "steps": ["a", "b"] }));
-    let said = served.call("unplan", json!({ "task": id, "step": "b" }));
+    let said = served.call(
+        "task_edit_steps",
+        json!({ "action": "remove", "task": id, "step": "b" }),
+    );
     let kept = answered(&said);
     assert!(kept.get("to_person").is_none(), "{said}");
     assert_eq!(kept["to"], Value::Null, "{said}");
@@ -859,8 +919,8 @@ fn the_companion_made_by_unplan_is_read_as_for_the_person() {
     let served = Served::new();
     let whole = served.files(json!({ "for": "agent", "title": "ship it", "steps": ["a", "b"] }));
     let kept = answered(&served.call(
-        "unplan",
-        json!({ "task": whole, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "b", "to_person": true }),
     ));
     let companion = kept["to"].as_str().unwrap();
     assert_eq!(served.read(companion)["for"], json!("person"));
@@ -878,7 +938,10 @@ fn resolved_of(served: &Served, title: &str) -> Option<tisty_core::model::Resolv
 
 fn finished(served: &Served, title: &str) -> String {
     let id = served.files(json!({ "for": "agent", "title": title, "steps": ["a"] }));
-    served.call("tick", json!({ "task": id, "step": "a" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "a" }),
+    );
     id
 }
 
@@ -888,8 +951,8 @@ fn say_done_keeps_the_branch_and_the_pull_request_on_the_task_and_echoes_them() 
     let id = finished(&served, "ship it");
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "built and proven", "branch": "feat/ship", "pr": "#42" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "built and proven", "branch": "feat/ship", "pr": "#42" }),
     );
 
     let kept = answered(&said);
@@ -908,8 +971,8 @@ fn say_done_with_only_a_branch_names_the_branch() {
     let id = finished(&served, "ship it");
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "branch": "feat/ship" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "branch": "feat/ship" }),
     );
 
     let kept = answered(&said);
@@ -927,8 +990,8 @@ fn say_done_with_only_a_pull_request_keeps_only_that() {
     let id = finished(&served, "ship it");
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "pr": "https://example.com/pull/7" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "pr": "https://example.com/pull/7" }),
     );
 
     let kept = answered(&said);
@@ -944,7 +1007,10 @@ fn say_done_without_them_keeps_and_echoes_none() {
     let served = Served::new();
     let id = finished(&served, "ship it");
 
-    let said = served.call("say_done", json!({ "task": id, "body": "proven" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven" }),
+    );
 
     let kept = answered(&said);
     assert!(
@@ -962,8 +1028,8 @@ fn a_branch_or_pr_is_trimmed_and_blank_ones_are_left_out() {
     let id = finished(&served, "ship it");
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "branch": "  feat/ship  ", "pr": "   " }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "branch": "  feat/ship  ", "pr": "   " }),
     );
 
     let kept = answered(&said);
@@ -981,8 +1047,8 @@ fn a_branch_of_exactly_two_hundred_characters_is_kept() {
     let long = "b".repeat(200);
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "branch": long }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "branch": long }),
     );
 
     assert_eq!(answered(&said)["branch"], json!(long), "{said}");
@@ -996,8 +1062,8 @@ fn a_branch_or_pr_over_two_hundred_characters_is_refused_and_nothing_is_said() {
 
     for key in ["branch", "pr"] {
         let said = served.call(
-            "say_done",
-            json!({ "task": id, "body": "proven", key: long }),
+            "task_resolve",
+            json!({ "outcome": "done", "task": id, "body": "proven", key: long }),
         );
         let why = refused(&said);
         assert!(why.contains(&format!("`{key}`")), "{why}");
@@ -1024,8 +1090,8 @@ fn a_branch_or_pr_with_a_control_character_is_refused_and_nothing_is_said() {
         ("pr", "line\r\nbreak"),
     ] {
         let said = served.call(
-            "say_done",
-            json!({ "task": id, "body": "proven", key: bad }),
+            "task_resolve",
+            json!({ "outcome": "done", "task": id, "body": "proven", key: bad }),
         );
         let why = refused(&said);
         assert!(why.contains("one line"), "{key} {bad:?}: {why}");
@@ -1039,13 +1105,13 @@ fn a_refused_branch_does_not_stop_the_same_call_from_working_once_fixed() {
     let served = Served::new();
     let id = finished(&served, "ship it");
     served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "branch": "a\nb" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "branch": "a\nb" }),
     );
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "proven", "branch": "feat/ship" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "proven", "branch": "feat/ship" }),
     );
 
     assert_eq!(answered(&said)["branch"], json!("feat/ship"));
@@ -1062,12 +1128,12 @@ fn say_not_doing_refuses_a_branch_or_a_pull_request_and_says_nothing() {
 
     for (key, value) in [("branch", "feat/moot"), ("pr", "#9")] {
         let said = served.call(
-            "say_not_doing",
-            json!({ "task": id, "body": "moot", key: value }),
+            "task_resolve",
+            json!({ "outcome": "not_doing", "task": id, "body": "moot", key: value }),
         );
         let why = refused(&said);
         assert!(
-            why.contains(&format!("`{key}` is not something `say_not_doing` takes")),
+            why.contains("`branch` and `pr` apply only to `outcome: \"done\"`"),
             "{why}"
         );
         assert!(resolved_of(&served, "drop it").is_none());
@@ -1079,7 +1145,10 @@ fn say_not_doing_without_them_still_works() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "drop it", "steps": ["a"] }));
 
-    let said = served.call("say_not_doing", json!({ "task": id, "body": "moot" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "not_doing", "task": id, "body": "moot" }),
+    );
 
     let kept = answered(&said);
     assert!(
@@ -1097,11 +1166,14 @@ fn a_word_on_a_task_for_the_person_keeps_the_branch_and_pr_as_well() {
     let id = served.files(json!({
         "for": "person", "title": "try it by hand", "steps": ["open the app"]
     }));
-    served.call("tick", json!({ "task": id, "step": "open the app" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": id, "step": "open the app" }),
+    );
 
     let said = served.call(
-        "say_done",
-        json!({ "task": id, "body": "tried", "branch": "feat/x", "pr": "#5" }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "tried", "branch": "feat/x", "pr": "#5" }),
     );
 
     assert_eq!(answered(&said)["pr"], json!("#5"), "{said}");
@@ -1116,13 +1188,16 @@ fn say_done_on_a_person_task_with_a_step_unticked_points_to_note_not_to_unplan()
         "for": "person", "title": "try it by hand", "steps": ["open the app"]
     }));
 
-    let said = served.call("say_done", json!({ "task": id, "body": "tried" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": id, "body": "tried" }),
+    );
 
     let why = refused(&said);
     assert!(why.contains("still has 1 step(s) unticked"), "{why}");
     assert!(why.contains("the person's task"), "{why}");
     assert!(why.contains("gives your word"), "{why}");
-    assert!(why.contains("`note`"), "{why}");
+    assert!(why.contains("`task_note`"), "{why}");
     assert!(!why.contains("to_person"), "{why}");
     assert!(!why.contains("`unplan`"), "{why}");
 }
@@ -1130,13 +1205,16 @@ fn say_done_on_a_person_task_with_a_step_unticked_points_to_note_not_to_unplan()
 #[test]
 fn the_answer_to_a_task_for_the_person_ends_with_the_one_owner_sentence() {
     let served = Served::new();
-    let bare = text(&served.call("propose", json!({ "for": "person", "title": "no steps" })));
+    let bare = text(&served.call(
+        "task_create",
+        json!({ "for": "person", "title": "no steps" }),
+    ));
     assert!(bare.contains("for the person"), "{bare}");
     assert!(bare.contains(ONE_OWNER), "{bare}");
     assert!(!bare.contains("step(s)"), "{bare}");
 
     let stepped = text(&served.call(
-        "propose",
+        "task_create",
         json!({ "for": "person", "title": "two steps", "steps": ["a", "b"] }),
     ));
     assert!(stepped.contains("with 2 step(s)"), "{stepped}");
@@ -1148,11 +1226,12 @@ fn reschedule_is_refused_on_a_task_for_the_person_and_moves_its_day_nowhere() {
     let served = Served::new();
     let id = served.files(json!({ "for": "person", "title": "sign the lease" }));
 
-    let said = served.call("reschedule", json!({ "task": id, "date": "2026-09-27" }));
+    let said = served.call("task_update", json!({ "task": id, "date": "2026-09-27" }));
     let why = refused(&said);
 
-    assert!(why.contains("the person's own"), "{why}");
-    assert!(why.contains("leave the day alone"), "{why}");
+    assert!(why.contains("the person's task"), "{why}");
+    assert!(why.contains("dates stay theirs"), "{why}");
+    assert!(why.contains("`task_note`"), "{why}");
     let state = served.person().state();
     assert!(
         state.tasks[&served.person().id_of("sign the lease")]
@@ -1167,7 +1246,7 @@ fn reschedule_is_refused_on_a_deadline_of_a_task_for_the_person_too() {
     let id = served.files(json!({ "for": "person", "title": "sign the lease" }));
 
     let said = served.call(
-        "reschedule",
+        "task_update",
         json!({ "task": id, "deadline": "2026-09-27" }),
     );
 
@@ -1185,7 +1264,7 @@ fn reschedule_still_moves_the_day_of_a_task_for_the_agent() {
     let served = Served::new();
     let id = served.files(json!({ "for": "agent", "title": "ship the export" }));
 
-    let said = served.call("reschedule", json!({ "task": id, "date": "2026-09-27" }));
+    let said = served.call("task_update", json!({ "task": id, "date": "2026-09-27" }));
 
     assert_eq!(answered(&said)["date"], json!("2026-09-27"), "{said}");
 }
@@ -1205,8 +1284,8 @@ fn unplan_to_person_files_the_companion_in_the_anchors_list_even_when_it_is_arch
         .does(tisty_core::Op::ListArchive { id: list });
 
     let said = served.call(
-        "unplan",
-        json!({ "task": whole, "step": "try it by hand", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "try it by hand", "to_person": true }),
     );
 
     assert_eq!(answered(&said)["companion_made"], json!(true), "{said}");
@@ -1228,8 +1307,8 @@ fn unplan_to_person_orders_the_new_companion_right_after_its_anchor() {
     }));
 
     answered(&served.call(
-        "unplan",
-        json!({ "task": whole, "step": "try it by hand", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "try it by hand", "to_person": true }),
     ));
 
     let state = served.person().state();
@@ -1247,8 +1326,8 @@ fn unplan_to_person_from_a_task_in_no_list_files_the_companion_in_no_list() {
     }));
 
     answered(&served.call(
-        "unplan",
-        json!({ "task": whole, "step": "try it by hand", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": whole, "step": "try it by hand", "to_person": true }),
     ));
 
     let state = served.person().state();
@@ -1256,17 +1335,26 @@ fn unplan_to_person_from_a_task_in_no_list_files_the_companion_in_no_list() {
     assert_eq!(companion.list, None);
 }
 
-fn part_under_a_whole_said(served: &Served, tool: &str) -> String {
+fn part_under_a_whole_said(served: &Served, outcome: &str) -> String {
     let whole = served.files(json!({
         "for": "agent", "title": "ship it",
         "parts": [{ "title": "write it", "steps": ["a"] }]
     }));
     let part_id = served.person().id_of("write it");
     let part = part_id.to_string();
-    served.call("tick", json!({ "task": part, "step": "a" }));
-    let said = served.call("say_done", json!({ "task": part, "body": "written" }));
+    served.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": part, "step": "a" }),
+    );
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": part, "body": "written" }),
+    );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
-    let said = served.call(tool, json!({ "task": whole, "body": "settled" }));
+    let said = served.call(
+        "task_resolve",
+        json!({ "outcome": outcome, "task": whole, "body": "settled" }),
+    );
     assert_ne!(said["result"]["isError"], json!(true), "{said}");
     served
         .person()
@@ -1278,11 +1366,11 @@ fn part_under_a_whole_said(served: &Served, tool: &str) -> String {
 #[test]
 fn unplan_to_person_from_a_part_of_a_whole_said_done_is_refused_naming_the_whole() {
     let served = Served::new();
-    let part = part_under_a_whole_said(&served, "say_done");
+    let part = part_under_a_whole_said(&served, "done");
 
     let again = served.call(
-        "unplan",
-        json!({ "task": part, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": part, "step": "b", "to_person": true }),
     );
 
     let why = refused(&again);
@@ -1301,11 +1389,11 @@ fn unplan_to_person_from_a_part_of_a_whole_said_done_is_refused_naming_the_whole
 #[test]
 fn unplan_to_person_from_a_part_of_a_whole_said_not_doing_is_refused_naming_the_whole() {
     let served = Served::new();
-    let part = part_under_a_whole_said(&served, "say_not_doing");
+    let part = part_under_a_whole_said(&served, "not_doing");
 
     let again = served.call(
-        "unplan",
-        json!({ "task": part, "step": "b", "to_person": true }),
+        "task_edit_steps",
+        json!({ "action": "remove", "task": part, "step": "b", "to_person": true }),
     );
 
     let why = refused(&again);

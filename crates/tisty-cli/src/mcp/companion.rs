@@ -55,8 +55,8 @@ pub(super) fn companion<'a>(
     let repeats = anchor.repeat.is_some() || anchor.after.is_some();
     if repeats || !still_in_sight(anchor) {
         return Err(Refused::Tool(format!(
-            "{:?} {} so it holds no part for the person: nothing was moved. `propose` their \
-             task with `for` \"person\" in the same list, then hand the steps to it with `to`.",
+            "{:?} {} so it holds no part for the person: nothing was moved. Call `task_create` \
+             with `for` \"person\" in the same list, then hand the steps to it with `to`.",
             anchor.title,
             match repeats {
                 true => "is a turn of something that repeats,",

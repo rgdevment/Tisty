@@ -81,7 +81,18 @@ impl Connection {
     }
 
     fn brain(&mut self, args: Value) -> Value {
-        self.call("brain", args)["structuredContent"].clone()
+        if args.get("doc").is_some() || args.get("task").is_some() {
+            let mut mapped = args;
+            let view = if mapped.get("links").is_some() {
+                "links"
+            } else {
+                "card"
+            };
+            mapped["view"] = json!(view);
+            self.call("workspace_read", mapped)["structuredContent"].clone()
+        } else {
+            self.call("workspace_search", args)["structuredContent"].clone()
+        }
     }
 }
 
@@ -156,7 +167,10 @@ fn when_no_hit_holds_every_word_those_holding_the_most_come_said_so() {
             "Restart the watcher every hour"
         ]
     );
-    let said = talk.call("brain", json!({ "query": "watcher wakes hibernate" }));
+    let said = talk.call(
+        "workspace_search",
+        json!({ "query": "watcher wakes hibernate" }),
+    );
     assert!(
         said["content"][0]["text"]
             .as_str()
@@ -172,21 +186,24 @@ fn the_line_quoted_is_the_newest_that_still_holds() {
     let task = served.person().captures("Settle where the cache lives");
     let mut talk = served.connect();
     talk.call(
-        "note",
-        json!({ "task": task.to_string(), "body": "Decided: the cache lives in memory." }),
+        "task_note",
+        json!({ "action": "add", "task": task.to_string(), "body": "Decided: the cache lives in memory." }),
     );
-    let read = talk.call("read", json!({ "task": task.to_string(), "notes": 0 }));
+    let read = talk.call(
+        "workspace_read",
+        json!({ "task": task.to_string(), "notes": 0 }),
+    );
     let first = read["structuredContent"]["journal"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
     talk.call(
-        "note",
-        json!({ "task": task.to_string(), "body": "Decided again: the cache lives on disk.", "replaces": first }),
+        "task_note",
+        json!({ "action": "add", "task": task.to_string(), "body": "Decided again: the cache lives on disk.", "replaces": first }),
     );
     talk.call(
-        "note",
-        json!({ "task": task.to_string(), "body": "Ran the tests on the cache: all pass." }),
+        "task_note",
+        json!({ "action": "add", "task": task.to_string(), "body": "Ran the tests on the cache: all pass." }),
     );
 
     let found = talk.brain(json!({ "query": "decided cache" }));
@@ -250,7 +267,7 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
     let served = Served::new();
     let mut talk = served.connect();
     let made = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Rank the search", "steps": ["Sort by place", "Quote the newest line"], "list": "Work" }),
     );
     let task = made["structuredContent"]["id"]
@@ -258,8 +275,8 @@ fn a_task_card_says_its_state_stage_and_neighbours() {
         .unwrap()
         .to_string();
     talk.call(
-        "tick",
-        json!({ "task": task, "steps": ["Sort by place"], "state": "Sorting by where it matched is done. Next: the newest line." }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task, "steps": ["Sort by place"], "state": "Sorting by where it matched is done. Next: the newest line." }),
     );
 
     let card = talk.brain(json!({ "task": task }));
@@ -283,7 +300,10 @@ fn a_task_card_counts_a_step_the_agent_said_done_apart_as_its_project_view_does(
     served.person().adds_step(task, "Pay");
     served.person().adds_step(task, "Install");
     let mut talk = served.connect();
-    talk.call("tick", json!({ "task": task.to_string(), "step": "Pay" }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": task.to_string(), "step": "Pay" }),
+    );
     assert!(served.person().state().tasks[&task].steps[0].said);
 
     let card = talk.brain(json!({ "task": task.to_string() }));
@@ -297,7 +317,7 @@ fn a_task_card_counts_a_step_the_agent_said_done_apart_as_its_project_view_does(
     assert_eq!(card["stage"], "under_way");
 
     let whole = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Certificates", "parts": [{ "title": "Renew" }] }),
     );
     let whole = whole["structuredContent"]["id"]
@@ -306,7 +326,10 @@ fn a_task_card_counts_a_step_the_agent_said_done_apart_as_its_project_view_does(
         .to_string();
     let part = served.person().id_of("Renew");
     served.person().adds_step(part, "Pay");
-    talk.call("tick", json!({ "task": part.to_string(), "step": "Pay" }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": part.to_string(), "step": "Pay" }),
+    );
     let view = talk.brain(json!({ "part_of": whole }));
     let row = &view["parts"][0];
     assert_eq!(
@@ -322,7 +345,7 @@ fn a_project_groups_its_open_parts_by_how_far_each_got() {
     let served = Served::new();
     let mut talk = served.connect();
     let made = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship the brain", "list": "Work", "parts": [
             { "title": "Rank", "steps": ["one", "two"] },
             { "title": "Cards", "steps": ["one"] },
@@ -336,15 +359,21 @@ fn a_project_groups_its_open_parts_by_how_far_each_got() {
         .unwrap()
         .to_string();
     let part = |title: &str| served.person().id_of(title).to_string();
-    talk.call("tick", json!({ "task": part("Rank"), "steps": ["one"] }));
     talk.call(
-        "tick",
-        json!({ "task": part("Cards"), "state": "Blocked: waiting for the owner to pick the cap." }),
+        "task_edit_steps",
+        json!({ "action": "tick", "task": part("Rank"), "steps": ["one"] }),
     );
-    talk.call("tick", json!({ "task": part("Gates"), "steps": ["one"] }));
     talk.call(
-        "say_done",
-        json!({ "task": part("Gates"), "body": "Gates hold on both ends." }),
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": part("Cards"), "state": "Blocked: waiting for the owner to pick the cap." }),
+    );
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "tick", "task": part("Gates"), "steps": ["one"] }),
+    );
+    talk.call(
+        "task_resolve",
+        json!({ "outcome": "done", "task": part("Gates"), "body": "Gates hold on both ends." }),
     );
     served.person().closes(served.person().id_of("Docs"));
 
@@ -405,10 +434,13 @@ fn nothing_asked_names_the_lists_folders_and_tags_with_their_counts() {
     let served = Served::new();
     let mut talk = served.connect();
     talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Pay the rent", "list": "Work", "tags": ["home"] }),
     );
-    talk.call("folder", json!({ "name": "Recipes" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Recipes" }),
+    );
     let hidden = served.person().captures("Hide this one #home");
     served.person().hides(hidden);
 
@@ -444,12 +476,15 @@ fn the_base_follows_a_write_made_a_moment_before() {
     let served = Served::new();
     let target = served.person().writes_doc("# Plan\n\nSteps.\n");
     let mut talk = served.connect();
-    talk.call("folder", json!({ "name": "Work" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Work" }),
+    );
     let first = talk.brain(json!({ "doc": target }));
     assert!(first.get("mentioned_by").is_none(), "{first}");
 
     let wrote = talk.call(
-        "write_doc",
+        "doc_create",
         json!({ "body": format!("# Review\n\nRead [the plan](tisty:doc/{target})."), "folder": "Work", "anyway": true }),
     );
     let review = wrote["structuredContent"]["doc"]
@@ -506,13 +541,16 @@ fn a_task_cited_in_a_document_shows_on_its_card_with_title_and_state() {
 fn a_folder_alone_lists_its_documents() {
     let served = Served::new();
     let mut talk = served.connect();
-    talk.call("folder", json!({ "name": "Recipes" }));
     talk.call(
-        "write_doc",
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Recipes" }),
+    );
+    talk.call(
+        "doc_create",
         json!({ "body": "# Pancakes\n\nFlour.\n", "folder": "Recipes" }),
     );
 
-    let said = talk.call("brain", json!({ "folder": "Recipes" }));
+    let said = talk.call("workspace_search", json!({ "folder": "Recipes" }));
     let listed = &said["structuredContent"];
 
     assert_eq!(listed["total"], 1);
@@ -539,9 +577,18 @@ fn brain_looks_at_one_thing_at_a_time() {
     let task = served.person().captures("Call the bank");
     let mut talk = served.connect();
 
-    let both = talk.asked("brain", json!({ "doc": "x-1", "task": task.to_string() }));
-    let lone = talk.asked("brain", json!({ "links": "cite" }));
-    let walk = talk.asked("brain", json!({ "task": task.to_string(), "section": 1 }));
+    let both = talk.asked(
+        "workspace_read",
+        json!({ "doc": "x-1", "task": task.to_string(), "view": "card" }),
+    );
+    let lone = talk.asked(
+        "workspace_read",
+        json!({ "view": "links", "links": "cite" }),
+    );
+    let walk = talk.asked(
+        "workspace_read",
+        json!({ "task": task.to_string(), "section": 1, "view": "card" }),
+    );
 
     assert_eq!(both["isError"], true);
     assert_eq!(lone["isError"], true);
@@ -550,7 +597,7 @@ fn brain_looks_at_one_thing_at_a_time() {
         lone["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("`links`")
+            .contains("`task` ID or a `doc` ID")
     );
 }
 
@@ -578,7 +625,10 @@ fn without_the_base_a_card_says_so_and_still_names_who_points_here() {
 
     let card = talk.brain(json!({ "doc": target }));
     let task_card = talk.brain(json!({ "task": task.to_string() }));
-    let links = talk.asked("brain", json!({ "doc": target, "links": "all" }));
+    let links = talk.asked(
+        "workspace_read",
+        json!({ "doc": target, "view": "links", "links": "all" }),
+    );
     let found = talk.brain(json!({ "query": "plan" }));
 
     assert!(
@@ -599,18 +649,26 @@ fn a_tool_brain_took_over_answers_its_old_call_with_the_way_to_it() {
     let doc = served.person().writes_doc("# Plan\n\nSteps.\n");
     let mut talk = served.connect();
 
-    for (name, args) in [
-        ("find", json!({ "query": "plan", "lines": false })),
-        ("docs", json!({ "folders": true, "deep": true })),
-        ("outline_doc", json!({ "doc": doc })),
-        ("lists", json!({})),
-        ("tags", json!({})),
+    for (name, args, target) in [
+        (
+            "find",
+            json!({ "query": "plan", "lines": false }),
+            "workspace_search",
+        ),
+        (
+            "docs",
+            json!({ "folders": true, "deep": true }),
+            "workspace_search",
+        ),
+        ("outline_doc", json!({ "doc": doc }), "workspace_read"),
+        ("lists", json!({}), "workspace_search"),
+        ("tags", json!({}), "workspace_search"),
     ] {
         let said = talk.asked(name, args);
         let text = said["content"][0]["text"].as_str().unwrap_or_default();
         assert_eq!(said["isError"], true, "{name}: {said}");
         assert!(
-            text.starts_with(&format!("`{name}` moved into `brain`")),
+            text.starts_with(&format!("`{name}` moved into `{target}`")),
             "{name}: {text}"
         );
     }
@@ -648,7 +706,10 @@ fn a_tool_that_moved_writes_nothing() {
     }
 
     assert_eq!(logged(&served), before, "nothing was written");
-    talk.call("folder", json!({ "name": "Casa" }));
+    talk.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Casa" }),
+    );
     assert_ne!(logged(&served), before, "as a write is");
 }
 
@@ -699,7 +760,7 @@ fn a_search_cut_short_says_how_to_go_on_and_empty_fields_are_named() {
 
     let first = talk.brain(json!({ "query": "water" }));
     let rest = talk.brain(json!({ "query": "water", "after": 10 }));
-    let empty = talk.asked("brain", json!({ "tag": "" }));
+    let empty = talk.asked("workspace_search", json!({ "tag": "" }));
 
     assert_eq!(first["total"], 12);
     assert_eq!(first["matches"].as_array().unwrap().len(), 10);
@@ -726,8 +787,14 @@ fn a_section_is_asked_by_a_heading_the_card_numbers() {
         .writes_doc("# Plan\n\n## One\n\nA.\n\n## Two\n\nB.\n");
     let mut talk = served.connect();
 
-    let word = talk.asked("brain", json!({ "doc": doc, "section": "one" }));
-    let past = talk.asked("brain", json!({ "doc": doc, "section": 9 }));
+    let word = talk.asked(
+        "workspace_read",
+        json!({ "doc": doc, "view": "card", "section": "one" }),
+    );
+    let past = talk.asked(
+        "workspace_read",
+        json!({ "doc": doc, "view": "card", "section": 9 }),
+    );
 
     assert_eq!(word["isError"], true, "{word}");
     assert!(
@@ -752,8 +819,14 @@ fn a_hidden_or_unknown_task_has_no_card() {
     served.person().hides(hidden);
     let mut talk = served.connect();
 
-    let hid = talk.asked("brain", json!({ "task": hidden.to_string() }));
-    let odd = talk.asked("brain", json!({ "task": "not-an-id" }));
+    let hid = talk.asked(
+        "workspace_read",
+        json!({ "task": hidden.to_string(), "view": "card" }),
+    );
+    let odd = talk.asked(
+        "workspace_read",
+        json!({ "task": "not-an-id", "view": "card" }),
+    );
 
     assert_eq!(hid["isError"], true, "{hid}");
     assert!(!hid.to_string().contains("Secret"), "{hid}");
@@ -784,7 +857,7 @@ fn words_nothing_holds_say_so_and_a_scope_lists_a_projects_parts_plainly() {
     let served = Served::new();
     let mut talk = served.connect();
     let made = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Ship it", "list": "Work", "parts": [
             { "title": "Rank", "steps": ["one"] },
             { "title": "Cards", "steps": ["one"] }
@@ -812,10 +885,10 @@ fn a_task_page_asked_as_a_document_shows_its_tasks_neighbours() {
     let task = served.person().captures("Follow the plan");
     let mut talk = served.connect();
     talk.call(
-        "append_doc",
-        json!({ "doc": task.to_string(), "body": format!("See [the plan](tisty:doc/{plan}).") }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": task.to_string(), "content": format!("See [the plan](tisty:doc/{plan}).") }),
     );
-    let read = talk.call("read", json!({ "task": task.to_string() }));
+    let read = talk.call("workspace_read", json!({ "task": task.to_string() }));
     let page = read["structuredContent"]["document"]["file"]
         .as_str()
         .unwrap()
@@ -851,7 +924,7 @@ fn a_long_project_pages_on_and_says_how() {
     let served = Served::new();
     let mut talk = served.connect();
     let made = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Big", "list": "Work", "parts": [
             { "title": "One", "steps": ["a"] },
             { "title": "Two", "steps": ["a"] },
@@ -894,15 +967,21 @@ fn a_closed_task_has_no_stage_and_an_old_state_says_so() {
     let served = Served::new();
     let mut talk = served.connect();
     let made = talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Write it", "steps": ["a"], "list": "Work" }),
     );
     let task = made["structuredContent"]["id"]
         .as_str()
         .unwrap()
         .to_string();
-    talk.call("tick", json!({ "task": task, "state": "Half written." }));
-    talk.call("note", json!({ "task": task, "body": "Decided: shorter." }));
+    talk.call(
+        "task_edit_steps",
+        json!({ "action": "set_state", "task": task, "state": "Half written." }),
+    );
+    talk.call(
+        "task_note",
+        json!({ "action": "add", "task": task, "body": "Decided: shorter." }),
+    );
 
     let open = talk.brain(json!({ "task": task }));
     served.person().closes(task.parse().unwrap());
@@ -922,18 +1001,21 @@ fn putting_away_a_document_names_the_task_page_that_points_at_it() {
     let mut talk = served.connect();
     for one in [task, hidden] {
         talk.call(
-            "append_doc",
-            json!({ "doc": one.to_string(), "body": format!("See [the plan](tisty:doc/{plan}).") }),
+            "doc_edit",
+            json!({ "mode": "append", "doc": one.to_string(), "content": format!("See [the plan](tisty:doc/{plan}).") }),
         );
     }
-    let page = talk.call("read", json!({ "task": task.to_string() }))["structuredContent"]
-        ["document"]["file"]
+    let page = talk.call("workspace_read", json!({ "task": task.to_string() }))
+        ["structuredContent"]["document"]["file"]
         .as_str()
         .unwrap()
         .to_string();
     served.person().hides(hidden);
 
-    let put = talk.call("archive_doc", json!({ "doc": plan }));
+    let put = talk.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [plan] }),
+    );
 
     assert_eq!(put["structuredContent"]["pointed_at"], json!([page]));
 }
@@ -962,8 +1044,8 @@ fn a_word_only_a_tasks_page_holds_still_counts_for_that_task() {
     served.person().captures("Answer the stripe webhook");
     let mut talk = served.connect();
     talk.call(
-        "append_doc",
-        json!({ "doc": paged.to_string(), "body": "The stripe webhook sends it." }),
+        "doc_edit",
+        json!({ "mode": "append", "doc": paged.to_string(), "content": "The stripe webhook sends it." }),
     );
 
     let found = talk.brain(json!({ "query": "invoice stripe webhook refund" }));
@@ -1038,7 +1120,10 @@ fn a_card_lists_what_tisty_guesses_apart_and_never_names_a_hidden_task() {
         ],
     );
 
-    let said = talk.call("brain", json!({ "task": budget.to_string() }));
+    let said = talk.call(
+        "workspace_read",
+        json!({ "task": budget.to_string(), "view": "card" }),
+    );
     let card = &said["structuredContent"];
     let text = said["content"][0]["text"].as_str().unwrap();
 
@@ -1099,10 +1184,13 @@ fn what_tisty_guesses_alike_stays_off_an_export_and_off_the_markdown_read_hands_
         .unwrap();
 
     talk.call(
-        "export_doc",
-        json!({ "doc": spanish, "into": out.path().to_str().unwrap() }),
+        "file_transfer",
+        json!({ "action": "export_doc", "doc": spanish, "path": out.path().to_str().unwrap() }),
     );
-    let markdown = talk.call("read", json!({ "doc": spanish, "as": "markdown" }));
+    let markdown = talk.call(
+        "workspace_read",
+        json!({ "doc": spanish, "view": "markdown" }),
+    );
 
     let mut told = vec![markdown.to_string()];
     let mut walk = vec![out.path().to_path_buf()];
@@ -1157,13 +1245,13 @@ fn an_exact_task_title_comes_first_and_links_leave_the_order_alone() {
     let mut talk = served.connect();
     for title in ["Pets", "Week"] {
         talk.call(
-            "write_doc",
+            "doc_create",
             json!({ "body": format!("# {title}\n\n[The vet](tisty:task/{cited}).\n") }),
         );
     }
 
     let found = talk.brain(json!({ "query": "book the vet" }));
-    let symbols = talk.call("brain", json!({ "query": "\u{1f4cc}" }));
+    let symbols = talk.call("workspace_search", json!({ "query": "\u{1f4cc}" }));
 
     assert_eq!(
         ids(&found, "matches"),
@@ -1174,13 +1262,13 @@ fn an_exact_task_title_comes_first_and_links_leave_the_order_alone() {
 }
 
 fn refused(talk: &mut Connection, args: Value) -> String {
-    let said = talk.asked("brain", args);
+    let said = talk.asked("workspace_search", args);
     assert_eq!(said["isError"], true, "{said}");
     said["content"][0]["text"].as_str().unwrap().to_string()
 }
 
 fn both(talk: &mut Connection, args: Value) -> (Value, String) {
-    let said = talk.call("brain", args);
+    let said = talk.call("workspace_search", args);
     (
         said["structuredContent"].clone(),
         said["content"][0]["text"].as_str().unwrap().to_string(),
@@ -1192,7 +1280,7 @@ fn the_inbox_is_asked_for_as_a_list_and_the_zones_say_how() {
     let served = Served::new();
     let mut talk = served.connect();
     talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Pay the rent", "list": "Work" }),
     );
     let done = served.person().captures("Return the book");
@@ -1250,7 +1338,7 @@ fn a_list_that_does_not_exist_is_refused_with_the_ones_that_do() {
 
     let moving = served.person().id_of("algo mio");
     let moved = talk.asked(
-        "move",
+        "task_update",
         json!({ "task": moving.to_string(), "list": "Trabajos" }),
     );
     let said = moved["content"][0]["text"].as_str().unwrap();
@@ -1300,15 +1388,15 @@ fn a_list_answers_with_the_open_count_announced_beside_its_archived_ones() {
     let mut talk = served.connect();
     for title in ["Pay the rent", "Buy paint", "Call the bank"] {
         talk.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Work" }),
         );
     }
     person.dates(person.id_of("Buy paint"), "today");
     let called = person.id_of("Call the bank").to_string();
     talk.call(
-        "say_done",
-        json!({ "task": called, "body": "Called, they said yes." }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": called, "body": "Called, they said yes." }),
     );
     person.closes(person.id_of("Pay the rent"));
 
@@ -1352,7 +1440,7 @@ fn an_answer_with_nothing_says_what_to_try_in_both_the_text_and_the_json() {
     let served = Served::new();
     let mut talk = served.connect();
     talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Pay", "tags": ["home"] }),
     );
 
@@ -1372,8 +1460,8 @@ fn an_answer_with_nothing_says_what_to_try_in_both_the_text_and_the_json() {
     }
     for args in [
         json!({ "query": "zebra" }),
-        json!({ "tag": "home", "from": "2030-01-01" }),
-        json!({ "tag": "home", "from": "2030-01-01", "scope": "open" }),
+        json!({ "tag": "home", "date_from": "2030-01-01" }),
+        json!({ "tag": "home", "date_from": "2030-01-01", "scope": "open" }),
     ] {
         let none = talk.brain(args);
         assert_eq!(none["total"], 0);
@@ -1388,14 +1476,14 @@ fn leaving_out_what_an_agent_said_done_says_how_many_so_the_counts_add_up() {
     let mut talk = served.connect();
     for title in ["Pay the rent", "Call the bank"] {
         talk.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Work" }),
         );
     }
     let called = person.id_of("Call the bank").to_string();
     talk.call(
-        "say_done",
-        json!({ "task": called, "body": "They said yes." }),
+        "task_resolve",
+        json!({ "outcome": "done", "task": called, "body": "They said yes." }),
     );
 
     let (found, said) = both(
@@ -1426,7 +1514,7 @@ fn a_reader_of_the_text_alone_sees_the_day_and_the_deadline() {
     let served = Served::new();
     let mut talk = served.connect();
     talk.call(
-        "propose",
+        "task_create",
         json!({ "for": "agent", "title": "Enroll Rina", "list": "Work", "date": "2099-01-04", "deadline": "2099-02-09" }),
     );
 
@@ -1473,7 +1561,7 @@ fn two_lists_of_one_name_are_announced_once_with_what_both_hold() {
     assert_eq!(gardens, [&json!({ "list": "Garden", "open": 2 })]);
     assert!(said.contains("Garden (2)"), "{said}");
 
-    let caught = talk.call("catch_up", json!({}));
+    let caught = talk.call("workspace_catch_up", json!({}));
     assert_eq!(caught["structuredContent"]["open_by_list"]["Garden"], 2);
     let said = caught["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("Garden 2, "), "{said}");
@@ -1491,7 +1579,7 @@ fn a_sift_with_no_scope_brings_the_open_first_and_pages_on_into_the_archived() {
     let mut talk = served.connect();
     for title in ["Done one", "Done two", "Open loose", "Open dated"] {
         talk.call(
-            "propose",
+            "task_create",
             json!({ "for": "agent", "title": title, "list": "Work" }),
         );
     }

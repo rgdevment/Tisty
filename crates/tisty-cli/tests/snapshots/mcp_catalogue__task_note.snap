@@ -1,0 +1,50 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Add a dated entry to an open task's journal (decisions, blockers, ruled-out paths; <=4,000 chars) or reword an existing note by ID. Long drafts/tables belong on the task page via `doc_edit`. For doc callouts use `doc_edit` with `[!NOTE]`.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "description": "Append new journal note or replace existing note body",
+        "enum": [
+          "add",
+          "reword"
+        ],
+        "type": "string"
+      },
+      "body": {
+        "description": "Note text in Tisty Markdown (<=4,000 chars)",
+        "type": "string"
+      },
+      "note": {
+        "description": "For `reword`: existing note ID from `workspace_read`",
+        "type": "string"
+      },
+      "replaces": {
+        "description": "For `add`: ID of prior agent note this entry supersedes (kept marked)",
+        "type": "string"
+      },
+      "task": {
+        "description": "Open task ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "action",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "task_note",
+  "title": "Add or reword a task journal note"
+}

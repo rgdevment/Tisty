@@ -38,8 +38,9 @@ fn due(task: TaskId) -> Due {
 fn a_turn_left_unwritten_asks_for_one_tick_with_its_state_and_nothing_else() {
     let asked = TURN_LEFT_UNWRITTEN;
 
-    assert!(asked.contains("one `tick`") && asked.contains("`state`"));
-    for never in ["`note`", "`say_done`", "progress"] {
+    assert!(asked.contains("`task_edit_steps` (`action: \"tick\"` or `\"set_state\"`)"));
+    assert!(asked.contains("`state`"));
+    for never in ["`task_note`", "`task_resolve`", "progress"] {
         assert!(!asked.contains(never), "{never} in {asked}");
     }
     assert!(asked.contains("end your turn without writing anything"));
@@ -300,7 +301,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
 
     assert_eq!(
         touch(
-            "read",
+            "workspace_read",
             Some(task),
             false,
             &answered(json!({ "id": id, "status": "open" }))
@@ -309,7 +310,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "read",
+            "workspace_read",
             Some(task),
             false,
             &answered(json!({ "doc": format!("t_{}-0001", id.to_lowercase()), "body": "" }))
@@ -319,7 +320,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "read",
+            "workspace_read",
             Some(task),
             false,
             &answered(json!({ "id": id, "status": "done" }))
@@ -328,7 +329,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "read",
+            "workspace_read",
             Some(task),
             false,
             &answered(json!({ "id": id, "said_done": "2026-11-17 10:00" }))
@@ -337,7 +338,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "propose",
+            "task_create",
             None,
             true,
             &answered(json!({ "id": task.to_string(), "proposed": true, "steps": 2 }))
@@ -346,7 +347,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "propose",
+            "task_create",
             None,
             true,
             &answered(json!({ "id": task.to_string(), "proposed": true }))
@@ -356,7 +357,7 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
     );
     assert_eq!(
         touch(
-            "propose",
+            "task_create",
             None,
             true,
             &answered(json!({ "id": task.to_string(), "proposed": false, "steps": 2 }))
@@ -364,13 +365,19 @@ fn a_call_is_judged_by_what_it_named_and_what_it_answered() {
         Touch::Looked
     );
     assert_eq!(
-        touch("note", Some(task), true, &json!({})),
+        touch("task_note", Some(task), true, &json!({})),
         Touch::Worked(task)
     );
-    assert_eq!(touch("write_doc", None, true, &json!({})), Touch::Elsewhere);
-    assert_eq!(touch("find", None, false, &json!({})), Touch::Looked);
     assert_eq!(
-        touch("say_done", Some(task), true, &json!({})),
+        touch("doc_create", None, true, &json!({})),
+        Touch::Elsewhere
+    );
+    assert_eq!(
+        touch("workspace_search", None, false, &json!({})),
+        Touch::Looked
+    );
+    assert_eq!(
+        touch("task_resolve", Some(task), true, &json!({})),
         Touch::Ended
     );
 }

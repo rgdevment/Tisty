@@ -7,11 +7,11 @@ use super::super::{Refused, lists, opened, papers, trail};
 
 const TAGS_SHOWN: usize = 40;
 
-pub(super) fn documents(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+pub(in crate::mcp) fn documents(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     papers::listing::docs(paths, args)
 }
 
-pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
+pub(in crate::mcp) fn all(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let listed = listed(&state);
     let folders = folders(&state);
@@ -28,7 +28,7 @@ pub(super) fn all(paths: &Paths) -> Result<Value, Refused> {
         "inbox": inbox,
         "folders": folders,
         "tags": shown_tags,
-        "next": format!("`brain` with `list`, `folder` or `tag` shows what one holds, `list` «{inbox_named}» the tasks in no list; `scope` «open» leaves out the archived ones, which these counts do not hold. With `query`, what says some words."),
+        "next": format!("`workspace_search` with `list`, `folder` or `tag` shows what one holds, `list` «{inbox_named}» the tasks in no list; `scope` «open» leaves out the archived ones, which these counts do not hold. With `query`, what says some words."),
     });
     if tags.len() > TAGS_SHOWN {
         kept["tags_more"] = json!(tags.len() - TAGS_SHOWN);

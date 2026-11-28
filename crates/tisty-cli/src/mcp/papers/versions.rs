@@ -36,9 +36,9 @@ impl Asked {
         };
         if sent("as") {
             return Err(Refused::Tool(
-                "`as` carries the document as it reads now, so it takes no `versions` or \
-                 `version`. Read the version without `as`, or go back to it with `restore_doc` \
-                 and carry the document then."
+                "`view: \"markdown\"` carries the document as it reads now, so it takes no \
+                 `versions` or `version`. Read the version with `view: \"content\"`, or go back \
+                 to it with `doc_edit` (`mode: \"restore\"`) and carry the document then."
                     .into(),
             ));
         }
@@ -74,8 +74,8 @@ pub(super) fn not_the_diary(paths: &Paths, state: &State, kept: &Kept) -> Result
         false => Ok(()),
         true => Err(Refused::Tool(
             "the diary is the person's own, and so is what it said before: an assistant reads \
-             what it says now and no version of it. `read` without `versions` or `version` \
-             reads it."
+             what it says now and no version of it. `workspace_read` without `versions` or \
+             `version` reads it."
                 .into(),
         )),
     }
@@ -317,9 +317,10 @@ pub(super) fn listed(
              never leave the machine that kept them.{older}"
         ),
         (_, false, _) => format!(
-            "{named} keeps {here} past version(s) on this machine, newest first{}. `read` \
-             with `version` reads one, and `restore_doc` with `version` goes back to it. \
-             Versions never leave the machine that kept them, and stay {days} days.{older}",
+            "{named} keeps {here} past version(s) on this machine, newest first{}. \
+             `workspace_read` with `version` reads one, and `doc_edit` (`mode: \"restore\"`) with \
+             `version` goes back to it. Versions never leave the machine that kept them, and stay \
+             {days} days.{older}",
             match away {
                 0 => String::new(),
                 _ => format!("; {elsewhere}"),
@@ -375,7 +376,7 @@ impl Version {
     fn notice(&self, named: &str) -> String {
         format!(
             "This is a past version of {named}, not what it says now: what it said until {}{}. \
-             `restore_doc` with this `version` goes back to it.",
+             `doc_edit` (`mode: \"restore\"`) with this `version` goes back to it.",
             self.row.until,
             match &self.row.written {
                 Some(written) => format!(", written by {} on {}", written.by, written.at),

@@ -35,6 +35,7 @@ mod resuming;
 mod reviewing;
 mod saying;
 mod spoken;
+mod surface;
 mod task_notes;
 mod task_reading;
 mod task_state;
@@ -43,27 +44,13 @@ mod unpathing;
 mod wholes;
 mod worded;
 
-use papers::editing::edit_doc;
-use papers::filing::{archive_doc, file_doc, folder};
-use papers::flagging::flag_doc;
-use papers::importing::import_doc;
-use papers::paging::page_doc;
-use papers::reading::{export_doc, read_doc};
-use papers::tabling::edit_table;
-use papers::writing::{append_doc, restore_doc, write_doc};
+use papers::reading::read_doc;
 
 use asked::{Takes, only_what_it_takes, short_and_plain, text, what_it_takes, without_nulls};
 
-use attaching::attach;
 use catalogue::{instructions, tools};
-use chores::{describe, note, plan, propose, remind, reschedule, untick};
-use gists::{A_GIST_IN_A_LINE, gist_of, gist_told, sum_up};
-use guide::language;
-use helping::help;
-use looking::{NEWEST_SHOWN, catch_up, gone, how_it_ended, read};
-use mending::{rename, reword_note, reword_step, unplan};
-use saying::{say_done, say_not_doing};
-use spoken::spoken;
+use gists::{A_GIST_IN_A_LINE, gist_of, gist_told};
+use looking::{NEWEST_SHOWN, gone, how_it_ended};
 
 pub(crate) use catalogue::{is_tool, writes};
 pub(crate) use open_task::{PUBLISHED_ASK, TURN_LEFT_UNWRITTEN, ready_to_say_done};
@@ -333,49 +320,8 @@ fn answered(
         return Err(notice);
     }
     match name {
-        "propose" => spoken(paths, name, &args, "description", |args| {
-            propose(paths, taken, args)
-        }),
-        "remind" => remind(paths, &args),
-        "note" => spoken(paths, name, &args, "body", |args| note(paths, args)),
-        "describe" => spoken(paths, name, &args, "body", |args| describe(paths, args)),
-        "plan" => plan(paths, &args),
-        "tick" => spoken(paths, name, &args, "state", |args| {
-            task_state::tick(paths, args)
-        }),
-        "untick" => untick(paths, &args),
-        "rename" => rename(paths, &args),
-        "reword_step" => reword_step(paths, &args),
-        "unplan" => unplan(paths, &args),
-        "move" => moving::move_task(paths, &args),
-        "reword_note" => spoken(paths, name, &args, "body", |args| reword_note(paths, args)),
-        "brain" => brain::brain(paths, &args),
-        "read" => read(paths, &args),
-        "write_doc" => spoken(paths, name, &args, "body", |args| write_doc(paths, args)),
-        "append_doc" => spoken(paths, name, &args, "body", |args| append_doc(paths, args)),
-        "restore_doc" => restore_doc(paths, &args),
-        "edit_doc" => edit_doc(paths, &args),
-        "edit_table" => edit_table(paths, &args),
-        "catch_up" => catch_up(paths, &args),
-        "sum_up" => sum_up(paths, &args),
-        "reschedule" => reschedule(paths, &args),
-        "say_done" => spoken(paths, name, &args, "body", |args| say_done(paths, args)),
-        "say_not_doing" => spoken(paths, name, &args, "body", |args| {
-            say_not_doing(paths, args)
-        }),
-        "archive_doc" => archive_doc(paths, &args),
-        "flag_doc" => flag_doc(paths, &args),
-        "export_doc" => export_doc(paths, &args),
-        "import_doc" => import_doc(paths, &args),
-        "file_doc" => file_doc(paths, &args),
-        "page_doc" => page_doc(paths, &args),
-        "tongue_doc" => papers::tongues::tongue_doc(paths, &args),
-        "folder" => folder(paths, &args),
-        "language" => Ok(language(&args)),
-        "help" => Ok(help(&args)),
-        "rules" => Ok(catalogue::rules(&args)),
-        "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
+        other if catalogue::is_tool(other) => surface::dispatch(paths, other, args, taken),
         other => Err(Refused::Protocol(
             -32602,
             match pointed(other) {
@@ -387,53 +333,42 @@ fn answered(
 }
 
 // A tool missing here only rings for nothing; the window's own round still catches what it wrote.
-const ONLY_READS: [&str; 13] = [
-    "brain",
-    "find",
-    "read",
-    "read_doc",
-    "outline_doc",
-    "docs",
-    "export_doc",
-    "catch_up",
-    "lists",
-    "tags",
-    "language",
-    "help",
-    "rules",
+const ONLY_READS: [&str; 4] = [
+    "workspace_catch_up",
+    "workspace_search",
+    "workspace_read",
+    "workspace_guide",
 ];
 
 fn only_reads(name: &str, params: &Value) -> bool {
     ONLY_READS.contains(&name)
-        || name == "edit_table"
-            && params["arguments"]["do"]
-                .as_str()
-                .is_none_or(|asked| asked == "show")
+        || (name == "file_transfer" && params["arguments"]["action"].as_str() == Some("export_doc"))
 }
 
 fn pointed(name: &str) -> Option<&'static str> {
     const ERASING_A_DOCUMENT: &str = "There is no deleting a document here, on purpose. Mark it \
-         with `flag_doc`, saying what makes it old and how you know: the person sees the mark when \
-         they open it and deletes it from the window in one click. Putting it away instead is \
-         `archive_doc`.";
-    const SHELVING: &str = "Putting a document away and bringing it back are both `archive_doc` — \
-         with `archived` false it comes back. (`restore_doc` is another thing entirely: it takes \
-         back an edit.)";
+         with `doc_annotate` (`action: \"flag\"`), saying what makes it old and how you know: the \
+         person sees the mark when they open it and deletes it from the window in one click. \
+         Putting it away instead is `doc_annotate` with `action: \"archive\"`.";
+    const SHELVING: &str = "Putting a document away and bringing it back are both `doc_annotate` — \
+         `action: \"archive\"` or `action: \"unarchive\"`. (Undoing an edit is `doc_edit` with \
+         `mode: \"restore\"`.)";
     const FINISHING: &str = "Finishing is the person's, and there is no tool for it. Say what you \
-         did with `say_done` and the task stays open, marked, until they close it. What you only \
-         learnt goes in `note`.";
+         did with `task_resolve` (`outcome: \"done\"`) and the task stays open, marked, until \
+         they close it. What you only learnt goes in `task_note`.";
     const DROPPING_A_TASK: &str = "Closing, dropping and erasing a task are the person's alone, \
-         and no tool here does any of them. Say it should not be done with `say_not_doing`, and \
-         they decide; what you only read goes in `note`.";
-    const LOOKING_BACK: &str = "What is finished is not somewhere else: `brain` reaches it with \
-         `scope` set to `archive`, or `either` for both at once. A task the person finished comes \
-         back from `brain` like any other, and `read` says when and how it ended.";
-    const LISTING: &str = "`brain` searches the tasks and the documents — by text, or by the \
-         sifting fields alone — and with `folder` lists what is written there. `catch_up` is the \
-         one to ask first when you arrive.";
-    const GOING_BACK: &str = "What a document said before is read with `read`: `versions` \
-         lists its past versions and `version` reads one. `restore_doc` undoes the last write, \
-         or with `version` goes back to that one.";
+         and no tool here does any of them. Say it should not be done with `task_resolve` \
+         (`outcome: \"not_doing\"`), and they decide; what you only read goes in `task_note`.";
+    const LOOKING_BACK: &str = "What is finished is not somewhere else: `workspace_search` reaches \
+         it with `scope` set to `archive`, or `either` for both at once. A task the person \
+         finished comes back from `workspace_search` like any other, and `workspace_read` says \
+         when and how it ended.";
+    const LISTING: &str = "`workspace_search` searches tasks and documents — by text, or by filter \
+         fields alone — and with `folder` lists what is written there. `workspace_catch_up` is \
+         the one to ask first when you arrive.";
+    const GOING_BACK: &str = "What a document said before is read with `workspace_read`: \
+         `view: \"versions\"` lists its past versions and `version` reads one. `doc_edit` with \
+         `mode: \"restore\"` undoes the last write, or with `version` goes back to that one.";
 
     Some(match name {
         "doc_history" | "history_doc" | "versions" | "versions_doc" | "doc_versions"
@@ -589,8 +524,8 @@ fn hitch(e: tisty_core::Error) -> Refused {
 
 fn moved(task: &Task) -> Refused {
     Refused::Tool(format!(
-        "{:?} moved while you were writing — the person, or another agent. `read` it again \
-         before saying anything.",
+        "{:?} moved while you were writing — the person, or another agent. `workspace_read` it \
+         again before saying anything.",
         task.title
     ))
 }
@@ -625,17 +560,19 @@ fn unticked(task: &Task, own: bool) -> Option<Refused> {
     let next = match own {
         true => {
             "A step only the person can do — trying it by hand, a real device, publishing, \
-             merging, deciding — is theirs: hand it over with `unplan` and `to_person`, then \
-             `say_done`."
+             merging, deciding — is theirs: hand it over with `task_edit_steps` (`action: \"remove\"`, \
+             `to_person: true`), then `task_resolve` (`outcome: \"done\"`)."
         }
         false => {
-            "It is the person's task: a `tick` of yours on a step gives your word, and the steps \
-             you did not do stay theirs, so say what you did with `note` instead."
+            "It is the person's task: a `task_edit_steps` (`action: \"tick\"`) of yours on a step \
+             gives your word, and the steps you did not do stay theirs, so say what you did with \
+             `task_note` instead."
         }
     };
     Some(Refused::Tool(format!(
-        "{:?} still has {} step(s) unticked: {}. `tick` the ones you did. {next} One that no \
-         longer applies: say so with `note` and leave the task open — the person decides.",
+        "{:?} still has {} step(s) unticked: {}. Tick the ones you did with `task_edit_steps`. \
+         {next} One that no longer applies: say so with `task_note` and leave the task open — the \
+         person decides.",
         task.title,
         left.len(),
         named.join(", ")
@@ -680,14 +617,16 @@ fn history(task: &Task) -> Refused {
         _ => format!("was closed{ended} and"),
     };
     let look = match task.hidden {
-        true => "it is put away, so `read` does not reach it; if the same work has come back",
-        false => "if the same work has come back, `read` how this one ended and",
+        true => {
+            "it is put away, so `workspace_read` does not reach it; if the same work has come back"
+        }
+        false => "if the same work has come back, `workspace_read` how this one ended and",
     };
     Refused::Tool(format!(
         "{:?} {how} is history now: it reads as it ended, and nothing on it changes — not its \
-         day, not its journal, not a mark saying it is done. And {look} propose a new task whose \
-         description says so, naming this one by its title and the day it ended, with a source \
-         of its own. [{}]",
+         day, not its journal, not a mark saying it is done. And {look} file a new task with \
+         `task_create` whose description says so, naming this one by its title and the day it \
+         ended, with a source of its own. [{}]",
         task.title, task.id
     ))
 }
@@ -874,7 +813,7 @@ fn twice_words(state: &State, twice: &[String]) -> String {
     };
     format!(
         " Now {names} {} stands in more than one place, and {reads}, so the later one draws a \
-         way in that leads nowhere new. Take it out with another `edit_doc`.",
+         way in that leads nowhere new. Take it out with another `doc_edit` (`mode: \"patch\"`).",
         named_all(state, twice)
     )
 }
@@ -897,9 +836,9 @@ fn loose_words(state: &State, loose: &[String]) -> String {
     };
     format!(
         " It also took out {took} {}: nothing in this document points there now, though {still} \
-         of it. If you are moving {}, write {put} with another `edit_doc`, or put {} in place \
-         with `page_doc` and `after`. If the cut was a mistake, `restore_doc` puts the passage \
-         back as it was.",
+         of it. If you are moving {}, write {put} with another `doc_edit` (`mode: \"patch\"`), \
+         or put {} in place with `doc_organize` (`action: \"add_page\"`) and `after`. If the cut \
+         was a mistake, `doc_edit` (`mode: \"restore\"`) puts the passage back as it was.",
         named_all(state, loose),
         match loose.len() {
             1 => "it",
@@ -1112,8 +1051,8 @@ fn card_moved(body: &str, which: &str, title: &str, spot: Spot) -> Option<String
 fn carried_off(state: &State, parent: &str, which: &str, at: usize, line: &str) -> Refused {
     Refused::Tool(format!(
         "line {} of {} names {} and says other things besides, so moving that line would carry \
-         them off with it: {:?}. Nothing was moved. Put the line on its own with `edit_doc` \
-         first, or move it there yourself.",
+         them off with it: {:?}. Nothing was moved. Put the line on its own with `doc_edit` \
+         (`mode: \"patch\"`) first, or move it there yourself.",
         at + 1,
         doc_named(state, parent),
         doc_named(state, which),

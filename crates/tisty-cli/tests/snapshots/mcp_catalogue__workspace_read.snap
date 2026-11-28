@@ -1,0 +1,137 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
+  "description": "Read one `task` or `doc` (not both). Docs >12,000 chars (task pages >4,000) return an outline first; pass `section`, `from`/`to`, or `chars` for slices. Use `view` for cards/outlines, link graphs, highlights, tables, version history, or Markdown export.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "chars": {
+        "description": "Char budget per chunk; returns `next` cursor",
+        "type": "integer"
+      },
+      "cursor": {
+        "description": "Next line cursor from prior chunked read (requires `print`)",
+        "type": "integer"
+      },
+      "doc": {
+        "description": "Document ID or task-page filename (from workspace_search)",
+        "type": "string"
+      },
+      "fields": {
+        "description": "For `task`: subset of keys to return (`id` always included)",
+        "items": {
+          "enum": [
+            "id",
+            "title",
+            "status",
+            "closed",
+            "notice",
+            "date",
+            "deadline",
+            "standing",
+            "reminders",
+            "tags",
+            "source",
+            "list",
+            "priority",
+            "by_agent",
+            "for",
+            "via",
+            "said_done",
+            "said_not_doing",
+            "part_of",
+            "parts",
+            "description",
+            "steps",
+            "state",
+            "document",
+            "journal",
+            "kept",
+            "print"
+          ],
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "from": {
+        "description": "1-based start line for doc `content`",
+        "type": "integer"
+      },
+      "limit": {
+        "description": "For `view=\"links\"`: max neighbours (default 50, max 100)",
+        "type": "integer"
+      },
+      "links": {
+        "description": "Edge filter for `view=\"links\"` (default \"all\")",
+        "enum": [
+          "cite",
+          "mention",
+          "structure",
+          "tag",
+          "uses",
+          "all"
+        ],
+        "type": "string"
+      },
+      "notes": {
+        "description": "For `task`: latest journal notes count (clipped 4000 chars); 0 returns all whole",
+        "type": "integer"
+      },
+      "print": {
+        "description": "Version fingerprint; returns `unchanged: true` if unmodified",
+        "type": "string"
+      },
+      "section": {
+        "description": "0-based heading index (`at` from card) for `content` slice or sub-outline",
+        "type": "integer"
+      },
+      "table": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "1-based table index or heading above it (omit if single table)"
+      },
+      "task": {
+        "description": "Task ID",
+        "type": "string"
+      },
+      "to": {
+        "description": "1-based end line (defaults to EOF; requires `from`)",
+        "type": "integer"
+      },
+      "version": {
+        "description": "Past version ID from `view=\"versions\"` to read in place of current body",
+        "type": "string"
+      },
+      "view": {
+        "description": "What to return (default \"content\"); \"card\" gives outline+print+links",
+        "enum": [
+          "content",
+          "card",
+          "links",
+          "marks",
+          "table",
+          "versions",
+          "markdown"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "workspace_read",
+  "title": "Read a task, document, card, or table"
+}
