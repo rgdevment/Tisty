@@ -347,6 +347,8 @@ fn a_shell_word_for_the_persons_folder_is_filled_in_before_it_is_placed() {
         assert_eq!(here().outside_in_shell(said, ""), Some(docs()), "{said}");
     }
     assert_eq!(here().outside_in_shell("~/a.md", ""), Some(home()));
+    assert_eq!(here().outside_in_shell("a.md", "~/Documents"), Some(docs()));
+    assert_eq!(here().outside_in_shell("a.md", "~"), Some(home()));
 }
 
 #[cfg(windows)]

@@ -83,7 +83,12 @@ impl Here {
     }
 
     pub fn outside_in_shell(&self, said: &str, cwd: &str) -> Option<PathBuf> {
-        self.outside(&self.filled(said)?, cwd)
+        let cwd = match cwd {
+            "~" => self.home.as_ref()?.to_string_lossy().into_owned(),
+            _ if cwd.starts_with("~/") || cwd.starts_with("~\\") => self.filled(cwd)?,
+            _ => cwd.to_string(),
+        };
+        self.outside(&self.filled(said)?, &cwd)
     }
 
     fn filled(&self, said: &str) -> Option<String> {

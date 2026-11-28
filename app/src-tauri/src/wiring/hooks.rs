@@ -16,7 +16,11 @@ const TURN_SECONDS: u64 = 5;
 const BEFORE_SECONDS: u64 = 3;
 const BEFORE: &str = "before";
 const SHELL: &str = "shell";
-const PROSE_WRITTEN: &str = r"\.(md|markdown|txt|rst|adoc|org)";
+// Cursor runs a case-sensitive JS RegExp, so character classes match TODO/NOTES/.MD without ES2025 modifiers.
+const PROSE_WRITTEN: &str = concat!(
+    r"(\.([mM][dD]|[mM][aA][rR][kK][dD][oO][wW][nN]|[tT][xX][tT]|[rR][sS][tT]|[aA][dD][oO][cC]|[oO][rR][gG])",
+    r"|\b([hH][aA][nN][dD][oO][fF][fF]|[nN][oO][tT][eE][sS]|[tT][oO][dD][oO]|[pP][lL][aA][nN]|[pP][rR][oO][mM][pP][tT]|[bB][rR][iI][eE][fF])\b)"
+);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -144,9 +148,9 @@ impl Kind {
             ],
             Kind::Gemini => vec![(
                 "BeforeTool",
-                json!({ "matcher": "^write_file$", "hooks": [run] }),
+                json!({ "matcher": "^(write_file|run_shell_command)$", "hooks": [run] }),
             )],
-            Kind::Copilot => vec![("preToolUse", matched("create"))],
+            Kind::Copilot => vec![("preToolUse", matched("create|bash|powershell|shell"))],
             Kind::Codex => vec![(
                 "PreToolUse",
                 json!({ "matcher": "^(Bash|apply_patch)$", "hooks": [run] }),
