@@ -260,7 +260,7 @@ fn edits_for(
             let mut edits = vec![Edit::RowAdd { at: row }];
             let Some(values) = args["values"].as_object() else {
                 return Err(Refused::Tool(
-                    "`add` needs `values`: each column's title with what goes in it.".into(),
+                    "`add_row` needs `values`: each column's title with what goes in it.".into(),
                 ));
             };
             for (title, value) in values {
@@ -325,8 +325,8 @@ fn edits_for(
         ),
         other => {
             return Err(Refused::Tool(format!(
-                "`do` is one of show, set, add, remove, sort, type, rename, add_column or \
-                 remove_column, not {other:?}."
+                "`action` is one of set, add_row, remove_row, sort, set_type, rename_column, \
+                 add_column or remove_column, not {other:?}."
             )));
         }
     })
@@ -439,7 +439,8 @@ fn warned(amiss: &[Amiss]) -> String {
         .collect();
     format!(
         " Not written as the column's type asks, so kept as written and shown marked: {}. \
-         `language` with the topic `tables` says how each type is written.",
+         `workspace_guide` (`kind: \"markdown\"`, `topic: \"tables\"`) says how each type is \
+         written.",
         said.join("; ")
     )
 }
@@ -448,8 +449,8 @@ fn refused(why: GridRefused) -> Refused {
     Refused::Tool(match why {
         GridRefused::Moved => "the table changed while this edit was on its way; ask again.".into(),
         GridRefused::Beyond => "that row or column is past the table's end.".into(),
-        GridRefused::UnknownType => "that `type` is not one Tisty knows; `language` with the \
-                                      topic `tables` lists them."
+        GridRefused::UnknownType => "that `type` is not one Tisty knows; `workspace_guide` \
+                                      (`kind: \"markdown\"`, `topic: \"tables\"`) lists them."
             .into(),
         GridRefused::LastColumn => "a table keeps at least one column.".into(),
     })

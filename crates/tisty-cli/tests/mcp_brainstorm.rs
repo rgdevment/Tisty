@@ -101,7 +101,7 @@ fn catch_up_names_brainstorm_and_how_many_ideas_wait_on_it() {
     assert_eq!(glance["ideas"], json!(3));
     assert_eq!(glance["marked"], json!(0));
     assert!(
-        said(&caught).contains("`rules` «ideas»"),
+        said(&caught).contains("`workspace_guide` (`kind: \"rules\"`, `topic: \"ideas\"`)"),
         "{}",
         said(&caught)
     );

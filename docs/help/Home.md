@@ -90,7 +90,7 @@ What you keep was already joined: a document cites another, a task was born in s
 - [[Linking documents|Linking-Documents]]: `[[` to link a document or one of its sections, the preview and **Linked from**.
 - [[Tasks in documents|Tasks-in-Documents]]: citing a task as a live card, creating one with `/` without leaving the document, and **Born in**.
 - [[The Brainsty network|Brainsty-Network]]: everything you keep drawn as a network, from afar and up close, with its search, its filters and the keyboard.
-- [[How an agent works|How-an-Agent-Works]]: a real session, call by call: `brain`, a task's state, Tisty's questions and the hooks.
+- [[How an agent works|How-an-Agent-Works]]: a real session, call by call: `workspace_search`, `workspace_read`, a task's state, Tisty's questions and the hooks.
 
 ## Your data
 

@@ -16,8 +16,8 @@ pub(super) fn asked(args: &Value) -> Result<bool, Refused> {
     };
     if shape.as_str() != Some("markdown") {
         return Err(Refused::Tool(format!(
-            "`as` takes \"markdown\", not {shape}. Leave it out to read the document in Tisty's \
-             own words."
+            "`view` takes \"markdown\", not {shape}. Use `view: \"content\"` to read the document \
+             in Tisty's own words."
         )));
     }
     if let Some(part) = PARTS
@@ -25,8 +25,8 @@ pub(super) fn asked(args: &Value) -> Result<bool, Refused> {
         .find(|key| args.get(*key).is_some_and(|one| !one.is_null()))
     {
         return Err(Refused::Tool(format!(
-            "`as` brings the whole document, ready to carry outside Tisty, so it takes no \
-             `{part}`. Read a part without `as`, in Tisty's own words."
+            "`view: \"markdown\"` brings the whole document, ready to carry outside Tisty, so it \
+             takes no `{part}`. Read a part with `view: \"content\"`, in Tisty's own words."
         )));
     }
     Ok(true)
@@ -61,7 +61,7 @@ pub(super) fn carried(
     warned.extend(lost.words());
     if !pages.is_empty() {
         warned.push(format!(
-            "Its {} page(s) are not in this: read each one with `as` too.",
+            "Its {} page(s) are not in this: read each one with `view: \"markdown\"` too.",
             pages.len()
         ));
     }

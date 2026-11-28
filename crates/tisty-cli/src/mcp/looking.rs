@@ -268,7 +268,7 @@ fn read_task(paths: &Paths, args: &Value, said: String) -> Result<Value, Refused
         return Ok(told(
             format!(
                 "Nothing on {} changed since you read it{since}: what you hold still stands. \
-                 Without `print`, `read` brings it whole again.",
+                 Without `print`, `workspace_read` brings it whole again.",
                 named_task(&state, task)
             ),
             json!({ "id": task.id.to_string(), "status": task.status, "unchanged": true, "print": text(args, "print") }),
@@ -375,7 +375,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .unwrap_or_default();
         let progress = super::brain::project::progress(paths, &state, task);
         said.push(format!(
-            "You last worked on {}{on}: {}. `read` it.",
+            "You last worked on {}{on}: {}. `workspace_read` it.",
             named_task(&state, task),
             progress.told()
         ));
@@ -514,7 +514,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
         if folders.len() > AT_A_GLANCE {
             said.push(format!(
-                "Here are the first {AT_A_GLANCE} folders; `brain` with nothing names every one."
+                "Here are the first {AT_A_GLANCE} folders; `workspace_search` with `{{}}` names every one."
             ));
         }
         if let Some((glanced, sheet)) = super::ideas::glance(paths, &state) {
@@ -543,7 +543,7 @@ fn open_by_list(listed: &[(&str, usize)], (named, inbox): (&str, usize)) -> Stri
         .map(|(name, open)| format!("{name} {open}, "))
         .collect();
     format!(
-        "Open by list: {all}and {inbox} in no list, which `brain` with `list` «{named}» brings."
+        "Open by list: {all}and {inbox} in no list, which `workspace_search` with `list` «{named}» brings."
     )
 }
 
@@ -652,7 +652,7 @@ pub(super) fn how_it_ended(task: &Task) -> String {
         _ => "It is done, and history".to_string(),
     };
     if task.hidden {
-        said.push_str(", put away by the person where `read` does not reach");
+        said.push_str(", put away by the person where `workspace_read` does not reach");
     }
     said
 }

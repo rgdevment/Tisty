@@ -147,7 +147,9 @@ fn with_neighbours(answer: &mut Value, card: Card) {
     if capped {
         shown.insert(
             "next".into(),
-            json!("`links` with a kind brings every neighbour of that kind."),
+            json!(
+                "`workspace_read` with `view: \"links\"` (and `links` for a kind) brings every neighbour of that kind."
+            ),
         );
     }
     if let Some(text) = answer["content"][0]["text"].as_str() {
@@ -176,7 +178,7 @@ pub(in crate::mcp) fn of_task(paths: &Paths, which: &str, args: &Value) -> Resul
             return Err(gone(&state, which));
         }
         return Err(Refused::Tool(format!(
-            "no task here has the id {which}. Look it up again with `brain` and a `query`."
+            "no task here has the id {which}. Look it up again with `workspace_search` and a `query`."
         )));
     };
     let held = base(paths);
@@ -197,7 +199,9 @@ pub(in crate::mcp) fn of_task(paths: &Paths, which: &str, args: &Value) -> Resul
             if capped(&mut said) {
                 said.insert(
                     "next".into(),
-                    json!("`links` with a kind brings every neighbour of that kind."),
+                    json!(
+                        "`workspace_read` with `view: \"links\"` (and `links` for a kind) brings every neighbour of that kind."
+                    ),
                 );
             }
             (said, told)
@@ -224,7 +228,7 @@ pub(in crate::mcp) fn of_task(paths: &Paths, which: &str, args: &Value) -> Resul
         }
     }
     said.entry("next")
-        .or_insert_with(|| json!("`read` with `task` brings its steps, page and notes."));
+        .or_insert_with(|| json!("`workspace_read` with `task` brings its steps, page and notes."));
     let text = format!(
         "{:?}, {}{}{}",
         task.title,
@@ -241,7 +245,7 @@ pub(in crate::mcp) fn of_task(paths: &Paths, which: &str, args: &Value) -> Resul
 fn linked(which: &str, card: Option<Card>, kind: &str, args: &Value) -> Result<Value, Refused> {
     let Some(card) = card else {
         return Err(Refused::Tool(format!(
-            "{NO_BASE} Its links are in its text: `read` with {which}."
+            "{NO_BASE} Its links are in its text: `workspace_read` with {which}."
         )));
     };
     let most = how_many(args, LINKS_BY_DEFAULT, LINKS_AT_MOST);

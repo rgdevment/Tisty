@@ -271,23 +271,23 @@ A typo or a translation counts like a shared word: two things are alike only whe
 - **On the card your agent reads**, under `guessed`, apart from everything someone wrote. Each alike pair brings its title, its state, its score, what they share and `method`, which says how they were tied: `words`, `typo` or `dictionary`. The sentence beside it says so in words: «shares» for shared words, «spelled almost the same:» for a typo or a plural, like `vacuna≈vacunas`, and «alike by translation:» for the dictionary. The rules ask it to read both before joining anything. A pair comes as `a≈b`, with no spaces, and is never a word both of them wrote the same:
 
 ```json
-> brain {"task": "…Ask for the roof quote…"}
+> workspace_read {"task": "…Ask for the roof quote…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "doc", "title": "House repairs", "state": "open", "score": 0.42, "shared": ["quote", "roof"], "method": "words" } ] }
 "Guessed alike by Tisty, linked by no one: \"House repairs\" […] (open) (shares quote, roof)."
 
-> brain {"task": "…La imrpesora nueva no imprime en color…"}
+> workspace_read {"task": "…La imrpesora nueva no imprime en color…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "task", "title": "Instalar la impresora nueva", "state": "open", "score": 0.55, "shared": ["impresora≈imrpesora", "nueva"], "method": "typo" } ] }
 "Guessed alike by Tisty, linked by no one: \"Instalar la impresora nueva\" […] (open) (spelled almost the same: impresora≈imrpesora, nueva)."
 
-> brain {"task": "…Pay the water bill…"}
+> workspace_read {"task": "…Pay the water bill…", "view": "card"}
 { "guessed": [
     { "id": "…", "kind": "task", "title": "Pagar la cuenta del agua", "state": "open", "score": 0.61, "shared": ["pagar≈pay", "agua≈water"], "method": "dictionary" } ] }
 "Guessed alike by Tisty, linked by no one: \"Pagar la cuenta del agua\" […] (open) (alike by translation: pagar≈pay, agua≈water)."
 ```
 
-An alike pair shows only when both its ends are in sight: in the network, both must be drawn; for an agent, both must pass its gate, so a hidden or dropped task is never named through an alike pair. An alike pair adds no connection to the count at the top and does not count towards the 12,000-node cap. And `read`, which brings the text, brings no alike pairs: they go only on `brain`'s card.
+An alike pair shows only when both its ends are in sight: in the network, both must be drawn; for an agent, both must pass its gate, so a hidden or dropped task is never named through an alike pair. An alike pair adds no connection to the count at the top and does not count towards the 12,000-node cap. And `workspace_read` with `view: "content"`, which brings the text, brings no alike pairs: they go only on its `card` view.
 
 ## Good to know
 

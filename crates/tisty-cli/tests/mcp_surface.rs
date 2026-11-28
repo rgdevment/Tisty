@@ -563,3 +563,310 @@ fn workspace_search_folder_mode_refuses_query() {
     );
     assert!(refused(&failed), "{failed}");
 }
+
+#[test]
+fn workspace_read_refuses_versions_view_with_version() {
+    let served = Served::new();
+    let doc = served.person().writes_doc("# Notes\n\nBody.\n");
+
+    let failed = served.call(
+        "workspace_read",
+        json!({ "doc": doc, "view": "versions", "version": "abc123" }),
+    );
+    assert!(refused(&failed), "{failed}");
+    let msg = text_of(&failed);
+    assert!(
+        msg.contains("`view: \"versions\"`")
+            && msg.contains("`version`")
+            && msg.contains("`view: \"content\"`"),
+        "{msg}"
+    );
+}
+
+#[test]
+fn doc_organize_reorder_pages_refuses_stray_docs_and_position() {
+    let served = Served::new();
+    let book = served.person().writes_doc("# Book\n\nIntro.\n");
+    let page_one = served.person().hangs_page_under(&book, "# One\n\nFirst.\n");
+    let page_two = served
+        .person()
+        .hangs_page_under(&book, "# Two\n\nSecond.\n");
+
+    for (key, value) in [("docs", json!([page_one])), ("position", json!("first"))] {
+        let mut args = serde_json::Map::from_iter([
+            ("action".into(), json!("reorder_pages")),
+            ("parent".into(), json!(book)),
+            ("order".into(), json!([page_two, page_one])),
+        ]);
+        args.insert(key.into(), value);
+        let failed = served.call("doc_organize", Value::Object(args));
+        assert!(refused(&failed), "{key}: {failed}");
+        let msg = text_of(&failed);
+        assert!(
+            msg.contains("`parent` and `order`") && msg.contains(&format!("not `{key}`")),
+            "{key}: {msg}"
+        );
+    }
+}
+
+#[test]
+fn workspace_catch_up_uses_no_legacy_tool_names() {
+    let served = Served::new();
+    let person = served.person();
+    for i in 1..=7 {
+        let id = person.captures(&format!("Pressing task {i}"));
+        person.dates(id, "today");
+    }
+    for i in 1..=31 {
+        person.makes_folder(&format!("Folder {i:02}"), None, None);
+    }
+    person.writes_doc(
+        "---\nview: notes\nbrainstorm: on\n---\n\n# Ideas\n\n> [!IDEA] 2026-06-14 08:12 · pink\n> First idea\n",
+    );
+    let started = served.call(
+        "task_create",
+        json!({ "for": "agent", "title": "Active agent task" }),
+    );
+    assert!(!refused(&started), "{started}");
+
+    let caught = served.call("workspace_catch_up", json!({}));
+    assert!(!refused(&caught), "{caught}");
+    let kept = &caught["result"]["structuredContent"];
+    assert!(kept["pressing_more"].is_number(), "{kept}");
+    assert!(kept["folders_more"].is_number(), "{kept}");
+    assert!(kept["ideas"].is_object(), "{kept}");
+    assert!(kept["last"].is_object(), "{kept}");
+    assert!(
+        kept["open_by_list"]["inbox"].as_u64().unwrap() >= 7,
+        "{kept}"
+    );
+
+    let msg = text_of(&caught);
+    for legacy in ["`brain`", "`read`", "`rules`", "`to`"] {
+        assert!(!msg.contains(legacy), "found legacy {legacy} in: {msg}");
+    }
+    for current in [
+        "`workspace_search`",
+        "`workspace_read`",
+        "`workspace_guide`",
+        "`date_to`",
+    ] {
+        assert!(msg.contains(current), "missing {current} in: {msg}");
+    }
+}
+
+#[test]
+fn workspace_search_invalid_dates_name_date_from_and_date_to() {
+    let served = Served::new();
+    for (key, bad) in [("date_from", "not-a-date"), ("date_to", "also-bad")] {
+        let failed = served.call("workspace_search", json!({ key: bad }));
+        assert!(refused(&failed), "{key}: {failed}");
+        let msg = text_of(&failed);
+        let legacy = if key == "date_from" { "`from`" } else { "`to`" };
+        assert!(
+            msg.contains(&format!("`{key}`")) && !msg.contains(legacy),
+            "{key}: {msg}"
+        );
+    }
+}
+
+#[test]
+fn doc_organize_add_page_refuses_order() {
+    let served = Served::new();
+    let book = served.person().writes_doc("# Book\n\nIntro.\n");
+    let page_one = served.person().hangs_page_under(&book, "# One\n\nFirst.\n");
+    let page_two = served
+        .person()
+        .hangs_page_under(&book, "# Two\n\nSecond.\n");
+
+    let failed = served.call(
+        "doc_organize",
+        json!({
+            "action": "add_page",
+            "docs": [page_one],
+            "parent": book,
+            "order": [page_two, page_one],
+        }),
+    );
+    assert!(refused(&failed), "{failed}");
+    let msg = text_of(&failed);
+    assert!(
+        msg.contains("takes no `order`") && msg.contains("reorder_pages"),
+        "{msg}"
+    );
+}
+
+#[test]
+fn refusal_and_hint_prose_matches_consolidated_surface() {
+    let served = Served::new();
+    let person = served.person();
+
+    // gists.rs: refusing to summarize a task's page
+    let task_id = person.captures("Task with page");
+    let task_page = served.call(
+        "task_update",
+        json!({ "task": task_id.to_string(), "description": "# Plan\n\nBody.\n" }),
+    );
+    assert!(!refused(&task_page), "{task_page}");
+    let task_doc = person
+        .state()
+        .docs
+        .values()
+        .find(|d| d.task_of == Some(task_id))
+        .unwrap()
+        .file
+        .clone();
+    let sum_task = served.call(
+        "doc_annotate",
+        json!({ "action": "summarize", "docs": [task_doc], "summary": "Nope" }),
+    );
+    assert!(refused(&sum_task), "{sum_task}");
+    assert!(
+        text_of(&sum_task).contains("`doc_edit`") && text_of(&sum_task).contains("`task_resolve`"),
+        "{sum_task}"
+    );
+    let legacy_task_doc = tisty_core::docs::create(
+        &served.home.path().join("data/docs"),
+        &tisty_core::DeviceId(person.device()),
+        "# Page\n\nBody.\n",
+    )
+    .unwrap()
+    .id;
+    person.does(tisty_core::Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: legacy_task_doc.clone(),
+            order: "a0".into(),
+            task_of: Some(task_id),
+            ..Default::default()
+        },
+    });
+    let sum_legacy_task = served.call(
+        "doc_annotate",
+        json!({ "action": "summarize", "docs": [legacy_task_doc], "summary": "Nope" }),
+    );
+    assert!(refused(&sum_legacy_task), "{sum_legacy_task}");
+    assert!(
+        text_of(&sum_legacy_task).contains("`task_edit_steps`"),
+        "{sum_legacy_task}"
+    );
+
+    // papers.rs & filing.rs: empty/missing docs, archive hint, folder path errors
+    let empty_archive = served.call("doc_annotate", json!({ "action": "archive", "docs": [] }));
+    assert!(refused(&empty_archive) && text_of(&empty_archive).contains("`docs`"));
+    let missing_archive = served.call("doc_annotate", json!({ "action": "archive" }));
+    assert!(refused(&missing_archive) && text_of(&missing_archive).contains("`docs`"));
+
+    let archived_doc = person.writes_doc("# Archive me\n\nBody.\n");
+    let archived = served.call(
+        "doc_annotate",
+        json!({ "action": "archive", "docs": [archived_doc] }),
+    );
+    assert!(!refused(&archived), "{archived}");
+    let archived_msg = text_of(&archived);
+    assert!(
+        archived_msg.contains("`workspace_search`") && archived_msg.contains("`doc_annotate`"),
+        "{archived_msg}"
+    );
+
+    person.makes_folder("Alpha", None, None);
+    person.makes_folder("Beta", None, None);
+    let clash = served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "Alpha/Child", "folder": "Beta" }),
+    );
+    assert!(refused(&clash) && text_of(&clash).contains("`folder`"));
+    let missing_parent = served.call(
+        "doc_organize",
+        json!({ "action": "create_folder", "name": "NoSuchParent/Child" }),
+    );
+    assert!(refused(&missing_parent) && text_of(&missing_parent).contains("`folder`"));
+
+    // outward.rs: markdown with section refused, markdown on book warns about pages
+    let book = person.writes_doc("# Book\n\nIntro.\n");
+    let page_one = person.hangs_page_under(&book, "# One\n\nFirst.\n");
+    let unrelated = person.writes_doc("# Other\n\nOutside.\n");
+    let md_section = served.call(
+        "workspace_read",
+        json!({ "doc": book, "view": "markdown", "section": 1 }),
+    );
+    assert!(refused(&md_section) && text_of(&md_section).contains("`view: \"markdown\"`"));
+    let md_book = served.call("workspace_read", json!({ "doc": book, "view": "markdown" }));
+    assert!(!refused(&md_book), "{md_book}");
+    assert!(text_of(&md_book).contains("`view: \"markdown\"`"));
+
+    // reading.rs: reorder_pages missing parent, add_page self/unrelated/unlinked anchor, reorder non-page/unlinked
+    let no_parent = served.call(
+        "doc_organize",
+        json!({ "action": "reorder_pages", "order": [page_one] }),
+    );
+    assert!(refused(&no_parent) && text_of(&no_parent).contains("`parent`"));
+
+    let self_anchor = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [page_one], "parent": book, "after": page_one }),
+    );
+    assert!(refused(&self_anchor) && text_of(&self_anchor).contains("`position`"));
+
+    let bad_anchor = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [page_one], "parent": book, "after": unrelated }),
+    );
+    assert!(refused(&bad_anchor) && text_of(&bad_anchor).contains("`workspace_read`"));
+
+    let unlinked = person.hangs_page_under(&book, "# Unlinked\n\nSecond.\n");
+    person.rewrites_doc(&book, "# Book\n\nIntro without cards.\n");
+
+    let anchor_missing_line = served.call(
+        "doc_organize",
+        json!({ "action": "add_page", "docs": [page_one], "parent": book, "after": unlinked }),
+    );
+    assert!(refused(&anchor_missing_line) && text_of(&anchor_missing_line).contains("`position`"));
+
+    let reorder_non_page = served.call(
+        "doc_organize",
+        json!({ "action": "reorder_pages", "parent": book, "order": [unrelated, page_one] }),
+    );
+    assert!(refused(&reorder_non_page) && text_of(&reorder_non_page).contains("`doc_organize`"));
+
+    let reorder_unlinked = served.call(
+        "doc_organize",
+        json!({ "action": "reorder_pages", "parent": book, "order": [page_one, unlinked] }),
+    );
+    assert!(refused(&reorder_unlinked) && text_of(&reorder_unlinked).contains("`position`"));
+
+    // task_state.rs: replacing unknown note, person's note, and done note
+    let note_task = person.captures("Noted task").to_string();
+    let bad_replace = served.call(
+        "task_note",
+        json!({ "action": "add", "task": note_task, "body": "Fix", "replaces": "9999" }),
+    );
+    assert!(refused(&bad_replace) && text_of(&bad_replace).contains("`workspace_read`"));
+
+    person.notes(note_task.parse().unwrap(), "Person's own note");
+    let person_note_id = person.state().tasks[&note_task.parse().unwrap()].log[0]
+        .id
+        .to_string();
+    let replace_person = served.call(
+        "task_note",
+        json!({ "action": "add", "task": note_task, "body": "Takeover", "replaces": person_note_id }),
+    );
+    assert!(refused(&replace_person) && text_of(&replace_person).contains("`task_note`"));
+
+    let resolved = served.call(
+        "task_resolve",
+        json!({ "task": note_task, "outcome": "done", "body": "All checks passed" }),
+    );
+    assert!(!refused(&resolved), "{resolved}");
+    let done_note_id = person.state().tasks[&note_task.parse().unwrap()]
+        .log
+        .last()
+        .unwrap()
+        .id
+        .to_string();
+    let replace_done = served.call(
+        "task_note",
+        json!({ "action": "add", "task": note_task, "body": "Undo done", "replaces": done_note_id }),
+    );
+    assert!(refused(&replace_done) && text_of(&replace_done).contains("`task_note`"));
+}

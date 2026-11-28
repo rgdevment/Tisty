@@ -1553,7 +1553,10 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
     let turned = said["result"]["structuredContent"]["turned"].to_string();
     assert!(turned.contains("HTML that markdown can say"), "{turned}");
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("`language`"), "{text}");
+    assert!(
+        text.contains("`workspace_guide` (`kind: \"markdown\"`)"),
+        "{text}"
+    );
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let back = served.call("workspace_read", serde_json::json!({ "doc": doc }));
     let body = back["result"]["structuredContent"]["body"]
@@ -2542,7 +2545,7 @@ fn one_call_says_where_things_stand_before_anything_is_asked_for() {
     let text = text_of(&back);
     assert!(text.contains("Open by list: Casa 0, "), "{text}");
     assert!(
-        text.contains("and 2 in no list, which `brain` with `list` «inbox» brings."),
+        text.contains("and 2 in no list, which `workspace_search` with `list` «inbox» brings."),
         "{text}"
     );
     assert!(kept["cursor"].is_string(), "{kept}");
@@ -2577,7 +2580,7 @@ fn a_task_that_comes_back_every_month_reaches_the_agent_on_its_day() {
         text.contains("Pressing, most first: \"write this month's news article\" in the inbox"),
         "{text}"
     );
-    assert!(text.contains("`read` one"), "{text}");
+    assert!(text.contains("`workspace_read` one"), "{text}");
 
     let cursor = kept["cursor"].as_str().unwrap();
     let again = served.call("workspace_catch_up", serde_json::json!({ "since": cursor }));
@@ -2683,7 +2686,7 @@ fn a_new_session_hears_what_moved_since_its_own_last_change_and_the_task_it_was_
     );
     assert!(
         said.contains(
-            ": not started. `read` it. 2 task(s) and 0 document(s) moved since you were last here, "
+            ": not started. `workspace_read` it. 2 task(s) and 0 document(s) moved since you were last here, "
         ),
         "{said}"
     );
@@ -3016,7 +3019,7 @@ fn a_task_page_longer_than_one_read_comes_as_its_sections() {
     assert_eq!(kept["document"]["whole"], false, "{kept}");
     assert!(kept["document"]["body"].is_null(), "{kept}");
     assert!(kept["document"]["outline"].is_array(), "{kept}");
-    assert!(said.contains("`read` with `doc`"), "{said}");
+    assert!(said.contains("`workspace_read` with `doc`"), "{said}");
     assert!(
         said.len() < 12_000,
         "the page is not sent whole: {} characters",
@@ -6629,7 +6632,7 @@ fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
 
     assert_eq!(said["result"]["isError"], true, "{said}");
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(why.contains("`inside`"), "{why}");
+    assert!(why.contains("`folder`"), "{why}");
     assert_eq!(
         served.call("workspace_search", serde_json::json!({}))["result"]["structuredContent"]["folders"]
             .as_array()

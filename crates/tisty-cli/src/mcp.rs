@@ -912,12 +912,13 @@ fn folder_found(state: &State, said: &str) -> Result<tisty_core::model::FolderId
             all.dedup();
             match all.is_empty() {
                 true => format!(
-                    "no folder here is called {said:?}, and there are none at all yet. `folder` \
-                     makes one."
+                    "no folder here is called {said:?}, and there are none at all yet. `doc_organize` \
+                     (`action: \"create_folder\"`) makes one."
                 ),
                 false => format!(
                     "no folder here is called {said:?}. These exist, and each one answers to its \
-                     own name or to the whole path: {}. `folder` makes a new one.",
+                     own name or to the whole path: {}. `doc_organize` (`action: \"create_folder\"`) \
+                     makes a new one.",
                     all.join(", ")
                 ),
             }
@@ -1263,7 +1264,8 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
     if let Some(at) = args.get("section").and_then(Value::as_u64) {
         let Some((from, to)) = tisty_core::docs::section_lines(body, at as usize) else {
             return Err(Refused::Tool(format!(
-                "this document has no section {at}. Its card from `brain` numbers them from 0."
+                "this document has no section {at}. Its card from `workspace_read` \
+                 (`view: \"card\"`) numbers them from 0."
             )));
         };
         return Ok(bounded_part(body, from, to, room, last));
@@ -1305,7 +1307,8 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                     return Err(Refused::Tool(format!(
                         "this document was written since you read the part before it, so carrying \
                          on from line {start} would join two different versions. Read it again \
-                         from the top, or ask `brain` for its card as it is now."
+                         from the top, or ask `workspace_read` (`view: \"card\"`) for its card as \
+                         it is now."
                     )));
                 }
                 None => {

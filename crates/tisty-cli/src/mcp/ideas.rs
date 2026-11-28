@@ -111,12 +111,12 @@ pub(super) fn glance(paths: &Paths, state: &State) -> Option<(String, Value)> {
     Some((
         match waiting {
             0 => format!(
-                "The Ideas sheet, {named}, holds no idea now: new ones are jotted on it, as `rules` \
-                 «ideas» says."
+                "The Ideas sheet, {named}, holds no idea now: new ones are jotted on it, as \
+                 `workspace_guide` (`kind: \"rules\"`, `topic: \"ideas\"`) says."
             ),
             _ => format!(
-                "The Ideas sheet, {named}, holds {waiting} idea(s) not yet sorted{marks}: `rules` \
-                 «ideas» says how to work them."
+                "The Ideas sheet, {named}, holds {waiting} idea(s) not yet sorted{marks}: \
+                 `workspace_guide` (`kind: \"rules\"`, `topic: \"ideas\"`) says how to work them."
             ),
         },
         json!({
@@ -136,8 +136,8 @@ pub(super) fn about_sheet(
     let marked = brainstorm::marked(kept, body);
     let mut said = format!(
         "This is the Ideas sheet: {} idea(s), oldest first, each a `> [!IDEA]` note headed by the \
-         minute it came and its colour. An idea is named `{}#` and that heading. `rules` «ideas» \
-         says how to sort them.",
+         minute it came and its colour. An idea is named `{}#` and that heading. `workspace_guide` \
+         (`kind: \"rules\"`, `topic: \"ideas\"`) says how to sort them.",
         brainstorm::ideas(body),
         kept.file
     );
@@ -234,7 +234,7 @@ fn ideas_in(said: &str) -> Result<Vec<String>, Refused> {
     each.retain(|one| !one.is_empty());
     if each.is_empty() {
         return Err(Refused::Tool(
-            "there is no idea in that `body`. Nothing was written.".into(),
+            "there is no idea in that `content`. Nothing was written.".into(),
         ));
     }
     if each.len() > IDEAS_AT_ONCE {
@@ -691,8 +691,8 @@ fn idea_on(on: &[Idea], sheet: &str, named: &str, which: &str) -> Result<Idea, R
     match found.as_slice() {
         [one] => Ok((*one).clone()),
         [] => Err(Refused::Tool(format!(
-            "no idea on {named} is headed {heading:?}. `read` it: an idea's heading is the \
-             words after `[!IDEA]` on its first line. Nothing was marked."
+            "no idea on {named} is headed {heading:?}. `workspace_read` it: an idea's heading is \
+             the words after `[!IDEA]` on its first line. Nothing was marked."
         ))),
         _ => Err(Refused::Tool(format!(
             "{} ideas on {named} are headed {heading:?}, so a mark would be a guess. Ask the \

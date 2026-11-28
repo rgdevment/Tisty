@@ -3,7 +3,7 @@ use tisty_core::{Paths, State, review};
 
 pub(super) const HOW_TO_HELP: &str = "Offer to walk it with the person, one stop at a time: \
 what waits to be decided, what was marked as past, what was forgotten. The window's Review shows \
-all three. Help with what they ask, such as sorting an idea as `rules` «ideas» says, giving a \
+all three. Help with what they ask, such as sorting an idea as `workspace_guide` (`kind: \"rules\"`, `topic: \"ideas\"`) says, giving a \
 task its list, or saying why a document looks past. The person decides: never archive, delete, \
 mark or close anything on your own. Finishing the review is theirs, and closing this round brings \
 the next one.";

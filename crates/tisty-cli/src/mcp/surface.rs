@@ -249,6 +249,12 @@ fn workspace_read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             read(paths, &Value::Object(mapped))
         }
         "versions" => {
+            if args.get("version").is_some() {
+                return Err(Refused::Tool(
+                    "`view: \"versions\"` lists earlier versions and `version` reads one: send `view: \"content\"` with `version`, or `view: \"versions\"` without `version`."
+                        .into(),
+                ));
+            }
             let mut mapped = map_without(args, &["view"]);
             if let Some(id) = task {
                 mapped.remove("task");
@@ -667,6 +673,12 @@ fn doc_organize(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     "`action: \"add_page\"` requires `docs` and `parent`.".into(),
                 ));
             }
+            if args.get("order").is_some() {
+                return Err(Refused::Tool(
+                    "`action: \"add_page\"` places page(s) and takes no `order`; use `action: \"reorder_pages\"`."
+                        .into(),
+                ));
+            }
             let mut mapped = map_without(args, &["action", "docs", "parent", "position"]);
             mapped.insert("doc".into(), doc_arg(&docs));
             mapped.insert("page_of".into(), args["parent"].clone());
@@ -700,6 +712,14 @@ fn doc_organize(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return Err(Refused::Tool(
                     "`action: \"reorder_pages\"` requires `parent` and `order`.".into(),
                 ));
+            }
+            if let Some(stray) = ["docs", "position", "after", "before"]
+                .into_iter()
+                .find(|k| args.get(*k).is_some())
+            {
+                return Err(Refused::Tool(format!(
+                    "`action: \"reorder_pages\"` takes `parent` and `order`, not `{stray}`."
+                )));
             }
             let mut mapped = map_without(args, &["action", "parent"]);
             mapped.insert("page_of".into(), args["parent"].clone());

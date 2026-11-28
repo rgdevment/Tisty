@@ -4266,7 +4266,7 @@ fn an_order_naming_a_document_that_is_no_page_of_it_says_it_has_no_place_there()
 
     assert!(why.contains("no place in its order"), "{why}");
     assert!(
-        why.contains("Hang it there first with `page_of`"),
+        why.contains("Hang it there first with `doc_organize` (`action: \"add_page\"`, `parent`)"),
         "a refusal says what to send instead: {why}"
     );
 }
@@ -4448,7 +4448,7 @@ fn every_refusal_the_order_of_pages_hands_back_says_what_to_send_instead() {
         ),
         (
             serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&two, &one], "after": &one }),
-            "Send them apart",
+            "takes `parent` and `order`, not `after`",
         ),
         (
             serde_json::json!({ "action": "reorder_pages", "parent": &book, "order": [&one] }),

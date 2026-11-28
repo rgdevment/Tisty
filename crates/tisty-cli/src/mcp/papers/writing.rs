@@ -476,7 +476,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ));
     };
     let Some(body) = super::super::asked::body(args, "body") else {
-        return Err(Refused::Tool("adding needs a `body` to add.".into()));
+        return Err(Refused::Tool("adding needs `content` to add.".into()));
     };
     let said = body;
     let body = tisty_core::speaking::turned(&said);
@@ -1101,7 +1101,7 @@ pub(super) fn beside_the_file(
         body,
         &mut tisty_core::beside::Way {
             reach: &mut reach,
-            outside: ", or bring the file in on its own afterwards with `attach`",
+            outside: ", or bring the file in on its own afterwards with `file_transfer` (`action: \"attach\"`)",
             notes: true,
             came: tisty_core::attach::Via::Imported,
         },
@@ -1192,6 +1192,6 @@ pub(super) fn not_a_widget(wrong: &str) -> String {
 
 pub(super) fn not_spoken(unsaid: &str) -> String {
     format!(
-        "Tisty does not keep {unsaid} in its own words, so nothing was written. Send Tisty markdown: headings, lists, emphasis, links inline or by reference, footnotes, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Underline is ++words++; a pen is ==words==, or ==words=={{green}} for another colour of the palette (red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray); an icon is ::name:: or ::name hue::, named as `language` lists them; an attachment is named by its stamped name. An older Tisty's <u>, <mark> and icon span are turned into these on their way in; any other tag is refused. Maths goes between $ or $$, or in a fence saying `math`. A fence carries its language and, if you want, a name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds only HTML and CSS, fixed: no script, no handler, no link, button or form, and nothing from an address; it is drawn in the window's colours, and its classes `grid`, `stat`, `card`, `head`, `badge`, `list` and `box` already look like Tisty. An `.html` file attached to a document is a file like any other, shown as a card: nothing a document holds ever runs."
+        "Tisty does not keep {unsaid} in its own words, so nothing was written. Send Tisty markdown: headings, lists, emphasis, links inline or by reference, footnotes, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Underline is ++words++; a pen is ==words==, or ==words=={{green}} for another colour of the palette (red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray); an icon is ::name:: or ::name hue::, named as `workspace_guide` (`kind: \"markdown\"`, `topic: \"icons\"`) lists them; an attachment is named by its stamped name. An older Tisty's <u>, <mark> and icon span are turned into these on their way in; any other tag is refused. Maths goes between $ or $$, or in a fence saying `math`. A fence carries its language and, if you want, a name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds only HTML and CSS, fixed: no script, no handler, no link, button or form, and nothing from an address; it is drawn in the window's colours, and its classes `grid`, `stat`, `card`, `head`, `badge`, `list` and `box` already look like Tisty. An `.html` file attached to a document is a file like any other, shown as a card: nothing a document holds ever runs."
     )
 }

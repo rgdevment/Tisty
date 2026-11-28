@@ -116,7 +116,7 @@ Una tarea se abre al lado de la lista, no encima: arriba sus fechas, lista, etiq
 
 ![La página de Instalador: probar la actualización desde la versión anterior: su lista, fecha, fecha límite, prioridad y etiquetas arriba; Description, Done when y Steps con tres de siete marcados; y a la derecha Partes, Lo que lleva y El trayecto, desde Nace hasta cada paso hecho](https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/screens/app/es-pagina-de-tarea-light.webp)
 
-Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un agente anota en ella, su bitácora. La página no la copia: encima de ella, a la derecha, **↓ Bitácora · 3 notas** te lleva hasta ahí y la abre si la plegaste; sin notas, no aparece. Un agente la recibe igual con `read`, junto con cuántas notas tiene. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
+Debajo de la página se pliega el **Historial**: lo que la tarea traía escrito de antes y lo que un agente anota en ella, su bitácora. La página no la copia: encima de ella, a la derecha, **↓ Bitácora · 3 notas** te lleva hasta ahí y la abre si la plegaste; sin notas, no aparece. Un agente la recibe igual con `workspace_read`, junto con cuántas notas tiene. Abierta a página completa, la tarea gana una columna con su propio trayecto: cuánto lleva abierta, cuánto está hecho y cada cambio por el que pasó.
 
 Una **fecha límite** no es lo mismo que un plan: `antes de` y `hasta` abren una. Mira [Lenguaje natural](Lenguaje-natural#fecha-o-fecha-límite).
 

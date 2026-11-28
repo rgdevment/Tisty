@@ -204,7 +204,7 @@ fn outlined(paths: &Paths, asked: &Address, held: &Value) -> Result<String, (i32
     Ok(format!(
         "{notice}{shown}\n\nIt holds {} characters, so this is its outline rather than the whole \
          of it. Read the lines under a heading at {SCHEME}{}?from=FIRST&to=LAST, or with \
-         `read`.",
+         `workspace_read`.",
         held["chars"].as_u64().unwrap_or_default(),
         asked.doc
     ))

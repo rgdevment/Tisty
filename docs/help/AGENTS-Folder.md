@@ -930,10 +930,10 @@ What Tisty keeps of all this, and what travels, is in [Privacy](Privacy#your-age
 
 An agent you let in through [[MCP|Agents-and-MCP]] **reads** your documents in Agents like any other, whether it syncs or not, and its guide tells it what they are. **It does not write them: it proposes the change, and only you approve it.** Nor can it bring, sync, stop syncing, hide or show Agents: no MCP tool does that, only you, in Tisty's window. Through MCP the folder is called `AGENTS`, its stored name, in any language: that is why the answers below say `AGENTS` and not Agents. For example, you ask Claude Code «Which of my rules do you read?».
 
-**1. It reads its guide.** `rules` with the topic «documents» brings, among others, the section on the folder:
+**1. It reads its guide.** `workspace_guide` with `kind: "rules"` and `topic: "documents"` brings, among others, the section on the folder:
 
 ```json
-{ "name": "rules", "arguments": { "topic": "documents" } }
+{ "name": "workspace_guide", "arguments": { "kind": "rules", "topic": "documents" } }
 ```
 
 ```text

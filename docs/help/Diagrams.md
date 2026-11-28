@@ -51,4 +51,4 @@ Images come out at twice their size so they stay sharp (a very large one somewha
 
 ## With an agent
 
-An agent connected through [[MCP|Agents-and-MCP]] writes diagrams like any other text in the document: a `mermaid` block. The `language` tool tells it which kinds the window opens and that `%% tisty:` lines are kept as they are, so it does not undo what you laid out.
+An agent connected through [[MCP|Agents-and-MCP]] writes diagrams like any other text in the document: a `mermaid` block. `workspace_guide` (`kind: "markdown"`) tells it which kinds the window opens and that `%% tisty:` lines are kept as they are, so it does not undo what you laid out.
