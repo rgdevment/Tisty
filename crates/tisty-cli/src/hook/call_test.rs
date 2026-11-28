@@ -43,7 +43,15 @@ fn a_file_with_no_readable_name_leaves_nothing() {
 
 #[test]
 fn a_shell_tool_leaves_the_command_it_was_given() {
-    for tool in ["Bash", "PowerShell", "Shell"] {
+    for tool in [
+        "Bash",
+        "PowerShell",
+        "Shell",
+        "run_shell_command",
+        "bash",
+        "powershell",
+        "shell",
+    ] {
         let heard = json!({ "tool_input": { "command": "echo x > a.md" } });
         assert_eq!(
             leaving(heard, Some(tool)),
@@ -106,7 +114,9 @@ fn copilot_hands_its_arguments_as_text_or_as_an_object() {
     let as_object = json!({ "toolArgs": { "path": "a/c.md", "command": "ls" } });
     for heard in [as_text, as_object] {
         assert_eq!(leaving(heard.clone(), Some("create")), file("a/c.md"));
-        assert_eq!(leaving(heard, Some("Bash")), command("ls"));
+        for tool in ["Bash", "bash", "powershell", "shell"] {
+            assert_eq!(leaving(heard.clone(), Some(tool)), command("ls"), "{tool}");
+        }
     }
 }
 
@@ -162,6 +172,31 @@ fn the_folder_it_runs_in_is_the_tools_then_the_clients_then_none() {
         ),
         (json!({ "tool_input": {}, "cwd": 4 }), ""),
         (json!({}), ""),
+        (
+            json!({ "tool_input": { "dir_path": "/elsewhere" }, "cwd": "/repo" }),
+            "/elsewhere",
+        ),
+        (
+            json!({ "tool_input": { "dir_path": "C:\\Users\\a\\Desktop" }, "cwd": "C:\\repo" }),
+            "C:\\Users\\a\\Desktop",
+        ),
+        (
+            json!({ "tool_input": { "dir_path": "sub" }, "cwd": "/repo" }),
+            "/repo/sub",
+        ),
+        (
+            json!({ "tool_input": { "dir_path": "sub" }, "cwd": "C:\\repo" }),
+            "C:\\repo\\sub",
+        ),
+        (
+            json!({ "tool_input": { "dir_path": "." }, "cwd": "/repo" }),
+            "/repo",
+        ),
+        (json!({ "tool_input": { "dir_path": "sub" } }), ""),
+        (
+            json!({ "tool_input": { "working_directory": "/tool", "dir_path": "/other" }, "cwd": "/client" }),
+            "/tool",
+        ),
     ] {
         assert_eq!(
             Call::read(heard.to_string().as_bytes()).cwd(),

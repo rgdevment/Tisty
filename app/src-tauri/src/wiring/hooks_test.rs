@@ -549,12 +549,27 @@ fn every_assistant_is_written_the_hook_that_asks_first_in_its_own_way() {
     );
     assert_eq!(cursor["hooks"]["preToolUse"][0]["timeout"], 3);
     let shell = &cursor["hooks"]["beforeShellExecution"][0];
-    assert!(shell["matcher"].as_str().unwrap().contains("md"), "{shell}");
+    let matcher = shell["matcher"].as_str().unwrap();
+    assert_eq!(matcher, PROSE_WRITTEN);
+    for expected in [
+        "[mM][dD]",
+        "[hH][aA][nN][dD][oO][fF][fF]",
+        "[nN][oO][tT][eE][sS]",
+        "[tT][oO][dD][oO]",
+        "[pP][lL][aA][nN]",
+        "[pP][rR][oO][mM][pP][tT]",
+        "[bB][rR][iI][eE][fF]",
+    ] {
+        assert!(
+            matcher.contains(expected),
+            "{expected} missing in {matcher}"
+        );
+    }
     assert_eq!(shell["command"], "'/opt/tisty' hook cursor before");
 
     let gemini = read(&with(Kind::Gemini, "", &here).unwrap());
     let before = &gemini["hooks"]["BeforeTool"][0];
-    assert_eq!(before["matcher"], "^write_file$");
+    assert_eq!(before["matcher"], "^(write_file|run_shell_command)$");
     assert_eq!(before["hooks"][0]["timeout"], 3_000);
     assert_eq!(before["hooks"][0]["name"], "tisty-before");
     assert_eq!(
@@ -571,7 +586,7 @@ fn copilot_runs_the_hook_that_asks_first_through_a_shell_that_never_fails() {
 
     let on_windows = read(&with(Kind::Copilot, "", &windows).unwrap());
     let before = &on_windows["hooks"]["preToolUse"][0];
-    assert_eq!(before["matcher"], "create");
+    assert_eq!(before["matcher"], "create|bash|powershell|shell");
     assert_eq!(before["timeoutSec"], 3);
     assert_eq!(
         before["powershell"],
@@ -581,7 +596,7 @@ fn copilot_runs_the_hook_that_asks_first_through_a_shell_that_never_fails() {
 
     let off_windows = read(&with(Kind::Copilot, "", &elsewhere).unwrap());
     let before = &off_windows["hooks"]["preToolUse"][0];
-    assert_eq!(before["matcher"], "create");
+    assert_eq!(before["matcher"], "create|bash|powershell|shell");
     assert_eq!(
         before["bash"],
         "'/opt/It'\\''s/tisty' hook copilot before || true"

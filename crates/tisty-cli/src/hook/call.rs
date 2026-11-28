@@ -3,7 +3,16 @@ use serde::de::IgnoredAny;
 use serde_json::Value;
 
 const CREATING: [&str; 4] = ["Write", "write_file", "create", "write_to_file"];
-const SHELLS: [&str; 4] = ["Bash", "PowerShell", "Shell", "run_command"];
+const SHELLS: [&str; 8] = [
+    "Bash",
+    "PowerShell",
+    "Shell",
+    "run_command",
+    "run_shell_command",
+    "bash",
+    "powershell",
+    "shell",
+];
 const PATCH: &str = "apply_patch";
 const ADDS_FILE: &str = "*** Add File: ";
 const CARD: &str = "mcp__ccd_session__start_session";
@@ -22,7 +31,7 @@ pub enum Leaving {
 pub struct Call {
     input: Input,
     command: Option<Value>,
-    cwd: Option<Value>,
+    cwd: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -69,6 +78,8 @@ struct Input {
     #[serde(default, alias = "Cwd")]
     working_directory: Option<Value>,
     #[serde(default)]
+    dir_path: Option<Value>,
+    #[serde(default)]
     initiation: Option<Value>,
     #[serde(default)]
     input: Option<Value>,
@@ -87,10 +98,15 @@ impl Call {
             Some(Args::Said(said)) => serde_json::from_str(&said).unwrap_or_default(),
             Some(Args::Other(_)) | None => Input::default(),
         };
+        let cwd = resolve_cwd(
+            text(&input.working_directory),
+            text(&input.dir_path),
+            text(&sent.cwd),
+        );
         Self {
             input,
             command: sent.command,
-            cwd: sent.cwd,
+            cwd,
         }
     }
 
@@ -115,9 +131,7 @@ impl Call {
     }
 
     pub fn cwd(&self) -> &str {
-        text(&self.input.working_directory)
-            .or(text(&self.cwd))
-            .unwrap_or_default()
+        &self.cwd
     }
 
     // Codex writes a new file through a patch, which names it on a line of its own.
@@ -145,6 +159,46 @@ impl Call {
         .find_map(text)
         .map_or(Leaving::Nothing, |it| Leaving::File(it.to_string()))
     }
+}
+
+fn resolve_cwd(
+    working_directory: Option<&str>,
+    dir_path: Option<&str>,
+    base: Option<&str>,
+) -> String {
+    if let Some(dir) = working_directory {
+        return dir.to_string();
+    }
+    let Some(dir) = dir_path.map(str::trim) else {
+        return base.unwrap_or_default().to_string();
+    };
+    if dir.is_empty() || dir == "." {
+        return base.unwrap_or_default().to_string();
+    }
+    if is_rooted(dir) {
+        return dir.to_string();
+    }
+    let Some(base) = base.filter(|one| !one.is_empty()) else {
+        return String::new();
+    };
+    let sep = if base.contains('\\') && !base.contains('/') {
+        '\\'
+    } else {
+        '/'
+    };
+    format!("{}{sep}{dir}", base.trim_end_matches(['/', '\\']))
+}
+
+fn is_rooted(path: &str) -> bool {
+    let bytes = path.as_bytes();
+    path.starts_with(['/', '\\'])
+        || path == "~"
+        || path.starts_with("~/")
+        || path.starts_with("~\\")
+        || (bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'/' | b'\\'))
 }
 
 fn text(said: &Option<Value>) -> Option<&str> {
