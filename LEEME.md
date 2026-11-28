@@ -681,10 +681,10 @@ De dónde sale el ahorro:
   leerlos dos veces.
 
 Conectarse también cuesta: la descripción de las herramientas de Tisty pesa
-cerca de una sexta parte de esa bitácora, un tercio menos que antes, y un test
-impide que vuelva a crecer. Un agente que carga las herramientas solo a
+cerca de una décima parte de esa bitácora, más de un tercio menos que antes, y
+un test impide que vuelva a crecer. Un agente que carga las herramientas solo a
 medida que las usa no la paga entera; uno que las carga todas en cada sesión
-ahorra entre un 72 y un 83 %, y con menos de unos 50 KB de notas un archivo
+ahorra entre un 77 y un 88 %, y con menos de unos 35 KB de notas un archivo
 plano sale más barato. Se cuentan caracteres, incluido el JSON que acompaña
 cada respuesta, y los tokens los siguen de cerca.
 

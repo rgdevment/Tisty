@@ -598,15 +598,16 @@ cannot quietly take what you wrote while it was thinking. What it wrote over is
 kept in the document's earlier versions on this computer either way.
 
 **It can take one step back, and only when that step is the whole distance.**
-That kept body is not only held, it is reachable: `restore_doc` puts it back,
-and what it replaces is kept in turn, so going back destroys nothing and going
-back twice leaves the document where it started. But not every write leaves that
-step — adding to the end does not, and your own saves from the window do not,
-though they still keep earlier versions when the history cuts one — so what
-`restore_doc` puts back is not always one step behind. Kept alongside it is the
-print the document read at when it was set aside, and going back is refused
-unless the document still reads exactly that way. An assistant that wrote this
-morning does not undo an afternoon of yours by reaching for the wrong tool.
+That kept body is not only held, it is reachable: `doc_edit` (`mode: "restore"`)
+puts it back, and what it replaces is kept in turn, so going back destroys
+nothing and going back twice leaves the document where it started. But not every
+write leaves that step — adding to the end does not, and your own saves from the
+window do not, though they still keep earlier versions when the history cuts one
+— so what `doc_edit` (`mode: "restore"`) puts back is not always one step
+behind. Kept alongside it is the print the document read at when it was set
+aside, and going back is refused unless the document still reads exactly that
+way. An assistant that wrote this morning does not undo an afternoon of yours by
+reaching for the wrong tool.
 
 It can still do it on purpose: `even_if_more` goes back over writing done
 since, and an assistant that has read the document may decide that is what it
@@ -614,32 +615,31 @@ wants. What that call writes over is kept in turn, so the same call again puts
 your afternoon back — and the answer says it went further than one write, which
 is the thing to look for if a document is suddenly shorter than you left it.
 
-**It can go back further, and only to what this computer kept.** `read`
-with `versions` lists a document's earlier versions and `version` reads one, so
-an assistant sees what it said before without guessing. `restore_doc` with
-`version` puts one back over everything written since; what it replaces is
-kept in turn, and the same call without `version` undoes it. A version kept
-only on another of your computers is listed, never read or put back from here.
-**Empty the history** in the window is yours alone: no tool deletes versions.
-The diary's earlier versions are refused to every assistant, even while the
-diary is open to agents.
+**It can go back further, and only to what this computer kept.**
+`workspace_read` with `view: "versions"` lists a document's earlier versions and
+`version` reads one, so an assistant sees what it said before without guessing.
+`doc_edit` (`mode: "restore"`) with `version` puts one back over everything
+written since; what it replaces is kept in turn, and the same call without
+`version` undoes it. A version kept only on another of your computers is listed,
+never read or put back from here. **Empty the history** in the window is yours
+alone: no tool deletes versions. The diary's earlier versions are refused to
+every assistant, even while the diary is open to agents.
 
 **It cannot write your agents' rules.** The Agents folder holds the files
 every assistant on this computer reads before it starts — a page an assistant
 read somewhere could otherwise plant an instruction for all of them. So an
-assistant reads those documents but never writes them: `write_doc`,
-`edit_doc` and `append_doc` on one of them keep the change apart as a
-proposal, and nothing reaches a document or a file until you approve it on
-its card; on an assistant's memory it is refused outright. Every other tool
-that names an Agents document or the folder, by any argument that can carry
-one, is refused before it touches anything. No assistant may add or change an
-`agent:` line, in any document of any folder, which is what decides the file
-a document is written to. Names are matched loosely — case, accents, spaces
-and invisible characters do not count — so a folder dressed up as `AGENTS`
-is still refused. While two Agents folders are not yet joined, both are
-guarded the same way. `read` of a document with a proposal says so, with
-`approved: false`, so an assistant never mistakes what it proposed for what
-your agents read.
+assistant reads those documents but never writes them: `doc_edit` (`replace`,
+`append` and `rewrite`) on one of them keeps the change apart as a proposal, and
+nothing reaches a document or a file until you approve it on its card; on an
+assistant's memory it is refused outright. Every other tool that names an Agents
+document or the folder, by any argument that can carry one, is refused before it
+touches anything. No assistant may add or change an `agent:` line, in any
+document of any folder, which is what decides the file a document is written to.
+Names are matched loosely — case, accents, spaces and invisible characters do
+not count — so a folder dressed up as `AGENTS` is still refused. While two
+Agents folders are not yet joined, both are guarded the same way.
+`workspace_read` of a document with a proposal says so, with `approved: false`,
+so an assistant never mistakes what it proposed for what your agents read.
 
 **It does not see what you put away.** A task you hid, the pages hung under it
 and your diary, until you open it, are refused like documents that do not

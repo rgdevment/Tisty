@@ -661,11 +661,11 @@ Where the saving comes from:
   consolidated rather than read twice.
 
 Connecting costs something too: the description of Tisty's tools weighs about a
-sixth of that log, a third less than it did, and a test keeps it from growing.
-An agent that loads tools only as it uses them does not pay it whole; one
-that loads every tool each session saves 72–83%, and below some 50 KB of notes
-a plain file is cheaper. The counts are characters, with the JSON each answer
-carries included, and tokens follow them closely.
+tenth of that log, more than a third less than before, and a test keeps it from
+growing. An agent that loads tools only as it uses them does not pay it whole;
+one that loads every tool each session saves 77–88%, and below some 35 KB of
+notes a plain file is cheaper. The counts are characters, with the JSON each
+answer carries included, and tokens follow them closely.
 
 ## Share What You Know With Folio
 
