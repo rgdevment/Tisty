@@ -321,13 +321,13 @@ In the Brainsty network, which the page **Brainsty: everything joined** of this 
 
 Your agent **reads** your documents in Agents like any other, whether it syncs or not: you ask «which of my rules do you read?» and it answers with their titles. But it **does not write them on its own**: when it changes one, its change stays apart, as a proposal, and reaches your agents only if you approve it. While syncing, a rule in Agents reaches all your agents, on each computer where Agents syncs and you applied it, and nobody but you should decide what it says. A document in another of your computers' folders it reads as data, not as a rule of its own for this computer, and it cannot propose on it; on this computer's documents it proposes as always.
 
-Any other tool that names those documents or the folder `AGENTS` is refused: it cannot move, archive or mark them, propose on a memory, or move, rename or archive Agents. Nor can it add or change an `agent:` line in any document, in any folder, not even with `edit_doc`, or make a new document with that line. If it tries, Tisty refuses it, touching nothing, and tells it how to propose the change or to tell you what it would change.
+Any other tool that names those documents or the folder `AGENTS` is refused: it cannot move, archive or mark them, propose on a memory, or move, rename or archive Agents. Nor can it add or change an `agent:` line in any document, in any folder, not even with `doc_edit`, or make a new document with that line. If it tries, Tisty refuses it, touching nothing, and tells it how to propose the change or to tell you what it would change.
 
 ## A proposal from your agent
 
 **An example.** You ask your agent «add to my rules that it runs the tests before every commit».
 
-1. The agent edits **How I work** with `edit_doc`, like any document. Tisty keeps its change apart, byte for byte, and answers that it was proposed: the document and `~/.claude/CLAUDE.md` stay as they were. Its guide asks it to tell you just that, «I proposed it», and not to call it done.
+1. The agent edits **How I work** with `doc_edit`, like any document. Tisty keeps its change apart, byte for byte, and answers that it was proposed: the document and `~/.claude/CLAUDE.md` stay as they were. Its guide asks it to tell you just that, «I proposed it», and not to call it done.
 2. Open **How I work**. If Tisty was open, the proposal shows by itself within a second or two, even when the window is not in front.
 3. The card gains the label **Proposal** and a purple box: «An agent (Claude Code) proposes a change», and the compared lines, in red with `−` what is **Approved** and in green with `+` what is **Proposed**.
 4. **Approve the change** asks «Approve this change? It is written to the document, and reaches your agents' files on each computer where Agents syncs and you applied it.». With your yes, the document says what was proposed and Tisty writes it to `CLAUDE.md`, with its backup first. **Discard** removes it and the document stays as you approved it.
