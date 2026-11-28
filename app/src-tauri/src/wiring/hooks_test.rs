@@ -862,15 +862,46 @@ fn antigravity_matches_the_tools_that_leave_something_by_their_own_names() {
 }
 
 #[test]
-fn antigravity_runs_its_hook_through_powershell_on_windows() {
+fn antigravity_runs_its_hook_through_cmd_with_double_quotes_on_windows() {
     let tmp = tempfile::tempdir().unwrap();
-    let here = place(tmp.path(), Os::Windows, "C:\\Users\\O'Neil\\tisty.exe");
+    let here = place(tmp.path(), Os::Windows, "C:\\Users\\O'Neil & Co\\tisty.exe");
 
     let now = read(&with(Kind::Antigravity, "", &here).unwrap());
 
     assert_eq!(
         now["tisty"]["Stop"][0]["command"],
-        "& 'C:\\Users\\O''Neil\\tisty.exe' hook antigravity stop"
+        "\"C:\\Users\\O'Neil & Co\\tisty.exe\" hook antigravity stop"
+    );
+    assert_eq!(
+        now["tisty"]["PreToolUse"][0]["hooks"][0]["command"],
+        "\"C:\\Users\\O'Neil & Co\\tisty.exe\" hook antigravity before"
+    );
+}
+
+#[test]
+fn antigravity_runs_its_hook_through_posix_shell_on_macos_and_wsl2() {
+    let tmp = tempfile::tempdir().unwrap();
+    let macos = place(tmp.path(), Os::Macos, "/Apps/It's Tisty/tisty");
+    let now = read(&with(Kind::Antigravity, "", &macos).unwrap());
+    assert_eq!(
+        now["tisty"]["Stop"][0]["command"],
+        "'/Apps/It'\\''s Tisty/tisty' hook antigravity stop"
+    );
+
+    let mut wsl = place(
+        tmp.path(),
+        Os::Windows,
+        "/mnt/c/Users/O'Neil/AppData/Local/Programs/Tisty/tisty.exe",
+    );
+    wsl.distro = Some("Ubuntu".to_string());
+    let now = read(&with(Kind::Antigravity, "", &wsl).unwrap());
+    assert_eq!(
+        now["tisty"]["Stop"][0]["command"],
+        "'/mnt/c/Users/O'\\''Neil/AppData/Local/Programs/Tisty/tisty.exe' hook antigravity stop"
+    );
+    assert_eq!(
+        now["tisty"]["PreToolUse"][0]["hooks"][0]["command"],
+        "'/mnt/c/Users/O'\\''Neil/AppData/Local/Programs/Tisty/tisty.exe' hook antigravity before"
     );
 }
 

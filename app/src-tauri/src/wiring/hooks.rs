@@ -298,10 +298,10 @@ impl Kind {
         format!("{} {}", self.quoted(place), args.join(" "))
     }
 
-    // On Windows Codex runs a hook through cmd.exe and the others through PowerShell; elsewhere, a POSIX shell.
+    // On Windows Codex and Antigravity run hooks through cmd.exe, others through PowerShell; macOS and WSL2 use a POSIX shell.
     pub(super) fn quoted(self, place: &Place) -> String {
         match (windows(place), self) {
-            (true, Kind::Codex) => format!("\"{}\"", place.command),
+            (true, Kind::Codex | Kind::Antigravity) => format!("\"{}\"", place.command),
             (true, _) => format!("& '{}'", place.command.replace('\'', "''")),
             (false, _) => format!("'{}'", place.command.replace('\'', "'\\''")),
         }
